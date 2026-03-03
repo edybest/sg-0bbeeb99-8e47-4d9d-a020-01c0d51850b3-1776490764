@@ -76,7 +76,7 @@ export default function MemberDashboard() {
           const bestScore = Math.max(...games.map(g => g.overall_score));
 
           // Get current rank (count members with higher overall score in latest game)
-          const latestGame = await supabase
+          const { data: latestGame } = await supabase
             .from("games")
             .select("id")
             .order("game_date", { ascending: false })
