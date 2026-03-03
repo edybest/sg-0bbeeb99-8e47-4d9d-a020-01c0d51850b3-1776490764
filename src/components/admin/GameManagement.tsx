@@ -114,7 +114,10 @@ export function GameManagement() {
           game_name: formData.game_name,
           game_date: formData.game_date,
           game_format: formData.game_format,
-          location: formData.location || null
+          location: formData.location || null,
+          year: new Date(formData.game_date).getFullYear(),
+          game_type: "BLOK",
+          is_official: true
         });
 
         // Add selected players to the game
@@ -122,16 +125,13 @@ export function GameManagement() {
           await gameService.addPlayerToGame({
             game_id: newGame.id,
             member_id: memberId,
-            game1: 0,
-            game2: 0,
-            game3: 0,
-            game4: 0,
-            game5: 0,
-            handicap: 0,
-            total_score: 0,
-            overall_score: 0,
-            average_score: 0,
-            difference_score: 0
+            game1_score: 0,
+            game2_score: 0,
+            game3_score: 0,
+            game4_score: 0,
+            game5_score: 0,
+            handicap: 0
+            // Generated columns (total_score, overall_score, etc.) are handled by DB
           });
         }
       }

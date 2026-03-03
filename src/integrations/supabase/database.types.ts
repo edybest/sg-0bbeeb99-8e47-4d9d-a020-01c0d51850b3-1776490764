@@ -90,6 +90,7 @@ export type Database = {
           game_type: string | null
           id: string
           is_official: boolean | null
+          location: string | null
           updated_at: string | null
           year: number
         }
@@ -101,6 +102,7 @@ export type Database = {
           game_type?: string | null
           id?: string
           is_official?: boolean | null
+          location?: string | null
           updated_at?: string | null
           year: number
         }
@@ -112,6 +114,7 @@ export type Database = {
           game_type?: string | null
           id?: string
           is_official?: boolean | null
+          location?: string | null
           updated_at?: string | null
           year?: number
         }
