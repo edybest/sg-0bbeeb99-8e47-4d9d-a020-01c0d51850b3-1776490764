@@ -56,8 +56,8 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-12 w-12 animate-spin text-red-600" />
       </div>
     );
   }
@@ -68,8 +68,8 @@ export default function AdminPage() {
         title="Admin Dashboard - AMBC Club"
         description="Sistem pengurusan keahlian AMBC Club"
       />
-      <div className="min-h-screen bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <header className="bg-black/50 backdrop-blur border-b border-red-900/50">
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -78,19 +78,19 @@ export default function AdminPage() {
                   alt="AMBC Club" 
                   width={60} 
                   height={60}
-                  className="drop-shadow-2xl"
+                  className="drop-shadow-lg"
                 />
                 <div>
-                  <h1 className="text-2xl font-bold text-red-500">AMBC CLUB</h1>
-                  <p className="text-sm text-gray-400">Admin Dashboard</p>
+                  <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
+                  <p className="text-sm text-gray-600">Admin Dashboard</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-gray-300 hidden sm:inline">Selamat datang, {adminData?.full_name}</span>
+                <span className="text-gray-700 hidden sm:inline">Selamat datang, {adminData?.full_name}</span>
                 <Button 
                   variant="outline" 
                   onClick={handleLogout}
-                  className="border-red-900/50 hover:bg-red-950/50"
+                  className="border-gray-300 hover:bg-gray-100"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -102,7 +102,7 @@ export default function AdminPage() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="members" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-red-900/50 mb-8">
+            <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200 mb-8 shadow-sm">
               <TabsTrigger 
                 value="members" 
                 className="data-[state=active]:bg-red-600 data-[state=active]:text-white"

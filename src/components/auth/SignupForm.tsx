@@ -95,8 +95,8 @@ export function SignupForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-black to-gray-900 p-4">
-      <Card className="w-full max-w-2xl bg-black/50 backdrop-blur border-red-900/50">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <Card className="w-full max-w-2xl shadow-xl border-gray-200">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <Image 
@@ -104,11 +104,11 @@ export function SignupForm() {
               alt="AMBC Club" 
               width={120} 
               height={120}
-              className="drop-shadow-2xl"
+              className="drop-shadow-lg"
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-red-500">Daftar AMBC CLUB</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-3xl font-bold text-red-600">Daftar AMBC CLUB</CardTitle>
+          <CardDescription className="text-gray-600">
             Lengkapkan maklumat untuk mendaftar
           </CardDescription>
         </CardHeader>
@@ -116,7 +116,7 @@ export function SignupForm() {
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-gray-300">Username *</Label>
+                <Label htmlFor="username" className="text-gray-700">Username *</Label>
                 <Input
                   id="username"
                   type="text"
@@ -124,11 +124,11 @@ export function SignupForm() {
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-300">Email *</Label>
+                <Label htmlFor="email" className="text-gray-700">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -136,13 +136,13 @@ export function SignupForm() {
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-gray-300">Nama Penuh *</Label>
+              <Label htmlFor="fullName" className="text-gray-700">Nama Penuh *</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -150,13 +150,13 @@ export function SignupForm() {
                 value={formData.fullName}
                 onChange={(e) => handleChange("fullName", e.target.value)}
                 required
-                className="bg-gray-900/50 border-gray-700 text-white"
+                className="bg-white border-gray-300 text-gray-900"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-gray-300">Telefon *</Label>
+                <Label htmlFor="phone" className="text-gray-700">Telefon *</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -164,38 +164,38 @@ export function SignupForm() {
                   value={formData.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="birthday" className="text-gray-300">Tarikh Lahir *</Label>
+                <Label htmlFor="birthday" className="text-gray-700">Tarikh Lahir *</Label>
                 <Input
                   id="birthday"
                   type="date"
                   value={formData.birthday}
                   onChange={(e) => handleChange("birthday", e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sex" className="text-gray-300">Jantina *</Label>
+              <Label htmlFor="sex" className="text-gray-700">Jantina *</Label>
               <Select value={formData.sex} onValueChange={(value) => handleChange("sex", value)} required>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                   <SelectValue placeholder="Pilih jantina" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  <SelectItem value="men" className="text-white">Lelaki</SelectItem>
-                  <SelectItem value="women" className="text-white">Perempuan</SelectItem>
+                <SelectContent className="bg-white border-gray-300">
+                  <SelectItem value="men" className="text-gray-900">Lelaki</SelectItem>
+                  <SelectItem value="women" className="text-gray-900">Perempuan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-300">Password *</Label>
+                <Label htmlFor="password" className="text-gray-700">Password *</Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -205,19 +205,19 @@ export function SignupForm() {
                     onChange={(e) => handleChange("password", e.target.value)}
                     required
                     minLength={6}
-                    className="bg-gray-900/50 border-gray-700 text-white pr-10"
+                    className="bg-white border-gray-300 text-gray-900 pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-gray-300">Sahkan Password *</Label>
+                <Label htmlFor="confirmPassword" className="text-gray-700">Sahkan Password *</Label>
                 <Input
                   id="confirmPassword"
                   type={showPassword ? "text" : "password"}
@@ -225,13 +225,13 @@ export function SignupForm() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange("confirmPassword", e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="text-sm text-red-400 bg-red-950/50 border border-red-900 rounded p-3">
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
                 {error}
               </div>
             )}
@@ -251,12 +251,12 @@ export function SignupForm() {
               )}
             </Button>
 
-            <div className="text-center text-sm text-gray-400">
+            <div className="text-center text-sm text-gray-600">
               Sudah ada akaun?{" "}
               <button
                 type="button"
                 onClick={() => router.push("/login")}
-                className="text-red-500 hover:text-red-400 font-medium"
+                className="text-red-600 hover:text-red-700 font-medium"
               >
                 Login sekarang
               </button>

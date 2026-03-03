@@ -103,8 +103,8 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-black to-gray-900 p-4">
-      <Card className="w-full max-w-md bg-black/50 backdrop-blur border-red-900/50">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <Card className="w-full max-w-md shadow-xl border-gray-200">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <Image 
@@ -112,18 +112,18 @@ export function LoginForm() {
               alt="AMBC Club" 
               width={150} 
               height={150}
-              className="drop-shadow-2xl"
+              className="drop-shadow-lg"
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-red-500">AMBC CLUB</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-3xl font-bold text-red-600">AMBC CLUB</CardTitle>
+          <CardDescription className="text-gray-600">
             Login dengan email, username atau phone
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="identifier" className="text-gray-300">Email / Username / Phone</Label>
+              <Label htmlFor="identifier" className="text-gray-700">Email / Username / Phone</Label>
               <Input
                 id="identifier"
                 type="text"
@@ -131,11 +131,11 @@ export function LoginForm() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
-                className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
+              <Label htmlFor="password" className="text-gray-700">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -144,19 +144,19 @@ export function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 pr-10"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
             {error && (
-              <div className="text-sm text-red-400 bg-red-950/50 border border-red-900 rounded p-3">
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3">
                 {error}
               </div>
             )}
@@ -174,12 +174,12 @@ export function LoginForm() {
                 "Login"
               )}
             </Button>
-            <div className="text-center text-sm text-gray-400">
+            <div className="text-center text-sm text-gray-600">
               Belum ada akaun?{" "}
               <button
                 type="button"
                 onClick={() => router.push("/signup")}
-                className="text-red-500 hover:text-red-400 font-medium"
+                className="text-red-600 hover:text-red-700 font-medium"
               >
                 Daftar sekarang
               </button>
