@@ -79,5 +79,17 @@ export const memberService = {
     
     if (error) throw error;
     return data || [];
+  },
+
+  async updateAvatar(memberId: string, avatarUrl: string) {
+    const { data, error } = await supabase
+      .from("members")
+      .update({ avatar_url: avatarUrl })
+      .eq("id", memberId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 };

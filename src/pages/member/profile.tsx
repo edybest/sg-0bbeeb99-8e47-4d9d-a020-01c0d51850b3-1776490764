@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import { memberService } from "@/services/memberService";
 import { gameService } from "@/services/gameService";
+import { storageService } from "@/services/storageService";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -109,23 +110,18 @@ export default function ProfilePage() {
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !profile) return;
 
     setUploadingAvatar(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        
-        if (profile) {
-          await memberService.updateMember(profile.id, {
-            avatar_url: base64
-          });
-          
-          setProfile({ ...profile, avatar_url: base64 });
-        }
-      };
-      reader.readAsDataURL(file);
+      // Upload to Supabase Storage
+      const avatarUrl = await storageService.uploadAvatar(profile.id, file);
+      
+      // Update member record with new avatar URL
+      await memberService.updateAvatar(profile.id, avatarUrl);
+      
+      // Update local state
+      setProfile({ ...profile, avatar_url: avatarUrl });
     } catch (error) {
       console.error("Error uploading avatar:", error);
       alert("Gagal memuat naik avatar");
@@ -204,7 +200,7 @@ export default function ProfilePage() {
                 <CardContent className="flex flex-col items-center gap-4">
                   {profile?.avatar_url ? (
                     <Image 
-                      src={profile.avatar_url} 
+                      src={storageService.getAvatarUrl(profile.avatar_url) || profile.avatar_url} 
                       alt={profile.username} 
                       width={150} 
                       height={150}

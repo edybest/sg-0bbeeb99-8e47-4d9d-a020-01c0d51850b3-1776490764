@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import { gameService } from "@/services/gameService";
+import { storageService } from "@/services/storageService";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -183,7 +184,7 @@ export default function BlokPage() {
                         <Link href={`/member/profile/${player.members.username}`} className="flex items-center gap-3 hover:opacity-80">
                           {player.members.avatar_url ? (
                             <Image 
-                              src={player.members.avatar_url} 
+                              src={storageService.getAvatarUrl(player.members.avatar_url) || player.members.avatar_url} 
                               alt={player.members.username} 
                               width={50} 
                               height={50}

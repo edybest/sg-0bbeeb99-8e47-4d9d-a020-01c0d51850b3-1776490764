@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { memberService } from "@/services/memberService";
+import { storageService } from "@/services/storageService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,22 +125,21 @@ export function MemberManagement() {
 
       // Upload avatar if provided
       if (formData.avatar_base64) {
+        // Convert base64 to File object
         const base64Data = formData.avatar_base64.split(",")[1];
-        const fileName = `${Date.now()}-avatar.png`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, Buffer.from(base64Data, "base64"), {
-            contentType: "image/png"
-          });
+        const mimeType = formData.avatar_base64.split(";")[0].split(":")[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+        const file = new File([blob], `avatar.${mimeType.split("/")[1]}`, { type: mimeType });
 
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(fileName);
-
-        avatarUrl = publicUrl;
+        // Upload to Supabase Storage
+        const userId = editingMember?.id || crypto.randomUUID();
+        avatarUrl = await storageService.uploadAvatar(userId, file);
       }
 
       if (editingMember) {
@@ -387,7 +387,13 @@ export function MemberManagement() {
                 <TableRow key={member.id} className="border-gray-800">
                   <TableCell>
                     {member.avatar_url ? (
-                      <Image src={member.avatar_url} alt={member.username} width={40} height={40} className="rounded-full" />
+                      <Image 
+                        src={storageService.getAvatarUrl(member.avatar_url) || member.avatar_url} 
+                        alt={member.username} 
+                        width={40} 
+                        height={40} 
+                        className="rounded-full" 
+                      />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
                         {member.username[0].toUpperCase()}
