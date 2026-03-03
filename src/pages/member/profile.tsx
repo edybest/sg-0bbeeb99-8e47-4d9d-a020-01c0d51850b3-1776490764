@@ -22,7 +22,7 @@ type MemberProfile = {
   birthday: string;
   sex: string;
   avatar_url: string | null;
-  technique: string | null;
+  bowling_technique: string | null;
 };
 
 type GameHistory = {
@@ -144,7 +144,7 @@ export default function ProfilePage() {
         phone: profile.phone,
         birthday: profile.birthday,
         sex: profile.sex,
-        technique: profile.technique
+        bowling_technique: profile.bowling_technique
       });
 
       setEditMode(false);
@@ -367,8 +367,8 @@ export default function ProfilePage() {
                     <div className="md:col-span-2">
                       <Label className="text-gray-300">Teknik Bowling</Label>
                       <Input 
-                        value={profile?.technique || ""} 
-                        onChange={(e) => setProfile(profile ? {...profile, technique: e.target.value} : null)}
+                        value={profile?.bowling_technique || ""} 
+                        onChange={(e) => setProfile(profile ? {...profile, bowling_technique: e.target.value} : null)}
                         disabled={!editMode}
                         placeholder="Contoh: Two-handed, Hook, Straight"
                         className="bg-gray-800 border-gray-700 text-white"
