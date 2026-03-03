@@ -22,6 +22,8 @@ export function LoginForm() {
     setError("");
 
     try {
+      console.log("Starting login process for:", identifier);
+
       // Check if identifier is email, username, or phone
       const isEmail = identifier.includes("@");
       const isPhone = /^\+?[0-9]{10,}$/.test(identifier);
@@ -30,44 +32,71 @@ export function LoginForm() {
 
       // If username or phone, find the associated email
       if (!isEmail) {
-        const { data: member } = await supabase
+        console.log("Looking up member by username/phone...");
+        const { data: member, error: memberError } = await supabase
           .from("members")
-          .select("email, user_id")
+          .select("email")
           .or(isPhone ? `phone.eq.${identifier}` : `username.eq.${identifier}`)
           .single();
 
-        if (!member?.email) {
-          setError("Invalid credentials");
+        console.log("Member lookup result:", { member, memberError });
+
+        if (memberError || !member?.email) {
+          setError("Username atau phone tidak dijumpai");
           setLoading(false);
           return;
         }
 
         email = member.email;
+        console.log("Found email:", email);
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Attempt login with email and password
+      console.log("Attempting auth login with email:", email);
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      console.log("Auth result:", { authData, authError });
 
-      if (data.user) {
-        // Check if user is admin
-        const { data: member } = await supabase
-          .from("members")
-          .select("is_admin")
-          .eq("user_id", data.user.id)
-          .single();
-
-        if (member?.is_admin) {
-          router.push("/admin");
-        } else {
-          router.push("/member");
-        }
+      if (authError) {
+        console.error("Auth error:", authError);
+        setError("Email atau password tidak tepat");
+        setLoading(false);
+        return;
       }
+
+      if (!authData.user) {
+        setError("Login gagal");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Login successful! User ID:", authData.user.id);
+
+      // Check if user is admin
+      console.log("Checking admin status...");
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("is_admin, username")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      console.log("Admin check result:", { member, memberError });
+
+      // Redirect based on admin status
+      if (member?.is_admin) {
+        console.log("Redirecting to admin dashboard...");
+        await router.push("/admin");
+      } else {
+        console.log("Redirecting to member area...");
+        await router.push("/member");
+      }
+
     } catch (err: any) {
-      setError(err.message || "Failed to login");
+      console.error("Login error:", err);
+      setError(err.message || "Login gagal. Cuba lagi.");
     } finally {
       setLoading(false);
     }
