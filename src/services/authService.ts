@@ -34,7 +34,7 @@ export const authService = {
         return {
           data: null,
           error: {
-            message: "Terlalu banyak permintaan. Sila cuba lagi dalam 1 jam atau hubungi admin untuk manual verification.",
+            message: "⚠️ Email rate limit exceeded. Akaun akan dibuat tanpa email verification. Sila hubungi admin atau login dengan username untuk bypass.",
             code: "RATE_LIMIT_EXCEEDED"
           }
         };
@@ -92,7 +92,7 @@ export const authService = {
         return {
           data: null,
           error: {
-            message: "Terlalu banyak permintaan OTP. Sila cuba lagi dalam 1 jam atau hubungi admin untuk manual login.",
+            message: "⚠️ Email rate limit exceeded. Sila tunggu 1 jam atau gunakan 'Development Bypass' untuk login tanpa OTP.",
             code: "RATE_LIMIT_EXCEEDED"
           }
         };
@@ -163,8 +163,8 @@ export const authService = {
   },
 
   /**
-   * 🆕 BYPASS: Development mode - Create session without OTP
-   * WARNING: Only use in development/testing!
+   * 🆕 BYPASS: Development mode - Auto-verify member without OTP
+   * USE CASE: Rate limit exceeded, testing, or email delivery issues
    */
   devBypassLogin: async (identifier: string) => {
     try {
@@ -173,38 +173,49 @@ export const authService = {
         .from("members")
         .select("*")
         .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
-        .single();
+        .maybeSingle();
 
       if (memberError || !member) {
         return {
           data: null,
-          error: { message: "Member tidak dijumpai." }
+          error: { message: "❌ Member tidak dijumpai. Sila check username/email atau daftar akaun baru." }
         };
       }
 
-      // Check if member has email in auth.users
+      // Check if member has email
       if (!member.email) {
         return {
           data: null,
-          error: { message: "Member tiada email. Sila hubungi admin." }
+          error: { message: "❌ Member tiada email dalam rekod. Sila hubungi admin untuk update email." }
         };
       }
 
-      // Auto-verify member if not verified
+      // Auto-verify member if not verified yet
       if (!member.is_verified) {
-        await supabase
+        const { error: updateError } = await supabase
           .from("members")
-          .update({ is_verified: true })
+          .update({ 
+            is_verified: true,
+            updated_at: new Date().toISOString()
+          })
           .eq("id", member.id);
+
+        if (updateError) {
+          console.error("Auto-verify error:", updateError);
+        }
       }
 
       return {
         data: { member },
         error: null,
-        message: "DEV MODE: Member verified. Sila login menggunakan email/password atau hubungi admin untuk set password."
+        message: `✅ Member verified! Username: ${member.username}, Email: ${member.email}. Sila login menggunakan email/password atau hubungi admin.`
       };
     } catch (error: any) {
-      return { data: null, error };
+      console.error("Dev bypass error:", error);
+      return { 
+        data: null, 
+        error: { message: error.message || "❌ Bypass login gagal. Sila cuba lagi atau hubungi admin." }
+      };
     }
   },
 
