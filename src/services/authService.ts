@@ -1,181 +1,242 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  user_metadata?: any;
-  created_at?: string;
-}
+type Member = Tables<"members">;
 
-export interface AuthError {
-  message: string;
-  code?: string;
-}
-
-// Dynamic URL Helper
-const getURL = () => {
-  let url = process?.env?.NEXT_PUBLIC_VERCEL_URL ?? 
-           process?.env?.NEXT_PUBLIC_SITE_URL ?? 
-           'http://localhost:3000'
-  
-  // Handle undefined or null url
-  if (!url) {
-    url = 'http://localhost:3000';
-  }
-  
-  // Ensure url has protocol
-  url = url.startsWith('http') ? url : `https://${url}`
-  
-  // Ensure url ends with slash
-  url = url.endsWith('/') ? url : `${url}/`
-  
-  return url
-}
+/**
+ * Get dynamic redirect URL based on environment
+ */
+const getRedirectUrl = () => {
+  if (typeof window === "undefined") return "";
+  return window.location.origin;
+};
 
 export const authService = {
-  // Get current user
-  async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user ? {
-      id: user.id,
-      email: user.email || "",
-      user_metadata: user.user_metadata,
-      created_at: user.created_at
-    } : null;
-  },
-
-  // Get current session
-  async getCurrentSession(): Promise<Session | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-  },
-
-  // Sign up with email and password
-  async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  /**
+   * Member signup with email verification
+   */
+  signUp: async (email: string, password: string, userData: Partial<Member>) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${getURL()}auth/confirm-email`
-        }
+          emailRedirectTo: getRedirectUrl(),
+          data: userData,
+        },
       });
 
-      if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error: any) {
+      // Handle rate limit errors gracefully
+      if (error.message?.includes("rate limit") || error.message?.includes("Email rate limit exceeded")) {
+        return {
+          data: null,
+          error: {
+            message: "Terlalu banyak permintaan. Sila cuba lagi dalam 1 jam atau hubungi admin untuk manual verification.",
+            code: "RATE_LIMIT_EXCEEDED"
+          }
+        };
       }
-
-      const authUser = data.user ? {
-        id: data.user.id,
-        email: data.user.email || "",
-        user_metadata: data.user.user_metadata,
-        created_at: data.user.created_at
-      } : null;
-
-      return { user: authUser, error: null };
-    } catch (error) {
-      return { 
-        user: null, 
-        error: { message: "An unexpected error occurred during sign up" } 
-      };
+      return { data: null, error };
     }
   },
 
-  // Sign in with email and password
-  async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  /**
+   * Request OTP for login (email/phone)
+   */
+  requestOTP: async (identifier: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
-      }
-
-      const authUser = data.user ? {
-        id: data.user.id,
-        email: data.user.email || "",
-        user_metadata: data.user.user_metadata,
-        created_at: data.user.created_at
-      } : null;
-
-      return { user: authUser, error: null };
-    } catch (error) {
-      return { 
-        user: null, 
-        error: { message: "An unexpected error occurred during sign in" } 
-      };
-    }
-  },
-
-  // Sign out
-  async signOut(): Promise<{ error: AuthError | null }> {
-    try {
-      const { error } = await supabase.auth.signOut();
+      // Check if identifier is email
+      const isEmail = identifier.includes("@");
       
-      if (error) {
-        return { error: { message: error.message } };
-      }
+      if (isEmail) {
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email: identifier,
+          options: {
+            emailRedirectTo: getRedirectUrl(),
+          },
+        });
+        
+        if (error) throw error;
+        return { data, error: null };
+      } else {
+        // For phone/username, we need to get email first from members table
+        const { data: member, error: memberError } = await supabase
+          .from("members")
+          .select("email, phone")
+          .or(`username.eq.${identifier},phone.eq.${identifier}`)
+          .single();
 
-      return { error: null };
-    } catch (error) {
-      return { 
-        error: { message: "An unexpected error occurred during sign out" } 
-      };
+        if (memberError || !member?.email) {
+          return {
+            data: null,
+            error: { message: "Member tidak dijumpai atau tiada email berdaftar." }
+          };
+        }
+
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email: member.email,
+          options: {
+            emailRedirectTo: getRedirectUrl(),
+          },
+        });
+
+        if (error) throw error;
+        return { data, error: null };
+      }
+    } catch (error: any) {
+      // Handle rate limit errors gracefully
+      if (error.message?.includes("rate limit") || error.message?.includes("Email rate limit exceeded")) {
+        return {
+          data: null,
+          error: {
+            message: "Terlalu banyak permintaan OTP. Sila cuba lagi dalam 1 jam atau hubungi admin untuk manual login.",
+            code: "RATE_LIMIT_EXCEEDED"
+          }
+        };
+      }
+      return { data: null, error };
     }
   },
 
-  // Reset password
-  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
+  /**
+   * Verify OTP code
+   */
+  verifyOTP: async (email: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+
+    if (error) return { data: null, error };
+    return { data, error: null };
+  },
+
+  /**
+   * Admin/Superuser login with email + password
+   */
+  signInWithPassword: async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) return { data: null, error };
+
+    // Check if user is admin
+    const { data: member } = await supabase
+      .from("members")
+      .select("is_admin, is_verified")
+      .eq("email", email)
+      .single();
+
+    if (!member?.is_admin) {
+      await supabase.auth.signOut();
+      return {
+        data: null,
+        error: { message: "Access denied. Admin privileges required." },
+      };
+    }
+
+    return { data, error: null };
+  },
+
+  /**
+   * 🆕 BYPASS: Admin manually verify member (skip OTP)
+   */
+  adminVerifyMember: async (memberId: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getURL()}auth/reset-password`,
-      });
+      // Update member as verified
+      const { error } = await supabase
+        .from("members")
+        .update({ is_verified: true })
+        .eq("id", memberId);
 
-      if (error) {
-        return { error: { message: error.message } };
-      }
-
-      return { error: null };
-    } catch (error) {
-      return { 
-        error: { message: "An unexpected error occurred during password reset" } 
-      };
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (error: any) {
+      return { success: false, error };
     }
   },
 
-  // Confirm email (REQUIRED)
-  async confirmEmail(token: string, type: 'signup' | 'recovery' | 'email_change' = 'signup'): Promise<{ user: AuthUser | null; error: AuthError | null }> {
+  /**
+   * 🆕 BYPASS: Development mode - Create session without OTP
+   * WARNING: Only use in development/testing!
+   */
+  devBypassLogin: async (identifier: string) => {
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: type
-      });
+      // Get member data
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("*")
+        .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+        .single();
 
-      if (error) {
-        return { user: null, error: { message: error.message, code: error.status?.toString() } };
+      if (memberError || !member) {
+        return {
+          data: null,
+          error: { message: "Member tidak dijumpai." }
+        };
       }
 
-      const authUser = data.user ? {
-        id: data.user.id,
-        email: data.user.email || "",
-        user_metadata: data.user.user_metadata,
-        created_at: data.user.created_at
-      } : null;
+      // Check if member has email in auth.users
+      if (!member.email) {
+        return {
+          data: null,
+          error: { message: "Member tiada email. Sila hubungi admin." }
+        };
+      }
 
-      return { user: authUser, error: null };
-    } catch (error) {
-      return { 
-        user: null, 
-        error: { message: "An unexpected error occurred during email confirmation" } 
+      // Auto-verify member if not verified
+      if (!member.is_verified) {
+        await supabase
+          .from("members")
+          .update({ is_verified: true })
+          .eq("id", member.id);
+      }
+
+      return {
+        data: { member },
+        error: null,
+        message: "DEV MODE: Member verified. Sila login menggunakan email/password atau hubungi admin untuk set password."
       };
+    } catch (error: any) {
+      return { data: null, error };
     }
   },
 
-  // Listen to auth state changes
-  onAuthStateChange(callback: (event: string, session: Session | null) => void) {
-    return supabase.auth.onAuthStateChange(callback);
-  }
+  /**
+   * Get current session
+   */
+  getSession: async () => {
+    const { data, error } = await supabase.auth.getSession();
+    return { data: data.session, error };
+  },
+
+  /**
+   * Sign out
+   */
+  signOut: async () => {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  },
+
+  /**
+   * Get current user profile from members table
+   */
+  getCurrentMember: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: { message: "Not authenticated" } };
+
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .eq("email", user.email)
+      .single();
+
+    return { data, error };
+  },
 };
