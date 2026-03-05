@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Save, Loader2, Camera, Upload, History, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ClubLogo } from "@/components/ClubLogo";
 
 type Member = {
   id: string;
@@ -267,26 +268,22 @@ export default function ProfilePage() {
 
   return (
     <>
-      <SEO title={`${member.full_name} - Profile`} description="Member Profile" />
-      <div className="min-h-screen bg-gray-50 pb-8">
+      <SEO title="Profile - AMBC Club" description="Member profile and statistics" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Link href="/member">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2">
-                  <User className="h-6 w-6 text-red-600" />
-                  <h1 className="text-xl font-bold text-red-600">
-                    {isOwnProfile ? "My Profile" : "Member Profile"}
-                  </h1>
-                </div>
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <Link href="/member">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <ClubLogo size="sm" />
+              <div>
+                <h1 className="text-lg font-bold">Profile</h1>
+                <p className="text-xs text-muted-foreground">Maklumat Ahli</p>
               </div>
-              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
             </div>
           </div>
         </header>

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,8 @@ import { MemberManagement } from "@/components/admin/MemberManagement";
 import { GameManagement } from "@/components/admin/GameManagement";
 import { ScoreManagement } from "@/components/admin/ScoreManagement";
 import { ClubSettings } from "@/components/admin/ClubSettings";
-import { LogOut, Loader2, Users, Trophy, BarChart3, Settings } from "lucide-react";
-import Image from "next/image";
+import { LogOut, Users, Trophy, BarChart3, Settings, Loader2 } from "lucide-react";
+import { ClubLogo } from "@/components/ClubLogo";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -74,13 +75,7 @@ export default function AdminPage() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Image 
-                  src="/ambc-logo.png" 
-                  alt="AMBC Club" 
-                  width={60} 
-                  height={60}
-                  className="drop-shadow-lg"
-                />
+                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
                   <p className="text-sm text-gray-600">Admin Dashboard</p>

@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Loader2, Trophy, Medal, BarChart3, User, Award } from "lucide-react";
-import Image from "next/image";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogOut, Trophy, BarChart3, Calendar, Users, Award, Target, Loader2, Medal, User } from "lucide-react";
+import { ClubLogo } from "@/components/ClubLogo";
 
 export default function MemberDashboard() {
   const router = useRouter();
@@ -76,13 +77,7 @@ export default function MemberDashboard() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Image 
-                  src="/ambc-logo.png" 
-                  alt="AMBC Club" 
-                  width={60} 
-                  height={60}
-                  className="drop-shadow-lg"
-                />
+                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
                   <p className="text-sm text-gray-600">Member Dashboard</p>
@@ -128,13 +123,7 @@ export default function MemberDashboard() {
                     @{memberData?.username}
                   </p>
                 </div>
-                <Image 
-                  src="/ambc-logo.png" 
-                  alt="AMBC Club" 
-                  width={100} 
-                  height={100}
-                  className="hidden md:block opacity-90"
-                />
+                <ClubLogo size="xl" />
               </div>
             </CardContent>
           </Card>

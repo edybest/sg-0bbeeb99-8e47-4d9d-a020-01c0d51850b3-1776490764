@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Search, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown } from "lucide-react";
+import { ClubLogo } from "@/components/ClubLogo";
 
 type PlayerStats = {
   member_id: string;
@@ -177,24 +178,22 @@ export default function AverageScorePage() {
 
   return (
     <>
-      <SEO title="Average Score - AMBC Club" description="Purata skor 3 game terkini" />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <SEO title="Average Score - AMBC Club" description="Player average scores and handicaps" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Link href="/member">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                  <h1 className="text-xl font-bold text-blue-600">Average Score</h1>
-                </div>
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <Link href="/member">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <ClubLogo size="sm" />
+              <div>
+                <h1 className="text-lg font-bold">Average Score</h1>
+                <p className="text-xs text-muted-foreground">Purata & Handicap</p>
               </div>
-              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
             </div>
           </div>
         </header>

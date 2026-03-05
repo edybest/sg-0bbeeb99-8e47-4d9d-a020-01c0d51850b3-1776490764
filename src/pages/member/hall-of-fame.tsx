@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Award, Trophy, Loader2 } from "lucide-react";
+import { ArrowLeft, Trophy, Crown, Star, Sparkles, Loader2, Award } from "lucide-react";
+import { ClubLogo } from "@/components/ClubLogo";
 
 type Champion = {
   year: number;
@@ -131,7 +132,7 @@ export default function HallOfFamePage() {
                   <h1 className="text-xl font-bold text-yellow-600">Hall of Fame</h1>
                 </div>
               </div>
-              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
+              <ClubLogo size="sm" />
             </div>
           </div>
         </header>
