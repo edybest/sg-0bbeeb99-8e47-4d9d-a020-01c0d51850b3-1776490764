@@ -98,4 +98,81 @@ export const storageService = {
       if (error) throw error;
     }
   },
+
+  /**
+   * Upload club logo to Supabase Storage
+   * @param file - Image file to upload
+   * @returns Public URL of uploaded logo
+   */
+  async uploadLogo(file: File): Promise<string> {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `club-logo.${fileExt}`;
+    const filePath = `logos/${fileName}`;
+
+    // Delete old logo if exists
+    const { data: existingFiles } = await supabase.storage
+      .from("logos")
+      .list("logos");
+
+    if (existingFiles && existingFiles.length > 0) {
+      const filesToDelete = existingFiles.map((f) => `logos/${f.name}`);
+      await supabase.storage.from("logos").remove(filesToDelete);
+    }
+
+    // Upload new logo
+    const { data, error } = await supabase.storage
+      .from("logos")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from("logos")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  },
+
+  /**
+   * Get logo public URL from storage path
+   * @param logoPath - Storage path or full URL
+   * @returns Public URL or null
+   */
+  getLogoUrl(logoPath: string | null): string | null {
+    if (!logoPath) return null;
+    
+    // If already a full URL, return it
+    if (logoPath.startsWith("http")) return logoPath;
+
+    // Remove "logos/" prefix if present
+    const cleanPath = logoPath.replace(/^logos\//, "");
+    
+    const { data } = supabase.storage
+      .from("logos")
+      .getPublicUrl(`logos/${cleanPath}`);
+
+    return data.publicUrl;
+  },
+
+  /**
+   * Delete club logo from storage
+   */
+  async deleteLogo(): Promise<void> {
+    const { data: files } = await supabase.storage
+      .from("logos")
+      .list("logos");
+
+    if (files && files.length > 0) {
+      const filesToDelete = files.map((f) => `logos/${f.name}`);
+      const { error } = await supabase.storage
+        .from("logos")
+        .remove(filesToDelete);
+
+      if (error) throw error;
+    }
+  },
 };

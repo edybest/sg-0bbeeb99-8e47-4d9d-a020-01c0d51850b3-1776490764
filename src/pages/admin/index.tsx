@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MemberManagement } from "@/components/admin/MemberManagement";
 import { GameManagement } from "@/components/admin/GameManagement";
 import { ScoreManagement } from "@/components/admin/ScoreManagement";
-import { LogOut, Loader2, Users, Trophy, BarChart3 } from "lucide-react";
+import { ClubSettings } from "@/components/admin/ClubSettings";
+import { LogOut, Loader2, Users, Trophy, BarChart3, Settings } from "lucide-react";
 import Image from "next/image";
 
 export default function AdminPage() {
@@ -102,7 +103,7 @@ export default function AdminPage() {
 
         <main className="container mx-auto px-4 py-8">
           <Tabs defaultValue="members" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200 mb-8 shadow-sm">
+            <TabsList className="grid w-full grid-cols-4 bg-white border border-gray-200 mb-8 shadow-sm">
               <TabsTrigger 
                 value="members" 
                 className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
@@ -124,6 +125,13 @@ export default function AdminPage() {
                 <BarChart3 className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Pengurusan</span> Skor
               </TabsTrigger>
+              <TabsTrigger 
+                value="settings"
+                className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="members">
@@ -136,6 +144,10 @@ export default function AdminPage() {
 
             <TabsContent value="scores">
               <ScoreManagement />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <ClubSettings />
             </TabsContent>
           </Tabs>
         </main>
