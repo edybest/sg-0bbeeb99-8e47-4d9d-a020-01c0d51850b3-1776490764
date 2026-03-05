@@ -38,6 +38,29 @@ export const memberService = {
     return data;
   },
 
+  async getMemberByUserId(userId: string) {
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async findMemberByIdentifier(identifier: string) {
+    // Try to find member by username, email, or phone
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+      .maybeSingle();
+    
+    if (error) throw error;
+    return data;
+  },
+
   async createMember(member: MemberInsert) {
     const { data, error } = await supabase
       .from("members")
