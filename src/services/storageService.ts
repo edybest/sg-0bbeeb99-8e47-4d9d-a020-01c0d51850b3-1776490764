@@ -3,11 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 export const storageService = {
   /**
    * Upload member avatar to Supabase Storage
-   * @param userId - Member's user ID
    * @param file - Image file to upload
    * @returns Public URL of uploaded avatar
    */
-  async uploadAvatar(userId: string, file: File): Promise<string> {
+  async uploadAvatar(file: File): Promise<string> {
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    // Get member ID from session
+    const { data: member } = await supabase
+      .from("members")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (!member) throw new Error("Member not found");
+
+    const userId = member.id;
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;

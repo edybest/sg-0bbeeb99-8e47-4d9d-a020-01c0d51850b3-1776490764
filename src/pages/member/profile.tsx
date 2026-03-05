@@ -112,11 +112,65 @@ export default function ProfilePage() {
 
       // Load member data
       const memberData = await memberService.getMemberById(targetId);
-      setMember(memberData as Member);
+      
+      // Map bowling_technique to technique for our interface
+      const mappedMember: Member = {
+        id: memberData.id,
+        username: memberData.username,
+        full_name: memberData.full_name,
+        email: memberData.email,
+        phone: memberData.phone,
+        sex: memberData.sex,
+        birthday: memberData.birthday,
+        avatar_url: memberData.avatar_url,
+        technique: memberData.bowling_technique,
+        handicap: memberData.handicap,
+      };
+      
+      setMember(mappedMember);
 
-      // Load game history
-      const historyData = await gameService.getMemberGameHistory(targetId);
-      setHistory(historyData as GameHistory[]);
+      // Load game history with proper query
+      const { data: historyData, error: historyError } = await supabase
+        .from("game_players")
+        .select(`
+          id,
+          game1_score,
+          game2_score,
+          game3_score,
+          game4_score,
+          game5_score,
+          total_score,
+          overall_score,
+          games!inner (
+            game_name,
+            game_date,
+            game_type
+          )
+        `)
+        .eq("member_id", targetId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (historyError) throw historyError;
+
+      // Map the data to our GameHistory type
+      const mappedHistory: GameHistory[] = (historyData || []).map((item: any) => ({
+        id: item.id,
+        game1_score: item.game1_score,
+        game2_score: item.game2_score,
+        game3_score: item.game3_score,
+        game4_score: item.game4_score,
+        game5_score: item.game5_score,
+        total_score: item.total_score,
+        overall_score: item.overall_score,
+        games: {
+          game_name: item.games.game_name,
+          game_date: item.games.game_date,
+          game_type: item.games.game_type,
+        }
+      }));
+
+      setHistory(mappedHistory);
 
     } catch (error) {
       console.error("Load profile error:", error);
@@ -142,7 +196,7 @@ export default function ProfilePage() {
         phone: member.phone,
         sex: member.sex,
         birthday: member.birthday,
-        technique: member.technique,
+        bowling_technique: member.technique,
       });
 
       toast({
