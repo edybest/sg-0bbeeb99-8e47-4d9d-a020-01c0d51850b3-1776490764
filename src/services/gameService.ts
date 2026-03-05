@@ -76,7 +76,7 @@ export const gameService = {
 
     const { data, error } = await supabase
       .from("games")
-      .insert(game)
+      .insert(game as any)
       .select()
       .single();
     
@@ -93,7 +93,7 @@ export const gameService = {
 
     const { data, error } = await supabase
       .from("games")
-      .update(updates)
+      .update(updates as any)
       .eq("id", gameId)
       .select()
       .single();
