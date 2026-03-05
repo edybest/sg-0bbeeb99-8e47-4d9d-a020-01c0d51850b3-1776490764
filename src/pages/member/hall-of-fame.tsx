@@ -1,49 +1,39 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "@/integrations/supabase/client";
-import { gameService } from "@/services/gameService";
-import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Trophy, Crown, Loader2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import { supabase } from "@/integrations/supabase/client";
+import { SEO } from "@/components/SEO";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Award, Trophy, Loader2 } from "lucide-react";
 
 type Champion = {
-  id: string;
-  game_id: string;
-  member_id: string;
-  overall_score: number;
-  games: {
-    game_name: string;
-    game_date: string;
-    year: number;
-  };
-  members: {
+  year: number;
+  game_name: string;
+  game_date: string;
+  winner: {
+    id: string;
     username: string;
     full_name: string;
     avatar_url: string | null;
+    overall_score: number;
   };
 };
 
 export default function HallOfFamePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<string>("");
   const [champions, setChampions] = useState<Champion[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [years, setYears] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
-    loadYears();
+    loadChampions();
   }, []);
-
-  useEffect(() => {
-    if (selectedYear) {
-      loadChampions(parseInt(selectedYear));
-    }
-  }, [selectedYear]);
 
   async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -52,118 +42,119 @@ export default function HallOfFamePage() {
     }
   }
 
-  async function loadYears() {
-    try {
-      const { data, error } = await supabase
-        .from("games")
-        .select("year")
-        .order("year", { ascending: false });
-
-      if (error) throw error;
-
-      const uniqueYears = [...new Set(data.map(g => g.year))];
-      setYears(uniqueYears);
-      if (uniqueYears.length > 0) {
-        setSelectedYear(uniqueYears[0].toString());
-      }
-    } catch (error) {
-      console.error("Error loading years:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadChampions(year: number) {
+  async function loadChampions() {
     try {
       setLoading(true);
-      
-      // Get all games for the selected year
-      const { data: gamesData, error: gamesError } = await supabase
+
+      // Get all Blok games with their top scorer
+      const { data: games, error } = await supabase
         .from("games")
-        .select("id, game_name, game_date, year")
-        .eq("year", year)
-        .order("game_date", { ascending: false });
-
-      if (gamesError) throw gamesError;
-
-      const championsData: Champion[] = [];
-
-      // For each game, get the top player
-      for (const game of gamesData || []) {
-        const { data: topPlayer, error: playerError } = await supabase
-          .from("game_players")
-          .select(`
+        .select(`
+          id,
+          game_name,
+          game_date,
+          year,
+          game_players!inner (
             id,
-            game_id,
             member_id,
             overall_score,
             members (
+              id,
               username,
               full_name,
               avatar_url
             )
-          `)
-          .eq("game_id", game.id)
-          .order("overall_score", { ascending: false })
-          .limit(1)
-          .single();
+          )
+        `)
+        .eq("game_type", "Blok Rasmi 10 PIN")
+        .order("game_date", { ascending: false });
 
-        if (!playerError && topPlayer) {
+      if (error) throw error;
+
+      // Extract champions (top scorer for each game)
+      const championsData: Champion[] = [];
+      const yearsSet = new Set<number>();
+
+      games?.forEach((game: any) => {
+        if (game.game_players && game.game_players.length > 0) {
+          // Find top scorer
+          const topPlayer = game.game_players.reduce((max: any, player: any) => 
+            player.overall_score > max.overall_score ? player : max
+          );
+
           championsData.push({
-            ...topPlayer,
-            games: game,
-            members: topPlayer.members as any
+            year: game.year,
+            game_name: game.game_name,
+            game_date: game.game_date,
+            winner: {
+              id: topPlayer.members.id,
+              username: topPlayer.members.username,
+              full_name: topPlayer.members.full_name,
+              avatar_url: topPlayer.members.avatar_url,
+              overall_score: topPlayer.overall_score
+            }
           });
+
+          yearsSet.add(game.year);
         }
-      }
+      });
 
       setChampions(championsData);
+      setYears(Array.from(yearsSet).sort((a, b) => b - a));
     } catch (error) {
-      console.error("Error loading champions:", error);
+      console.error("Load champions error:", error);
     } finally {
       setLoading(false);
     }
   }
 
+  const filteredChampions = selectedYear === "all" 
+    ? champions 
+    : champions.filter(c => c.year.toString() === selectedYear);
+
   return (
     <>
-      <SEO 
-        title="Hall of Fame - AMBC Club"
-        description="Dewan kemasyhuran juara bowling AMBC Club"
-      />
-      <div className="min-h-screen bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <header className="bg-black/50 backdrop-blur border-b border-red-900/50">
+      <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Link href="/member">
-                <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-950/50">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Crown className="h-8 w-8 text-yellow-400" />
-                <div>
-                  <h1 className="text-2xl font-bold text-red-500">HALL OF FAME</h1>
-                  <p className="text-sm text-gray-400">Dewan Kemasyhuran</p>
+                <Link href="/member">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <Award className="h-6 w-6 text-yellow-600" />
+                  <h1 className="text-xl font-bold text-yellow-600">Hall of Fame</h1>
                 </div>
               </div>
+              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
             </div>
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <Card className="bg-black/50 border-red-900/50 mb-6">
+        {/* Content */}
+        <main className="container mx-auto px-4 py-6">
+          {/* Year Filter */}
+          <Card className="mb-6 bg-gradient-to-r from-yellow-100 to-orange-100 border-yellow-300">
             <CardHeader>
-              <CardTitle className="text-red-500">Pilih Tahun</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-600" />
+                Filter Tahun
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
-                  <SelectValue placeholder="Pilih tahun..." />
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
+                <SelectContent>
+                  <SelectItem value="all">Semua Tahun</SelectItem>
                   {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()} className="text-white">
+                    <SelectItem key={year} value={year.toString()}>
                       {year}
                     </SelectItem>
                   ))}
@@ -172,63 +163,84 @@ export default function HallOfFamePage() {
             </CardContent>
           </Card>
 
+          {/* Champions List */}
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-yellow-600" />
             </div>
+          ) : filteredChampions.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                Tiada juara dijumpai
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-4">
-              {champions.map((champion, index) => (
-                <Card 
-                  key={champion.id}
-                  className="bg-gradient-to-r from-yellow-900/30 to-black/50 border-2 border-yellow-500/50 transition-all hover:scale-[1.02]"
+              {filteredChampions.map((champion, index) => (
+                <Card
+                  key={`${champion.game_name}-${index}`}
+                  className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-yellow-300"
                 >
                   <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row md:items-center gap-6">
-                      <div className="flex items-center gap-4 flex-1">
-                        <Crown className="h-12 w-12 text-yellow-400 animate-pulse" />
-                        <div className="flex items-center gap-4">
-                          {champion.members.avatar_url ? (
-                            <Image 
-                              src={champion.members.avatar_url} 
-                              alt={champion.members.username} 
-                              width={60} 
-                              height={60}
-                              className="rounded-full border-3 border-yellow-400"
-                            />
-                          ) : (
-                            <div className="w-15 h-15 rounded-full bg-yellow-600 flex items-center justify-center border-3 border-yellow-400">
-                              <span className="text-white font-bold text-xl">
-                                {champion.members.username[0].toUpperCase()}
-                              </span>
-                            </div>
-                          )}
+                    <div className="flex items-center gap-4">
+                      {/* Trophy Icon */}
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                          <Trophy className="h-8 w-8 text-white" />
+                        </div>
+                      </div>
+
+                      {/* Champion Info */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className="bg-yellow-600 text-white">
+                            {champion.year}
+                          </Badge>
+                          <h3 className="font-bold text-lg text-gray-800">
+                            {champion.game_name}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">
+                          {new Date(champion.game_date).toLocaleDateString("ms-MY", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric"
+                          })}
+                        </p>
+
+                        <div className="flex items-center gap-3">
+                          <Link href={`/member/profile?id=${champion.winner.id}`}>
+                            {champion.winner.avatar_url ? (
+                              <Image
+                                src={champion.winner.avatar_url}
+                                alt={champion.winner.username}
+                                width={50}
+                                height={50}
+                                className="rounded-full border-2 border-yellow-400 shadow-md"
+                              />
+                            ) : (
+                              <div className="w-[50px] h-[50px] rounded-full bg-yellow-600 flex items-center justify-center text-white font-bold">
+                                {champion.winner.username[0].toUpperCase()}
+                              </div>
+                            )}
+                          </Link>
                           <div>
-                            <Link href={`/member/profile/${champion.members.username}`}>
-                              <p className="text-white font-bold text-xl hover:text-yellow-400">
-                                {champion.members.username}
+                            <Link href={`/member/profile?id=${champion.winner.id}`}>
+                              <p className="font-bold text-lg hover:text-yellow-600 transition-colors">
+                                {champion.winner.full_name}
                               </p>
+                              <p className="text-sm text-gray-600">@{champion.winner.username}</p>
                             </Link>
-                            <p className="text-gray-400">{champion.members.full_name}</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                        <div className="text-center md:text-right">
-                          <p className="text-gray-400 text-sm mb-1">{champion.games.game_name}</p>
-                          <p className="text-white font-semibold">
-                            {new Date(champion.games.game_date).toLocaleDateString("ms-MY", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric"
-                            })}
-                          </p>
-                        </div>
-                        <div className="bg-yellow-900/50 rounded-lg px-6 py-3 border border-yellow-500/50">
-                          <p className="text-yellow-400 text-sm mb-1">Skor Juara</p>
-                          <p className="text-white font-bold text-2xl">{champion.overall_score}</p>
-                        </div>
+                      {/* Score */}
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500 mb-1">Score</p>
+                        <p className="text-3xl font-bold text-yellow-600">
+                          {champion.winner.overall_score}
+                        </p>
                       </div>
                     </div>
                   </CardContent>

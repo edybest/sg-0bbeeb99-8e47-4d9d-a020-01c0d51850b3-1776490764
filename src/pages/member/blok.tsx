@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 import { gameService } from "@/services/gameService";
-import { storageService } from "@/services/storageService";
 import { SEO } from "@/components/SEO";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Medal, Loader2 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 
-type LeaderboardPlayer = {
+type GamePlayer = {
   id: string;
   member_id: string;
   game1_score: number;
@@ -19,8 +19,8 @@ type LeaderboardPlayer = {
   game3_score: number;
   game4_score: number;
   game5_score: number;
-  total_score: number;
   handicap: number;
+  total_score: number;
   overall_score: number;
   average_score: number;
   members: {
@@ -35,15 +35,15 @@ type Game = {
   id: string;
   game_name: string;
   game_date: string;
+  game_type: string;
 };
 
 export default function BlokPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
-  const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
-  const [topScore, setTopScore] = useState(0);
+  const [players, setPlayers] = useState<GamePlayer[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -52,7 +52,7 @@ export default function BlokPage() {
 
   useEffect(() => {
     if (selectedGameId) {
-      loadLeaderboard(selectedGameId);
+      loadGamePlayers(selectedGameId);
     }
   }, [selectedGameId]);
 
@@ -66,84 +66,80 @@ export default function BlokPage() {
   async function loadGames() {
     try {
       const data = await gameService.getAllGames();
-      setGames(data as Game[]);
-      if (data.length > 0) {
-        setSelectedGameId(data[0].id);
+      const blokGames = data.filter(g => g.game_type.includes("Blok"));
+      setGames(blokGames);
+      if (blokGames.length > 0) {
+        setSelectedGameId(blokGames[0].id);
       }
     } catch (error) {
-      console.error("Error loading games:", error);
-    } finally {
-      setLoading(false);
+      console.error("Load games error:", error);
     }
   }
 
-  async function loadLeaderboard(gameId: string) {
+  async function loadGamePlayers(gameId: string) {
     try {
       setLoading(true);
       const data = await gameService.getGamePlayers(gameId);
-      setLeaderboard(data as LeaderboardPlayer[]);
-      if (data.length > 0) {
-        setTopScore(data[0].overall_score);
-      }
+      setPlayers(data as GamePlayer[]);
     } catch (error) {
-      console.error("Error loading leaderboard:", error);
+      console.error("Load players error:", error);
     } finally {
       setLoading(false);
     }
   }
 
-  function getMedalIcon(rank: number) {
-    if (rank === 1) return <Medal className="h-6 w-6 text-yellow-400 animate-pulse" />;
-    if (rank === 2) return <Medal className="h-6 w-6 text-gray-400 animate-pulse" />;
-    if (rank === 3) return <Medal className="h-6 w-6 text-amber-600 animate-pulse" />;
+  function getMedalIcon(position: number) {
+    if (position === 1) return <Trophy className="h-8 w-8 text-yellow-400 animate-bounce" />;
+    if (position === 2) return <Medal className="h-7 w-7 text-gray-400 animate-pulse" />;
+    if (position === 3) return <Medal className="h-6 w-6 text-orange-400 animate-pulse" />;
     return null;
   }
 
-  function calculateDifference(score: number): number {
-    return topScore - score;
+  function calculateDifference(player: GamePlayer): number {
+    if (players.length === 0) return 0;
+    const topScore = players[0].overall_score;
+    return topScore - player.overall_score;
   }
 
   return (
     <>
-      <SEO 
-        title="BLOK Leaderboard - AMBC Club"
-        description="Carta leaderboard game BLOK AMBC Club"
-      />
-      <div className="min-h-screen bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <header className="bg-black/50 backdrop-blur border-b border-red-900/50">
+      <SEO title="Blok Leaderboard - AMBC Club" description="Leaderboard dan ranking terkini" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Link href="/member">
-                  <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-950/50">
+                  <Button variant="ghost" size="icon">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </Link>
-                <div className="flex items-center gap-3">
-                  <Trophy className="h-8 w-8 text-red-500" />
-                  <div>
-                    <h1 className="text-2xl font-bold text-red-500">BLOK LEADERBOARD</h1>
-                    <p className="text-sm text-gray-400">Carta Kedudukan</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-6 w-6 text-red-600" />
+                  <h1 className="text-xl font-bold text-red-600">Blok Leaderboard</h1>
                 </div>
               </div>
+              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
             </div>
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <Card className="bg-black/50 border-red-900/50 mb-6">
+        {/* Content */}
+        <main className="container mx-auto px-4 py-6">
+          {/* Game Selector */}
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-red-500">Pilih Game</CardTitle>
+              <CardTitle className="text-lg">Pilih Game</CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Pilih game..." />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
+                <SelectContent>
                   {games.map((game) => (
-                    <SelectItem key={game.id} value={game.id} className="text-white">
+                    <SelectItem key={game.id} value={game.id}>
                       {game.game_name} - {new Date(game.game_date).toLocaleDateString("ms-MY")}
                     </SelectItem>
                   ))}
@@ -152,108 +148,108 @@ export default function BlokPage() {
             </CardContent>
           </Card>
 
+          {/* Leaderboard */}
           {loading ? (
-            <div className="flex items-center justify-center p-12">
-              <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-red-600" />
             </div>
+          ) : players.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-gray-500">
+                Tiada pemain dalam game ini
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-4">
-              {leaderboard.map((player, index) => (
-                <Card 
+              {players.map((player, index) => (
+                <Card
                   key={player.id}
-                  className={`bg-gradient-to-r border-2 transition-all hover:scale-[1.02] ${
-                    index === 0 
-                      ? "from-yellow-900/30 to-black/50 border-yellow-500/50"
-                      : index === 1
-                      ? "from-gray-700/30 to-black/50 border-gray-400/50"
-                      : index === 2
-                      ? "from-amber-900/30 to-black/50 border-amber-600/50"
-                      : "from-black/30 to-black/50 border-red-900/50"
+                  className={`transform transition-all hover:scale-[1.02] hover:shadow-lg ${
+                    index < 3 ? "border-2 border-red-600" : ""
                   }`}
                 >
-                  <CardContent className="p-4 md:p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      {/* Rank & Avatar */}
-                      <div className="md:col-span-3 flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          {getMedalIcon(index + 1)}
-                          <span className="text-2xl md:text-3xl font-bold text-white">
-                            #{index + 1}
-                          </span>
-                        </div>
-                        <Link href={`/member/profile/${player.members.username}`} className="flex items-center gap-3 hover:opacity-80">
-                          {player.members.avatar_url ? (
-                            <Image 
-                              src={storageService.getAvatarUrl(player.members.avatar_url) || player.members.avatar_url} 
-                              alt={player.members.username} 
-                              width={50} 
-                              height={50}
-                              className="rounded-full border-2 border-red-500"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center border-2 border-red-500">
-                              <span className="text-white font-bold text-lg">
-                                {player.members.username[0].toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-white font-bold">{player.members.username}</p>
-                            <p className="text-gray-400 text-sm">{player.members.full_name}</p>
-                          </div>
-                        </Link>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      {/* Position & Medal */}
+                      <div className="flex flex-col items-center min-w-[60px]">
+                        <span className="text-2xl font-bold text-gray-700">#{index + 1}</span>
+                        {getMedalIcon(index + 1)}
                       </div>
 
-                      {/* Scores */}
-                      <div className="md:col-span-5 grid grid-cols-5 gap-2">
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">G1</p>
-                          <p className="text-white font-semibold">{player.game1_score}</p>
+                      {/* Avatar & Name */}
+                      <Link href={`/member/profile?id=${player.member_id}`} className="flex-shrink-0">
+                        {player.members.avatar_url ? (
+                          <Image
+                            src={player.members.avatar_url}
+                            alt={player.members.username}
+                            width={60}
+                            height={60}
+                            className="rounded-full border-2 border-red-600"
+                          />
+                        ) : (
+                          <div className="w-[60px] h-[60px] rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-xl">
+                            {player.members.username[0].toUpperCase()}
+                          </div>
+                        )}
+                      </Link>
+
+                      {/* Player Info */}
+                      <div className="flex-1 min-w-0">
+                        <Link href={`/member/profile?id=${player.member_id}`}>
+                          <h3 className="font-bold text-lg hover:text-red-600 transition-colors truncate">
+                            {player.members.full_name}
+                          </h3>
+                          <p className="text-sm text-gray-600">@{player.members.username}</p>
+                        </Link>
+
+                        {/* Scores - Desktop */}
+                        <div className="hidden md:grid grid-cols-5 gap-2 mt-3">
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <div key={num} className="text-center">
+                              <p className="text-xs text-gray-500">Game {num}</p>
+                              <Badge variant="outline" className="w-full">
+                                {player[`game${num}_score` as keyof GamePlayer]}
+                              </Badge>
+                            </div>
+                          ))}
                         </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">G2</p>
-                          <p className="text-white font-semibold">{player.game2_score}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">G3</p>
-                          <p className="text-white font-semibold">{player.game3_score}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">G4</p>
-                          <p className="text-white font-semibold">{player.game4_score}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">G5</p>
-                          <p className="text-white font-semibold">{player.game5_score}</p>
+
+                        {/* Scores - Mobile */}
+                        <div className="md:hidden grid grid-cols-5 gap-1 mt-2 text-xs">
+                          {[1, 2, 3, 4, 5].map((num) => (
+                            <div key={num} className="text-center bg-gray-100 rounded p-1">
+                              <span className="font-semibold">
+                                {player[`game${num}_score` as keyof GamePlayer]}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
                       {/* Stats */}
-                      <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">Total</p>
-                          <p className="text-white font-bold">{player.total_score}</p>
+                      <div className="text-right space-y-1 min-w-[100px]">
+                        <div>
+                          <p className="text-xs text-gray-500">Total</p>
+                          <p className="font-bold">{player.total_score}</p>
                         </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">HCP</p>
-                          <p className="text-white font-bold">{player.handicap}</p>
+                        <div>
+                          <p className="text-xs text-gray-500">HCP</p>
+                          <p className="font-semibold text-blue-600">{player.handicap}</p>
                         </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">Overall</p>
-                          <p className="text-red-500 font-bold text-lg">{player.overall_score}</p>
+                        <div>
+                          <p className="text-xs text-gray-500">Overall</p>
+                          <p className="font-bold text-red-600 text-lg">{player.overall_score}</p>
                         </div>
-                        <div className="text-center">
-                          <p className="text-gray-400 text-xs mb-1">Beza</p>
-                          <p className="text-gray-400 font-semibold">-{calculateDifference(player.overall_score)}</p>
+                        {index > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-500">Beza</p>
+                            <p className="text-sm text-gray-600">-{calculateDifference(player)}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs text-gray-500">Avg</p>
+                          <p className="text-sm">{player.average_score}</p>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Average on mobile */}
-                    <div className="mt-3 pt-3 border-t border-gray-800 md:hidden">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-400 text-sm">Purata Skor:</span>
-                        <span className="text-white font-bold">{player.average_score}</span>
                       </div>
                     </div>
                   </CardContent>
