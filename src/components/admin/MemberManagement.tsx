@@ -90,7 +90,7 @@ export function MemberManagement() {
       username: "",
       email: "",
       full_name: "",
-      phone: "",
+      phone: "+60",
       birthday: "",
       sex: "men",
       bowling_technique: "",
@@ -114,6 +114,32 @@ export function MemberManagement() {
       avatar_base64: ""
     });
     setDialogOpen(true);
+  }
+
+  function formatPhoneNumber(value: string): string {
+    // Remove all non-digit characters except +
+    let cleaned = value.replace(/[^\d+]/g, "");
+    
+    // If doesn't start with +, add +60 (Malaysia)
+    if (!cleaned.startsWith("+")) {
+      // Remove leading 0 if exists
+      if (cleaned.startsWith("0")) {
+        cleaned = cleaned.substring(1);
+      }
+      cleaned = "+60" + cleaned;
+    }
+    
+    // Ensure it starts with +60
+    if (!cleaned.startsWith("+60")) {
+      cleaned = "+60" + cleaned.replace(/^\+/, "");
+    }
+    
+    return cleaned;
+  }
+
+  function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = formatPhoneNumber(e.target.value);
+    setFormData({ ...formData, phone: formatted });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -279,14 +305,16 @@ export function MemberManagement() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-gray-300">Telefon *</Label>
+                      <Label htmlFor="phone" className="text-gray-300">Telefon (WhatsApp) *</Label>
                       <Input
                         id="phone"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={handlePhoneChange}
+                        placeholder="+60123456789"
                         required
                         className="bg-gray-800 border-gray-700"
                       />
+                      <p className="text-xs text-gray-500">Format: +60XXXXXXXXX (untuk WhatsApp OTP)</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="birthday" className="text-gray-300">Tarikh Lahir *</Label>

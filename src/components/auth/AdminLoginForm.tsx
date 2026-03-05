@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { supabase } from "@/integrations/supabase/client";
 import { memberService } from "@/services/memberService";
 import { Button } from "@/components/ui/button";
@@ -122,7 +123,7 @@ export function AdminLoginForm() {
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            <p>Member? <a href="/login" className="text-red-600 hover:underline">Login di sini</a></p>
+            <p>Member? <Link href="/login" className="text-red-600 hover:underline">Login di sini</Link></p>
           </div>
         </form>
       </CardContent>
