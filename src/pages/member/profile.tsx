@@ -1,34 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 import { memberService } from "@/services/memberService";
 import { gameService } from "@/services/gameService";
 import { storageService } from "@/services/storageService";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Upload, Save, Loader2, TrendingUp } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, User, Save, Loader2, Camera, Upload, History, Trophy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-type MemberProfile = {
+type Member = {
   id: string;
   username: string;
-  email: string;
   full_name: string;
-  phone: string;
-  birthday: string;
-  sex: string;
+  email: string | null;
+  phone: string | null;
+  sex: string | null;
+  birthday: string | null;
   avatar_url: string | null;
-  bowling_technique: string | null;
+  technique: string | null;
+  handicap: number;
 };
 
 type GameHistory = {
   id: string;
-  game_id: string;
   game1_score: number;
   game2_score: number;
   game3_score: number;
@@ -39,24 +42,35 @@ type GameHistory = {
   games: {
     game_name: string;
     game_date: string;
+    game_type: string;
   };
 };
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<MemberProfile | null>(null);
-  const [gameHistory, setGameHistory] = useState<GameHistory[]>([]);
-  const [editMode, setEditMode] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  
+  const [member, setMember] = useState<Member | null>(null);
+  const [history, setHistory] = useState<GameHistory[]>([]);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  
+  // Get ID from query param or session
+  const queryId = router.query.id as string;
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (router.isReady) {
+      loadProfile();
+    }
+  }, [router.isReady, queryId]);
 
-  async function checkAuth() {
+  async function loadProfile() {
     try {
+      setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -64,372 +78,393 @@ export default function ProfilePage() {
         return;
       }
 
-      const { data: member } = await supabase
-        .from("members")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (!member) {
-        router.push("/login");
-        return;
+      // Determine whose profile to show
+      let targetId = queryId;
+      
+      // If no query ID, find current user's member ID
+      if (!targetId) {
+        const { data: currentMember } = await supabase
+          .from("members")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .single();
+          
+        if (currentMember) {
+          targetId = currentMember.id;
+          setIsOwnProfile(true);
+        } else {
+          // Should not happen if logged in properly
+          router.push("/login");
+          return;
+        }
+      } else {
+        // Check if viewing own profile via ID
+        const { data: currentMember } = await supabase
+          .from("members")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .single();
+          
+        if (currentMember && currentMember.id === targetId) {
+          setIsOwnProfile(true);
+        }
       }
 
-      setProfile(member as MemberProfile);
+      // Load member data
+      const memberData = await memberService.getMemberById(targetId);
+      setMember(memberData as Member);
 
-      // Load game history (last 10 games)
-      const { data: history } = await supabase
-        .from("game_players")
-        .select(`
-          id,
-          game_id,
-          game1_score,
-          game2_score,
-          game3_score,
-          game4_score,
-          game5_score,
-          total_score,
-          overall_score,
-          games (
-            game_name,
-            game_date
-          )
-        `)
-        .eq("member_id", member.id)
-        .order("games(game_date)", { ascending: false })
-        .limit(10);
+      // Load game history
+      const historyData = await gameService.getMemberGameHistory(targetId);
+      setHistory(historyData as GameHistory[]);
 
-      setGameHistory((history || []) as GameHistory[]);
     } catch (error) {
-      console.error("Auth check error:", error);
-      router.push("/login");
+      console.error("Load profile error:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuatkan profil",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
+  async function handleUpdateProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!member) return;
 
-    setUploadingAvatar(true);
     try {
-      // Upload to Supabase Storage
-      const avatarUrl = await storageService.uploadAvatar(profile.id, file);
+      setSaving(true);
       
-      // Update member record with new avatar URL
-      await memberService.updateAvatar(profile.id, avatarUrl);
-      
-      // Update local state
-      setProfile({ ...profile, avatar_url: avatarUrl });
-    } catch (error) {
-      console.error("Error uploading avatar:", error);
-      alert("Gagal memuat naik avatar");
-    } finally {
-      setUploadingAvatar(false);
-    }
-  }
-
-  async function handleSaveProfile() {
-    if (!profile) return;
-
-    setSaving(true);
-    try {
-      await memberService.updateMember(profile.id, {
-        full_name: profile.full_name,
-        phone: profile.phone,
-        birthday: profile.birthday,
-        sex: profile.sex,
-        bowling_technique: profile.bowling_technique
+      await memberService.updateMember(member.id, {
+        full_name: member.full_name,
+        phone: member.phone,
+        sex: member.sex,
+        birthday: member.birthday,
+        technique: member.technique,
       });
 
-      setEditMode(false);
-      alert("Profil berjaya dikemaskini");
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Gagal menyimpan profil");
+      toast({
+        title: "Berjaya",
+        description: "Profil berjaya dikemaskini",
+      });
+    } catch (error: any) {
+      console.error("Update profile error:", error);
+      toast({
+        title: "Gagal",
+        description: error.message || "Gagal mengemaskini profil",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
   }
 
-  function getHighestScore(): number {
-    if (gameHistory.length === 0) return 0;
-    return Math.max(...gameHistory.map(g => g.overall_score));
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !member) return;
+
+    try {
+      setUploading(true);
+      
+      const publicUrl = await storageService.uploadAvatar(file);
+      
+      await memberService.updateMember(member.id, {
+        avatar_url: publicUrl
+      });
+
+      setMember(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+
+      toast({
+        title: "Berjaya",
+        description: "Gambar profil berjaya dikemaskini",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Gagal",
+        description: "Gagal muat naik gambar",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-red-500" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
+        <p>Member not found</p>
+        <Link href="/member">
+          <Button>Back to Dashboard</Button>
+        </Link>
       </div>
     );
   }
 
   return (
     <>
-      <SEO 
-        title={`${profile?.username} - Profil AMBC Club`}
-        description="Profil ahli bowling AMBC Club"
-      />
-      <div className="min-h-screen bg-gradient-to-br from-red-950 via-black to-gray-900">
-        <header className="bg-black/50 backdrop-blur border-b border-red-900/50">
+      <SEO title={`${member.full_name} - Profile`} description="Member Profile" />
+      <div className="min-h-screen bg-gray-50 pb-8">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Link href="/member">
-                <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-950/50">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-red-500">PROFIL</h1>
-                <p className="text-sm text-gray-400">Maklumat Ahli</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link href="/member">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <div className="flex items-center gap-2">
+                  <User className="h-6 w-6 text-red-600" />
+                  <h1 className="text-xl font-bold text-red-600">
+                    {isOwnProfile ? "My Profile" : "Member Profile"}
+                  </h1>
+                </div>
               </div>
+              <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} />
             </div>
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Profile Card */}
-            <div className="lg:col-span-1">
-              <Card className="bg-black/50 border-red-900/50">
-                <CardHeader>
-                  <CardTitle className="text-red-500">Avatar</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-4">
-                  {profile?.avatar_url ? (
-                    <Image 
-                      src={storageService.getAvatarUrl(profile.avatar_url) || profile.avatar_url} 
-                      alt={profile.username} 
-                      width={150} 
-                      height={150}
-                      className="rounded-full border-4 border-red-500"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 rounded-full bg-red-600 flex items-center justify-center border-4 border-red-500">
-                      <span className="text-white font-bold text-5xl">
-                        {profile?.username[0].toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold text-white">{profile?.username}</h2>
-                    <p className="text-gray-400">{profile?.full_name}</p>
-                  </div>
-                  <label className="cursor-pointer">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                      disabled={uploadingAvatar}
-                    />
-                    <Button 
-                      variant="outline" 
-                      className="border-red-900/50 hover:bg-red-950/50"
-                      disabled={uploadingAvatar}
-                    >
-                      {uploadingAvatar ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        <main className="container mx-auto px-4 py-6">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="details">Butiran Diri</TabsTrigger>
+              <TabsTrigger value="history">Sejarah Game</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details">
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Avatar Section */}
+                <Card className="md:col-span-1">
+                  <CardContent className="pt-6 flex flex-col items-center">
+                    <div className="relative mb-4">
+                      {member.avatar_url ? (
+                        <Image
+                          src={member.avatar_url}
+                          alt={member.username}
+                          width={150}
+                          height={150}
+                          className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                        />
                       ) : (
-                        <Upload className="h-4 w-4 mr-2" />
+                        <div className="w-[150px] h-[150px] rounded-full bg-red-100 flex items-center justify-center text-red-600 text-4xl font-bold border-4 border-white shadow">
+                          {member.username[0].toUpperCase()}
+                        </div>
                       )}
-                      Tukar Avatar
-                    </Button>
-                  </label>
-                </CardContent>
-              </Card>
-
-              {/* Stats Card */}
-              <Card className="bg-black/50 border-red-900/50 mt-4">
-                <CardHeader>
-                  <CardTitle className="text-red-500">Statistik</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Jumlah Game:</span>
-                    <span className="text-white font-bold">{gameHistory.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Skor Tertinggi:</span>
-                    <span className="text-red-500 font-bold">{getHighestScore()}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Profile Details & Game History */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Profile Details */}
-              <Card className="bg-black/50 border-red-900/50">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-red-500">Maklumat Peribadi</CardTitle>
-                    {!editMode ? (
-                      <Button 
-                        onClick={() => setEditMode(true)}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        Edit Profil
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline"
-                          onClick={() => setEditMode(false)}
-                          className="border-gray-700"
+                      
+                      {isOwnProfile && (
+                        <Button
+                          size="icon"
+                          className="absolute bottom-0 right-0 rounded-full shadow-lg"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
                         >
-                          Batal
-                        </Button>
-                        <Button 
-                          onClick={handleSaveProfile}
-                          disabled={saving}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          {saving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {uploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Save className="h-4 w-4 mr-2" />
+                            <Camera className="h-4 w-4" />
                           )}
-                          Simpan
                         </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-300">Username</Label>
-                      <Input 
-                        value={profile?.username || ""} 
-                        disabled
-                        className="bg-gray-800 border-gray-700 text-white"
+                      )}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
                       />
                     </div>
-                    <div>
-                      <Label className="text-gray-300">Email</Label>
-                      <Input 
-                        value={profile?.email || ""} 
-                        disabled
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Nama Penuh</Label>
-                      <Input 
-                        value={profile?.full_name || ""} 
-                        onChange={(e) => setProfile(profile ? {...profile, full_name: e.target.value} : null)}
-                        disabled={!editMode}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Telefon</Label>
-                      <Input 
-                        value={profile?.phone || ""} 
-                        onChange={(e) => setProfile(profile ? {...profile, phone: e.target.value} : null)}
-                        disabled={!editMode}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Tarikh Lahir</Label>
-                      <Input 
-                        type="date"
-                        value={profile?.birthday || ""} 
-                        onChange={(e) => setProfile(profile ? {...profile, birthday: e.target.value} : null)}
-                        disabled={!editMode}
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-300">Jantina</Label>
-                      <Select 
-                        value={profile?.sex || ""} 
-                        onValueChange={(value) => setProfile(profile ? {...profile, sex: value} : null)}
-                        disabled={!editMode}
-                      >
-                        <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-900 border-gray-700">
-                          <SelectItem value="MEN" className="text-white">Lelaki</SelectItem>
-                          <SelectItem value="WOMEN" className="text-white">Perempuan</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="text-gray-300">Teknik Bowling</Label>
-                      <Input 
-                        value={profile?.bowling_technique || ""} 
-                        onChange={(e) => setProfile(profile ? {...profile, bowling_technique: e.target.value} : null)}
-                        disabled={!editMode}
-                        placeholder="Contoh: Two-handed, Hook, Straight"
-                        className="bg-gray-800 border-gray-700 text-white"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    
+                    <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
+                    <p className="text-gray-500 text-center mb-2">@{member.username}</p>
+                    <Badge variant="outline" className="mb-4">
+                      Handicap: {member.handicap}
+                    </Badge>
+                  </CardContent>
+                </Card>
 
-              {/* Game History */}
-              <Card className="bg-black/50 border-red-900/50">
+                {/* Edit Form */}
+                <Card className="md:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Maklumat Peribadi</CardTitle>
+                    <CardDescription>
+                      {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="username">Username</Label>
+                          <Input id="username" value={member.username} disabled />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input id="email" value={member.email || "-"} disabled />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="full_name">Nama Penuh</Label>
+                          <Input 
+                            id="full_name" 
+                            value={member.full_name} 
+                            onChange={(e) => setMember({...member, full_name: e.target.value})}
+                            disabled={!isOwnProfile}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">No. Telefon</Label>
+                          <Input 
+                            id="phone" 
+                            value={member.phone || ""} 
+                            onChange={(e) => setMember({...member, phone: e.target.value})}
+                            placeholder="+60123456789"
+                            disabled={!isOwnProfile}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="sex">Jantina</Label>
+                          <Select 
+                            value={member.sex || "Lelaki"} 
+                            onValueChange={(val) => setMember({...member, sex: val})}
+                            disabled={!isOwnProfile}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Lelaki">Lelaki</SelectItem>
+                              <SelectItem value="Perempuan">Perempuan</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="birthday">Tarikh Lahir</Label>
+                          <Input 
+                            id="birthday" 
+                            type="date"
+                            value={member.birthday || ""} 
+                            onChange={(e) => setMember({...member, birthday: e.target.value})}
+                            disabled={!isOwnProfile}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="technique">Teknik Balingan</Label>
+                          <Select 
+                            value={member.technique || "Straight"} 
+                            onValueChange={(val) => setMember({...member, technique: val})}
+                            disabled={!isOwnProfile}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Straight">Straight</SelectItem>
+                              <SelectItem value="Hook">Hook</SelectItem>
+                              <SelectItem value="Spinner">Spinner</SelectItem>
+                              <SelectItem value="Backup">Backup</SelectItem>
+                              <SelectItem value="Kidal">Kidal</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {isOwnProfile && (
+                        <div className="pt-4 flex justify-end">
+                          <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700">
+                            {saving ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Simpan Perubahan
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-red-500 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Sejarah Game (10 Terkini)
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Sejarah Permainan
                   </CardTitle>
+                  <CardDescription>
+                    10 game terkini yang disertai
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {gameHistory.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">Tiada rekod game</p>
+                  {history.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Belum ada rekod permainan.
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      {gameHistory.map((game) => (
+                    <div className="space-y-4">
+                      {history.map((game) => (
                         <div 
-                          key={game.id}
-                          className="bg-gray-900/50 rounded-lg p-4 border border-gray-800"
+                          key={game.id} 
+                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                         >
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                          <div className="flex justify-between items-start mb-3">
                             <div>
-                              <p className="text-white font-semibold">{game.games.game_name}</p>
-                              <p className="text-gray-400 text-sm">
-                                {new Date(game.games.game_date).toLocaleDateString("ms-MY")}
+                              <h3 className="font-bold">{game.games.game_name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
                               </p>
                             </div>
-                            <div className="grid grid-cols-5 gap-2 text-center">
-                              <div>
-                                <p className="text-gray-400 text-xs">G1</p>
-                                <p className="text-white font-semibold">{game.game1_score}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 text-xs">G2</p>
-                                <p className="text-white font-semibold">{game.game2_score}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 text-xs">G3</p>
-                                <p className="text-white font-semibold">{game.game3_score}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 text-xs">G4</p>
-                                <p className="text-white font-semibold">{game.game4_score}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 text-xs">G5</p>
-                                <p className="text-white font-semibold">{game.game5_score}</p>
-                              </div>
+                            <div className="text-right">
+                              <span className="text-xs text-muted-foreground">Overall</span>
+                              <p className="text-xl font-bold text-red-600">{game.overall_score}</p>
                             </div>
-                            <div className="flex gap-4 text-center">
-                              <div>
-                                <p className="text-gray-400 text-xs">Total</p>
-                                <p className="text-white font-bold">{game.total_score}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-400 text-xs">Overall</p>
-                                <p className="text-red-500 font-bold text-lg">{game.overall_score}</p>
-                              </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                            <div className="bg-gray-100 rounded p-1">
+                              <span className="text-xs text-gray-500 block">G1</span>
+                              <span className="font-medium">{game.game1_score}</span>
+                            </div>
+                            <div className="bg-gray-100 rounded p-1">
+                              <span className="text-xs text-gray-500 block">G2</span>
+                              <span className="font-medium">{game.game2_score}</span>
+                            </div>
+                            <div className="bg-gray-100 rounded p-1">
+                              <span className="text-xs text-gray-500 block">G3</span>
+                              <span className="font-medium">{game.game3_score}</span>
+                            </div>
+                            <div className="bg-gray-100 rounded p-1">
+                              <span className="text-xs text-gray-500 block">G4</span>
+                              <span className="font-medium">{game.game4_score}</span>
+                            </div>
+                            <div className="bg-gray-100 rounded p-1">
+                              <span className="text-xs text-gray-500 block">G5</span>
+                              <span className="font-medium">{game.game5_score}</span>
                             </div>
                           </div>
                         </div>
@@ -438,8 +473,8 @@ export default function ProfilePage() {
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
     </>

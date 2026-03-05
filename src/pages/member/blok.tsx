@@ -208,7 +208,7 @@ export default function BlokPage() {
                             <div key={num} className="text-center">
                               <p className="text-xs text-gray-500">Game {num}</p>
                               <Badge variant="outline" className="w-full">
-                                {player[`game${num}_score` as keyof GamePlayer]}
+                                {player[`game${num}_score` as 'game1_score' | 'game2_score' | 'game3_score' | 'game4_score' | 'game5_score']}
                               </Badge>
                             </div>
                           ))}
@@ -219,7 +219,7 @@ export default function BlokPage() {
                           {[1, 2, 3, 4, 5].map((num) => (
                             <div key={num} className="text-center bg-gray-100 rounded p-1">
                               <span className="font-semibold">
-                                {player[`game${num}_score` as keyof GamePlayer]}
+                                {player[`game${num}_score` as 'game1_score' | 'game2_score' | 'game3_score' | 'game4_score' | 'game5_score']}
                               </span>
                             </div>
                           ))}
