@@ -165,7 +165,7 @@ export function MemberManagement() {
 
         // Upload to Supabase Storage
         const userId = editingMember?.id || crypto.randomUUID();
-        avatarUrl = await storageService.uploadAvatar(userId, file);
+        avatarUrl = await storageService.uploadAvatar(file, userId);
       }
 
       if (editingMember) {

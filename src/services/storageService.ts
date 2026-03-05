@@ -4,34 +4,40 @@ export const storageService = {
   /**
    * Upload member avatar to Supabase Storage
    * @param file - Image file to upload
+   * @param targetMemberId - Optional: Upload for specific member ID (for admins)
    * @returns Public URL of uploaded avatar
    */
-  async uploadAvatar(file: File): Promise<string> {
-    // Get current user session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error("Not authenticated");
+  async uploadAvatar(file: File, targetMemberId?: string): Promise<string> {
+    let memberId = targetMemberId;
 
-    // Get member ID from session
-    const { data: member } = await supabase
-      .from("members")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .single();
+    // If no target ID provided, get from current session
+    if (!memberId) {
+      // Get current user session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
 
-    if (!member) throw new Error("Member not found");
+      // Get member ID from session
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", session.user.id)
+        .single();
 
-    const userId = member.id;
+      if (!member) throw new Error("Member not found");
+      memberId = member.id;
+    }
+
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${userId}/${fileName}`;
+    const filePath = `${memberId}/${fileName}`;
 
     // Delete old avatar if exists
     const { data: existingFiles } = await supabase.storage
       .from("avatars")
-      .list(userId);
+      .list(memberId);
 
     if (existingFiles && existingFiles.length > 0) {
-      const filesToDelete = existingFiles.map((f) => `${userId}/${f.name}`);
+      const filesToDelete = existingFiles.map((f) => `${memberId}/${f.name}`);
       await supabase.storage.from("avatars").remove(filesToDelete);
     }
 
