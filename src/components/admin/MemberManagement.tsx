@@ -155,17 +155,10 @@ export function MemberManagement() {
           avatar_url: avatarUrl
         });
       } else {
-        // Create auth user first
-        const tempPassword = Math.random().toString(36).slice(-8);
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email || `${formData.username}@temp.com`,
-          password: tempPassword
-        });
-
-        if (authError) throw authError;
-
+        // Admin adds member without auth user (user_id = null)
+        // Member can register themselves later and link their account
         await memberService.createMember({
-          user_id: authData.user!.id,
+          user_id: null, // ✅ No auth user required when admin adds member
           username: formData.username,
           email: formData.email || null,
           full_name: formData.full_name,
