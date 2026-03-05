@@ -1,51 +1,59 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { storageService } from "@/services/storageService";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, Image as ImageIcon } from "lucide-react";
-import Image from "next/image";
+import { Upload, Trash2, Image as ImageIcon, Loader2 } from "lucide-react";
 
 export function ClubSettings() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
-  const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadCurrentLogo();
   }, []);
 
-  async function loadCurrentLogo() {
+  const loadCurrentLogo = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("club_settings")
         .select("setting_value")
         .eq("setting_key", "club_logo")
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
-
+      if (error) throw error;
+      
       if (data?.setting_value) {
-        const logoUrl = storageService.getLogoUrl(data.setting_value);
-        setCurrentLogo(logoUrl);
-        setPreviewLogo(logoUrl);
+        setCurrentLogo(data.setting_value);
       }
     } catch (error) {
       console.error("Error loading logo:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memuatkan logo semasa.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Format Tidak Sah",
@@ -55,64 +63,58 @@ export function ClubSettings() {
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "Saiz Fail Terlalu Besar",
-        description: "Saiz fail maksimum ialah 2MB",
+        description: "Maksimum saiz fail adalah 2MB",
         variant: "destructive",
       });
       return;
     }
 
-    setUploading(true);
-
     try {
-      // Upload logo to storage
-      const logoUrl = await storageService.uploadLogo(file);
+      setUploading(true);
 
-      // Save logo URL to database
+      const base64String = await convertToBase64(file);
+
       const { error } = await supabase
         .from("club_settings")
-        .upsert({
-          setting_key: "club_logo",
-          setting_value: logoUrl,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            setting_key: "club_logo",
+            setting_value: base64String,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: "setting_key",
+          }
+        );
 
       if (error) throw error;
 
-      setCurrentLogo(logoUrl);
-      setPreviewLogo(logoUrl);
-
+      setCurrentLogo(base64String);
       toast({
-        title: "✅ Berjaya",
-        description: "Logo AMBC Club telah dikemaskini!",
+        title: "Berjaya",
+        description: "Logo kelab telah dikemaskini!",
       });
     } catch (error) {
       console.error("Error uploading logo:", error);
       toast({
-        title: "❌ Ralat",
-        description: "Gagal memuat naik logo. Cuba lagi.",
+        title: "Ralat",
+        description: "Gagal memuat naik logo. Sila cuba lagi.",
         variant: "destructive",
       });
     } finally {
       setUploading(false);
     }
-  }
+  };
 
-  async function handleRemoveLogo() {
-    if (!confirm("Adakah anda pasti mahu membuang logo?")) return;
-
-    setUploading(true);
+  const handleDeleteLogo = async () => {
+    if (!confirm("Adakah anda pasti mahu membuang logo kelab?")) return;
 
     try {
-      // Delete logo from storage
-      if (currentLogo) {
-        await storageService.deleteLogo();
-      }
+      setUploading(true);
 
-      // Remove from database
       const { error } = await supabase
         .from("club_settings")
         .delete()
@@ -121,146 +123,118 @@ export function ClubSettings() {
       if (error) throw error;
 
       setCurrentLogo(null);
-      setPreviewLogo(null);
-
       toast({
-        title: "✅ Berjaya",
-        description: "Logo telah dibuang.",
+        title: "Berjaya",
+        description: "Logo kelab telah dibuang.",
       });
     } catch (error) {
-      console.error("Error removing logo:", error);
+      console.error("Error deleting logo:", error);
       toast({
-        title: "❌ Ralat",
-        description: "Gagal membuang logo. Cuba lagi.",
+        title: "Ralat",
+        description: "Gagal membuang logo. Sila cuba lagi.",
         variant: "destructive",
       });
     } finally {
       setUploading(false);
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <Card className="border-gray-200 shadow-sm">
-      <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-red-50 to-white">
-        <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <ImageIcon className="h-5 w-5 text-red-600" />
-          Pengurusan Logo Kelab
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-6">
-          {/* Current Logo Preview */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Logo Semasa</Label>
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                {previewLogo ? (
-                  <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-red-600 shadow-lg">
-                    <Image
-                      src={previewLogo}
-                      alt="AMBC Club Logo"
-                      width={128}
-                      height={128}
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-32 rounded-full bg-gray-100 border-4 border-dashed border-gray-300 flex items-center justify-center">
-                    <ImageIcon className="h-12 w-12 text-gray-400" />
-                  </div>
-                )}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Pengurusan Logo Kelab</CardTitle>
+          <CardDescription>
+            Muat naik logo kelab untuk dipaparkan di dashboard ahli. Format yang disokong: PNG, JPG, SVG (Maksimum 2MB)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {currentLogo ? (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-4 border-primary">
+                  <img
+                    src={currentLogo}
+                    alt="Logo Kelab"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">Logo Semasa</p>
               </div>
 
-              <div className="flex-1 space-y-3">
-                <p className="text-sm text-gray-600">
-                  {previewLogo
-                    ? "Logo kelab sedia ada. Muat naik imej baru untuk menggantikannya."
-                    : "Tiada logo diset. Muat naik imej logo kelab."}
-                </p>
-                <div className="flex gap-2">
-                  <Label
-                    htmlFor="logo-upload"
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Memuat Naik...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4" />
-                        {previewLogo ? "Tukar Logo" : "Muat Naik Logo"}
-                      </>
-                    )}
-                  </Label>
-                  <input
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-
-                  {previewLogo && (
-                    <Button
-                      variant="outline"
-                      onClick={handleRemoveLogo}
-                      disabled={uploading}
-                      className="border-gray-300 hover:bg-gray-100"
-                    >
-                      Buang Logo
-                    </Button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById("logo-upload")?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Tukar Logo
+                    </>
                   )}
-                </div>
+                </Button>
+
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteLogo}
+                  disabled={uploading}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Buang Logo
+                </Button>
               </div>
             </div>
-          </div>
-
-          {/* Upload Guidelines */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-2">📋 Garis Panduan Logo:</h4>
-            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-              <li>Format: PNG, JPG, atau SVG</li>
-              <li>Saiz maksimum: 2MB</li>
-              <li>Cadangan: Imej persegi (contoh: 500x500px)</li>
-              <li>Logo akan dipaparkan dalam bentuk bulat di member dashboard</li>
-              <li>Untuk hasil terbaik, gunakan background transparan (PNG)</li>
-            </ul>
-          </div>
-
-          {/* Preview in Context */}
-          {previewLogo && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <h4 className="font-semibold text-gray-900 mb-4">👁️ Preview di Dashboard Ahli:</h4>
-              <div className="flex items-center gap-4 bg-white p-4 rounded-lg border border-gray-200">
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-red-600 shadow-md">
-                  <Image
-                    src={previewLogo}
-                    alt="Preview"
-                    width={64}
-                    height={64}
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-red-600">AMBC CLUB</h1>
-                  <p className="text-sm text-gray-600">Selamat datang, Ahli</p>
-                </div>
+          ) : (
+            <div className="flex flex-col items-center space-y-4 py-8">
+              <div className="w-32 h-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-4 border-dashed border-gray-300 dark:border-gray-700">
+                <ImageIcon className="h-12 w-12 text-gray-400" />
               </div>
+              <p className="text-sm text-muted-foreground">Tiada logo dimuat naik</p>
+              
+              <Button
+                onClick={() => document.getElementById("logo-upload")?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Muat Naik Logo
+                  </>
+                )}
+              </Button>
             </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
+
+          <input
+            id="logo-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoUpload}
+            disabled={uploading}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
