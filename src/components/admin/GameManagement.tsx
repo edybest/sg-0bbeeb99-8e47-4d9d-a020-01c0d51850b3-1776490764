@@ -13,14 +13,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Edit, Trash2, Users, Calendar, Trophy } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, Users, Calendar, Trophy, MapPin } from "lucide-react";
 
 type Game = {
   id: string;
-  name: string;
+  game_name: string;
   game_type: string;
   game_date: string;
-  created_at: string;
+  year: number;
+  location?: string | null;
+  is_official?: boolean | null;
+  created_at?: string;
 };
 
 type Member = {
@@ -41,9 +44,11 @@ export function GameManagement() {
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    name: "",
+    game_name: "",
     game_type: "Blok Rasmi 10 PIN",
     game_date: new Date().toISOString().split("T")[0],
+    location: "Wangsa Bowl, IOI City Mall",
+    is_official: true
   });
 
   useEffect(() => {
@@ -76,9 +81,11 @@ export function GameManagement() {
   function openAddDialog() {
     setEditingGame(null);
     setFormData({
-      name: "",
+      game_name: "",
       game_type: "Blok Rasmi 10 PIN",
       game_date: new Date().toISOString().split("T")[0],
+      location: "Wangsa Bowl, IOI City Mall",
+      is_official: true
     });
     setDialogOpen(true);
   }
@@ -86,9 +93,11 @@ export function GameManagement() {
   function openEditDialog(game: Game) {
     setEditingGame(game);
     setFormData({
-      name: game.name,
+      game_name: game.game_name,
       game_type: game.game_type,
       game_date: game.game_date,
+      location: game.location || "Wangsa Bowl, IOI City Mall",
+      is_official: game.is_official ?? true
     });
     setDialogOpen(true);
   }
@@ -100,7 +109,7 @@ export function GameManagement() {
   }
 
   async function handleSubmit() {
-    if (!formData.name.trim()) {
+    if (!formData.game_name.trim()) {
       setError("Nama game diperlukan");
       return;
     }
@@ -109,10 +118,17 @@ export function GameManagement() {
     setError("");
 
     try {
+      const year = new Date(formData.game_date).getFullYear();
+      
+      const gameData = {
+        ...formData,
+        year
+      };
+
       if (editingGame) {
-        await gameService.updateGame(editingGame.id, formData);
+        await gameService.updateGame(editingGame.id, gameData);
       } else {
-        await gameService.createGame(formData);
+        await gameService.createGame(gameData);
       }
       await loadGames();
       setDialogOpen(false);
@@ -212,13 +228,19 @@ export function GameManagement() {
                   <TableHead>Nama Game</TableHead>
                   <TableHead>Jenis</TableHead>
                   <TableHead>Tarikh</TableHead>
+                  <TableHead>Lokasi</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {games.map((game) => (
                   <TableRow key={game.id}>
-                    <TableCell className="font-medium">{game.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {game.game_name}
+                      {game.is_official && (
+                        <Badge variant="secondary" className="ml-2 text-xs">Official</Badge>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{game.game_type}</Badge>
                     </TableCell>
@@ -226,6 +248,12 @@ export function GameManagement() {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         {new Date(game.game_date).toLocaleDateString("ms-MY")}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        {game.location || "-"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -274,42 +302,63 @@ export function GameManagement() {
 
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nama Game *</Label>
+                <Label htmlFor="game_name">Nama Game *</Label>
                 <Input
-                  id="name"
+                  id="game_name"
                   placeholder="Contoh: Blok Januari 2026"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.game_name}
+                  onChange={(e) => setFormData({ ...formData, game_name: e.target.value })}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="game_type">Jenis Game *</Label>
-                <Select
-                  value={formData.game_type}
-                  onValueChange={(value) => setFormData({ ...formData, game_type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Blok Rasmi 10 PIN">Blok Rasmi 10 PIN</SelectItem>
-                    <SelectItem value="Blok Tidak Rasmi">Blok Tidak Rasmi</SelectItem>
-                    <SelectItem value="Liga">Liga</SelectItem>
-                    <SelectItem value="Couple">Couple</SelectItem>
-                    <SelectItem value="Training">Training</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="game_type">Jenis Game *</Label>
+                  <Select
+                    value={formData.game_type}
+                    onValueChange={(value) => setFormData({ ...formData, game_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Blok Rasmi 10 PIN">Blok Rasmi 10 PIN</SelectItem>
+                      <SelectItem value="Blok Tidak Rasmi">Blok Tidak Rasmi</SelectItem>
+                      <SelectItem value="Liga">Liga</SelectItem>
+                      <SelectItem value="Couple">Couple</SelectItem>
+                      <SelectItem value="Training">Training</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="game_date">Tarikh Game *</Label>
+                  <Input
+                    id="game_date"
+                    type="date"
+                    value={formData.game_date}
+                    onChange={(e) => setFormData({ ...formData, game_date: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="game_date">Tarikh Game *</Label>
+                <Label htmlFor="location">Lokasi</Label>
                 <Input
-                  id="game_date"
-                  type="date"
-                  value={formData.game_date}
-                  onChange={(e) => setFormData({ ...formData, game_date: e.target.value })}
+                  id="location"
+                  placeholder="Contoh: Wangsa Bowl, IOI City Mall"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 />
+              </div>
+
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="is_official"
+                  checked={formData.is_official}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_official: checked as boolean })}
+                />
+                <Label htmlFor="is_official">Game Rasmi (Kira untuk ranking)</Label>
               </div>
             </div>
 

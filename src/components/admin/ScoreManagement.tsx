@@ -32,6 +32,8 @@ type Game = {
   id: string;
   game_name: string;
   game_date: string;
+  game_type: string;
+  year: number;
 };
 
 export function ScoreManagement() {
@@ -123,7 +125,7 @@ export function ScoreManagement() {
 
     setSaving(playerId);
     try {
-      await gameService.updatePlayerScore(playerId, {
+      await gameService.updatePlayerScores(playerId, {
         game1_score: updates.game1_score,
         game2_score: updates.game2_score,
         game3_score: updates.game3_score,

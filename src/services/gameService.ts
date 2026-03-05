@@ -1,12 +1,36 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-type Game = Database["public"]["Tables"]["games"]["Row"];
-type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
-type GameUpdate = Database["public"]["Tables"]["games"]["Update"];
-type GamePlayer = Database["public"]["Tables"]["game_players"]["Row"];
-type GamePlayerInsert = Database["public"]["Tables"]["game_players"]["Insert"];
-type GamePlayerUpdate = Database["public"]["Tables"]["game_players"]["Update"];
+// Helper type for Game since generated types might be slightly off due to recent migrations
+type Game = {
+  id: string;
+  game_name: string;
+  game_type: string;
+  game_date: string;
+  year: number;
+  location?: string | null;
+  is_official?: boolean | null;
+  game_format?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type GamePlayer = {
+  id: string;
+  game_id: string;
+  member_id: string;
+  game1_score: number;
+  game2_score: number;
+  game3_score: number;
+  game4_score: number;
+  game5_score: number;
+  handicap: number;
+  total_score?: number;
+  overall_score?: number;
+  average_score?: number;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export const gameService = {
   // Get all games
@@ -17,7 +41,7 @@ export const gameService = {
       .order("game_date", { ascending: false });
     
     if (error) throw error;
-    return data;
+    return data as Game[];
   },
 
   // Get game by ID with players
@@ -44,7 +68,12 @@ export const gameService = {
   },
 
   // Create new game
-  async createGame(game: GameInsert) {
+  async createGame(game: Partial<Game>) {
+    // Calculate year from game_date if not provided
+    if (!game.year && game.game_date) {
+      game.year = new Date(game.game_date).getFullYear();
+    }
+
     const { data, error } = await supabase
       .from("games")
       .insert(game)
@@ -56,7 +85,12 @@ export const gameService = {
   },
 
   // Update game
-  async updateGame(gameId: string, updates: GameUpdate) {
+  async updateGame(gameId: string, updates: Partial<Game>) {
+    // Calculate year from game_date if date changed
+    if (updates.game_date) {
+      updates.year = new Date(updates.game_date).getFullYear();
+    }
+
     const { data, error } = await supabase
       .from("games")
       .update(updates)
@@ -83,6 +117,12 @@ export const gameService = {
     const players = memberIds.map(memberId => ({
       game_id: gameId,
       member_id: memberId,
+      game1_score: 0,
+      game2_score: 0,
+      game3_score: 0,
+      game4_score: 0,
+      game5_score: 0,
+      handicap: 0
     }));
 
     const { data, error } = await supabase
@@ -106,7 +146,7 @@ export const gameService = {
   },
 
   // Update player scores
-  async updatePlayerScores(gamePlayerId: string, scores: GamePlayerUpdate) {
+  async updatePlayerScores(gamePlayerId: string, scores: Partial<GamePlayer>) {
     const { data, error } = await supabase
       .from("game_players")
       .update(scores)
