@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { memberService } from "@/services/memberService";
 import { storageService } from "@/services/storageService";
+import { authService } from "@/services/authService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, UserPlus, Search, Loader2 } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 type Member = {
   id: string;
@@ -28,6 +30,7 @@ type Member = {
 };
 
 export function MemberManagement() {
+  const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +49,7 @@ export function MemberManagement() {
     avatar_base64: ""
   });
   const [submitting, setSubmitting] = useState(false);
+  const [verifying, setVerifying] = useState<string | null>(null);
 
   useEffect(() => {
     loadMembers();
@@ -117,19 +121,15 @@ export function MemberManagement() {
   }
 
   function formatPhoneNumber(value: string): string {
-    // Remove all non-digit characters except +
     let cleaned = value.replace(/[^\d+]/g, "");
     
-    // If doesn't start with +, add +60 (Malaysia)
     if (!cleaned.startsWith("+")) {
-      // Remove leading 0 if exists
       if (cleaned.startsWith("0")) {
         cleaned = cleaned.substring(1);
       }
       cleaned = "+60" + cleaned;
     }
     
-    // Ensure it starts with +60
     if (!cleaned.startsWith("+60")) {
       cleaned = "+60" + cleaned.replace(/^\+/, "");
     }
@@ -142,6 +142,37 @@ export function MemberManagement() {
     setFormData({ ...formData, phone: formatted });
   }
 
+  async function handleManualVerify(memberId: string, username: string) {
+    if (!confirm(`Sahkan ahli ${username} secara manual (bypass OTP)?`)) return;
+
+    setVerifying(memberId);
+    try {
+      const result = await authService.adminVerifyMember(memberId);
+      
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast({
+        title: "✅ Berjaya",
+        description: `${username} telah disahkan secara manual!`,
+        duration: 3000,
+      });
+
+      await loadMembers();
+    } catch (error: any) {
+      console.error("Error verifying member:", error);
+      toast({
+        title: "❌ Gagal",
+        description: error.message || "Gagal mengesahkan ahli",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setVerifying(null);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -149,9 +180,7 @@ export function MemberManagement() {
     try {
       let avatarUrl = editingMember?.avatar_url;
 
-      // Upload avatar if provided
       if (formData.avatar_base64) {
-        // Convert base64 to File object
         const base64Data = formData.avatar_base64.split(",")[1];
         const mimeType = formData.avatar_base64.split(";")[0].split(":")[1];
         const byteCharacters = atob(base64Data);
@@ -163,7 +192,6 @@ export function MemberManagement() {
         const blob = new Blob([byteArray], { type: mimeType });
         const file = new File([blob], `avatar.${mimeType.split("/")[1]}`, { type: mimeType });
 
-        // Upload to Supabase Storage
         const userId = editingMember?.id || crypto.randomUUID();
         avatarUrl = await storageService.uploadAvatar(file, userId);
       }
@@ -181,10 +209,8 @@ export function MemberManagement() {
           avatar_url: avatarUrl
         });
       } else {
-        // Admin adds member without auth user (user_id = null)
-        // Member can register themselves later and link their account
         await memberService.createMember({
-          user_id: null, // ✅ No auth user required when admin adds member
+          user_id: null,
           username: formData.username,
           email: formData.email || null,
           full_name: formData.full_name,
@@ -201,9 +227,20 @@ export function MemberManagement() {
 
       await loadMembers();
       setDialogOpen(false);
+      
+      toast({
+        title: "✅ Berjaya",
+        description: editingMember ? "Ahli telah dikemaskini" : "Ahli baru telah ditambah",
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error saving member:", error);
-      alert("Gagal menyimpan ahli");
+      toast({
+        title: "❌ Gagal",
+        description: "Gagal menyimpan ahli",
+        variant: "destructive",
+        duration: 3000,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -215,9 +252,20 @@ export function MemberManagement() {
     try {
       await memberService.deleteMember(id);
       await loadMembers();
+      
+      toast({
+        title: "✅ Berjaya",
+        description: `${username} telah dibuang`,
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error deleting member:", error);
-      alert("Gagal membuang ahli");
+      toast({
+        title: "❌ Gagal",
+        description: "Gagal membuang ahli",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
   }
 
@@ -398,8 +446,7 @@ export function MemberManagement() {
                 <TableHead className="text-gray-300">Nama Penuh</TableHead>
                 <TableHead className="text-gray-300">Email</TableHead>
                 <TableHead className="text-gray-300">Telefon</TableHead>
-                <TableHead className="text-gray-300">Jantina</TableHead>
-                <TableHead className="text-gray-300">Handicap</TableHead>
+                <TableHead className="text-gray-300">Status</TableHead>
                 <TableHead className="text-gray-300">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
@@ -425,10 +472,37 @@ export function MemberManagement() {
                   <TableCell className="text-gray-300">{member.full_name}</TableCell>
                   <TableCell className="text-gray-300">{member.email || "-"}</TableCell>
                   <TableCell className="text-gray-300">{member.phone}</TableCell>
-                  <TableCell className="text-gray-300">{member.sex === "men" ? "Lelaki" : "Perempuan"}</TableCell>
-                  <TableCell className="text-gray-300">{member.handicap}</TableCell>
+                  <TableCell>
+                    {member.is_verified ? (
+                      <div className="flex items-center gap-1 text-green-500">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span className="text-xs">Verified</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-yellow-500">
+                        <ShieldAlert className="h-4 w-4" />
+                        <span className="text-xs">Pending</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      {!member.is_verified && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleManualVerify(member.id, member.username)}
+                          disabled={verifying === member.id}
+                          className="border-green-700 text-green-500 hover:bg-green-900/20"
+                          title="Sahkan secara manual (bypass OTP)"
+                        >
+                          {verifying === member.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-3 w-3" />
+                          )}
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => openEditDialog(member)} className="border-gray-700">
                         <Pencil className="h-3 w-3" />
                       </Button>
