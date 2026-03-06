@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { gameService } from "@/services/gameService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Save, Search } from "lucide-react";
 import Image from "next/image";
 
@@ -63,7 +61,7 @@ export function ScoreManagement() {
   async function loadGames() {
     try {
       const data = await gameService.getAllGames();
-      setGames(data as Game[]);
+      setGames(data as unknown as Game[]);
       if (data.length > 0) {
         setSelectedGameId(data[0].id);
       }
@@ -78,8 +76,8 @@ export function ScoreManagement() {
     try {
       setLoading(true);
       const data = await gameService.getGamePlayers(gameId);
-      setPlayers(data as GamePlayer[]);
-      setFilteredPlayers(data as GamePlayer[]);
+      setPlayers(data as unknown as GamePlayer[]);
+      setFilteredPlayers(data as unknown as GamePlayer[]);
     } catch (error) {
       console.error("Error loading players:", error);
     } finally {
@@ -160,11 +158,11 @@ export function ScoreManagement() {
 
   function calculateDifference(player: GamePlayer): number {
     if (filteredPlayers.length === 0) return 0;
-    const topScore = filteredPlayers[0].overall_score;
+    const topScore = filteredPlayers.reduce((max, p) => Math.max(max, p.overall_score), 0);
     return topScore - player.overall_score;
   }
 
-  if (loading) {
+  if (loading && !selectedGameId) {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-red-500" />
@@ -173,170 +171,196 @@ export function ScoreManagement() {
   }
 
   return (
-    <Card className="bg-black/50 border-red-900/50">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle className="text-2xl text-red-500">Pengurusan Skor</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-              <SelectTrigger className="w-full sm:w-64 bg-gray-900/50 border-gray-700 text-white">
-                <SelectValue placeholder="Pilih Game" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Score Management</h2>
+          <p className="text-gray-600 mt-1">Edit player scores for games</p>
+        </div>
+      </div>
+
+      {/* Game Selection */}
+      <Card className="bg-white border-gray-200">
+        <CardContent className="p-4">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Game</label>
+              <select
+                value={selectedGameId || ""}
+                onChange={(e) => setSelectedGameId(e.target.value)}
+                className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              >
+                <option value="">Choose a game...</option>
                 {games.map((game) => (
-                  <SelectItem key={game.id} value={game.id} className="text-white">
-                    {game.game_name} - {new Date(game.game_date).toLocaleDateString("ms-MY")}
-                  </SelectItem>
+                  <option key={game.id} value={game.id}>
+                    {game.game_name} - {new Date(game.game_date).toLocaleDateString()}
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Cari pemain..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white"
-              />
+              </select>
             </div>
+
+            {selectedGameId && (
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="Search by username..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-white border-gray-300 text-gray-900"
+                />
+              </div>
+            )}
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800">
-                <TableHead className="text-gray-300 sticky left-0 bg-black/90 z-10">Kedudukan</TableHead>
-                <TableHead className="text-gray-300 sticky left-20 bg-black/90 z-10">Pemain</TableHead>
-                <TableHead className="text-gray-300">Game 1</TableHead>
-                <TableHead className="text-gray-300">Game 2</TableHead>
-                <TableHead className="text-gray-300">Game 3</TableHead>
-                <TableHead className="text-gray-300">Game 4</TableHead>
-                <TableHead className="text-gray-300">Game 5</TableHead>
-                <TableHead className="text-gray-300">Total</TableHead>
-                <TableHead className="text-gray-300">Handicap</TableHead>
-                <TableHead className="text-gray-300">Overall</TableHead>
-                <TableHead className="text-gray-300">Beza</TableHead>
-                <TableHead className="text-gray-300">Purata</TableHead>
-                <TableHead className="text-gray-300">Tindakan</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPlayers.map((player, index) => (
-                <TableRow key={player.id} className="border-gray-800">
-                  <TableCell className="text-white font-bold sticky left-0 bg-black/90 z-10">
-                    #{index + 1}
-                  </TableCell>
-                  <TableCell className="sticky left-20 bg-black/90 z-10">
-                    <div className="flex items-center gap-2">
-                      {player.members.avatar_url ? (
-                        <Image 
-                          src={player.members.avatar_url} 
-                          alt={player.members.username} 
-                          width={32} 
-                          height={32} 
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-sm">
-                          {player.members.username[0].toUpperCase()}
+        </CardContent>
+      </Card>
+
+      {/* Scores Table */}
+      {selectedGameId && (
+        <Card className="bg-white border-gray-200">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Rank</th>
+                    <th className="sticky left-16 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Player</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G1</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G2</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G3</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G4</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G5</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HCP</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Overall</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Avg</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Diff</th>
+                    <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filteredPlayers.map((player, index) => (
+                    <tr key={player.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="text-gray-900 font-bold sticky left-0 bg-white z-10">
+                        #{index + 1}
+                      </td>
+                      <td className="sticky left-16 bg-white z-10">
+                        <div className="flex items-center gap-2">
+                          {player.members.avatar_url ? (
+                            <Image 
+                              src={player.members.avatar_url} 
+                              alt={player.members.username} 
+                              width={32} 
+                              height={32} 
+                              className="rounded-full"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                              {player.members.username[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-gray-900 font-medium">{player.members.username}</div>
+                            <div className="text-gray-500 text-xs">{player.members.full_name}</div>
+                          </div>
                         </div>
-                      )}
-                      <div>
-                        <div className="text-white font-medium">{player.members.username}</div>
-                        <div className="text-gray-400 text-xs">{player.members.full_name}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "game1_score")}
-                      onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "game2_score")}
-                      onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "game3_score")}
-                      onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "game4_score")}
-                      onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "game5_score")}
-                      onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell className="text-white font-bold">
-                    {getPlayerScore(player, "total_score")}
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={getPlayerScore(player, "handicap")}
-                      onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                      className="w-20 bg-gray-800 border-gray-700 text-white text-center"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
-                    />
-                  </TableCell>
-                  <TableCell className="text-red-500 font-bold">
-                    {getPlayerScore(player, "overall_score")}
-                  </TableCell>
-                  <TableCell className="text-gray-400">
-                    -{calculateDifference(player)}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {getPlayerScore(player, "average_score")}
-                  </TableCell>
-                  <TableCell>
-                    {editingScores[player.id] && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleSave(player.id)}
-                        disabled={saving === player.id}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        {saving === player.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Save className="h-3 w-3" />
+                      </td>
+                      <td>
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "game1_score")}
+                          onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "game2_score")}
+                          onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "game3_score")}
+                          onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "game4_score")}
+                          onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td>
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "game5_score")}
+                          onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td className="text-gray-900 font-bold text-center">
+                        <Input
+                          type="number"
+                          value={getPlayerScore(player, "handicap")}
+                          onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
+                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                      </td>
+                      <td className="text-gray-700 font-bold text-center">
+                        {getPlayerScore(player, "total_score")}
+                      </td>
+                      <td className="text-red-600 font-bold text-center">
+                        {getPlayerScore(player, "overall_score")}
+                      </td>
+                      <td className="text-gray-600 text-center">
+                        {getPlayerScore(player, "average_score")}
+                      </td>
+                      <td className="text-gray-500 text-center">
+                        -{calculateDifference(player)}
+                      </td>
+                      <td className="text-right">
+                        {editingScores[player.id] && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleSave(player.id)}
+                            disabled={saving === player.id}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            {saving === player.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Save className="h-4 w-4" />
+                            )}
+                          </Button>
                         )}
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredPlayers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No scores found for this game</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

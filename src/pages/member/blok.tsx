@@ -1,22 +1,42 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Trophy, Medal, Award, Loader2, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  Trophy, 
+  Medal, 
+  Award, 
+  Loader2, 
+  TrendingDown, 
+  ArrowLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
+} from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
-import { motion } from "framer-motion";
 
-// Defined specifically for the leaderboard display
-type LeaderboardEntry = {
-  id: string;
-  member_id: string;
-  rank: number;
-  difference: number;
+// Define specific types for what we fetch to avoid TS errors
+type GameSummary = Pick<Tables<"games">, "id" | "game_name" | "game_format" | "game_date" | "created_at">;
+
+// Raw data shape from Supabase join
+interface RawPlayerScore extends Tables<"game_players"> {
+  member: {
+    id: string;
+    username: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+}
+
+// Final shape for UI
+interface LeaderboardEntry {
+  id: string; // game_player id
   member: {
     id: string;
     username: string;
@@ -32,22 +52,34 @@ type LeaderboardEntry = {
   total_score: number;
   overall_score: number;
   average_score: number;
-};
+  difference: number;
+  rank: number;
+}
 
-type Game = {
-  id: string;
-  game_name: string;
-  game_format: string;
-  game_date: string;
-  created_at: string;
-};
+type SortField = 
+  | "rank"
+  | "username" 
+  | "game1_score"
+  | "game2_score"
+  | "game3_score"
+  | "game4_score"
+  | "game5_score"
+  | "handicap"
+  | "total_score"
+  | "overall_score"
+  | "average_score"
+  | "difference";
+
+type SortDirection = "asc" | "desc";
 
 export default function BlokPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [games, setGames] = useState<GameSummary[]>([]);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [selectedGame, setSelectedGame] = useState<string>("");
-  const [games, setGames] = useState<Game[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<SortField>("rank");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
     checkAuth();
@@ -56,7 +88,7 @@ export default function BlokPage() {
 
   useEffect(() => {
     if (selectedGame) {
-      loadLeaderboard();
+      loadLeaderboard(selectedGame);
     }
   }, [selectedGame]);
 
@@ -88,80 +120,139 @@ export default function BlokPage() {
     }
   };
 
-  const loadLeaderboard = async () => {
-    if (!selectedGame) return;
+  const loadLeaderboard = async (gameId: string) => {
+    if (!gameId) return;
 
     setLoading(true);
     try {
-      const { data: scores, error } = await supabase
+      // 1. Fetch raw data
+      const { data: rawData, error } = await supabase
         .from("game_players")
         .select(`
           *,
           member:members(id, username, full_name, avatar_url)
         `)
-        .eq("game_id", selectedGame)
-        .order("overall_score", { ascending: false });
+        .eq("game_id", gameId);
 
       if (error) throw error;
 
-      if (scores) {
-        // Sort with tiebreaker: overall → game5 → game4 → game3 → game2 → game1
-        const sortedScores = scores.sort((a, b) => {
+      if (rawData) {
+        // Cast to our known type including the joined member
+        const scores = rawData as unknown as RawPlayerScore[];
+
+        // 2. Calculate Ranks based on standard bowling rules (Overall -> Game 5 -> Game 4...)
+        const sortedByRules = [...scores].sort((a, b) => {
           // Primary: Overall score (descending)
-          if (b.overall_score !== a.overall_score) {
-            return b.overall_score - a.overall_score;
-          }
-          
-          // Tiebreaker 1: Game 5 score (descending)
-          if (b.game5_score !== a.game5_score) {
-            return b.game5_score - a.game5_score;
-          }
-          
-          // Tiebreaker 2: Game 4 score (descending)
-          if (b.game4_score !== a.game4_score) {
-            return b.game4_score - a.game4_score;
-          }
-          
-          // Tiebreaker 3: Game 3 score (descending)
-          if (b.game3_score !== a.game3_score) {
-            return b.game3_score - a.game3_score;
-          }
-          
-          // Tiebreaker 4: Game 2 score (descending)
-          if (b.game2_score !== a.game2_score) {
-            return b.game2_score - a.game2_score;
-          }
-          
-          // Tiebreaker 5: Game 1 score (descending)
+          if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
+          // Tiebreakers: G5 -> G4 -> G3 -> G2 -> G1
+          if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
+          if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
+          if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
+          if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
           return b.game1_score - a.game1_score;
         });
 
-        const topScore = sortedScores[0]?.overall_score || 0;
-        
-        const formatted: LeaderboardEntry[] = sortedScores.map((score, index) => ({
-          id: score.id,
-          member_id: score.member_id,
-          rank: index + 1,
-          member: score.member,
-          game1_score: score.game1_score || 0,
-          game2_score: score.game2_score || 0,
-          game3_score: score.game3_score || 0,
-          game4_score: score.game4_score || 0,
-          game5_score: score.game5_score || 0,
-          handicap: score.handicap || 0,
-          total_score: score.total_score || 0,
-          overall_score: score.overall_score || 0,
-          average_score: score.average_score || 0,
-          difference: topScore - score.overall_score,
+        const topScore = sortedByRules[0]?.overall_score || 0;
+
+        // 3. Create fully populated LeaderboardEntry objects
+        const fullLeaderboard: LeaderboardEntry[] = sortedByRules.map((entry, index) => ({
+          id: entry.id,
+          member: entry.member,
+          game1_score: entry.game1_score,
+          game2_score: entry.game2_score,
+          game3_score: entry.game3_score,
+          game4_score: entry.game4_score,
+          game5_score: entry.game5_score,
+          handicap: entry.handicap,
+          total_score: entry.total_score,
+          overall_score: entry.overall_score,
+          average_score: entry.average_score,
+          difference: index === 0 ? 0 : topScore - entry.overall_score,
+          rank: index + 1
         }));
 
-        setLeaderboard(formatted);
+        // 4. Apply current sort (if user changed it from default 'rank')
+        let finalDisplay = fullLeaderboard;
+        if (sortField !== "rank") {
+          finalDisplay = sortData(fullLeaderboard, sortField, sortDirection);
+        } else if (sortDirection === "desc") {
+          // Special case: if sorting by Rank DESC (bottom to top)
+          finalDisplay = [...fullLeaderboard].reverse();
+        }
+
+        setLeaderboard(finalDisplay);
       }
     } catch (error) {
       console.error("Error loading leaderboard:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const sortData = (
+    data: LeaderboardEntry[],
+    field: SortField,
+    direction: SortDirection
+  ): LeaderboardEntry[] => {
+    return [...data].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      if (field === "username") {
+        aValue = a.member.username.toLowerCase();
+        bValue = b.member.username.toLowerCase();
+      } else {
+        aValue = a[field];
+        bValue = b[field];
+      }
+
+      if (typeof aValue === "string") {
+        return direction === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Numeric sort
+      return direction === "asc" ? aValue - bValue : bValue - aValue;
+    });
+  };
+
+  const handleSort = (field: SortField) => {
+    let newDirection: SortDirection = "asc";
+    
+    if (field === sortField) {
+      // Toggle direction if clicking same field
+      newDirection = sortDirection === "asc" ? "desc" : "asc";
+    } else {
+      // Default directions for new fields
+      // Scores/Numeric usually want DESC first (highest first)
+      // Rank/Name usually want ASC first (1-10 or A-Z)
+      if (["username", "rank"].includes(field)) {
+        newDirection = "asc";
+      } else {
+        newDirection = "desc";
+      }
+    }
+
+    setSortField(field);
+    setSortDirection(newDirection);
+
+    // If we're just sorting existing data, no need to reload
+    // BUT since 'rank' depends on the initial rule-based sort, we sort the *current* leaderboard state
+    // Wait - if we sort by Score, Rank should stay fixed to the person? Yes.
+    // Rank 1 is always the person who won, even if I sort the table by Name.
+    setLeaderboard(sortData(leaderboard, field, newDirection));
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-20 hover:opacity-100 transition-opacity" />;
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-4 h-4 ml-1 text-red-600" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 text-red-600" />
+    );
   };
 
   const getRankDisplay = (rank: number) => {
@@ -261,7 +352,7 @@ export default function BlokPage() {
                       key={game.id}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedGame(game.id)}
-                      className={`p-4 rounded-lg border-2 transition-all ${
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
                         selectedGame === game.id
                           ? "bg-red-600 border-red-600 text-white shadow-lg"
                           : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"
@@ -303,45 +394,158 @@ export default function BlokPage() {
                     <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-20" />
                     
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
+                      <table className="w-full">
                         <thead>
-                          <tr className="bg-gray-100 border-b border-gray-200">
-                            {/* Sticky columns */}
-                            <th className="sticky left-0 z-30 bg-gray-100 px-3 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200">
-                              #
+                          <tr className="border-b border-gray-200">
+                            {/* Rank - Sortable */}
+                            <th 
+                              className="sticky left-0 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("rank")}
+                            >
+                              <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                #
+                                {getSortIcon("rank")}
+                              </div>
                             </th>
-                            <th className="sticky left-[50px] z-30 bg-gray-100 px-2 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200">
-                              Avatar
+
+                            {/* Avatar - Not sortable */}
+                            <th className="sticky left-12 sm:left-16 z-20 bg-white px-2 py-3">
+                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Avatar
+                              </span>
                             </th>
-                            <th className="sticky left-[90px] z-30 bg-gray-100 px-3 py-3 text-left text-xs font-semibold text-gray-700 border-r border-gray-200 min-w-[120px]">
-                              Username
+
+                            {/* Username - Sortable */}
+                            <th 
+                              className="sticky left-24 sm:left-32 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("username")}
+                            >
+                              <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Player
+                                {getSortIcon("username")}
+                              </div>
                             </th>
-                            <th className="sticky left-[210px] z-30 bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200 md:static md:left-auto">
-                              Overall
+
+                            {/* Overall - Sortable */}
+                            <th 
+                              className="sticky left-44 sm:left-60 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("overall_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Overall
+                                {getSortIcon("overall_score")}
+                              </div>
                             </th>
-                            <th className="sticky left-[280px] z-30 bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r-2 border-gray-300 md:static md:left-auto">
-                              Diff
+
+                            {/* Difference - Sortable */}
+                            <th 
+                              className="sticky left-60 sm:left-80 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("difference")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Diff
+                                {getSortIcon("difference")}
+                              </div>
                             </th>
-                            
-                            {/* Scrollable columns */}
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">G1</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">G2</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">G3</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">G4</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">G5</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">HCP</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">Total</th>
-                            <th className="bg-gray-100 px-3 py-3 text-center text-xs font-semibold text-gray-700">Avg</th>
+
+                            {/* Game 1 - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("game1_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                G1
+                                {getSortIcon("game1_score")}
+                              </div>
+                            </th>
+
+                            {/* Game 2 - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("game2_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                G2
+                                {getSortIcon("game2_score")}
+                              </div>
+                            </th>
+
+                            {/* Game 3 - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("game3_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                G3
+                                {getSortIcon("game3_score")}
+                              </div>
+                            </th>
+
+                            {/* Game 4 - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("game4_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                G4
+                                {getSortIcon("game4_score")}
+                              </div>
+                            </th>
+
+                            {/* Game 5 - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("game5_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                G5
+                                {getSortIcon("game5_score")}
+                              </div>
+                            </th>
+
+                            {/* Handicap - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("handicap")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                HCP
+                                {getSortIcon("handicap")}
+                              </div>
+                            </th>
+
+                            {/* Total - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("total_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Total
+                                {getSortIcon("total_score")}
+                              </div>
+                            </th>
+
+                            {/* Average - Sortable */}
+                            <th 
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handleSort("average_score")}
+                            >
+                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Avg
+                                {getSortIcon("average_score")}
+                              </div>
+                            </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white">
+
+                        <tbody>
                           {leaderboard.map((entry, index) => (
                             <motion.tr
-                              key={entry.member_id}
+                              key={entry.member.id}
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ delay: index * 0.05 }}
-                              className="border-b border-gray-100 hover:bg-red-50 transition-colors"
+                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                             >
                               {/* Sticky columns */}
                               <td className="sticky left-0 z-20 bg-white px-3 py-3 border-r border-gray-200">

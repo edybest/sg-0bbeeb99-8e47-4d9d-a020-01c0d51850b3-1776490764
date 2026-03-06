@@ -289,234 +289,251 @@ export function MemberManagement() {
   }
 
   return (
-    <Card className="bg-black/50 border-red-900/50">
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <CardTitle className="text-2xl text-red-500">Pengurusan Ahli</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Member Management</h2>
+          <p className="text-gray-600 mt-1">Manage club members and their profiles</p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
+          <UserPlus className="w-4 h-4 mr-2" />
+          Add Member
+        </Button>
+      </div>
+
+      {/* Search and Filter */}
+      <Card className="bg-white border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
-                placeholder="Cari ahli..."
+                placeholder="Search by username, email, or name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white"
+                className="pl-10 bg-white border-gray-300 text-gray-900"
               />
             </div>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={openAddDialog} className="bg-red-600 hover:bg-red-700 whitespace-nowrap">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Tambah Ahli
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-gray-900 border-red-900/50 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-red-500">
-                    {editingMember ? "Edit Ahli" : "Tambah Ahli Baru"}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username" className="text-gray-300">Username *</Label>
-                      <Input
-                        id="username"
-                        value={formData.username}
-                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-300">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name" className="text-gray-300">Nama Penuh *</Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      required
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-gray-300">Telefon (WhatsApp) *</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={handlePhoneChange}
-                        placeholder="+60123456789"
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                      <p className="text-xs text-gray-500">Format: +60XXXXXXXXX (untuk WhatsApp OTP)</p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="birthday" className="text-gray-300">Tarikh Lahir *</Label>
-                      <Input
-                        id="birthday"
-                        type="date"
-                        value={formData.birthday}
-                        onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                        required
-                        className="bg-gray-800 border-gray-700"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="sex" className="text-gray-300">Jantina *</Label>
-                    <Select value={formData.sex} onValueChange={(value: "men" | "women") => setFormData({ ...formData, sex: value })}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="men">Lelaki</SelectItem>
-                        <SelectItem value="women">Perempuan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="avatar" className="text-gray-300">Avatar</Label>
-                    <Input
-                      id="avatar"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bowling_technique" className="text-gray-300">Teknik Bowling</Label>
-                    <Input
-                      id="bowling_technique"
-                      value={formData.bowling_technique}
-                      onChange={(e) => setFormData({ ...formData, bowling_technique: e.target.value })}
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="handicap" className="text-gray-300">Handicap</Label>
-                    <Input
-                      id="handicap"
-                      type="number"
-                      value={formData.handicap}
-                      onChange={(e) => setFormData({ ...formData, handicap: parseInt(e.target.value) || 0 })}
-                      className="bg-gray-800 border-gray-700"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={submitting} className="flex-1 bg-red-600 hover:bg-red-700">
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : editingMember ? "Simpan" : "Tambah"}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
-                      Batal
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800">
-                <TableHead className="text-gray-300">Avatar</TableHead>
-                <TableHead className="text-gray-300">Username</TableHead>
-                <TableHead className="text-gray-300">Nama Penuh</TableHead>
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Telefon</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Tindakan</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMembers.map((member) => (
-                <TableRow key={member.id} className="border-gray-800">
-                  <TableCell>
-                    {member.avatar_url ? (
-                      <Image 
-                        src={storageService.getAvatarUrl(member.avatar_url) || member.avatar_url} 
-                        alt={member.username} 
-                        width={40} 
-                        height={40} 
-                        className="rounded-full" 
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
-                        {member.username[0].toUpperCase()}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-white font-medium">{member.username}</TableCell>
-                  <TableCell className="text-gray-300">{member.full_name}</TableCell>
-                  <TableCell className="text-gray-300">{member.email || "-"}</TableCell>
-                  <TableCell className="text-gray-300">{member.phone}</TableCell>
-                  <TableCell>
-                    {member.is_verified ? (
-                      <div className="flex items-center gap-1 text-green-500">
-                        <ShieldCheck className="h-4 w-4" />
-                        <span className="text-xs">Verified</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <ShieldAlert className="h-4 w-4" />
-                        <span className="text-xs">Pending</span>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {!member.is_verified && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleManualVerify(member.id, member.username)}
-                          disabled={verifying === member.id}
-                          className="border-green-700 text-green-500 hover:bg-green-900/20"
-                          title="Sahkan secara manual (bypass OTP)"
-                        >
-                          {verifying === member.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <ShieldCheck className="h-3 w-3" />
-                          )}
-                        </Button>
+        </CardContent>
+      </Card>
+
+      {/* Members Table */}
+      <Card className="bg-white border-gray-200">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Member</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Details</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Bowling</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {filteredMembers.map((member) => (
+                  <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {member.avatar_url ? (
+                        <Image 
+                          src={storageService.getAvatarUrl(member.avatar_url) || member.avatar_url} 
+                          alt={member.username} 
+                          width={40} 
+                          height={40} 
+                          className="rounded-full" 
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
+                          {member.username[0].toUpperCase()}
+                        </div>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => openEditDialog(member)} className="border-gray-700">
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(member.id, member.username)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{member.username}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{member.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{member.email || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{member.phone}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {member.is_verified ? (
+                        <div className="flex items-center gap-1 text-green-500">
+                          <ShieldCheck className="h-4 w-4" />
+                          <span className="text-xs">Verified</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          <ShieldAlert className="h-4 w-4" />
+                          <span className="text-xs">Pending</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-500">
+                      <div className="flex gap-2">
+                        {!member.is_verified && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleManualVerify(member.id, member.username)}
+                            disabled={verifying === member.id}
+                            className="border-green-700 text-green-500 hover:bg-green-900/20"
+                            title="Sahkan secara manual (bypass OTP)"
+                          >
+                            {verifying === member.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => openEditDialog(member)} className="border-gray-700">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(member.id, member.username)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredMembers.length === 0 && (
+            <div className="text-center py-12">
+              <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No members found</p>
+              <p className="text-gray-500 text-sm mt-1">Try adjusting your search or add a new member</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-gray-900 border-red-900/50 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              {editingMember ? "Edit Ahli" : "Tambah Ahli Baru"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-300">Username *</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                  className="bg-gray-800 border-gray-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-300">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="bg-gray-800 border-gray-700"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="full_name" className="text-gray-300">Nama Penuh *</Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                required
+                className="bg-gray-800 border-gray-700"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-gray-300">Telefon (WhatsApp) *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="+60123456789"
+                  required
+                  className="bg-gray-800 border-gray-700"
+                />
+                <p className="text-xs text-gray-500">Format: +60XXXXXXXXX (untuk WhatsApp OTP)</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthday" className="text-gray-300">Tarikh Lahir *</Label>
+                <Input
+                  id="birthday"
+                  type="date"
+                  value={formData.birthday}
+                  onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                  required
+                  className="bg-gray-800 border-gray-700"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sex" className="text-gray-300">Jantina *</Label>
+              <Select value={formData.sex} onValueChange={(value: "men" | "women") => setFormData({ ...formData, sex: value })}>
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="men">Lelaki</SelectItem>
+                  <SelectItem value="women">Perempuan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="avatar" className="text-gray-300">Avatar</Label>
+              <Input
+                id="avatar"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="bg-gray-800 border-gray-700"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bowling_technique" className="text-gray-300">Teknik Bowling</Label>
+              <Input
+                id="bowling_technique"
+                value={formData.bowling_technique}
+                onChange={(e) => setFormData({ ...formData, bowling_technique: e.target.value })}
+                className="bg-gray-800 border-gray-700"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="handicap" className="text-gray-300">Handicap</Label>
+              <Input
+                id="handicap"
+                type="number"
+                value={formData.handicap}
+                onChange={(e) => setFormData({ ...formData, handicap: parseInt(e.target.value) || 0 })}
+                className="bg-gray-800 border-gray-700"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button type="submit" disabled={submitting} className="flex-1 bg-red-600 hover:bg-red-700">
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : editingMember ? "Simpan" : "Tambah"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1">
+                Batal
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2 } from "lucide-react";
 import Image from "next/image";
 
 interface ClubLogoProps {
+  size?: "sm" | "md" | "xl";
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl";
-  showFallback?: boolean;
 }
 
-export function ClubLogo({ className = "", size = "md", showFallback = true }: ClubLogoProps) {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+export function ClubLogo({ size = "md", className = "" }: ClubLogoProps) {
+  const [logoUrl, setLogoUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,19 +17,20 @@ export function ClubLogo({ className = "", size = "md", showFallback = true }: C
 
   const loadLogo = async () => {
     try {
+      // Fetch logo from club_settings table where setting_key is 'logo_base64'
       const { data, error } = await supabase
         .from("club_settings")
         .select("setting_value")
-        .eq("setting_key", "club_logo")
-        .maybeSingle();
+        .eq("setting_key", "logo_base64")
+        .maybeSingle(); // Use maybeSingle to avoid 406 error if not found
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') throw error;
 
       if (data?.setting_value) {
         setLogoUrl(data.setting_value);
       }
     } catch (error) {
-      console.error("Error loading club logo:", error);
+      console.error("Error loading logo:", error);
     } finally {
       setLoading(false);
     }
@@ -40,38 +39,36 @@ export function ClubLogo({ className = "", size = "md", showFallback = true }: C
   const sizeClasses = {
     sm: "w-10 h-10",
     md: "w-16 h-16",
-    lg: "w-24 h-24",
-    xl: "w-32 h-32",
+    xl: "w-32 h-32"
   };
 
   if (loading) {
     return (
-      <div className={`${sizeClasses[size]} ${className} rounded-full bg-muted animate-pulse`} />
+      <div
+        className={`${sizeClasses[size]} ${className} rounded-full bg-gray-200 animate-pulse`}
+      />
     );
   }
 
-  if (logoUrl) {
+  if (!logoUrl) {
     return (
-      <div className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden border-4 border-primary shadow-lg`}>
-        <Image
-          src={logoUrl}
-          alt="AMBC Club Logo"
-          fill
-          className="object-cover"
-          priority
-        />
+      <div
+        className={`${sizeClasses[size]} ${className} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-xl`}
+      >
+        AMBC
       </div>
     );
   }
 
-  // Fallback icon if no logo uploaded
-  if (showFallback) {
-    return (
-      <div className={`${sizeClasses[size]} ${className} rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary`}>
-        <Building2 className="w-1/2 h-1/2 text-primary" />
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden`}>
+      <Image
+        src={logoUrl}
+        alt="Club Logo"
+        fill
+        className="object-cover"
+        priority
+      />
+    </div>
+  );
 }
