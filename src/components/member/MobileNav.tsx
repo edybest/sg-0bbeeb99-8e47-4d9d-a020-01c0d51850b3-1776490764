@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Trophy, Target, Award, BarChart3, User, Home } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { href: "/member", label: "Dashboard", icon: Home },
@@ -34,28 +35,46 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-[280px] sm:w-[350px]">
         <SheetHeader>
-          <SheetTitle className="text-red-600">AMBC CLUB</SheetTitle>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SheetTitle className="text-red-600">AMBC CLUB</SheetTitle>
+          </motion.div>
         </SheetHeader>
         <nav className="mt-6 flex flex-col space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-red-600 text-white"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-red-600"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+          <AnimatePresence>
+            {navItems.map((item, index) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <motion.div
+                  key={item.href}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ 
+                    duration: 0.3,
+                    delay: index * 0.05,
+                    ease: [0.22, 1, 0.36, 1]
+                  }}
+                >
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? "bg-red-600 text-white shadow-md"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-red-600 hover:translate-x-1"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.label}
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </nav>
       </SheetContent>
     </Sheet>
