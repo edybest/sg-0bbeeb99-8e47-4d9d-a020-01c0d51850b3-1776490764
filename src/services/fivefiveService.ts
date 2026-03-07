@@ -6,7 +6,7 @@ type FiveFiveGame = Tables<"fivefive_games">;
 type FiveFiveParticipant = Tables<"fivefive_participants">;
 
 interface PrizeConfiguration {
-  total_players: number;
+  player_count: number;
   prize_count: number;
   prizes: number[]; // Array of prize amounts [100, 80, 50, 30, 20]
 }
@@ -22,19 +22,18 @@ export interface ParticipantWithPrizes extends FiveFiveParticipant {
 
 export const fivefiveService = {
   // Get current prize configuration
-  async getPrizeConfiguration(): Promise<PrizeConfiguration | null> {
+  async getPrizeConfiguration(playerCount: number): Promise<PrizeConfiguration | null> {
     const { data, error } = await supabase
       .from("fivefive_prizes")
       .select("*")
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .eq("player_count", playerCount)
       .maybeSingle();
 
     if (error) throw error;
     if (!data) return null;
 
     return {
-      total_players: data.total_players,
+      player_count: data.player_count,
       prize_count: data.prize_count,
       prizes: Array.isArray(data.prizes) ? data.prizes.map(Number) : [],
     };

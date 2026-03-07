@@ -1,54 +1,86 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Trash2, Trophy, Info, Save } from "lucide-react";
+import { Loader2, Upload, Trash2, Plus, Edit, X, Info } from "lucide-react";
+import { storageService } from "@/services/storageService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+type FiveFivePrizeConfig = {
+  id: string;
+  player_count: number;
+  prize_count: number;
+  prizes: number[];
+};
 
 export function ClubSettings() {
-  const { toast } = useToast();
+  const [clubName, setClubName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [clubName, setClubName] = useState("");
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // FiveFive prize configurations state
+  const [fivefiveConfigs, setFivefiveConfigs] = useState<FiveFivePrizeConfig[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
   
-  // FiveFive Prize Settings State
-  const [fivefiveTotalPlayers, setFivefiveTotalPlayers] = useState(10);
-  const [fivefivePrizeCount, setFivefivePrizeCount] = useState(5);
-  const [fivefivePrizes, setFivefivePrizes] = useState<number[]>([100, 80, 50, 30, 20]);
-  const [isSavingFivefive, setIsSavingFivefive] = useState(false);
+  // Dialog state for Add/Edit
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<FiveFivePrizeConfig | null>(null);
+  const [dialogPlayerCount, setDialogPlayerCount] = useState(1);
+  const [dialogPrizeCount, setDialogPrizeCount] = useState(1);
+  const [dialogPrizes, setDialogPrizes] = useState<number[]>([100]);
+  
+  // Delete confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
-    loadFivefivePrizeConfig();
+    loadFiveFiveConfigs();
   }, []);
 
   const loadSettings = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // Load club name
-      const { data: nameData } = await supabase
+      const { data, error } = await supabase
         .from("club_settings")
-        .select("setting_value")
-        .eq("setting_key", "club_name")
-        .maybeSingle();
+        .select("*");
 
-      if (nameData) {
-        setClubName(nameData.setting_value);
-      }
+      if (error) throw error;
 
-      // Load logo
-      const { data: logoData } = await supabase
-        .from("club_settings")
-        .select("setting_value")
-        .eq("setting_key", "logo_base64")
-        .maybeSingle();
-
-      if (logoData) {
-        setLogoPreview(logoData.setting_value);
+      if (data) {
+        const nameSetting = data.find(s => s.setting_key === 'club_name');
+        const logoSetting = data.find(s => s.setting_key === 'logo_url');
+        
+        if (nameSetting) setClubName(nameSetting.setting_value || "");
+        if (logoSetting && logoSetting.setting_value) {
+          setLogoUrl(logoSetting.setting_value);
+          setLogoPreview(logoSetting.setting_value);
+        }
       }
     } catch (error: any) {
       toast({
@@ -61,128 +93,102 @@ export function ClubSettings() {
     }
   };
 
-  const loadFivefivePrizeConfig = async () => {
+  const loadFiveFiveConfigs = async () => {
+    setLoadingConfigs(true);
     try {
       const { data, error } = await supabase
         .from("fivefive_prizes")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("player_count", { ascending: true });
 
       if (error) throw error;
 
       if (data) {
-        setFivefiveTotalPlayers(data.total_players);
-        setFivefivePrizeCount(data.prize_count);
-        // Safely parse prizes JSONB array to number[]
-        const parsedPrizes = Array.isArray(data.prizes) ? data.prizes.map(Number) : [];
-        setFivefivePrizes(parsedPrizes);
+        const configs = data.map((config) => ({
+          id: config.id,
+          player_count: config.player_count,
+          prize_count: config.prize_count,
+          prizes: Array.isArray(config.prizes) ? config.prizes.map(Number) : [],
+        }));
+        setFivefiveConfigs(configs);
       }
     } catch (error: any) {
-      console.error("Error loading FiveFive prize config:", error);
       toast({
-        title: "Error",
-        description: "Failed to load FiveFive prize settings",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePrizeCountChange = (count: number) => {
-    setFivefivePrizeCount(count);
-    
-    // Adjust prizes array to match new count
-    const newPrizes = [...fivefivePrizes];
-    if (count > newPrizes.length) {
-      // Add default prizes (decrease by 20 for each rank)
-      const lastPrize = newPrizes[newPrizes.length - 1] || 100;
-      for (let i = newPrizes.length; i < count; i++) {
-        newPrizes.push(Math.max(10, lastPrize - (20 * (i - newPrizes.length + 1))));
-      }
-    } else if (count < newPrizes.length) {
-      // Remove excess prizes
-      newPrizes.splice(count);
-    }
-    setFivefivePrizes(newPrizes);
-  };
-
-  const handlePrizeChange = (index: number, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    const newPrizes = [...fivefivePrizes];
-    newPrizes[index] = numValue;
-    setFivefivePrizes(newPrizes);
-  };
-
-  const saveFivefivePrizeSettings = async () => {
-    try {
-      setIsSavingFivefive(true);
-
-      // Validate
-      if (fivefivePrizeCount > fivefiveTotalPlayers) {
-        toast({
-          title: "Error",
-          description: "Prize count cannot exceed total players",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (fivefivePrizes.some(p => p <= 0)) {
-        toast({
-          title: "Error",
-          description: "All prizes must be greater than 0",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Delete old config
-      await supabase.from("fivefive_prizes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-
-      // Insert new config
-      const { error } = await supabase
-        .from("fivefive_prizes")
-        .insert({
-          total_players: fivefiveTotalPlayers,
-          prize_count: fivefivePrizeCount,
-          prizes: fivefivePrizes, // Will be cast to JSONB
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "FiveFive prize settings saved successfully",
-      });
-
-      loadFivefivePrizeConfig();
-    } catch (error: any) {
-      console.error("Error saving FiveFive prize settings:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save FiveFive prize settings",
+        title: "Error loading FiveFive configurations",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsSavingFivefive(false);
+      setLoadingConfigs(false);
     }
   };
 
-  const saveSettings = async () => {
-    try {
-      setLoading(true);
+  const handleSaveClubSettings = async () => {
+    if (!clubName.trim()) {
+      toast({
+        title: "Error",
+        description: "Club name is required",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Save club name
-      const { error: nameError } = await supabase
+    setLoading(true);
+    try {
+      let finalLogoUrl = logoUrl;
+
+      if (logoFile) {
+        setUploading(true);
+        const uploadedUrl = await storageService.uploadLogo(logoFile);
+        finalLogoUrl = uploadedUrl;
+        setLogoUrl(uploadedUrl);
+        setLogoPreview(uploadedUrl);
+        setUploading(false);
+      }
+
+      const { data: existingName } = await supabase
         .from("club_settings")
-        .upsert({
+        .select("id")
+        .eq("setting_key", "club_name")
+        .maybeSingle();
+
+      if (existingName) {
+        await supabase
+          .from("club_settings")
+          .update({
+            setting_value: clubName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingName.id);
+      } else {
+        await supabase.from("club_settings").insert({
           setting_key: "club_name",
           setting_value: clubName,
-          updated_at: new Date().toISOString(),
         });
+      }
 
-      if (nameError) throw nameError;
+      if (finalLogoUrl) {
+        const { data: existingLogo } = await supabase
+          .from("club_settings")
+          .select("id")
+          .eq("setting_key", "logo_url")
+          .maybeSingle();
+
+        if (existingLogo) {
+          await supabase
+            .from("club_settings")
+            .update({
+              setting_value: finalLogoUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingLogo.id);
+        } else {
+          await supabase.from("club_settings").insert({
+            setting_key: "logo_url",
+            setting_value: finalLogoUrl,
+          });
+        }
+      }
 
       toast({
         title: "Success",
@@ -196,78 +202,67 @@ export function ClubSettings() {
       });
     } finally {
       setLoading(false);
+      setUploading(false);
+      setLogoFile(null);
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "Image size must be less than 2MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setUploading(true);
-
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result as string;
-        setLogoPreview(base64String);
-
-        const { error } = await supabase
-          .from("club_settings")
-          .upsert({
-            setting_key: "logo_base64",
-            setting_value: base64String,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (error) throw error;
-
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "Success",
-          description: "Logo uploaded successfully",
+          title: "Error",
+          description: "File size must be less than 5MB",
+          variant: "destructive",
         });
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Error",
+          description: "File must be an image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
     }
   };
 
   const handleDeleteLogo = async () => {
+    if (!logoUrl) return;
+
+    setLoading(true);
     try {
-      setUploading(true);
+      await storageService.deleteLogo();
 
-      const { error } = await supabase
+      const { data: existing } = await supabase
         .from("club_settings")
-        .delete()
-        .eq("setting_key", "logo_base64");
+        .select("id")
+        .eq("setting_key", "logo_url")
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existing) {
+        const { error } = await supabase
+          .from("club_settings")
+          .update({ setting_value: "" })
+          .eq("id", existing.id);
 
-      setLogoPreview(null);
+        if (error) throw error;
+      }
+
+      setLogoUrl("");
+      setLogoPreview("");
+      setLogoFile(null);
+
       toast({
         title: "Success",
         description: "Logo deleted successfully",
@@ -279,252 +274,479 @@ export function ClubSettings() {
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-      </div>
-    );
-  }
+  // FiveFive Config Dialog Functions
+  const openAddConfigDialog = () => {
+    setEditingConfig(null);
+    setDialogPlayerCount(1);
+    setDialogPrizeCount(1);
+    setDialogPrizes([100]);
+    setConfigDialogOpen(true);
+  };
+
+  const openEditConfigDialog = (config: FiveFivePrizeConfig) => {
+    setEditingConfig(config);
+    setDialogPlayerCount(config.player_count);
+    setDialogPrizeCount(config.prize_count);
+    setDialogPrizes([...config.prizes]);
+    setConfigDialogOpen(true);
+  };
+
+  const handlePrizeCountChange = (count: number) => {
+    setDialogPrizeCount(count);
+    const newPrizes = [...dialogPrizes];
+
+    if (count > newPrizes.length) {
+      const lastPrize = newPrizes[newPrizes.length - 1] || 100;
+      for (let i = newPrizes.length; i < count; i++) {
+        newPrizes.push(Math.max(10, lastPrize - 20 * (i - newPrizes.length + 1)));
+      }
+    } else if (count < newPrizes.length) {
+      newPrizes.splice(count);
+    }
+
+    setDialogPrizes(newPrizes);
+  };
+
+  const handlePrizeChange = (index: number, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    const newPrizes = [...dialogPrizes];
+    newPrizes[index] = numValue;
+    setDialogPrizes(newPrizes);
+  };
+
+  const handleSaveConfig = async () => {
+    // Validation
+    if (dialogPlayerCount <= 0 || dialogPlayerCount > 50) {
+      toast({
+        title: "Error",
+        description: "Player count must be between 1 and 50",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (dialogPrizeCount <= 0 || dialogPrizeCount > dialogPlayerCount) {
+      toast({
+        title: "Error",
+        description: "Prize count must be between 1 and player count",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (dialogPrizes.some((p) => p <= 0)) {
+      toast({
+        title: "Error",
+        description: "All prizes must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate player_count (only if adding new or changing player_count)
+    if (!editingConfig || editingConfig.player_count !== dialogPlayerCount) {
+      const duplicate = fivefiveConfigs.find(
+        (c) => c.player_count === dialogPlayerCount && c.id !== editingConfig?.id
+      );
+      if (duplicate) {
+        toast({
+          title: "Error",
+          description: `Configuration for ${dialogPlayerCount} player(s) already exists`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setSavingConfig(true);
+    try {
+      const configData = {
+        player_count: dialogPlayerCount,
+        prize_count: dialogPrizeCount,
+        prizes: dialogPrizes,
+      };
+
+      if (editingConfig) {
+        // Update existing
+        const { error } = await supabase
+          .from("fivefive_prizes")
+          .update(configData)
+          .eq("id", editingConfig.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Configuration updated successfully",
+        });
+      } else {
+        // Insert new
+        const { error } = await supabase.from("fivefive_prizes").insert(configData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Configuration added successfully",
+        });
+      }
+
+      setConfigDialogOpen(false);
+      loadFiveFiveConfigs();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
+  const handleDeleteConfig = async () => {
+    if (!configToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("fivefive_prizes")
+        .delete()
+        .eq("id", configToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Configuration deleted successfully",
+      });
+
+      loadFiveFiveConfigs();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setConfigToDelete(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Club Settings Card */}
-      <Card className="bg-white border-gray-200">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-gray-900">Club Settings</CardTitle>
-          <CardDescription className="text-gray-600">
-            Configure your bowling club information
-          </CardDescription>
+          <CardTitle>Club Settings</CardTitle>
+          <CardDescription>Manage your club&apos;s basic information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Club Name */}
           <div className="space-y-2">
-            <Label htmlFor="clubName" className="text-gray-700">
-              Club Name
-            </Label>
+            <Label htmlFor="clubName">Club Name</Label>
             <Input
               id="clubName"
               value={clubName}
               onChange={(e) => setClubName(e.target.value)}
               placeholder="Enter club name"
-              className="bg-white border-gray-300 text-gray-900"
+              disabled={loading}
             />
           </div>
 
-          {/* Club Logo */}
-          <div className="space-y-2">
-            <Label className="text-gray-700">Club Logo</Label>
-            <div className="flex items-center gap-4">
-              {logoPreview && (
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200">
-                  <img
-                    src={logoPreview}
-                    alt="Club Logo"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="logoUpload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  {uploading ? "Uploading..." : "Upload Logo"}
-                </Label>
-                <input
-                  id="logoUpload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  disabled={uploading}
-                  className="hidden"
+          <div className="space-y-4">
+            <Label>Club Logo</Label>
+            {logoPreview && (
+              <div className="relative w-40 h-40 border rounded-lg overflow-hidden">
+                <img
+                  src={logoPreview}
+                  alt="Club Logo"
+                  className="w-full h-full object-contain"
                 />
-                {logoPreview && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeleteLogo}
-                    disabled={uploading}
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Logo
-                  </Button>
-                )}
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  className="absolute top-2 right-2"
+                  onClick={handleDeleteLogo}
+                  disabled={loading}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
-            </div>
-            <p className="text-sm text-gray-500">
-              Recommended: Square image, max 2MB
-            </p>
-          </div>
+            )}
 
-          <Button
-            onClick={saveSettings}
-            disabled={loading}
-            className="bg-red-600 hover:bg-red-700 text-white"
-          >
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Club Settings
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* FiveFive Prize Settings */}
-      <Card className="bg-white border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-gray-900 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-red-600" />
-            FiveFive Prize Settings
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Configure prize distribution for FiveFive games
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Total Players */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Jumlah Pemain
-              </label>
+            <div>
               <Input
-                type="number"
-                min="1"
-                max="50"
-                value={fivefiveTotalPlayers}
-                onChange={(e) => setFivefiveTotalPlayers(parseInt(e.target.value) || 1)}
-                className="bg-white border-gray-300 text-gray-900"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                disabled={loading || uploading}
               />
-              <p className="text-xs text-gray-500">
-                Total number of players in the game
-              </p>
-            </div>
-
-            {/* Prize Count */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Jumlah Hadiah
-              </label>
-              <Input
-                type="number"
-                min="1"
-                max={fivefiveTotalPlayers}
-                value={fivefivePrizeCount}
-                onChange={(e) => handlePrizeCountChange(parseInt(e.target.value) || 1)}
-                className="bg-white border-gray-300 text-gray-900"
-              />
-              <p className="text-xs text-gray-500">
-                Number of prizes to distribute (creates {fivefivePrizeCount} input boxes)
+              <p className="text-sm text-muted-foreground mt-2">
+                Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
               </p>
             </div>
           </div>
 
-          {/* Prize Amount Inputs */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">
-              Prize Amounts (RM)
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              {Array.from({ length: fivefivePrizeCount }).map((_, index) => (
-                <div key={index} className="space-y-1">
-                  <label className="text-xs text-gray-600 font-medium">
-                    Prize #{index + 1}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                      RM
-                    </span>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={fivefivePrizes[index] || 0}
-                      onChange={(e) => handlePrizeChange(index, e.target.value)}
-                      className="bg-white border-gray-300 text-gray-900 pl-12"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500">
-              💡 <strong>How it works:</strong> Prize #1 goes to rank 1, Prize #2 to rank 2, and so on.
-              If players tie, their prizes are combined and split equally.
-            </p>
-          </div>
-
-          {/* Prize Summary */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">
-              Prize Summary
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <p className="text-gray-600">Total Players</p>
-                <p className="font-semibold text-gray-900">{fivefiveTotalPlayers}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Total Prizes</p>
-                <p className="font-semibold text-gray-900">{fivefivePrizeCount}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Total Prize Pool</p>
-                <p className="font-semibold text-red-600">
-                  RM {fivefivePrizes.reduce((sum, prize) => sum + prize, 0).toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-600">Per Player Avg</p>
-                <p className="font-semibold text-gray-900">
-                  RM {(fivefivePrizes.reduce((sum, prize) => sum + prize, 0) / fivefiveTotalPlayers).toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Example */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Example Prize Distribution
-            </h4>
-            <div className="text-sm text-blue-800 space-y-1">
-              <p>• Rank #1: RM {fivefivePrizes[0]?.toFixed(2) || "0.00"}</p>
-              <p>• Rank #2: RM {fivefivePrizes[1]?.toFixed(2) || "0.00"}</p>
-              <p>• Rank #3: RM {fivefivePrizes[2]?.toFixed(2) || "0.00"}</p>
-              {fivefivePrizeCount > 3 && <p className="text-xs">... and {fivefivePrizeCount - 3} more</p>}
-              <p className="text-xs pt-2 border-t border-blue-200">
-                <strong>If 2 players tie for rank 2:</strong> They share Prize #2 + Prize #3 equally
-              </p>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <Button
-            onClick={saveFivefivePrizeSettings}
-            disabled={isSavingFivefive}
-            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
-          >
-            {isSavingFivefive ? (
+          <Button onClick={handleSaveClubSettings} disabled={loading || uploading}>
+            {loading || uploading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {uploading ? "Uploading..." : "Saving..."}
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Prize Settings
+                <Upload className="mr-2 h-4 w-4" />
+                Save Club Settings
               </>
             )}
           </Button>
         </CardContent>
       </Card>
+
+      {/* FiveFive Prize Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>FiveFive Prize Settings</CardTitle>
+          <CardDescription>
+            Configure prize distributions for different player counts
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Info Box */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              How It Works
+            </h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>• Create configurations for different player counts (e.g., 1 player, 2 players, 10 players)</p>
+              <p>• Set how many prizes to distribute for each player count</p>
+              <p>• Enter prize amounts for each rank position</p>
+              <p>• System will use the matching configuration during FiveFive games</p>
+            </div>
+          </div>
+
+          {/* Configurations List */}
+          {loadingConfigs ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : fivefiveConfigs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No configurations yet. Click &quot;Add Configuration&quot; to get started.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {fivefiveConfigs.map((config) => (
+                <div
+                  key={config.id}
+                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="font-semibold text-gray-900">
+                          {config.player_count} Player{config.player_count > 1 ? "s" : ""}
+                        </span>
+                        <span className="text-gray-500">|</span>
+                        <span className="text-gray-700">
+                          {config.prize_count} Prize{config.prize_count > 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {config.prizes.map((prize, idx) => (
+                          <div
+                            key={idx}
+                            className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium"
+                          >
+                            #{idx + 1}: RM {prize.toFixed(2)}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Total Prize Pool: RM{" "}
+                        {config.prizes.reduce((sum, p) => sum + p, 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openEditConfigDialog(config)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setConfigToDelete(config.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Configuration Button */}
+          <Button onClick={openAddConfigDialog} variant="outline" className="w-full">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Configuration
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Config Dialog */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingConfig ? "Edit" : "Add"} FiveFive Configuration
+            </DialogTitle>
+            <DialogDescription>
+              Configure prize distribution for a specific player count
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Player Count & Prize Count */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="playerCount">Number of Players</Label>
+                <Input
+                  id="playerCount"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={dialogPlayerCount}
+                  onChange={(e) => setDialogPlayerCount(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Total players in this configuration
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="prizeCount">Number of Prizes</Label>
+                <Input
+                  id="prizeCount"
+                  type="number"
+                  min="1"
+                  max={dialogPlayerCount}
+                  value={dialogPrizeCount}
+                  onChange={(e) => handlePrizeCountChange(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Creates {dialogPrizeCount} input box{dialogPrizeCount > 1 ? "es" : ""}
+                </p>
+              </div>
+            </div>
+
+            {/* Prize Amounts */}
+            <div className="space-y-3">
+              <Label>Prize Amounts (RM)</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {Array.from({ length: dialogPrizeCount }).map((_, index) => (
+                  <div key={index} className="space-y-1">
+                    <label className="text-xs text-gray-600 font-medium">
+                      Prize #{index + 1}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                        RM
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={dialogPrizes[index] || 0}
+                        onChange={(e) => handlePrizeChange(index, e.target.value)}
+                        className="pl-12"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">Summary</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Players</p>
+                  <p className="font-semibold text-gray-900">{dialogPlayerCount}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Prizes</p>
+                  <p className="font-semibold text-gray-900">{dialogPrizeCount}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Total Pool</p>
+                  <p className="font-semibold text-red-600">
+                    RM {dialogPrizes.reduce((sum, prize) => sum + prize, 0).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Per Player Avg</p>
+                  <p className="font-semibold text-gray-900">
+                    RM{" "}
+                    {(
+                      dialogPrizes.reduce((sum, prize) => sum + prize, 0) /
+                      dialogPlayerCount
+                    ).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveConfig} disabled={savingConfig}>
+              {savingConfig ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Configuration"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Configuration?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the prize
+              configuration.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfig} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
