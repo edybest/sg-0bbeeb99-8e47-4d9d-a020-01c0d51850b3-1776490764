@@ -177,12 +177,90 @@ export default function BlokPage() {
           rank: index + 1
         }));
 
-        // 4. Apply current sort (if user changed it from default 'rank')
+        // 4. Detect changes and show notifications
+        if (previousLeaderboard.length > 0) {
+          const changedMembers = new Set<string>();
+          const notifications: string[] = [];
+
+          fullLeaderboard.forEach(newEntry => {
+            const oldEntry = previousLeaderboard.find(old => old.id === newEntry.id);
+            
+            if (oldEntry) {
+              let hasChanges = false;
+              const changes: string[] = [];
+
+              // Check each game score
+              if (oldEntry.game1_score !== newEntry.game1_score) {
+                hasChanges = true;
+                changes.push(`G1: ${oldEntry.game1_score} → ${newEntry.game1_score}`);
+              }
+              if (oldEntry.game2_score !== newEntry.game2_score) {
+                hasChanges = true;
+                changes.push(`G2: ${oldEntry.game2_score} → ${newEntry.game2_score}`);
+              }
+              if (oldEntry.game3_score !== newEntry.game3_score) {
+                hasChanges = true;
+                changes.push(`G3: ${oldEntry.game3_score} → ${newEntry.game3_score}`);
+              }
+              if (oldEntry.game4_score !== newEntry.game4_score) {
+                hasChanges = true;
+                changes.push(`G4: ${oldEntry.game4_score} → ${newEntry.game4_score}`);
+              }
+              if (oldEntry.game5_score !== newEntry.game5_score) {
+                hasChanges = true;
+                changes.push(`G5: ${oldEntry.game5_score} → ${newEntry.game5_score}`);
+              }
+
+              if (hasChanges) {
+                changedMembers.add(newEntry.id);
+                
+                // Check rank change
+                const rankChange = oldEntry.rank - newEntry.rank;
+                const rankText = rankChange > 0 
+                  ? `↑${rankChange} (Rank ${newEntry.rank})` 
+                  : rankChange < 0 
+                    ? `↓${Math.abs(rankChange)} (Rank ${newEntry.rank})`
+                    : `(Rank ${newEntry.rank})`;
+
+                notifications.push(
+                  `${newEntry.member.username} ${rankText}\n${changes.join(", ")}`
+                );
+              }
+            }
+          });
+
+          // Show toast notifications for changes
+          if (notifications.length > 0) {
+            toast({
+              title: "🎳 Skor Dikemaskini!",
+              description: (
+                <div className="space-y-2 mt-2">
+                  {notifications.map((notif, idx) => (
+                    <div key={idx} className="text-sm whitespace-pre-line border-l-2 border-red-500 pl-2">
+                      {notif}
+                    </div>
+                  ))}
+                </div>
+              ),
+              duration: 5000,
+            });
+          }
+
+          // Trigger animations
+          if (changedMembers.size > 0) {
+            setAnimatingScores(changedMembers);
+            setTimeout(() => setAnimatingScores(new Set()), 1000);
+          }
+        }
+
+        // 5. Save current state for next comparison
+        setPreviousLeaderboard(fullLeaderboard);
+
+        // 6. Apply current sort
         let finalDisplay = fullLeaderboard;
         if (sortField !== "rank") {
           finalDisplay = sortData(fullLeaderboard, sortField, sortDirection);
         } else if (sortDirection === "desc") {
-          // Special case: if sorting by Rank DESC (bottom to top)
           finalDisplay = [...fullLeaderboard].reverse();
         }
 
@@ -445,14 +523,14 @@ export default function BlokPage() {
                     <div className="block md:hidden space-y-2">
                       {leaderboard.map((entry, index) => (
                         <Card
-                          key={entry.member.id}
+                          key={entry.id}
                           className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                            animatingScores.has(entry.member.id) 
+                            animatingScores.has(entry.id) 
                               ? 'animate-pulse bg-yellow-50 border-yellow-400 border-2' 
                               : ''
                           }`}
                           onClick={() => setExpandedRow(
-                            expandedRow === entry.member.id ? null : entry.member.id
+                            expandedRow === entry.id ? null : entry.id
                           )}
                         >
                           <CardContent className="p-4">
