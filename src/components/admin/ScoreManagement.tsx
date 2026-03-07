@@ -43,6 +43,8 @@ export function ScoreManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [editingScores, setEditingScores] = useState<{ [key: string]: GamePlayer }>({});
+  const [sortField, setSortField] = useState<string>("rank");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     loadGames();
@@ -97,6 +99,47 @@ export function ScoreManagement() {
              p.members.full_name.toLowerCase().includes(query)
     );
     setFilteredPlayers(filtered);
+  }
+
+  function handleSort(field: string) {
+    const newDirection = sortField === field && sortDirection === "asc" ? "desc" : "asc";
+    setSortField(field);
+    setSortDirection(newDirection);
+
+    const sorted = [...filteredPlayers].sort((a, b) => {
+      let aValue: number | string;
+      let bValue: number | string;
+
+      // Get values based on field, considering editing state
+      if (field === "rank") {
+        aValue = filteredPlayers.indexOf(a);
+        bValue = filteredPlayers.indexOf(b);
+      } else if (field === "username") {
+        aValue = a.members.username.toLowerCase();
+        bValue = b.members.username.toLowerCase();
+      } else if (field === "fullname") {
+        aValue = a.members.full_name.toLowerCase();
+        bValue = b.members.full_name.toLowerCase();
+      } else {
+        aValue = getPlayerScore(a, field as keyof GamePlayer);
+        bValue = getPlayerScore(b, field as keyof GamePlayer);
+      }
+
+      if (newDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setFilteredPlayers(sorted);
+  }
+
+  function getSortIcon(field: string) {
+    if (sortField !== field) {
+      return <span className="text-gray-300">↕</span>;
+    }
+    return sortDirection === "asc" ? <span className="text-red-600">↑</span> : <span className="text-red-600">↓</span>;
   }
 
   function handleScoreChange(playerId: string, field: string, value: string) {
@@ -221,42 +264,97 @@ export function ScoreManagement() {
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
                     <th className="sticky left-0 z-20 bg-gray-100 px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600">#</span> Rank
-                      </div>
+                      <button
+                        onClick={() => handleSort("rank")}
+                        className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                      >
+                        <span className="text-red-600">#</span> Rank {getSortIcon("rank")}
+                      </button>
                     </th>
                     <th className="sticky left-20 z-20 bg-gray-100 px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300 min-w-[200px]">
-                      Player
+                      <button
+                        onClick={() => handleSort("username")}
+                        className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                      >
+                        Player {getSortIcon("username")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-blue-700 uppercase tracking-wider bg-blue-50 border-r border-gray-200">
-                      Game 1
+                      <button
+                        onClick={() => handleSort("game1_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-blue-900 transition-colors"
+                      >
+                        Game 1 {getSortIcon("game1_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-green-700 uppercase tracking-wider bg-green-50 border-r border-gray-200">
-                      Game 2
+                      <button
+                        onClick={() => handleSort("game2_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-green-900 transition-colors"
+                      >
+                        Game 2 {getSortIcon("game2_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-50 border-r border-gray-200">
-                      Game 3
+                      <button
+                        onClick={() => handleSort("game3_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-purple-900 transition-colors"
+                      >
+                        Game 3 {getSortIcon("game3_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-orange-700 uppercase tracking-wider bg-orange-50 border-r border-gray-200">
-                      Game 4
+                      <button
+                        onClick={() => handleSort("game4_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-orange-900 transition-colors"
+                      >
+                        Game 4 {getSortIcon("game4_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-pink-700 uppercase tracking-wider bg-pink-50 border-r-2 border-gray-300">
-                      Game 5
+                      <button
+                        onClick={() => handleSort("game5_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-pink-900 transition-colors"
+                      >
+                        Game 5 {getSortIcon("game5_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-yellow-700 uppercase tracking-wider bg-yellow-50 border-r-2 border-gray-300">
-                      Handicap
+                      <button
+                        onClick={() => handleSort("handicap")}
+                        className="flex items-center gap-2 mx-auto hover:text-yellow-900 transition-colors"
+                      >
+                        Handicap {getSortIcon("handicap")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
-                      Total
+                      <button
+                        onClick={() => handleSort("total_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-gray-900 transition-colors"
+                      >
+                        Total {getSortIcon("total_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-red-700 uppercase tracking-wider bg-red-50 border-r border-gray-200">
-                      Overall
+                      <button
+                        onClick={() => handleSort("overall_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-red-900 transition-colors"
+                      >
+                        Overall {getSortIcon("overall_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
-                      Average
+                      <button
+                        onClick={() => handleSort("average_score")}
+                        className="flex items-center gap-2 mx-auto hover:text-gray-900 transition-colors"
+                      >
+                        Average {getSortIcon("average_score")}
+                      </button>
                     </th>
                     <th className="px-4 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-50 border-r-2 border-gray-300">
-                      Diff
+                      <div className="flex items-center gap-2 justify-center">
+                        Diff
+                      </div>
                     </th>
                     <th className="sticky right-0 z-20 bg-gray-100 px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
                       Actions
