@@ -267,6 +267,75 @@ export type Database = {
         }
         Relationships: []
       }
+      lane_assignments: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          lane_position: string
+          member_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          lane_position: string
+          member_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          lane_position?: string
+          member_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lane_assignments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lane_assignments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lane_configurations: {
+        Row: {
+          created_at: string | null
+          id: string
+          lane_sebenar: string
+          lane_undian: string
+          position_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lane_sebenar: string
+          lane_undian: string
+          position_order: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lane_sebenar?: string
+          lane_undian?: string
+          position_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           avatar_url: string | null
