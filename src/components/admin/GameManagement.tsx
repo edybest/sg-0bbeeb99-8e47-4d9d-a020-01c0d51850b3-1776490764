@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Edit, Trash2, Users, Calendar, Trophy, MapPin } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Game = {
   id: string;
@@ -38,6 +39,7 @@ type MemberWithFiveFive = Member & {
 };
 
 export function GameManagement() {
+  const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,7 +167,7 @@ export function GameManagement() {
     }
   }
 
-  async function handleAddPlayers() {
+  const handleAddPlayers = async () => {
     if (selectedPlayers.length === 0) {
       setError("Sila pilih sekurang-kurangnya seorang pemain");
       return;
@@ -175,23 +177,51 @@ export function GameManagement() {
     setError("");
 
     try {
-      // Add players with fivefive status
-      const playersToAdd = selectedPlayers.map(memberId => ({
+      const playersToAdd = selectedPlayers.map((memberId) => ({
         member_id: memberId,
-        is_fivefive: fivefiveParticipants.has(memberId)
+        is_fivefive: fivefiveParticipants.has(memberId),
       }));
-      
-      await gameService.addPlayersToGameWithFiveFive(selectedGameId, playersToAdd);
+
+      const result = await gameService.addPlayersToGameWithFiveFive(
+        selectedGameId,
+        playersToAdd
+      );
+
+      // Show appropriate toast based on result
+      if (result.added > 0 && result.skipped === 0) {
+        toast({
+          title: "✅ Berjaya!",
+          description: result.message,
+        });
+      } else if (result.added > 0 && result.skipped > 0) {
+        toast({
+          title: "⚠️ Sebahagian Berjaya",
+          description: result.message,
+        });
+      } else if (result.added === 0) {
+        toast({
+          title: "ℹ️ Tiada Perubahan",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+
       setPlayersDialogOpen(false);
       setSelectedPlayers([]);
       setFivefiveParticipants(new Set());
+      loadGames();
     } catch (err: any) {
-      console.error("Add players error:", err);
-      setError(err.message);
+      console.error("Error adding players:", err);
+      setError(err.message || "Gagal menambah pemain");
+      toast({
+        title: "❌ Ralat",
+        description: err.message || "Gagal menambah pemain",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   function togglePlayerSelection(memberId: string) {
     setSelectedPlayers(prev => 

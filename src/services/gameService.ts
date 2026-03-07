@@ -32,7 +32,7 @@ type GamePlayer = {
   updated_at?: string;
 };
 
-export const gameService = {
+class GameService {
   // Get all games
   async getAllGames() {
     const { data, error } = await supabase
@@ -42,7 +42,7 @@ export const gameService = {
     
     if (error) throw error;
     return data as Game[];
-  },
+  }
 
   // Get game by ID with players
   async getGameById(gameId: string) {
@@ -65,7 +65,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Create new game
   async createGame(game: Partial<Game>) {
@@ -82,7 +82,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Update game
   async updateGame(gameId: string, updates: Partial<Game>) {
@@ -100,7 +100,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Delete game
   async deleteGame(gameId: string) {
@@ -110,7 +110,7 @@ export const gameService = {
       .eq("id", gameId);
     
     if (error) throw error;
-  },
+  }
 
   // Add players to game
   async addPlayersToGame(gameId: string, memberIds: string[]) {
@@ -122,22 +122,60 @@ export const gameService = {
     const { error } = await supabase.from("game_players").insert(gamePlayers);
 
     if (error) throw error;
-  },
+  }
 
   async addPlayersToGameWithFiveFive(
     gameId: string, 
     players: Array<{ member_id: string; is_fivefive: boolean }>
   ) {
-    const gamePlayers = players.map((player) => ({
+    // First, get existing players in this game
+    const { data: existingPlayers, error: fetchError } = await supabase
+      .from("game_players")
+      .select("member_id")
+      .eq("game_id", gameId);
+
+    if (fetchError) throw fetchError;
+
+    // Get list of existing member IDs
+    const existingMemberIds = new Set(
+      existingPlayers?.map((p) => p.member_id) || []
+    );
+
+    // Filter out players that already exist in this game
+    const newPlayers = players.filter(
+      (player) => !existingMemberIds.has(player.member_id)
+    );
+
+    // If no new players to add, return early
+    if (newPlayers.length === 0) {
+      return {
+        added: 0,
+        skipped: players.length,
+        message: "Semua pemain yang dipilih sudah berada dalam game ini",
+      };
+    }
+
+    // Prepare game players data for new players only
+    const gamePlayers = newPlayers.map((player) => ({
       game_id: gameId,
       member_id: player.member_id,
       is_fivefive: player.is_fivefive,
     }));
 
+    // Insert new players
     const { error } = await supabase.from("game_players").insert(gamePlayers);
 
     if (error) throw error;
-  },
+
+    return {
+      added: newPlayers.length,
+      skipped: players.length - newPlayers.length,
+      message:
+        newPlayers.length === players.length
+          ? `${newPlayers.length} pemain berjaya ditambah`
+          : `${newPlayers.length} pemain ditambah, ${players.length - newPlayers.length} pemain diabaikan (sudah wujud)`,
+    };
+  }
 
   // Remove player from game
   async removePlayerFromGame(gameId: string, memberId: string) {
@@ -148,7 +186,7 @@ export const gameService = {
       .eq("member_id", memberId);
     
     if (error) throw error;
-  },
+  }
 
   // Update player scores
   async updatePlayerScores(gamePlayerId: string, scores: Partial<GamePlayer>) {
@@ -161,7 +199,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Get all players in a game
   async getGamePlayers(gameId: string) {
@@ -181,7 +219,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Get member's game history
   async getMemberGameHistory(memberId: string, limit: number = 10) {
@@ -202,7 +240,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
+  }
 
   // Get member's recent 3 games for handicap calculation
   async getMemberRecentGames(memberId: string) {
@@ -224,5 +262,7 @@ export const gameService = {
     
     if (error) throw error;
     return data;
-  },
-};
+  }
+}
+
+export const gameService = new GameService();
