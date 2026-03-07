@@ -137,6 +137,8 @@ export function ClubSettings() {
         }
       }
 
+      console.log("ClubSettings: Dispatching logo-updated event with base64 length:", logoBase64.length);
+      
       window.dispatchEvent(
         new CustomEvent("logo-updated", {
           detail: { logoBase64 },
@@ -253,6 +255,8 @@ export function ClubSettings() {
 
       setLogoBase64("");
 
+      console.log("ClubSettings: Dispatching logo-updated event for logo deletion");
+      
       window.dispatchEvent(
         new CustomEvent("logo-updated", {
           detail: { logoBase64: "" },

@@ -19,24 +19,33 @@ export function ClubLogo({
 }: ClubLogoProps) {
   const [logoBase64, setLogoBase64] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [key, setKey] = useState(0);
+  const [imageKey, setImageKey] = useState(0);
 
   const loadLogo = async () => {
     try {
-      const { data } = await supabase
+      console.log("ClubLogo: Loading logo from database...");
+      
+      const { data, error } = await supabase
         .from("club_settings")
         .select("setting_value")
         .eq("setting_key", "club_logo_base64")
         .maybeSingle();
 
-      if (data?.setting_value) {
+      console.log("ClubLogo: Database query result:", { data, error });
+
+      if (error) {
+        console.error("ClubLogo: Error loading logo:", error);
+        setLogoBase64("");
+      } else if (data?.setting_value) {
+        console.log("ClubLogo: Logo loaded, length:", data.setting_value.length);
         setLogoBase64(data.setting_value);
-        setKey(prev => prev + 1);
+        setImageKey(prev => prev + 1);
       } else {
+        console.log("ClubLogo: No logo found in database");
         setLogoBase64("");
       }
     } catch (error) {
-      console.error("Error loading logo:", error);
+      console.error("ClubLogo: Exception loading logo:", error);
       setLogoBase64("");
     } finally {
       setLoading(false);
@@ -46,18 +55,24 @@ export function ClubLogo({
   useEffect(() => {
     loadLogo();
 
-    const handleLogoUpdate = (event: any) => {
+    const handleLogoUpdate = (event: CustomEvent) => {
+      console.log("ClubLogo: Received logo-updated event:", event.detail);
       const newLogoBase64 = event.detail?.logoBase64;
+      
       if (newLogoBase64 !== undefined) {
+        console.log("ClubLogo: Updating logo from event");
         setLogoBase64(newLogoBase64);
-        setKey(prev => prev + 1);
+        setImageKey(prev => prev + 1);
+      } else {
+        console.log("ClubLogo: Reloading logo from database due to event");
+        loadLogo();
       }
     };
 
-    window.addEventListener("logo-updated", handleLogoUpdate);
+    window.addEventListener("logo-updated", handleLogoUpdate as EventListener);
 
     return () => {
-      window.removeEventListener("logo-updated", handleLogoUpdate);
+      window.removeEventListener("logo-updated", handleLogoUpdate as EventListener);
     };
   }, []);
 
@@ -95,17 +110,22 @@ export function ClubLogo({
   }
 
   const imageSrc = logoBase64 || "/ambc-logo.png";
+  console.log("ClubLogo: Rendering with imageSrc:", imageSrc.substring(0, 50) + "...");
 
   return (
     <Image
-      key={key}
+      key={imageKey}
       src={imageSrc}
       alt="Club Logo"
       width={finalWidth}
       height={finalHeight}
       priority={priority}
       className={`object-contain ${className}`}
-      onError={() => setLogoBase64("")}
+      onError={(e) => {
+        console.error("ClubLogo: Image failed to load");
+        setLogoBase64("");
+      }}
+      unoptimized={logoBase64.length > 0}
     />
   );
 }
