@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert, Plus, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +41,7 @@ export function MemberManagement() {
     username: "",
     email: "",
     full_name: "",
-    phone: "",
+    phone: "+60",
     birthday: "",
     sex: "men" as "men" | "women",
     bowling_technique: "",
@@ -50,6 +50,9 @@ export function MemberManagement() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [verifying, setVerifying] = useState<string | null>(null);
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -269,16 +272,67 @@ export function MemberManagement() {
     }
   }
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData((prev) => ({ ...prev, avatar_base64: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
-  }
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "❌ Ralat",
+        description: "Sila pilih fail gambar yang sah (JPG, PNG, GIF)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "❌ Ralat",
+        description: "Saiz gambar mesti kurang dari 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setAvatarPreview(base64String);
+        
+        // Update form data
+        if (editingMember) {
+          setEditingMember({ ...editingMember, avatar_url: base64String });
+        } else {
+          setFormData({ ...formData, avatar_base64: base64String });
+        }
+
+        toast({
+          title: "✅ Berjaya!",
+          description: "Avatar dipilih. Sila simpan untuk kemaskini.",
+        });
+      };
+
+      reader.onerror = () => {
+        throw new Error("Gagal membaca fail gambar");
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal upload avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   if (loading) {
     return (
