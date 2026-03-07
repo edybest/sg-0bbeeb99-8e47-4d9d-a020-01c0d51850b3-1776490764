@@ -19,6 +19,7 @@ export function ClubLogo({
 }: ClubLogoProps) {
   const [logoBase64, setLogoBase64] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [key, setKey] = useState(0);
 
   const loadLogo = async () => {
     try {
@@ -30,6 +31,7 @@ export function ClubLogo({
 
       if (data?.setting_value) {
         setLogoBase64(data.setting_value);
+        setKey(prev => prev + 1);
       } else {
         setLogoBase64("");
       }
@@ -48,6 +50,7 @@ export function ClubLogo({
       const newLogoBase64 = event.detail?.logoBase64;
       if (newLogoBase64 !== undefined) {
         setLogoBase64(newLogoBase64);
+        setKey(prev => prev + 1);
       }
     };
 
@@ -95,6 +98,7 @@ export function ClubLogo({
 
   return (
     <Image
+      key={key}
       src={imageSrc}
       alt="Club Logo"
       width={finalWidth}
