@@ -110,7 +110,6 @@ export function ScoreManagement() {
       let aValue: number | string;
       let bValue: number | string;
 
-      // Get values based on field, considering editing state
       if (field === "rank") {
         aValue = filteredPlayers.indexOf(a);
         bValue = filteredPlayers.indexOf(b);
@@ -137,9 +136,11 @@ export function ScoreManagement() {
 
   function getSortIcon(field: string) {
     if (sortField !== field) {
-      return <span className="text-gray-300">↕</span>;
+      return <span className="text-gray-400 ml-1">⇅</span>;
     }
-    return sortDirection === "asc" ? <span className="text-red-600">↑</span> : <span className="text-red-600">↓</span>;
+    return sortDirection === "asc" ? 
+      <span className="text-red-600 ml-1">↑</span> : 
+      <span className="text-red-600 ml-1">↓</span>;
   }
 
   function handleScoreChange(playerId: string, field: string, value: string) {
@@ -257,106 +258,104 @@ export function ScoreManagement() {
 
       {/* Scores Table */}
       {selectedGameId && (
-        <Card className="bg-white border-gray-200 shadow-lg">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                    <th className="sticky left-0 z-20 bg-gray-100 px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("rank")}
-                        className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                        className="flex items-center hover:text-red-600 transition-colors"
                       >
-                        <span className="text-red-600">#</span> Rank {getSortIcon("rank")}
+                        Rank {getSortIcon("rank")}
                       </button>
                     </th>
-                    <th className="sticky left-20 z-20 bg-gray-100 px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300 min-w-[200px]">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("username")}
-                        className="flex items-center gap-2 hover:text-red-600 transition-colors"
+                        className="flex items-center hover:text-red-600 transition-colors"
                       >
                         Player {getSortIcon("username")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-blue-700 uppercase tracking-wider bg-blue-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("game1_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-blue-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-blue-600 transition-colors"
                       >
                         Game 1 {getSortIcon("game1_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-green-700 uppercase tracking-wider bg-green-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("game2_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-green-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-green-600 transition-colors"
                       >
                         Game 2 {getSortIcon("game2_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("game3_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-purple-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-purple-600 transition-colors"
                       >
                         Game 3 {getSortIcon("game3_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-orange-700 uppercase tracking-wider bg-orange-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("game4_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-orange-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-orange-600 transition-colors"
                       >
                         Game 4 {getSortIcon("game4_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-pink-700 uppercase tracking-wider bg-pink-50 border-r-2 border-gray-300">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("game5_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-pink-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-pink-600 transition-colors"
                       >
                         Game 5 {getSortIcon("game5_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-yellow-700 uppercase tracking-wider bg-yellow-50 border-r-2 border-gray-300">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("handicap")}
-                        className="flex items-center gap-2 mx-auto hover:text-yellow-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-yellow-600 transition-colors"
                       >
                         Handicap {getSortIcon("handicap")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("total_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-gray-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-gray-900 transition-colors"
                       >
                         Total {getSortIcon("total_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-red-700 uppercase tracking-wider bg-red-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("overall_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-red-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-red-600 transition-colors"
                       >
                         Overall {getSortIcon("overall_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort("average_score")}
-                        className="flex items-center gap-2 mx-auto hover:text-gray-900 transition-colors"
+                        className="flex items-center justify-center w-full hover:text-gray-900 transition-colors"
                       >
                         Average {getSortIcon("average_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-50 border-r-2 border-gray-300">
-                      <div className="flex items-center gap-2 justify-center">
-                        Diff
-                      </div>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Diff
                     </th>
-                    <th className="sticky right-0 z-20 bg-gray-100 px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -367,132 +366,122 @@ export function ScoreManagement() {
                     return (
                       <tr 
                         key={player.id} 
-                        className={`transition-all duration-200 ${
+                        className={`transition-colors ${
                           hasChanges 
-                            ? 'bg-yellow-50 ring-2 ring-yellow-300 ring-inset' 
+                            ? 'bg-yellow-50' 
                             : 'hover:bg-gray-50'
                         }`}
                       >
-                        <td className="sticky left-0 z-10 bg-inherit px-4 py-4 border-r-2 border-gray-200">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-lg font-bold ${
-                              index === 0 ? 'text-yellow-500' :
-                              index === 1 ? 'text-gray-400' :
-                              index === 2 ? 'text-orange-600' :
-                              'text-gray-600'
-                            }`}>
-                              #{index + 1}
-                            </span>
-                          </div>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          <span className={`font-bold ${
+                            index === 0 ? 'text-yellow-500' :
+                            index === 1 ? 'text-gray-400' :
+                            index === 2 ? 'text-orange-600' :
+                            'text-gray-600'
+                          }`}>
+                            #{index + 1}
+                          </span>
                         </td>
-                        <td className="sticky left-20 z-10 bg-inherit px-6 py-4 border-r-2 border-gray-200">
+                        <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-3">
                             {player.members.avatar_url ? (
                               <Image 
                                 src={player.members.avatar_url} 
                                 alt={player.members.username} 
-                                width={40} 
-                                height={40} 
-                                className="rounded-full ring-2 ring-gray-200"
+                                width={32} 
+                                height={32} 
+                                className="rounded-full"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-base font-bold ring-2 ring-gray-200">
+                              <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
                                 {player.members.username[0].toUpperCase()}
                               </div>
                             )}
                             <div>
-                              <div className="text-gray-900 font-semibold">{player.members.username}</div>
+                              <div className="text-gray-900 font-medium">{player.members.username}</div>
                               <div className="text-gray-500 text-xs">{player.members.full_name}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-3 bg-blue-50/50 border-r border-gray-200">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "game1_score")}
                             onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-blue-200 text-blue-900 text-center mx-auto font-semibold text-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center mx-auto font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-3 py-3 bg-green-50/50 border-r border-gray-200">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "game2_score")}
                             onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-green-200 text-green-900 text-center mx-auto font-semibold text-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                            className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center mx-auto font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-3 py-3 bg-purple-50/50 border-r border-gray-200">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "game3_score")}
                             onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-purple-200 text-purple-900 text-center mx-auto font-semibold text-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                            className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center mx-auto font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-3 py-3 bg-orange-50/50 border-r border-gray-200">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "game4_score")}
                             onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-orange-200 text-orange-900 text-center mx-auto font-semibold text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                            className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center mx-auto font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-3 py-3 bg-pink-50/50 border-r-2 border-gray-300">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "game5_score")}
                             onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-pink-200 text-pink-900 text-center mx-auto font-semibold text-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                            className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center mx-auto font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-3 py-3 bg-yellow-50/50 border-r-2 border-gray-300">
+                        <td className="px-4 py-3 text-sm text-center">
                           <Input
                             type="number"
                             value={getPlayerScore(player, "handicap")}
                             onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                            className="w-20 h-10 bg-white border-2 border-yellow-300 text-yellow-900 text-center mx-auto font-bold text-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200"
+                            className="w-20 h-9 bg-yellow-50 border border-yellow-300 text-yellow-900 text-center mx-auto font-semibold focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
-                        <td className="px-4 py-4 bg-gray-50/50 border-r border-gray-200">
-                          <div className="text-gray-900 font-bold text-lg text-center">
-                            {getPlayerScore(player, "total_score")}
-                          </div>
+                        <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">
+                          {getPlayerScore(player, "total_score")}
                         </td>
-                        <td className="px-4 py-4 bg-red-50/50 border-r border-gray-200">
-                          <div className="text-red-600 font-bold text-xl text-center">
-                            {getPlayerScore(player, "overall_score")}
-                          </div>
+                        <td className="px-4 py-3 text-sm text-center text-red-600 font-bold">
+                          {getPlayerScore(player, "overall_score")}
                         </td>
-                        <td className="px-4 py-4 bg-gray-50/50 border-r border-gray-200">
-                          <div className="text-gray-600 font-semibold text-base text-center">
-                            {getPlayerScore(player, "average_score")}
-                          </div>
+                        <td className="px-4 py-3 text-sm text-center text-gray-700 font-medium">
+                          {getPlayerScore(player, "average_score")}
                         </td>
-                        <td className="px-4 py-4 bg-gray-50/50 border-r-2 border-gray-300">
-                          <div className="text-gray-500 font-medium text-base text-center">
-                            -{calculateDifference(player)}
-                          </div>
+                        <td className="px-4 py-3 text-sm text-center text-gray-500">
+                          -{calculateDifference(player)}
                         </td>
-                        <td className="sticky right-0 z-10 bg-inherit px-4 py-4 text-center border-l-2 border-gray-200">
+                        <td className="px-4 py-3 text-sm text-right">
                           {hasChanges && (
                             <Button
                               size="sm"
                               onClick={() => handleSave(player.id)}
                               disabled={saving === player.id}
-                              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 shadow-md hover:shadow-lg transition-all duration-200"
+                              className="bg-red-600 hover:bg-red-700 text-white"
                             >
                               {saving === player.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <>
-                                  <Save className="h-4 w-4 mr-2" />
+                                  <Save className="h-4 w-4 mr-1" />
                                   Save
                                 </>
                               )}
@@ -507,10 +496,9 @@ export function ScoreManagement() {
             </div>
 
             {filteredPlayers.length === 0 && (
-              <div className="text-center py-16">
-                <div className="text-gray-400 text-5xl mb-4">🎯</div>
-                <p className="text-gray-600 text-lg font-medium">No scores found for this game</p>
-                <p className="text-gray-400 text-sm mt-2">Try selecting a different game or add players first</p>
+              <div className="text-center py-12">
+                <p className="text-gray-600">No scores found for this game</p>
+                <p className="text-gray-500 text-sm mt-1">Try selecting a different game or add players first</p>
               </div>
             )}
           </CardContent>
