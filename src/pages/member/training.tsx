@@ -25,16 +25,20 @@ import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
 import {
+  Trophy,
   Target,
+  Plus,
+  Edit,
+  Trash2,
+  History,
   Loader2,
   ArrowLeft,
-  Plus,
-  Trash2,
-  Edit,
-  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
   TrendingUp,
   Award,
-  BarChart3,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -55,13 +59,15 @@ interface FrameData {
   split?: boolean;
 }
 
+type TrainingScoreWithDate = any;
+
 export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [scores, setScores] = useState<any[]>([]);
+  const [scores, setScores] = useState<TrainingScoreWithDate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingScore, setEditingScore] = useState<any | null>(null);
+  const [editingScore, setEditingScore] = useState<TrainingScoreWithDate | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentRoll, setCurrentRoll] = useState(1);
   const [memberId, setMemberId] = useState<string>("");
@@ -73,6 +79,16 @@ export default function TrainingPage() {
   const [frames, setFrames] = useState<FrameData[]>(
     Array(10).fill(null).map(() => ({ roll1: null, roll2: null, split: false }))
   );
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Calculate pagination
+  const totalPages = Math.ceil(scores.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedScores = scores.slice(startIndex, endIndex);
 
   useEffect(() => {
     checkAuth();
@@ -108,9 +124,11 @@ export default function TrainingPage() {
   }
 
   async function loadScores() {
+    if (!memberId) return;
     try {
       const data = await getMyTrainingScores();
       setScores(data);
+      setCurrentPage(1); // Reset to first page when scores reload
     } catch (error) {
       console.error("Error loading scores:", error);
     }
@@ -706,10 +724,28 @@ export default function TrainingPage() {
           {/* Scores History */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base md:text-lg">Training History</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Training History
+                <span className="text-sm font-normal text-gray-500">
+                  ({scores.length} total scores)
+                </span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-0 md:p-6">
-              {scores.length === 0 ? (
+            <CardContent>
+              {/* Pagination Info */}
+              {scores.length > 0 && (
+                <div className="mb-4 flex items-center justify-between text-sm text-gray-600">
+                  <span>
+                    Showing {startIndex + 1}-{Math.min(endIndex, scores.length)} of {scores.length} scores
+                  </span>
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+              )}
+
+              {paginatedScores.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p>No training scores yet. Add your first score!</p>
@@ -726,7 +762,7 @@ export default function TrainingPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {scores.map((score) => (
+                      {paginatedScores.map((score) => (
                         <TableRow key={score.id}>
                           <TableCell className="font-medium">
                             {new Date(score.training_date).toLocaleDateString()}
@@ -757,6 +793,67 @@ export default function TrainingPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="transition-all active:scale-95"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage = 
+                        page === 1 || 
+                        page === totalPages || 
+                        Math.abs(page - currentPage) <= 1;
+                      
+                      if (!showPage) {
+                        // Show ellipsis
+                        if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <span key={page} className="px-2 text-gray-400">...</span>;
+                        }
+                        return null;
+                      }
+
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={`min-w-[40px] transition-all active:scale-95 ${
+                            currentPage === page 
+                              ? "bg-red-600 hover:bg-red-700 text-white" 
+                              : ""
+                          }`}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="transition-all active:scale-95"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </CardContent>

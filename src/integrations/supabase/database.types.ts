@@ -353,25 +353,35 @@ export type Database = {
           created_at: string | null
           frame1_roll1: string | null
           frame1_roll2: string | null
+          frame1_split: boolean | null
           frame10_roll1: string | null
           frame10_roll2: string | null
           frame10_roll3: string | null
+          frame10_split: boolean | null
           frame2_roll1: string | null
           frame2_roll2: string | null
+          frame2_split: boolean | null
           frame3_roll1: string | null
           frame3_roll2: string | null
+          frame3_split: boolean | null
           frame4_roll1: string | null
           frame4_roll2: string | null
+          frame4_split: boolean | null
           frame5_roll1: string | null
           frame5_roll2: string | null
+          frame5_split: boolean | null
           frame6_roll1: string | null
           frame6_roll2: string | null
+          frame6_split: boolean | null
           frame7_roll1: string | null
           frame7_roll2: string | null
+          frame7_split: boolean | null
           frame8_roll1: string | null
           frame8_roll2: string | null
+          frame8_split: boolean | null
           frame9_roll1: string | null
           frame9_roll2: string | null
+          frame9_split: boolean | null
           id: string
           location: string | null
           member_id: string
@@ -384,25 +394,35 @@ export type Database = {
           created_at?: string | null
           frame1_roll1?: string | null
           frame1_roll2?: string | null
+          frame1_split?: boolean | null
           frame10_roll1?: string | null
           frame10_roll2?: string | null
           frame10_roll3?: string | null
+          frame10_split?: boolean | null
           frame2_roll1?: string | null
           frame2_roll2?: string | null
+          frame2_split?: boolean | null
           frame3_roll1?: string | null
           frame3_roll2?: string | null
+          frame3_split?: boolean | null
           frame4_roll1?: string | null
           frame4_roll2?: string | null
+          frame4_split?: boolean | null
           frame5_roll1?: string | null
           frame5_roll2?: string | null
+          frame5_split?: boolean | null
           frame6_roll1?: string | null
           frame6_roll2?: string | null
+          frame6_split?: boolean | null
           frame7_roll1?: string | null
           frame7_roll2?: string | null
+          frame7_split?: boolean | null
           frame8_roll1?: string | null
           frame8_roll2?: string | null
+          frame8_split?: boolean | null
           frame9_roll1?: string | null
           frame9_roll2?: string | null
+          frame9_split?: boolean | null
           id?: string
           location?: string | null
           member_id: string
@@ -415,25 +435,35 @@ export type Database = {
           created_at?: string | null
           frame1_roll1?: string | null
           frame1_roll2?: string | null
+          frame1_split?: boolean | null
           frame10_roll1?: string | null
           frame10_roll2?: string | null
           frame10_roll3?: string | null
+          frame10_split?: boolean | null
           frame2_roll1?: string | null
           frame2_roll2?: string | null
+          frame2_split?: boolean | null
           frame3_roll1?: string | null
           frame3_roll2?: string | null
+          frame3_split?: boolean | null
           frame4_roll1?: string | null
           frame4_roll2?: string | null
+          frame4_split?: boolean | null
           frame5_roll1?: string | null
           frame5_roll2?: string | null
+          frame5_split?: boolean | null
           frame6_roll1?: string | null
           frame6_roll2?: string | null
+          frame6_split?: boolean | null
           frame7_roll1?: string | null
           frame7_roll2?: string | null
+          frame7_split?: boolean | null
           frame8_roll1?: string | null
           frame8_roll2?: string | null
+          frame8_split?: boolean | null
           frame9_roll1?: string | null
           frame9_roll2?: string | null
+          frame9_split?: boolean | null
           id?: string
           location?: string | null
           member_id?: string
