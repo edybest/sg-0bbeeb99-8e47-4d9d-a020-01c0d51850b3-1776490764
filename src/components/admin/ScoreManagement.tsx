@@ -17,7 +17,6 @@ type GamePlayer = {
   handicap: number;
   total_score: number;
   overall_score: number;
-  average_score: number;
   members: {
     id: string;
     username: string;
@@ -154,7 +153,6 @@ export function ScoreManagement() {
                     updated.game4_score + updated.game5_score;
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
-      updated.average_score = Math.round(total / 5);
       
       return { ...prev, [playerId]: updated };
     });
@@ -344,17 +342,6 @@ export function ScoreManagement() {
                         Overall {getSortIcon("overall_score")}
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("average_score")}
-                        className="flex items-center justify-center w-full hover:text-gray-900 transition-colors"
-                      >
-                        Average {getSortIcon("average_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Diff
-                    </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
@@ -462,12 +449,6 @@ export function ScoreManagement() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center text-red-600 font-bold">
                           {getPlayerScore(player, "overall_score")}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-700 font-medium">
-                          {getPlayerScore(player, "average_score")}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-500">
-                          -{calculateDifference(player)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right">
                           {hasChanges && (
