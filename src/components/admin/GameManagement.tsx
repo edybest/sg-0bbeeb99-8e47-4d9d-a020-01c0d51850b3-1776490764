@@ -33,6 +33,10 @@ type Member = {
   avatar_url: string | null;
 };
 
+type MemberWithFiveFive = Member & {
+  is_fivefive?: boolean;
+};
+
 export function GameManagement() {
   const [games, setGames] = useState<Game[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -43,6 +47,7 @@ export function GameManagement() {
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
+  const [fivefiveParticipants, setFivefiveParticipants] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     game_name: "",
     game_type: "Blok Rasmi 10 PIN",
@@ -105,6 +110,7 @@ export function GameManagement() {
   function openPlayersDialog(gameId: string) {
     setSelectedGameId(gameId);
     setSelectedPlayers([]);
+    setFivefiveParticipants(new Set());
     setPlayersDialogOpen(true);
   }
 
@@ -169,9 +175,16 @@ export function GameManagement() {
     setError("");
 
     try {
-      await gameService.addPlayersToGame(selectedGameId, selectedPlayers);
+      // Add players with fivefive status
+      const playersToAdd = selectedPlayers.map(memberId => ({
+        member_id: memberId,
+        is_fivefive: fivefiveParticipants.has(memberId)
+      }));
+      
+      await gameService.addPlayersToGameWithFiveFive(selectedGameId, playersToAdd);
       setPlayersDialogOpen(false);
       setSelectedPlayers([]);
+      setFivefiveParticipants(new Set());
     } catch (err: any) {
       console.error("Add players error:", err);
       setError(err.message);
@@ -186,6 +199,18 @@ export function GameManagement() {
         ? prev.filter(id => id !== memberId)
         : [...prev, memberId]
     );
+  }
+
+  function toggleFiveFiveParticipation(memberId: string) {
+    setFivefiveParticipants(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
   }
 
   return (
@@ -386,7 +411,7 @@ export function GameManagement() {
             <DialogHeader>
               <DialogTitle>Pilih Pemain</DialogTitle>
               <DialogDescription>
-                Pilih ahli yang join game ini
+                Pilih ahli yang join game ini dan tandakan jika main FiveFive
               </DialogDescription>
             </DialogHeader>
 
@@ -394,8 +419,7 @@ export function GameManagement() {
               {members.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
-                  onClick={() => togglePlayerSelection(member.id)}
+                  className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50"
                 >
                   <Checkbox
                     checked={selectedPlayers.includes(member.id)}
@@ -405,6 +429,21 @@ export function GameManagement() {
                     <p className="font-medium">{member.full_name}</p>
                     <p className="text-sm text-muted-foreground">@{member.username}</p>
                   </div>
+                  {selectedPlayers.includes(member.id) && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`fivefive-${member.id}`}
+                        checked={fivefiveParticipants.has(member.id)}
+                        onCheckedChange={() => toggleFiveFiveParticipation(member.id)}
+                      />
+                      <Label 
+                        htmlFor={`fivefive-${member.id}`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Main FiveFive
+                      </Label>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -114,24 +114,29 @@ export const gameService = {
 
   // Add players to game
   async addPlayersToGame(gameId: string, memberIds: string[]) {
-    const players = memberIds.map(memberId => ({
+    const gamePlayers = memberIds.map((memberId) => ({
       game_id: gameId,
       member_id: memberId,
-      game1_score: 0,
-      game2_score: 0,
-      game3_score: 0,
-      game4_score: 0,
-      game5_score: 0,
-      handicap: 0
     }));
 
-    const { data, error } = await supabase
-      .from("game_players")
-      .insert(players)
-      .select();
-    
+    const { error } = await supabase.from("game_players").insert(gamePlayers);
+
     if (error) throw error;
-    return data;
+  },
+
+  async addPlayersToGameWithFiveFive(
+    gameId: string, 
+    players: Array<{ member_id: string; is_fivefive: boolean }>
+  ) {
+    const gamePlayers = players.map((player) => ({
+      game_id: gameId,
+      member_id: player.member_id,
+      is_fivefive: player.is_fivefive,
+    }));
+
+    const { error } = await supabase.from("game_players").insert(gamePlayers);
+
+    if (error) throw error;
   },
 
   // Remove player from game

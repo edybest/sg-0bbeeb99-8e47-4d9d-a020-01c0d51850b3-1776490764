@@ -171,6 +171,7 @@ export type Database = {
           game5_score: number | null
           handicap: number | null
           id: string
+          is_fivefive: boolean | null
           member_id: string
           overall_score: number | null
           total_score: number | null
@@ -187,6 +188,7 @@ export type Database = {
           game5_score?: number | null
           handicap?: number | null
           id?: string
+          is_fivefive?: boolean | null
           member_id: string
           overall_score?: number | null
           total_score?: number | null
@@ -203,6 +205,7 @@ export type Database = {
           game5_score?: number | null
           handicap?: number | null
           id?: string
+          is_fivefive?: boolean | null
           member_id?: string
           overall_score?: number | null
           total_score?: number | null
