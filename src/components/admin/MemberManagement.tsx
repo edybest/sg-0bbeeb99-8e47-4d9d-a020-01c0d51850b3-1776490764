@@ -54,6 +54,12 @@ export function MemberManagement() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
+  // Helper function to check if avatar is base64
+  const isBase64Image = (url: string | null) => {
+    if (!url) return false;
+    return url.startsWith("data:image/");
+  };
+
   useEffect(() => {
     loadMembers();
   }, []);
@@ -392,13 +398,21 @@ export function MemberManagement() {
                   <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {member.avatar_url ? (
-                        <Image 
-                          src={storageService.getAvatarUrl(member.avatar_url) || member.avatar_url} 
-                          alt={member.username} 
-                          width={40} 
-                          height={40} 
-                          className="rounded-full" 
-                        />
+                        isBase64Image(member.avatar_url) ? (
+                          <img 
+                            src={member.avatar_url} 
+                            alt={member.username} 
+                            className="w-10 h-10 rounded-full object-cover" 
+                          />
+                        ) : (
+                          <Image 
+                            src={member.avatar_url} 
+                            alt={member.username} 
+                            width={40} 
+                            height={40} 
+                            className="rounded-full object-cover" 
+                          />
+                        )
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">
                           {member.username[0].toUpperCase()}

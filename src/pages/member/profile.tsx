@@ -69,6 +69,12 @@ export default function ProfilePage() {
     }
   }, [router.isReady, queryId]);
 
+  // Helper function to check if avatar is base64
+  const isBase64Image = (url: string | null) => {
+    if (!url) return false;
+    return url.startsWith("data:image/");
+  };
+
   async function loadProfile() {
     try {
       setLoading(true);
@@ -302,13 +308,21 @@ export default function ProfilePage() {
                   <CardContent className="pt-6 flex flex-col items-center">
                     <div className="relative mb-4">
                       {member.avatar_url ? (
-                        <Image
-                          src={member.avatar_url}
-                          alt={member.username}
-                          width={150}
-                          height={150}
-                          className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
-                        />
+                        isBase64Image(member.avatar_url) ? (
+                          <img
+                            src={member.avatar_url}
+                            alt={member.username}
+                            className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                          />
+                        ) : (
+                          <Image
+                            src={member.avatar_url}
+                            alt={member.username}
+                            width={150}
+                            height={150}
+                            className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                          />
+                        )
                       ) : (
                         <div className="w-[150px] h-[150px] rounded-full bg-red-100 flex items-center justify-center text-red-600 text-4xl font-bold border-4 border-white shadow">
                           {member.username[0].toUpperCase()}

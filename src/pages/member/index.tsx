@@ -204,7 +204,7 @@ export default function MemberDashboard() {
 
           {/* Coming Soon Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {["Five-Five", "Liga", "Couple", "Training"].map((title) => (
+            {["Liga", "Couple", "Training"].map((title) => (
               <Card key={title} className="opacity-50 cursor-not-allowed">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-gray-400">
