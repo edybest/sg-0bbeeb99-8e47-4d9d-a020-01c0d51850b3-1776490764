@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
-import { SEO } from "@/components/SEO";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Trophy, BarChart3, Calendar, Users, Award, Target, Loader2, Medal, User } from "lucide-react";
+import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
+import { Trophy, Target, Award, Calendar, TrendingUp, Users, Loader2, LogOut, BarChart3, User } from "lucide-react";
+import Link from "next/link";
 
 export default function MemberDashboard() {
   const router = useRouter();
@@ -129,35 +129,42 @@ export default function MemberDashboard() {
           </Card>
 
           {/* Navigation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Link href="/member/blok">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-600">
-                    <Trophy className="h-5 w-5" />
-                    Blok
-                  </CardTitle>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Blok Card */}
+            <Link href="/member/blok" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Blok</CardTitle>
+                  <Trophy className="h-4 w-4 text-yellow-600" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600">
-                    Leaderboard & ranking terkini
-                  </p>
+                  <p className="text-xs text-muted-foreground">Leaderboard & Rankings</p>
                 </CardContent>
               </Card>
             </Link>
 
-            <Link href="/member/hall-of-fame">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-600">
-                    <Medal className="h-5 w-5" />
-                    Hall of Fame
-                  </CardTitle>
+            {/* FiveFive Card - NOW CLICKABLE */}
+            <Link href="/member/five-five" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">FiveFive</CardTitle>
+                  <Target className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-600">
-                    Senarai juara mengikut tahun
-                  </p>
+                  <p className="text-xs text-muted-foreground">Prize Distribution</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Hall of Fame Card */}
+            <Link href="/member/hall-of-fame" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Hall of Fame</CardTitle>
+                  <Award className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Champions History</p>
                 </CardContent>
               </Card>
             </Link>
