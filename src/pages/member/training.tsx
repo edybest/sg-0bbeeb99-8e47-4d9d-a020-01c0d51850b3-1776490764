@@ -124,11 +124,10 @@ export default function TrainingPage() {
   }
 
   async function loadScores() {
-    if (!memberId) return;
     try {
       const data = await getMyTrainingScores();
       setScores(data);
-      setCurrentPage(1); // Reset to first page when scores reload
+      setCurrentPage(1);
     } catch (error) {
       console.error("Error loading scores:", error);
     }
