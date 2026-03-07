@@ -79,10 +79,13 @@ export default function BlokPage() {
   const [games, setGames] = useState<GameSummary[]>([]);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string>("");
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [previousLeaderboard, setPreviousLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -299,11 +302,11 @@ export default function BlokPage() {
     }
   };
 
-  const formatScore = (score: number | null) => {
-    if (score === null) return "-";
-    const isHighScore = score >= 200;
+  const formatScore = (score: number | null, memberId: string) => {
+    if (score === null || score === 0) return "-";
+    const isAnimating = animatingScores.has(memberId);
     return (
-      <span className={isHighScore ? "text-red-600 font-bold" : ""}>
+      <span className={`${score >= 200 ? "text-red-600 font-bold" : ""} ${isAnimating ? "score-changed" : ""}`}>
         {score}
       </span>
     );
@@ -311,9 +314,44 @@ export default function BlokPage() {
 
   return (
     <>
+      <style jsx global>{`
+        @keyframes scoreChange {
+          0% {
+            transform: scale(1);
+            background-color: transparent;
+          }
+          50% {
+            transform: scale(1.1);
+            background-color: rgb(254, 240, 138);
+          }
+          100% {
+            transform: scale(1);
+            background-color: transparent;
+          }
+        }
+
+        @keyframes rankChange {
+          0% {
+            transform: translateX(-10px);
+            opacity: 0.5;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        .score-changed {
+          animation: scoreChange 1s ease-in-out;
+        }
+
+        .rank-changed {
+          animation: rankChange 0.5s ease-out;
+        }
+      `}</style>
       <SEO 
-        title="Blok Leaderboard - AMBC CLUB"
-        description="Leaderboard kedudukan terkini pemain bowling AMBC Club"
+        title="Blok Leaderboard - AMBC Club"
+        description="View Blok game leaderboard and rankings"
       />
       <div className="min-h-screen bg-white">
         {/* Header with white background */}
@@ -406,10 +444,16 @@ export default function BlokPage() {
                     {/* Mobile View - Compact Cards */}
                     <div className="block md:hidden space-y-2">
                       {leaderboard.map((entry, index) => (
-                        <Card 
-                          key={entry.id}
-                          className="cursor-pointer hover:shadow-md transition-shadow"
-                          onClick={() => setExpandedRow(expandedRow === entry.id ? null : entry.id)}
+                        <Card
+                          key={entry.member.id}
+                          className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                            animatingScores.has(entry.member.id) 
+                              ? 'animate-pulse bg-yellow-50 border-yellow-400 border-2' 
+                              : ''
+                          }`}
+                          onClick={() => setExpandedRow(
+                            expandedRow === entry.member.id ? null : entry.member.id
+                          )}
                         >
                           <CardContent className="p-4">
                             {/* Compact View */}
@@ -461,23 +505,23 @@ export default function BlokPage() {
                                 <div className="grid grid-cols-5 gap-2">
                                   <div className="text-center">
                                     <div className="text-xs text-gray-500 mb-1">G1</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game1_score)}</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game1_score, entry.member.id)}</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="text-xs text-gray-500 mb-1">G2</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game2_score)}</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game2_score, entry.member.id)}</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="text-xs text-gray-500 mb-1">G3</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game3_score)}</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game3_score, entry.member.id)}</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="text-xs text-gray-500 mb-1">G4</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game4_score)}</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game4_score, entry.member.id)}</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="text-xs text-gray-500 mb-1">G5</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game5_score)}</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game5_score, entry.member.id)}</div>
                                   </div>
                                 </div>
 
@@ -655,7 +699,14 @@ export default function BlokPage() {
 
                           <tbody>
                             {leaderboard.map((entry, index) => (
-                              <tr key={entry.id} className="hover:bg-gray-50">
+                              <tr 
+                                key={entry.member.id} 
+                                className={`border-b transition-all duration-500 ${
+                                  animatingScores.has(entry.member.id)
+                                    ? 'bg-yellow-100 animate-pulse'
+                                    : 'hover:bg-gray-50'
+                                }`}
+                              >
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center justify-center">
                                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-600 text-white font-bold text-sm">
@@ -681,11 +732,11 @@ export default function BlokPage() {
                                     <span className="font-medium">{entry.member.username}</span>
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game1_score)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game2_score)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game3_score)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game4_score)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game5_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game1_score, entry.member.id)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game2_score, entry.member.id)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game3_score, entry.member.id)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game4_score, entry.member.id)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game5_score, entry.member.id)}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{entry.handicap || "-"}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center font-semibold text-red-600">{entry.overall_score || "-"}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-center">{entry.total_score || "-"}</td>
