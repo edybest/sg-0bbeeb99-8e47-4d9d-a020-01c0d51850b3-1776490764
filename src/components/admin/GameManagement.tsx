@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Plus, Edit, Trash2, Users, Calendar, Trophy, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type Game = {
   id: string;
@@ -39,17 +40,20 @@ type MemberWithFiveFive = Member & {
 };
 
 export function GameManagement() {
-  const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
+  const [newGame, setNewGame] = useState({ game_date: "", game_format: "10 PIN" });
   const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [playersDialogOpen, setPlayersDialogOpen] = useState(false);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [fivefiveParticipants, setFivefiveParticipants] = useState<Set<string>>(new Set());
+  const [initialFivefiveParticipants, setInitialFivefiveParticipants] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     game_name: "",
     game_type: "Blok Rasmi 10 PIN",
@@ -109,12 +113,174 @@ export function GameManagement() {
     setDialogOpen(true);
   }
 
-  function openPlayersDialog(gameId: string) {
+  const openPlayersDialog = async (gameId: string) => {
     setSelectedGameId(gameId);
+    setSearchTerm("");
+    
+    try {
+      const { data: gamePlayers, error } = await supabase
+        .from("game_players")
+        .select("member_id, is_fivefive")
+        .eq("game_id", gameId);
+
+      if (error) throw error;
+
+      const playerIds = gamePlayers?.map((p) => p.member_id) || [];
+      const fivefiveIds = gamePlayers
+        ?.filter((p) => p.is_fivefive)
+        .map((p) => p.member_id) || [];
+
+      setSelectedPlayers(playerIds);
+      setFivefiveParticipants(new Set(fivefiveIds));
+      setInitialFivefiveParticipants(new Set(fivefiveIds));
+      setPlayersDialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal memuatkan data pemain",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const closePlayersDialog = () => {
+    setPlayersDialogOpen(false);
     setSelectedPlayers([]);
     setFivefiveParticipants(new Set());
-    setPlayersDialogOpen(true);
-  }
+    setInitialFivefiveParticipants(new Set());
+    setSearchTerm("");
+  };
+
+  const handleUpdatePlayers = async () => {
+    if (!selectedGameId) return;
+
+    try {
+      setLoading(true);
+
+      const currentPlayerIds = new Set(selectedPlayers);
+      const { data: existingPlayers, error: fetchError } = await supabase
+        .from("game_players")
+        .select("member_id, is_fivefive")
+        .eq("game_id", selectedGameId);
+
+      if (fetchError) throw fetchError;
+
+      const existingPlayerIds = new Set(existingPlayers?.map((p) => p.member_id) || []);
+
+      const playersToAdd = selectedPlayers.filter((id) => !existingPlayerIds.has(id));
+      const playersToRemove = Array.from(existingPlayerIds).filter(
+        (id) => !currentPlayerIds.has(id)
+      );
+
+      const fivefiveChanges: Array<{ member_id: string; old_status: boolean; new_status: boolean }> = [];
+      
+      selectedPlayers.forEach((memberId) => {
+        if (existingPlayerIds.has(memberId)) {
+          const existingPlayer = existingPlayers?.find((p) => p.member_id === memberId);
+          const oldFivefive = existingPlayer?.is_fivefive || false;
+          const newFivefive = fivefiveParticipants.has(memberId);
+          
+          if (oldFivefive !== newFivefive) {
+            fivefiveChanges.push({
+              member_id: memberId,
+              old_status: oldFivefive,
+              new_status: newFivefive,
+            });
+          }
+        }
+      });
+
+      if (playersToAdd.length === 0 && playersToRemove.length === 0 && fivefiveChanges.length === 0) {
+        toast({
+          title: "ℹ️ Tiada Perubahan",
+          description: "Tiada perubahan pada senarai pemain atau status FiveFive.",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (playersToRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("game_players")
+          .delete()
+          .eq("game_id", selectedGameId)
+          .in("member_id", playersToRemove);
+
+        if (deleteError) throw deleteError;
+      }
+
+      if (playersToAdd.length > 0) {
+        const gamePlayers = playersToAdd.map((memberId) => ({
+          game_id: selectedGameId,
+          member_id: memberId,
+          is_fivefive: fivefiveParticipants.has(memberId),
+        }));
+
+        const { error: insertError } = await supabase
+          .from("game_players")
+          .insert(gamePlayers);
+
+        if (insertError) throw insertError;
+      }
+
+      if (fivefiveChanges.length > 0) {
+        for (const change of fivefiveChanges) {
+          const { error: updateError } = await supabase
+            .from("game_players")
+            .update({ is_fivefive: change.new_status })
+            .eq("game_id", selectedGameId)
+            .eq("member_id", change.member_id);
+
+          if (updateError) throw updateError;
+        }
+      }
+
+      const messages: string[] = [];
+      if (playersToAdd.length > 0) {
+        messages.push(`${playersToAdd.length} pemain ditambah`);
+      }
+      if (playersToRemove.length > 0) {
+        messages.push(`${playersToRemove.length} pemain dikeluarkan`);
+      }
+      if (fivefiveChanges.length > 0) {
+        messages.push(`${fivefiveChanges.length} status FiveFive dikemaskini`);
+      }
+
+      toast({
+        title: "✅ Berjaya!",
+        description: messages.join(", ") + ".",
+      });
+
+      closePlayersDialog();
+      loadGames();
+    } catch (err: any) {
+      toast({
+        title: "❌ Ralat",
+        description: err.message || "Gagal mengemaskini pemain",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlayerToggle = (memberId: string) => {
+    setSelectedPlayers((prev) =>
+      prev.includes(memberId) ? prev.filter((id) => id !== memberId) : [...prev, memberId]
+    );
+  };
+
+  const handleFivefiveToggle = (memberId: string) => {
+    setFivefiveParticipants((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+      } else {
+        newSet.add(memberId);
+      }
+      return newSet;
+    });
+  };
 
   async function handleSubmit() {
     if (!formData.game_name.trim()) {
@@ -142,7 +308,7 @@ export function GameManagement() {
       setDialogOpen(false);
     } catch (err: any) {
       console.error("Submit game error:", err);
-      setError(err.message);
+      setError(err.message || "Ralat tidak diketahui");
     } finally {
       setLoading(false);
     }
@@ -161,86 +327,10 @@ export function GameManagement() {
       await loadGames();
     } catch (err: any) {
       console.error("Delete game error:", err);
-      setError(err.message);
+      setError(err.message || "Ralat tidak diketahui");
     } finally {
       setLoading(false);
     }
-  }
-
-  const handleAddPlayers = async () => {
-    if (selectedPlayers.length === 0) {
-      setError("Sila pilih sekurang-kurangnya seorang pemain");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const playersToAdd = selectedPlayers.map((memberId) => ({
-        member_id: memberId,
-        is_fivefive: fivefiveParticipants.has(memberId),
-      }));
-
-      const result = await gameService.addPlayersToGameWithFiveFive(
-        selectedGameId,
-        playersToAdd
-      );
-
-      // Show appropriate toast based on result
-      if (result.added > 0 && result.skipped === 0) {
-        toast({
-          title: "✅ Berjaya!",
-          description: result.message,
-        });
-      } else if (result.added > 0 && result.skipped > 0) {
-        toast({
-          title: "⚠️ Sebahagian Berjaya",
-          description: result.message,
-        });
-      } else if (result.added === 0) {
-        toast({
-          title: "ℹ️ Tiada Perubahan",
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-
-      setPlayersDialogOpen(false);
-      setSelectedPlayers([]);
-      setFivefiveParticipants(new Set());
-      loadGames();
-    } catch (err: any) {
-      console.error("Error adding players:", err);
-      setError(err.message || "Gagal menambah pemain");
-      toast({
-        title: "❌ Ralat",
-        description: err.message || "Gagal menambah pemain",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  function togglePlayerSelection(memberId: string) {
-    setSelectedPlayers(prev => 
-      prev.includes(memberId)
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
-    );
-  }
-
-  function toggleFiveFiveParticipation(memberId: string) {
-    setFivefiveParticipants(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(memberId)) {
-        newSet.delete(memberId);
-      } else {
-        newSet.add(memberId);
-      }
-      return newSet;
-    });
   }
 
   return (
@@ -453,7 +543,7 @@ export function GameManagement() {
                 >
                   <Checkbox
                     checked={selectedPlayers.includes(member.id)}
-                    onCheckedChange={() => togglePlayerSelection(member.id)}
+                    onCheckedChange={() => handlePlayerToggle(member.id)}
                   />
                   <div className="flex-1">
                     <p className="font-medium">{member.full_name}</p>
@@ -464,7 +554,7 @@ export function GameManagement() {
                       <Checkbox
                         id={`fivefive-${member.id}`}
                         checked={fivefiveParticipants.has(member.id)}
-                        onCheckedChange={() => toggleFiveFiveParticipation(member.id)}
+                        onCheckedChange={() => handleFivefiveToggle(member.id)}
                       />
                       <Label 
                         htmlFor={`fivefive-${member.id}`}
@@ -479,10 +569,10 @@ export function GameManagement() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setPlayersDialogOpen(false)}>
+              <Button variant="outline" onClick={closePlayersDialog}>
                 Batal
               </Button>
-              <Button onClick={handleAddPlayers} disabled={loading} className="bg-red-600 hover:bg-red-700">
+              <Button onClick={handleUpdatePlayers} disabled={loading} className="bg-red-600 hover:bg-red-700">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
