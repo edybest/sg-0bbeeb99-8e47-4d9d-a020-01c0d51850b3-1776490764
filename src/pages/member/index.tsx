@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
-import { Trophy, Target, Award, Calendar, TrendingUp, Users, Loader2, LogOut, BarChart3, User } from "lucide-react";
+import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User } from "lucide-react";
 import Link from "next/link";
 
 export default function MemberDashboard() {
