@@ -274,7 +274,7 @@ export default function BlokPage() {
             animate={{ scale: 1 }}
             transition={{ delay: 0.1, type: "spring" }}
           >
-            <Medal className="w-7 h-7 text-gray-400 drop-shadow-[0_0_8px_rgba(156,163,175,0.5)]" />
+            <Trophy className="w-7 h-7 text-gray-400 drop-shadow-[0_0_8px_rgba(156,163,175,0.5)]" />
           </motion.div>
         );
       case 3:
