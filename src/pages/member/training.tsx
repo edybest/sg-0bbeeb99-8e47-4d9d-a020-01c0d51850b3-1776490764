@@ -593,7 +593,7 @@ export default function TrainingPage() {
                     <Label htmlFor="location">Location</Label>
                     <Input
                       id="location"
-                      placeholder="e.g., Megalanes"
+                      placeholder="e.g., Daiman Bowl"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       className="mt-1"
