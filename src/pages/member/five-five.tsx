@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { fivefiveService, type PrizeCalculation } from "@/services/fivefiveService";
+import { fivefiveService, type ParticipantWithPrizes } from "@/services/fivefiveService";
 import type { Tables } from "@/integrations/supabase/types";
 import { Loader2, Calendar, Trophy, DollarSign } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
@@ -21,7 +21,7 @@ export default function FiveFivePage() {
   const [games, setGames] = useState<FiveFiveGame[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedGame, setSelectedGame] = useState<FiveFiveGame | null>(null);
-  const [prizes, setPrizes] = useState<PrizeCalculation[]>([]);
+  const [prizes, setPrizes] = useState<ParticipantWithPrizes[]>([]);
   const [loadingPrizes, setLoadingPrizes] = useState(false);
 
   useEffect(() => {
@@ -262,7 +262,7 @@ export default function FiveFivePage() {
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {prizes
-                              .sort((a, b) => b.total_prize - a.total_prize)
+                              .sort((a, b) => (b.total_prize || 0) - (a.total_prize || 0))
                               .map((prize) => (
                                 <tr
                                   key={prize.member_id}
@@ -292,24 +292,24 @@ export default function FiveFivePage() {
                                     </div>
                                   </td>
                                   <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                    {formatCurrency(prize.game1_prize)}
+                                    {formatCurrency(prize.game1_prize || 0)}
                                   </td>
                                   <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                    {formatCurrency(prize.game2_prize)}
+                                    {formatCurrency(prize.game2_prize || 0)}
                                   </td>
                                   <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                    {formatCurrency(prize.game3_prize)}
+                                    {formatCurrency(prize.game3_prize || 0)}
                                   </td>
                                   <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                    {formatCurrency(prize.game4_prize)}
+                                    {formatCurrency(prize.game4_prize || 0)}
                                   </td>
                                   <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                    {formatCurrency(prize.game5_prize)}
+                                    {formatCurrency(prize.game5_prize || 0)}
                                   </td>
                                   <td className="px-4 py-3 text-right bg-red-50">
                                     <div className="font-bold text-red-600 flex items-center justify-end gap-1">
                                       <DollarSign className="w-4 h-4" />
-                                      {formatCurrency(prize.total_prize)}
+                                      {formatCurrency(prize.total_prize || 0)}
                                     </div>
                                   </td>
                                 </tr>
@@ -320,34 +320,34 @@ export default function FiveFivePage() {
                               <td className="px-4 py-3 font-bold text-gray-900">TOTAL</td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                                 {formatCurrency(
-                                  prizes.reduce((sum, p) => sum + p.game1_prize, 0)
+                                  prizes.reduce((sum, p) => sum + (p.game1_prize || 0), 0)
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                                 {formatCurrency(
-                                  prizes.reduce((sum, p) => sum + p.game2_prize, 0)
+                                  prizes.reduce((sum, p) => sum + (p.game2_prize || 0), 0)
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                                 {formatCurrency(
-                                  prizes.reduce((sum, p) => sum + p.game3_prize, 0)
+                                  prizes.reduce((sum, p) => sum + (p.game3_prize || 0), 0)
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                                 {formatCurrency(
-                                  prizes.reduce((sum, p) => sum + p.game4_prize, 0)
+                                  prizes.reduce((sum, p) => sum + (p.game4_prize || 0), 0)
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-gray-900">
                                 {formatCurrency(
-                                  prizes.reduce((sum, p) => sum + p.game5_prize, 0)
+                                  prizes.reduce((sum, p) => sum + (p.game5_prize || 0), 0)
                                 )}
                               </td>
                               <td className="px-4 py-3 text-right bg-red-50">
                                 <div className="font-bold text-red-600 flex items-center justify-end gap-1">
                                   <DollarSign className="w-5 h-5" />
                                   {formatCurrency(
-                                    prizes.reduce((sum, p) => sum + p.total_prize, 0)
+                                    prizes.reduce((sum, p) => sum + (p.total_prize || 0), 0)
                                   )}
                                 </div>
                               </td>

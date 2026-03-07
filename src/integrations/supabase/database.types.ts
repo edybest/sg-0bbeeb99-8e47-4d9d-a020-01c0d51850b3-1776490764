@@ -136,26 +136,26 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          prize_amount: number
-          rank_position: number
+          prize_count: number
+          prizes: Json
+          total_players: number
           updated_at: string | null
-          winner_count: number
         }
         Insert: {
           created_at?: string | null
           id?: string
-          prize_amount?: number
-          rank_position: number
+          prize_count: number
+          prizes?: Json
+          total_players: number
           updated_at?: string | null
-          winner_count?: number
         }
         Update: {
           created_at?: string | null
           id?: string
-          prize_amount?: number
-          rank_position?: number
+          prize_count?: number
+          prizes?: Json
+          total_players?: number
           updated_at?: string | null
-          winner_count?: number
         }
         Relationships: []
       }

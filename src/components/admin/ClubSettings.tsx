@@ -5,10 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Trash2, Plus, Minus } from "lucide-react";
-import type { Tables } from "@/integrations/supabase/types";
-
-type FiveFivePrize = Tables<"fivefive_prizes">;
+import { Loader2, Upload, Trash2, Trophy, Info, Save } from "lucide-react";
 
 export function ClubSettings() {
   const { toast } = useToast();
@@ -17,14 +14,15 @@ export function ClubSettings() {
   const [clubName, setClubName] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
-  // FiveFive prizes state
-  const [fivefivePrizes, setFivefivePrizes] = useState<FiveFivePrize[]>([]);
-  const [loadingPrizes, setLoadingPrizes] = useState(false);
-  const [savingPrizes, setSavingPrizes] = useState(false);
+  // FiveFive Prize Settings State
+  const [fivefiveTotalPlayers, setFivefiveTotalPlayers] = useState(10);
+  const [fivefivePrizeCount, setFivefivePrizeCount] = useState(5);
+  const [fivefivePrizes, setFivefivePrizes] = useState<number[]>([100, 80, 50, 30, 20]);
+  const [isSavingFivefive, setIsSavingFivefive] = useState(false);
 
   useEffect(() => {
     loadSettings();
-    loadFiveFivePrizes();
+    loadFivefivePrizeConfig();
   }, []);
 
   const loadSettings = async () => {
@@ -63,35 +61,111 @@ export function ClubSettings() {
     }
   };
 
-  const loadFiveFivePrizes = async () => {
+  const loadFivefivePrizeConfig = async () => {
     try {
-      setLoadingPrizes(true);
       const { data, error } = await supabase
         .from("fivefive_prizes")
         .select("*")
-        .order("rank_position", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
 
-      // Initialize with at least 5 prize slots if empty
-      if (!data || data.length === 0) {
-        const initialPrizes: Partial<FiveFivePrize>[] = Array.from({ length: 5 }, (_, i) => ({
-          rank_position: i + 1,
-          prize_amount: 0,
-          winner_count: 1,
-        }));
-        setFivefivePrizes(initialPrizes as FiveFivePrize[]);
-      } else {
-        setFivefivePrizes(data);
+      if (data) {
+        setFivefiveTotalPlayers(data.total_players);
+        setFivefivePrizeCount(data.prize_count);
+        // Safely parse prizes JSONB array to number[]
+        const parsedPrizes = Array.isArray(data.prizes) ? data.prizes.map(Number) : [];
+        setFivefivePrizes(parsedPrizes);
       }
     } catch (error: any) {
+      console.error("Error loading FiveFive prize config:", error);
       toast({
-        title: "Error loading prizes",
-        description: error.message,
+        title: "Error",
+        description: "Failed to load FiveFive prize settings",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrizeCountChange = (count: number) => {
+    setFivefivePrizeCount(count);
+    
+    // Adjust prizes array to match new count
+    const newPrizes = [...fivefivePrizes];
+    if (count > newPrizes.length) {
+      // Add default prizes (decrease by 20 for each rank)
+      const lastPrize = newPrizes[newPrizes.length - 1] || 100;
+      for (let i = newPrizes.length; i < count; i++) {
+        newPrizes.push(Math.max(10, lastPrize - (20 * (i - newPrizes.length + 1))));
+      }
+    } else if (count < newPrizes.length) {
+      // Remove excess prizes
+      newPrizes.splice(count);
+    }
+    setFivefivePrizes(newPrizes);
+  };
+
+  const handlePrizeChange = (index: number, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    const newPrizes = [...fivefivePrizes];
+    newPrizes[index] = numValue;
+    setFivefivePrizes(newPrizes);
+  };
+
+  const saveFivefivePrizeSettings = async () => {
+    try {
+      setIsSavingFivefive(true);
+
+      // Validate
+      if (fivefivePrizeCount > fivefiveTotalPlayers) {
+        toast({
+          title: "Error",
+          description: "Prize count cannot exceed total players",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (fivefivePrizes.some(p => p <= 0)) {
+        toast({
+          title: "Error",
+          description: "All prizes must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Delete old config
+      await supabase.from("fivefive_prizes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      // Insert new config
+      const { error } = await supabase
+        .from("fivefive_prizes")
+        .insert({
+          total_players: fivefiveTotalPlayers,
+          prize_count: fivefivePrizeCount,
+          prizes: fivefivePrizes, // Will be cast to JSONB
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "FiveFive prize settings saved successfully",
+      });
+
+      loadFivefivePrizeConfig();
+    } catch (error: any) {
+      console.error("Error saving FiveFive prize settings:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save FiveFive prize settings",
         variant: "destructive",
       });
     } finally {
-      setLoadingPrizes(false);
+      setIsSavingFivefive(false);
     }
   };
 
@@ -129,7 +203,6 @@ export function ClubSettings() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Error",
@@ -139,7 +212,6 @@ export function ClubSettings() {
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
         title: "Error",
@@ -152,13 +224,11 @@ export function ClubSettings() {
     try {
       setUploading(true);
 
-      // Convert to base64
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64String = reader.result as string;
         setLogoPreview(base64String);
 
-        // Save to database
         const { error } = await supabase
           .from("club_settings")
           .upsert({
@@ -213,79 +283,7 @@ export function ClubSettings() {
     }
   };
 
-  const addPrizeRank = () => {
-    const newRank = fivefivePrizes.length + 1;
-    setFivefivePrizes([
-      ...fivefivePrizes,
-      {
-        id: `temp-${Date.now()}`,
-        rank_position: newRank,
-        prize_amount: 0,
-        winner_count: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as FiveFivePrize,
-    ]);
-  };
-
-  const removePrizeRank = (index: number) => {
-    const updated = fivefivePrizes.filter((_, i) => i !== index);
-    // Re-number rank positions
-    updated.forEach((prize, i) => {
-      prize.rank_position = i + 1;
-    });
-    setFivefivePrizes(updated);
-  };
-
-  const updatePrize = (index: number, field: keyof FiveFivePrize, value: any) => {
-    const updated = [...fivefivePrizes];
-    updated[index] = { ...updated[index], [field]: value };
-    setFivefivePrizes(updated);
-  };
-
-  const saveFiveFivePrizes = async () => {
-    try {
-      setSavingPrizes(true);
-
-      // Delete all existing prizes
-      const { error: deleteError } = await supabase
-        .from("fivefive_prizes")
-        .delete()
-        .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
-
-      if (deleteError) throw deleteError;
-
-      // Insert new prizes (without temp IDs)
-      const prizesToInsert = fivefivePrizes.map(({ id, created_at, updated_at, ...prize }) => ({
-        ...prize,
-        updated_at: new Date().toISOString(),
-      }));
-
-      const { error: insertError } = await supabase
-        .from("fivefive_prizes")
-        .insert(prizesToInsert);
-
-      if (insertError) throw insertError;
-
-      toast({
-        title: "Success",
-        description: "FiveFive prize settings saved successfully",
-      });
-
-      // Reload to get proper IDs
-      await loadFiveFivePrizes();
-    } catch (error: any) {
-      toast({
-        title: "Error saving prizes",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSavingPrizes(false);
-    }
-  };
-
-  if (loading || loadingPrizes) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-red-600" />
@@ -377,131 +375,153 @@ export function ClubSettings() {
         </CardContent>
       </Card>
 
-      {/* FiveFive Prize Settings Card */}
+      {/* FiveFive Prize Settings */}
       <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-gray-900">FiveFive Prize Settings</CardTitle>
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-red-600" />
+            FiveFive Prize Settings
+          </CardTitle>
           <CardDescription className="text-gray-600">
-            Configure prize distribution for FiveFive games. Set prize amount and number of winners for each rank.
+            Configure prize distribution for FiveFive games
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Prize Configuration Table */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700 uppercase">
-                Prize Configuration
-              </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addPrizeRank}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Rank
-              </Button>
-            </div>
-
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 p-3 bg-gray-50 rounded-t-lg border border-gray-200 font-semibold text-sm text-gray-700">
-              <div className="col-span-2">Rank</div>
-              <div className="col-span-4">Prize Amount (RM)</div>
-              <div className="col-span-4">Number of Winners</div>
-              <div className="col-span-2">Action</div>
-            </div>
-
-            {/* Prize Rows */}
+          {/* Total Players */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              {fivefivePrizes.map((prize, index) => (
-                <div
-                  key={prize.id || index}
-                  className="grid grid-cols-12 gap-4 p-3 bg-white border border-gray-200 rounded-lg items-center"
-                >
-                  {/* Rank Position */}
-                  <div className="col-span-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-red-600">
-                        #{prize.rank_position}
-                      </span>
-                    </div>
-                  </div>
+              <label className="text-sm font-medium text-gray-700">
+                Jumlah Pemain
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="50"
+                value={fivefiveTotalPlayers}
+                onChange={(e) => setFivefiveTotalPlayers(parseInt(e.target.value) || 1)}
+                className="bg-white border-gray-300 text-gray-900"
+              />
+              <p className="text-xs text-gray-500">
+                Total number of players in the game
+              </p>
+            </div>
 
-                  {/* Prize Amount */}
-                  <div className="col-span-4">
+            {/* Prize Count */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Jumlah Hadiah
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max={fivefiveTotalPlayers}
+                value={fivefivePrizeCount}
+                onChange={(e) => handlePrizeCountChange(parseInt(e.target.value) || 1)}
+                className="bg-white border-gray-300 text-gray-900"
+              />
+              <p className="text-xs text-gray-500">
+                Number of prizes to distribute (creates {fivefivePrizeCount} input boxes)
+              </p>
+            </div>
+          </div>
+
+          {/* Prize Amount Inputs */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">
+              Prize Amounts (RM)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {Array.from({ length: fivefivePrizeCount }).map((_, index) => (
+                <div key={index} className="space-y-1">
+                  <label className="text-xs text-gray-600 font-medium">
+                    Prize #{index + 1}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      RM
+                    </span>
                     <Input
                       type="number"
-                      value={prize.prize_amount}
-                      onChange={(e) =>
-                        updatePrize(index, "prize_amount", parseFloat(e.target.value) || 0)
-                      }
-                      placeholder="0.00"
                       min="0"
                       step="0.01"
-                      className="bg-white border-gray-300 text-gray-900"
+                      value={fivefivePrizes[index] || 0}
+                      onChange={(e) => handlePrizeChange(index, e.target.value)}
+                      className="bg-white border-gray-300 text-gray-900 pl-12"
+                      placeholder="0.00"
                     />
-                  </div>
-
-                  {/* Winner Count */}
-                  <div className="col-span-4">
-                    <Input
-                      type="number"
-                      value={prize.winner_count}
-                      onChange={(e) =>
-                        updatePrize(index, "winner_count", parseInt(e.target.value) || 1)
-                      }
-                      placeholder="1"
-                      min="1"
-                      max="10"
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-
-                  {/* Remove Button */}
-                  <div className="col-span-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removePrizeRank(index)}
-                      disabled={fivefivePrizes.length <= 1}
-                      className="text-red-600 hover:bg-red-50"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
               ))}
             </div>
+            <p className="text-xs text-gray-500">
+              💡 <strong>How it works:</strong> Prize #1 goes to rank 1, Prize #2 to rank 2, and so on.
+              If players tie, their prizes are combined and split equally.
+            </p>
+          </div>
 
-            {/* Helper Text */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>How it works:</strong>
-              </p>
-              <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
-                <li>
-                  <strong>Prize Amount:</strong> The prize money for this rank position
-                </li>
-                <li>
-                  <strong>Number of Winners:</strong> If set to 2, the top 2 players at this rank will share the prize equally
-                </li>
-                <li>
-                  <strong>Tied Scores:</strong> If players have the same overall score, prizes will be combined and split equally
-                </li>
-                <li>
-                  Example: Rank #1 prize RM100, 2 winners → Each winner gets RM50
-                </li>
-              </ul>
+          {/* Prize Summary */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">
+              Prize Summary
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-gray-600">Total Players</p>
+                <p className="font-semibold text-gray-900">{fivefiveTotalPlayers}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Total Prizes</p>
+                <p className="font-semibold text-gray-900">{fivefivePrizeCount}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Total Prize Pool</p>
+                <p className="font-semibold text-red-600">
+                  RM {fivefivePrizes.reduce((sum, prize) => sum + prize, 0).toFixed(2)}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-600">Per Player Avg</p>
+                <p className="font-semibold text-gray-900">
+                  RM {(fivefivePrizes.reduce((sum, prize) => sum + prize, 0) / fivefiveTotalPlayers).toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
 
+          {/* Example */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Example Prize Distribution
+            </h4>
+            <div className="text-sm text-blue-800 space-y-1">
+              <p>• Rank #1: RM {fivefivePrizes[0]?.toFixed(2) || "0.00"}</p>
+              <p>• Rank #2: RM {fivefivePrizes[1]?.toFixed(2) || "0.00"}</p>
+              <p>• Rank #3: RM {fivefivePrizes[2]?.toFixed(2) || "0.00"}</p>
+              {fivefivePrizeCount > 3 && <p className="text-xs">... and {fivefivePrizeCount - 3} more</p>}
+              <p className="text-xs pt-2 border-t border-blue-200">
+                <strong>If 2 players tie for rank 2:</strong> They share Prize #2 + Prize #3 equally
+              </p>
+            </div>
+          </div>
+
+          {/* Save Button */}
           <Button
-            onClick={saveFiveFivePrizes}
-            disabled={savingPrizes}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            onClick={saveFivefivePrizeSettings}
+            disabled={isSavingFivefive}
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white"
           >
-            {savingPrizes && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Prize Settings
+            {isSavingFivefive ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Prize Settings
+              </>
+            )}
           </Button>
         </CardContent>
       </Card>
