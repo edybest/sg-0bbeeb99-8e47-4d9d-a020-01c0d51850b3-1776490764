@@ -106,7 +106,6 @@ export function ScoreManagement() {
       const current = prev[playerId] || players.find(p => p.id === playerId)!;
       const updated = { ...current, [field]: numValue };
       
-      // Recalculate total_score and overall_score
       const total = updated.game1_score + updated.game2_score + updated.game3_score + 
                     updated.game4_score + updated.game5_score;
       updated.total_score = total;
@@ -132,10 +131,8 @@ export function ScoreManagement() {
         handicap: updates.handicap
       });
 
-      // Reload players to get updated scores
       await loadGamePlayers(selectedGameId);
       
-      // Clear editing state
       setEditingScores(prev => {
         const { [playerId]: _, ...rest } = prev;
         return rest;
@@ -217,145 +214,205 @@ export function ScoreManagement() {
 
       {/* Scores Table */}
       {selectedGameId && (
-        <Card className="bg-white border-gray-200">
+        <Card className="bg-white border-gray-200 shadow-lg">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="sticky left-0 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Rank</th>
-                    <th className="sticky left-16 z-10 bg-gray-50 px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Player</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G1</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G2</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G3</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G4</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">G5</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">HCP</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Total</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Overall</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Avg</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Diff</th>
-                    <th className="sticky right-0 z-10 bg-gray-50 px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <th className="sticky left-0 z-20 bg-gray-100 px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300">
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600">#</span> Rank
+                      </div>
+                    </th>
+                    <th className="sticky left-20 z-20 bg-gray-100 px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider border-r-2 border-gray-300 min-w-[200px]">
+                      Player
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-blue-700 uppercase tracking-wider bg-blue-50 border-r border-gray-200">
+                      Game 1
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-green-700 uppercase tracking-wider bg-green-50 border-r border-gray-200">
+                      Game 2
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-50 border-r border-gray-200">
+                      Game 3
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-orange-700 uppercase tracking-wider bg-orange-50 border-r border-gray-200">
+                      Game 4
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-pink-700 uppercase tracking-wider bg-pink-50 border-r-2 border-gray-300">
+                      Game 5
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-yellow-700 uppercase tracking-wider bg-yellow-50 border-r-2 border-gray-300">
+                      Handicap
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
+                      Total
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-red-700 uppercase tracking-wider bg-red-50 border-r border-gray-200">
+                      Overall
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
+                      Average
+                    </th>
+                    <th className="px-4 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-50 border-r-2 border-gray-300">
+                      Diff
+                    </th>
+                    <th className="sticky right-0 z-20 bg-gray-100 px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider border-l-2 border-gray-300">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredPlayers.map((player, index) => (
-                    <tr key={player.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="text-gray-900 font-bold sticky left-0 bg-white z-10">
-                        #{index + 1}
-                      </td>
-                      <td className="sticky left-16 bg-white z-10">
-                        <div className="flex items-center gap-2">
-                          {player.members.avatar_url ? (
-                            <Image 
-                              src={player.members.avatar_url} 
-                              alt={player.members.username} 
-                              width={32} 
-                              height={32} 
-                              className="rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
-                              {player.members.username[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-gray-900 font-medium">{player.members.username}</div>
-                            <div className="text-gray-500 text-xs">{player.members.full_name}</div>
+                  {filteredPlayers.map((player, index) => {
+                    const hasChanges = !!editingScores[player.id];
+                    return (
+                      <tr 
+                        key={player.id} 
+                        className={`transition-all duration-200 ${
+                          hasChanges 
+                            ? 'bg-yellow-50 ring-2 ring-yellow-300 ring-inset' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className="sticky left-0 z-10 bg-inherit px-4 py-4 border-r-2 border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-lg font-bold ${
+                              index === 0 ? 'text-yellow-500' :
+                              index === 1 ? 'text-gray-400' :
+                              index === 2 ? 'text-orange-600' :
+                              'text-gray-600'
+                            }`}>
+                              #{index + 1}
+                            </span>
                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "game1_score")}
-                          onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td>
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "game2_score")}
-                          onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td>
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "game3_score")}
-                          onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td>
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "game4_score")}
-                          onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td>
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "game5_score")}
-                          onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td className="text-gray-900 font-bold text-center">
-                        <Input
-                          type="number"
-                          value={getPlayerScore(player, "handicap")}
-                          onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                          className="w-16 bg-white border-gray-300 text-gray-900 text-center mx-auto"
-                          onClick={(e) => (e.target as HTMLInputElement).select()}
-                        />
-                      </td>
-                      <td className="text-gray-700 font-bold text-center">
-                        {getPlayerScore(player, "total_score")}
-                      </td>
-                      <td className="text-red-600 font-bold text-center">
-                        {getPlayerScore(player, "overall_score")}
-                      </td>
-                      <td className="text-gray-600 text-center">
-                        {getPlayerScore(player, "average_score")}
-                      </td>
-                      <td className="text-gray-500 text-center">
-                        -{calculateDifference(player)}
-                      </td>
-                      <td className="text-right">
-                        {editingScores[player.id] && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSave(player.id)}
-                            disabled={saving === player.id}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            {saving === player.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                        </td>
+                        <td className="sticky left-20 z-10 bg-inherit px-6 py-4 border-r-2 border-gray-200">
+                          <div className="flex items-center gap-3">
+                            {player.members.avatar_url ? (
+                              <Image 
+                                src={player.members.avatar_url} 
+                                alt={player.members.username} 
+                                width={40} 
+                                height={40} 
+                                className="rounded-full ring-2 ring-gray-200"
+                              />
                             ) : (
-                              <Save className="h-4 w-4" />
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-white text-base font-bold ring-2 ring-gray-200">
+                                {player.members.username[0].toUpperCase()}
+                              </div>
                             )}
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                            <div>
+                              <div className="text-gray-900 font-semibold">{player.members.username}</div>
+                              <div className="text-gray-500 text-xs">{player.members.full_name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 bg-blue-50/50 border-r border-gray-200">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "game1_score")}
+                            onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-blue-200 text-blue-900 text-center mx-auto font-semibold text-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-3 py-3 bg-green-50/50 border-r border-gray-200">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "game2_score")}
+                            onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-green-200 text-green-900 text-center mx-auto font-semibold text-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-3 py-3 bg-purple-50/50 border-r border-gray-200">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "game3_score")}
+                            onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-purple-200 text-purple-900 text-center mx-auto font-semibold text-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-3 py-3 bg-orange-50/50 border-r border-gray-200">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "game4_score")}
+                            onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-orange-200 text-orange-900 text-center mx-auto font-semibold text-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-3 py-3 bg-pink-50/50 border-r-2 border-gray-300">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "game5_score")}
+                            onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-pink-200 text-pink-900 text-center mx-auto font-semibold text-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-3 py-3 bg-yellow-50/50 border-r-2 border-gray-300">
+                          <Input
+                            type="number"
+                            value={getPlayerScore(player, "handicap")}
+                            onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
+                            className="w-20 h-10 bg-white border-2 border-yellow-300 text-yellow-900 text-center mx-auto font-bold text-lg focus:border-yellow-500 focus:ring-2 focus:ring-yellow-200"
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </td>
+                        <td className="px-4 py-4 bg-gray-50/50 border-r border-gray-200">
+                          <div className="text-gray-900 font-bold text-lg text-center">
+                            {getPlayerScore(player, "total_score")}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 bg-red-50/50 border-r border-gray-200">
+                          <div className="text-red-600 font-bold text-xl text-center">
+                            {getPlayerScore(player, "overall_score")}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 bg-gray-50/50 border-r border-gray-200">
+                          <div className="text-gray-600 font-semibold text-base text-center">
+                            {getPlayerScore(player, "average_score")}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 bg-gray-50/50 border-r-2 border-gray-300">
+                          <div className="text-gray-500 font-medium text-base text-center">
+                            -{calculateDifference(player)}
+                          </div>
+                        </td>
+                        <td className="sticky right-0 z-10 bg-inherit px-4 py-4 text-center border-l-2 border-gray-200">
+                          {hasChanges && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSave(player.id)}
+                              disabled={saving === player.id}
+                              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                              {saving === player.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Save
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
             {filteredPlayers.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No scores found for this game</p>
+              <div className="text-center py-16">
+                <div className="text-gray-400 text-5xl mb-4">🎯</div>
+                <p className="text-gray-600 text-lg font-medium">No scores found for this game</p>
+                <p className="text-gray-400 text-sm mt-2">Try selecting a different game or add players first</p>
               </div>
             )}
           </CardContent>
