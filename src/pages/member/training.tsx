@@ -46,6 +46,12 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Link from "next/link";
 
+interface FrameScore {
+  roll1: string;
+  roll2: string;
+  roll3?: string; // Only for frame 10
+}
+
 export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -58,17 +64,10 @@ export default function TrainingPage() {
     training_date: new Date().toISOString().split("T")[0],
     location: "",
     notes: "",
-    frame1: "",
-    frame2: "",
-    frame3: "",
-    frame4: "",
-    frame5: "",
-    frame6: "",
-    frame7: "",
-    frame8: "",
-    frame9: "",
-    frame10: "",
   });
+  const [frames, setFrames] = useState<FrameScore[]>(
+    Array(10).fill(null).map(() => ({ roll1: "", roll2: "", roll3: "" }))
+  );
 
   useEffect(() => {
     checkAuth();
@@ -118,23 +117,147 @@ export default function TrainingPage() {
     }
   };
 
+  const handleRollChange = (frameIndex: number, rollNumber: 1 | 2 | 3, value: string) => {
+    const newFrames = [...frames];
+    const frame = newFrames[frameIndex];
+    
+    // Convert input to uppercase and validate
+    value = value.toUpperCase();
+    
+    // Only allow valid characters: 0-9, X, /, -
+    if (value && !/^[0-9X/\-]$/.test(value)) return;
+    
+    // Update the roll
+    if (rollNumber === 1) {
+      frame.roll1 = value;
+      // If strike in frames 1-9, clear roll2
+      if (value === "X" && frameIndex < 9) {
+        frame.roll2 = "";
+      }
+    } else if (rollNumber === 2) {
+      frame.roll2 = value;
+    } else if (rollNumber === 3 && frameIndex === 9) {
+      frame.roll3 = value;
+    }
+    
+    setFrames(newFrames);
+  };
+
+  const getFrameScore = (frameIndex: number): number | null => {
+    const frame = frames[frameIndex];
+    const roll1 = frame.roll1;
+    const roll2 = frame.roll2;
+    const roll3 = frame.roll3 || "";
+
+    // Frame 10 special handling
+    if (frameIndex === 9) {
+      let total = 0;
+      
+      // First roll
+      if (roll1 === "X") total += 10;
+      else if (roll1 === "-") total += 0;
+      else if (roll1) total += parseInt(roll1) || 0;
+      
+      // Second roll
+      if (roll2 === "X") total += 10;
+      else if (roll2 === "/") total = 10;
+      else if (roll2 === "-") total += 0;
+      else if (roll2) total += parseInt(roll2) || 0;
+      
+      // Third roll (bonus)
+      if (roll3 === "X") total += 10;
+      else if (roll3 === "/") total += (10 - (roll2 === "X" ? 0 : parseInt(roll2) || 0));
+      else if (roll3 === "-") total += 0;
+      else if (roll3) total += parseInt(roll3) || 0;
+      
+      return total;
+    }
+
+    // Regular frames (1-9)
+    if (roll1 === "X") {
+      return 10; // Strike - will need next 2 rolls for bonus
+    } else if (roll2 === "/") {
+      return 10; // Spare - will need next 1 roll for bonus
+    } else {
+      const r1 = roll1 === "-" ? 0 : (parseInt(roll1) || 0);
+      const r2 = roll2 === "-" ? 0 : (parseInt(roll2) || 0);
+      return r1 + r2;
+    }
+  };
+
+  const calculateTotalScore = (): number => {
+    let total = 0;
+    
+    for (let i = 0; i < 10; i++) {
+      const frame = frames[i];
+      const frameScore = getFrameScore(i);
+      
+      if (frameScore === null) continue;
+      
+      total += frameScore;
+      
+      // Add bonuses for strikes and spares (frames 1-9 only)
+      if (i < 9) {
+        const nextFrame = frames[i + 1];
+        
+        // Strike bonus: next 2 rolls
+        if (frame.roll1 === "X") {
+          if (nextFrame.roll1 === "X") {
+            total += 10;
+            // If next is also strike, get first roll of frame after
+            if (i < 8) {
+              const frameAfterNext = frames[i + 2];
+              if (frameAfterNext.roll1 === "X") total += 10;
+              else if (frameAfterNext.roll1 === "-") total += 0;
+              else total += parseInt(frameAfterNext.roll1) || 0;
+            } else if (i === 8) {
+              // Frame 9 strike, use frame 10's second roll
+              if (nextFrame.roll2 === "X") total += 10;
+              else if (nextFrame.roll2 === "/") total += 10;
+              else if (nextFrame.roll2 === "-") total += 0;
+              else total += parseInt(nextFrame.roll2) || 0;
+            }
+          } else {
+            // Next frame not a strike
+            const r1 = nextFrame.roll1 === "-" ? 0 : (parseInt(nextFrame.roll1) || 0);
+            const r2 = nextFrame.roll2 === "/" ? (10 - r1) : 
+                       nextFrame.roll2 === "X" ? 10 :
+                       nextFrame.roll2 === "-" ? 0 : (parseInt(nextFrame.roll2) || 0);
+            total += r1 + r2;
+          }
+        }
+        // Spare bonus: next 1 roll
+        else if (frame.roll2 === "/") {
+          if (nextFrame.roll1 === "X") total += 10;
+          else if (nextFrame.roll1 === "-") total += 0;
+          else total += parseInt(nextFrame.roll1) || 0;
+        }
+      }
+    }
+    
+    return total;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const frameData: any = {};
+      frames.forEach((frame, i) => {
+        frameData[`frame${i + 1}_roll1`] = frame.roll1 || null;
+        frameData[`frame${i + 1}_roll2`] = frame.roll2 || null;
+        if (i === 9) {
+          frameData[`frame10_roll3`] = frame.roll3 || null;
+        }
+      });
+
+      const totalScore = calculateTotalScore();
+
       const scoreData = {
         training_date: formData.training_date,
         location: formData.location || null,
         notes: formData.notes || null,
-        frame1: formData.frame1 ? parseInt(formData.frame1) : null,
-        frame2: formData.frame2 ? parseInt(formData.frame2) : null,
-        frame3: formData.frame3 ? parseInt(formData.frame3) : null,
-        frame4: formData.frame4 ? parseInt(formData.frame4) : null,
-        frame5: formData.frame5 ? parseInt(formData.frame5) : null,
-        frame6: formData.frame6 ? parseInt(formData.frame6) : null,
-        frame7: formData.frame7 ? parseInt(formData.frame7) : null,
-        frame8: formData.frame8 ? parseInt(formData.frame8) : null,
-        frame9: formData.frame9 ? parseInt(formData.frame9) : null,
-        frame10: formData.frame10 ? parseInt(formData.frame10) : null,
+        total_score: totalScore,
+        ...frameData,
       };
 
       if (editingScore) {
@@ -164,17 +287,17 @@ export default function TrainingPage() {
       training_date: score.training_date,
       location: score.location || "",
       notes: score.notes || "",
-      frame1: score.frame1?.toString() || "",
-      frame2: score.frame2?.toString() || "",
-      frame3: score.frame3?.toString() || "",
-      frame4: score.frame4?.toString() || "",
-      frame5: score.frame5?.toString() || "",
-      frame6: score.frame6?.toString() || "",
-      frame7: score.frame7?.toString() || "",
-      frame8: score.frame8?.toString() || "",
-      frame9: score.frame9?.toString() || "",
-      frame10: score.frame10?.toString() || "",
     });
+    
+    // Load frame data
+    const loadedFrames: FrameScore[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const roll1 = score[`frame${i}_roll1` as keyof TrainingScoreWithMember] as string || "";
+      const roll2 = score[`frame${i}_roll2` as keyof TrainingScoreWithMember] as string || "";
+      const roll3 = i === 10 ? (score.frame10_roll3 || "") : "";
+      loadedFrames.push({ roll1, roll2, roll3 });
+    }
+    setFrames(loadedFrames);
     setIsDialogOpen(true);
   };
 
@@ -199,25 +322,8 @@ export default function TrainingPage() {
       training_date: new Date().toISOString().split("T")[0],
       location: "",
       notes: "",
-      frame1: "",
-      frame2: "",
-      frame3: "",
-      frame4: "",
-      frame5: "",
-      frame6: "",
-      frame7: "",
-      frame8: "",
-      frame9: "",
-      frame10: "",
     });
-  };
-
-  const calculateTotal = () => {
-    const frames = [
-      formData.frame1, formData.frame2, formData.frame3, formData.frame4, formData.frame5,
-      formData.frame6, formData.frame7, formData.frame8, formData.frame9, formData.frame10
-    ];
-    return frames.reduce((sum, frame) => sum + (frame ? parseInt(frame) : 0), 0);
+    setFrames(Array(10).fill(null).map(() => ({ roll1: "", roll2: "", roll3: "" })));
   };
 
   if (loading) {
@@ -265,7 +371,7 @@ export default function TrainingPage() {
                   Add Score
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingScore ? "Edit" : "Add"} Training Score</DialogTitle>
                 </DialogHeader>
@@ -292,31 +398,69 @@ export default function TrainingPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label>Frame Scores (0-30 each)</Label>
-                    <div className="grid grid-cols-5 gap-2 mt-2">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((frame) => (
-                        <div key={frame}>
-                          <Label className="text-xs">Frame {frame}</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="30"
-                            value={formData[`frame${frame}` as keyof typeof formData]}
-                            onChange={(e) => setFormData({ 
-                              ...formData, 
-                              [`frame${frame}`]: e.target.value 
-                            })}
-                            placeholder="0"
-                          />
-                        </div>
-                      ))}
+                  {/* Bowling Scorecard */}
+                  <div className="space-y-2">
+                    <Label>Bowling Scorecard</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Use: X = Strike, / = Spare, - = Miss, 0-9 = Pins
+                    </p>
+                    <div className="overflow-x-auto">
+                      <div className="inline-flex gap-1 min-w-max">
+                        {frames.map((frame, frameIndex) => (
+                          <div key={frameIndex} className="flex flex-col">
+                            <div className="text-xs font-semibold text-center mb-1 px-2">
+                              {frameIndex + 1}
+                            </div>
+                            <div className={`border-2 border-gray-300 rounded ${frameIndex === 9 ? "w-32" : "w-20"}`}>
+                              <div className="flex">
+                                {/* Roll 1 */}
+                                <div className={`${frameIndex === 9 ? "w-10" : "w-10"} relative`}>
+                                  <Input
+                                    type="text"
+                                    maxLength={1}
+                                    value={frame.roll1}
+                                    onChange={(e) => handleRollChange(frameIndex, 1, e.target.value)}
+                                    className="h-12 text-center font-bold text-lg border-0 focus-visible:ring-0 rounded-none"
+                                    placeholder="-"
+                                  />
+                                  <div className="absolute bottom-0 right-0 w-full h-px bg-gray-300 rotate-45 origin-bottom-right" />
+                                </div>
+                                {/* Roll 2 */}
+                                <div className={`${frameIndex === 9 ? "w-11" : "w-10"} border-l border-gray-300`}>
+                                  <Input
+                                    type="text"
+                                    maxLength={1}
+                                    value={frame.roll2}
+                                    onChange={(e) => handleRollChange(frameIndex, 2, e.target.value)}
+                                    className="h-12 text-center font-bold text-lg border-0 focus-visible:ring-0 rounded-none"
+                                    placeholder="-"
+                                    disabled={frame.roll1 === "X" && frameIndex < 9}
+                                  />
+                                </div>
+                                {/* Roll 3 (Frame 10 only) */}
+                                {frameIndex === 9 && (
+                                  <div className="w-11 border-l border-gray-300">
+                                    <Input
+                                      type="text"
+                                      maxLength={1}
+                                      value={frame.roll3}
+                                      onChange={(e) => handleRollChange(frameIndex, 3, e.target.value)}
+                                      className="h-12 text-center font-bold text-lg border-0 focus-visible:ring-0 rounded-none"
+                                      placeholder="-"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="bg-primary/10 p-4 rounded-lg">
                     <p className="text-sm font-semibold">
-                      Total Score: <span className="text-2xl">{calculateTotal()}</span>
+                      Total Score: <span className="text-2xl">{calculateTotalScore()}</span>
                     </p>
                   </div>
 
@@ -423,82 +567,93 @@ export default function TrainingPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead className="text-center">F1</TableHead>
-                        <TableHead className="text-center">F2</TableHead>
-                        <TableHead className="text-center">F3</TableHead>
-                        <TableHead className="text-center">F4</TableHead>
-                        <TableHead className="text-center">F5</TableHead>
-                        <TableHead className="text-center">F6</TableHead>
-                        <TableHead className="text-center">F7</TableHead>
-                        <TableHead className="text-center">F8</TableHead>
-                        <TableHead className="text-center">F9</TableHead>
-                        <TableHead className="text-center">F10</TableHead>
-                        <TableHead className="text-center font-bold">Total</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {scores.map((score) => (
-                        <TableRow key={score.id}>
-                          <TableCell>
+                <div className="space-y-4">
+                  {scores.map((score) => (
+                    <div key={score.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="font-semibold">
                             {new Date(score.training_date).toLocaleDateString("en-MY")}
-                          </TableCell>
-                          <TableCell>{score.location || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame1 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame2 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame3 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame4 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame5 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame6 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame7 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame8 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame9 || "-"}</TableCell>
-                          <TableCell className="text-center">{score.frame10 || "-"}</TableCell>
-                          <TableCell className="text-center font-bold">
-                            {score.total_score}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(score)}
-                              >
-                                <Pencil className="h-4 w-4" />
+                          </p>
+                          {score.location && (
+                            <p className="text-sm text-muted-foreground">{score.location}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(score)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Training Score?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete this training score.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(score.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Training Score?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(score.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                      
+                      {/* Scorecard Display */}
+                      <div className="overflow-x-auto">
+                        <div className="inline-flex gap-1">
+                          {Array(10).fill(null).map((_, i) => {
+                            const frameNum = i + 1;
+                            const roll1 = score[`frame${frameNum}_roll1` as keyof typeof score] as string || "-";
+                            const roll2 = score[`frame${frameNum}_roll2` as keyof typeof score] as string || "-";
+                            const roll3 = i === 9 ? (score.frame10_roll3 || "-") : "";
+                            
+                            return (
+                              <div key={i} className="flex flex-col items-center">
+                                <div className="text-xs font-semibold mb-1">{frameNum}</div>
+                                <div className={`border border-gray-300 ${i === 9 ? "w-24" : "w-16"}`}>
+                                  <div className="flex">
+                                    <div className={`${i === 9 ? "w-8" : "w-8"} h-10 flex items-center justify-center border-r border-gray-300 text-sm font-semibold`}>
+                                      {roll1}
+                                    </div>
+                                    <div className={`${i === 9 ? "w-8" : "w-8"} h-10 flex items-center justify-center text-sm font-semibold ${i === 9 ? "border-r border-gray-300" : ""}`}>
+                                      {roll2}
+                                    </div>
+                                    {i === 9 && (
+                                      <div className="w-8 h-10 flex items-center justify-center text-sm font-semibold">
+                                        {roll3}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="text-2xl font-bold">
+                          Total: {score.total_score}
+                        </div>
+                        {score.notes && (
+                          <p className="text-sm text-muted-foreground max-w-md">{score.notes}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

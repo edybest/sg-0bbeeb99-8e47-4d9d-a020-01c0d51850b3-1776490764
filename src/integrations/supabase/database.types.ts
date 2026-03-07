@@ -351,16 +351,27 @@ export type Database = {
       training_scores: {
         Row: {
           created_at: string | null
-          frame1: number | null
-          frame10: number | null
-          frame2: number | null
-          frame3: number | null
-          frame4: number | null
-          frame5: number | null
-          frame6: number | null
-          frame7: number | null
-          frame8: number | null
-          frame9: number | null
+          frame1_roll1: string | null
+          frame1_roll2: string | null
+          frame10_roll1: string | null
+          frame10_roll2: string | null
+          frame10_roll3: string | null
+          frame2_roll1: string | null
+          frame2_roll2: string | null
+          frame3_roll1: string | null
+          frame3_roll2: string | null
+          frame4_roll1: string | null
+          frame4_roll2: string | null
+          frame5_roll1: string | null
+          frame5_roll2: string | null
+          frame6_roll1: string | null
+          frame6_roll2: string | null
+          frame7_roll1: string | null
+          frame7_roll2: string | null
+          frame8_roll1: string | null
+          frame8_roll2: string | null
+          frame9_roll1: string | null
+          frame9_roll2: string | null
           id: string
           location: string | null
           member_id: string
@@ -371,16 +382,27 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          frame1?: number | null
-          frame10?: number | null
-          frame2?: number | null
-          frame3?: number | null
-          frame4?: number | null
-          frame5?: number | null
-          frame6?: number | null
-          frame7?: number | null
-          frame8?: number | null
-          frame9?: number | null
+          frame1_roll1?: string | null
+          frame1_roll2?: string | null
+          frame10_roll1?: string | null
+          frame10_roll2?: string | null
+          frame10_roll3?: string | null
+          frame2_roll1?: string | null
+          frame2_roll2?: string | null
+          frame3_roll1?: string | null
+          frame3_roll2?: string | null
+          frame4_roll1?: string | null
+          frame4_roll2?: string | null
+          frame5_roll1?: string | null
+          frame5_roll2?: string | null
+          frame6_roll1?: string | null
+          frame6_roll2?: string | null
+          frame7_roll1?: string | null
+          frame7_roll2?: string | null
+          frame8_roll1?: string | null
+          frame8_roll2?: string | null
+          frame9_roll1?: string | null
+          frame9_roll2?: string | null
           id?: string
           location?: string | null
           member_id: string
@@ -391,16 +413,27 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          frame1?: number | null
-          frame10?: number | null
-          frame2?: number | null
-          frame3?: number | null
-          frame4?: number | null
-          frame5?: number | null
-          frame6?: number | null
-          frame7?: number | null
-          frame8?: number | null
-          frame9?: number | null
+          frame1_roll1?: string | null
+          frame1_roll2?: string | null
+          frame10_roll1?: string | null
+          frame10_roll2?: string | null
+          frame10_roll3?: string | null
+          frame2_roll1?: string | null
+          frame2_roll2?: string | null
+          frame3_roll1?: string | null
+          frame3_roll2?: string | null
+          frame4_roll1?: string | null
+          frame4_roll2?: string | null
+          frame5_roll1?: string | null
+          frame5_roll2?: string | null
+          frame6_roll1?: string | null
+          frame6_roll2?: string | null
+          frame7_roll1?: string | null
+          frame7_roll2?: string | null
+          frame8_roll1?: string | null
+          frame8_roll2?: string | null
+          frame9_roll1?: string | null
+          frame9_roll2?: string | null
           id?: string
           location?: string | null
           member_id?: string
