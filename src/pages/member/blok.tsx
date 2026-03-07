@@ -14,12 +14,14 @@ import {
   ArrowLeft,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
+import Image from "next/image";
 
 // Define specific types for what we fetch to avoid TS errors
 type GameSummary = Pick<Tables<"games">, "id" | "game_name" | "game_format" | "game_date" | "created_at">;
@@ -80,6 +82,7 @@ export default function BlokPage() {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -296,6 +299,16 @@ export default function BlokPage() {
     }
   };
 
+  const formatScore = (score: number | null) => {
+    if (score === null) return "-";
+    const isHighScore = score >= 200;
+    return (
+      <span className={isHighScore ? "text-red-600 font-bold" : ""}>
+        {score}
+      </span>
+    );
+  };
+
   return (
     <>
       <SEO 
@@ -389,235 +402,304 @@ export default function BlokPage() {
                     <p>Tiada skor untuk game ini</p>
                   </div>
                 ) : (
-                  <div className="relative">
-                    {/* Scroll hint gradient for mobile */}
-                    <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-20" />
-                    
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            {/* Rank - Sortable */}
-                            <th 
-                              className="sticky left-0 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("rank")}
-                            >
-                              <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                #
-                                {getSortIcon("rank")}
+                  <>
+                    {/* Mobile View - Compact Cards */}
+                    <div className="block md:hidden space-y-2">
+                      {leaderboard.map((entry, index) => (
+                        <Card 
+                          key={entry.id}
+                          className="cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => setExpandedRow(expandedRow === entry.id ? null : entry.id)}
+                        >
+                          <CardContent className="p-4">
+                            {/* Compact View */}
+                            <div className="flex items-center gap-3">
+                              {/* Rank */}
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">
+                                {index + 1}
                               </div>
-                            </th>
 
-                            {/* Avatar - Not sortable */}
-                            <th className="sticky left-12 sm:left-16 z-20 bg-white px-2 py-3">
-                              <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Avatar
-                              </span>
-                            </th>
-
-                            {/* Username - Sortable */}
-                            <th 
-                              className="sticky left-24 sm:left-32 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("username")}
-                            >
-                              <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Player
-                                {getSortIcon("username")}
-                              </div>
-                            </th>
-
-                            {/* Overall - Sortable */}
-                            <th 
-                              className="sticky left-44 sm:left-60 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("overall_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Overall
-                                {getSortIcon("overall_score")}
-                              </div>
-                            </th>
-
-                            {/* Difference - Sortable */}
-                            <th 
-                              className="sticky left-60 sm:left-80 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("difference")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Diff
-                                {getSortIcon("difference")}
-                              </div>
-                            </th>
-
-                            {/* Game 1 - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("game1_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                G1
-                                {getSortIcon("game1_score")}
-                              </div>
-                            </th>
-
-                            {/* Game 2 - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("game2_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                G2
-                                {getSortIcon("game2_score")}
-                              </div>
-                            </th>
-
-                            {/* Game 3 - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("game3_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                G3
-                                {getSortIcon("game3_score")}
-                              </div>
-                            </th>
-
-                            {/* Game 4 - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("game4_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                G4
-                                {getSortIcon("game4_score")}
-                              </div>
-                            </th>
-
-                            {/* Game 5 - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("game5_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                G5
-                                {getSortIcon("game5_score")}
-                              </div>
-                            </th>
-
-                            {/* Handicap - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("handicap")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                HCP
-                                {getSortIcon("handicap")}
-                              </div>
-                            </th>
-
-                            {/* Total - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("total_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Total
-                                {getSortIcon("total_score")}
-                              </div>
-                            </th>
-
-                            {/* Average - Sortable */}
-                            <th 
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                              onClick={() => handleSort("average_score")}
-                            >
-                              <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                Avg
-                                {getSortIcon("average_score")}
-                              </div>
-                            </th>
-                          </tr>
-                        </thead>
-
-                        <tbody>
-                          {leaderboard.map((entry, index) => (
-                            <motion.tr
-                              key={entry.member.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                            >
-                              {/* Sticky columns */}
-                              <td className="sticky left-0 z-20 bg-white px-3 py-3 border-r border-gray-200">
-                                {getRankDisplay(entry.rank)}
-                              </td>
-                              <td className="sticky left-[50px] z-20 bg-white px-2 py-3 border-r border-gray-200">
+                              {/* Avatar */}
+                              <div className="flex-shrink-0">
                                 {entry.member.avatar_url ? (
-                                  <img
+                                  <Image
                                     src={entry.member.avatar_url}
                                     alt={entry.member.username}
-                                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full border-2 border-gray-200"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-semibold border border-gray-300">
-                                    {entry.member.username.charAt(0).toUpperCase()}
+                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
+                                    {entry.member.username[0].toUpperCase()}
                                   </div>
                                 )}
-                              </td>
-                              <td className="sticky left-[90px] z-20 bg-white px-3 py-3 border-r border-gray-200">
-                                <Link href={`/member/profile?id=${entry.member.id}`}>
-                                  <span className="font-medium text-gray-900 hover:text-red-600 hover:underline cursor-pointer transition-colors block truncate max-w-[100px]">
-                                    @{entry.member.username}
-                                  </span>
-                                </Link>
-                              </td>
-                              <td className="sticky left-[210px] z-20 bg-white px-3 py-3 text-center font-bold text-gray-900 border-r border-gray-200 md:static md:left-auto">
-                                {entry.overall_score}
-                              </td>
-                              <td className="sticky left-[280px] z-20 bg-white px-3 py-3 text-center border-r-2 border-gray-300 md:static md:left-auto">
-                                {entry.difference === 0 ? (
-                                  <span className="text-yellow-600 font-semibold text-xs bg-yellow-100 px-2 py-1 rounded-full border border-yellow-200">
-                                    LEADER
-                                  </span>
-                                ) : (
-                                  <div className="flex items-center justify-center gap-1 text-red-600 text-sm font-medium">
-                                    <TrendingDown className="w-3 h-3" />
-                                    -{entry.difference}
+                              </div>
+
+                              {/* Username & Scores */}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm truncate">{entry.member.username}</div>
+                                <div className="flex items-center gap-2 text-xs text-gray-600">
+                                  <span className="font-bold text-red-600">{entry.overall_score || "-"}</span>
+                                  <span className="text-gray-400">•</span>
+                                  <span>{entry.difference > 0 ? `+${entry.difference}` : entry.difference}</span>
+                                </div>
+                              </div>
+
+                              {/* Expand Indicator */}
+                              <ChevronRight 
+                                className={`w-5 h-5 text-gray-400 transition-transform ${
+                                  expandedRow === entry.id ? "rotate-90" : ""
+                                }`}
+                              />
+                            </div>
+
+                            {/* Expanded Details */}
+                            {expandedRow === entry.id && (
+                              <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                                {/* Game Scores Grid */}
+                                <div className="grid grid-cols-5 gap-2">
+                                  <div className="text-center">
+                                    <div className="text-xs text-gray-500 mb-1">G1</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game1_score)}</div>
                                   </div>
-                                )}
-                              </td>
-                              
-                              {/* Scrollable columns */}
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 border-r border-gray-200 hover:bg-gray-50 transition-colors">
-                                {entry.game1_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 border-r border-gray-200 hover:bg-gray-50 transition-colors">
-                                {entry.game2_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 border-r border-gray-200 hover:bg-gray-50 transition-colors">
-                                {entry.game3_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 border-r border-gray-200 hover:bg-gray-50 transition-colors">
-                                {entry.game4_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 border-r border-gray-200 hover:bg-gray-50 transition-colors">
-                                {entry.game5_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-blue-600 font-medium border-r border-gray-200 bg-blue-50/30">
-                                {entry.handicap}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center font-semibold text-gray-900 border-r border-gray-200">
-                                {entry.total_score}
-                              </td>
-                              <td className="bg-white px-3 py-3 text-center text-gray-700 font-medium">
-                                {entry.average_score}
-                              </td>
-                            </motion.tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                  <div className="text-center">
+                                    <div className="text-xs text-gray-500 mb-1">G2</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game2_score)}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-xs text-gray-500 mb-1">G3</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game3_score)}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-xs text-gray-500 mb-1">G4</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game4_score)}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-xs text-gray-500 mb-1">G5</div>
+                                    <div className="text-sm font-semibold">{formatScore(entry.game5_score)}</div>
+                                  </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                  <div className="bg-gray-50 p-2 rounded">
+                                    <div className="text-xs text-gray-500">Handicap</div>
+                                    <div className="font-semibold">{entry.handicap || "-"}</div>
+                                  </div>
+                                  <div className="bg-gray-50 p-2 rounded">
+                                    <div className="text-xs text-gray-500">Total Games</div>
+                                    <div className="font-semibold">{entry.total_score || "-"}</div>
+                                  </div>
+                                  <div className="bg-gray-50 p-2 rounded">
+                                    <div className="text-xs text-gray-500">Average</div>
+                                    <div className="font-semibold">{entry.average_score || "-"}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  </div>
+
+                    {/* Desktop View - Table */}
+                    <div className="hidden md:block">
+                      {/* Scroll hint gradient for mobile */}
+                      <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-20" />
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              {/* Rank - Sortable */}
+                              <th 
+                                className="sticky left-0 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("rank")}
+                              >
+                                <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  #
+                                  {getSortIcon("rank")}
+                                </div>
+                              </th>
+
+                              {/* Avatar - Not sortable */}
+                              <th className="sticky left-12 sm:left-16 z-20 bg-white px-2 py-3">
+                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Avatar
+                                </span>
+                              </th>
+
+                              {/* Username - Sortable */}
+                              <th 
+                                className="sticky left-24 sm:left-32 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("username")}
+                              >
+                                <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Player
+                                  {getSortIcon("username")}
+                                </div>
+                              </th>
+
+                              {/* Overall - Sortable */}
+                              <th 
+                                className="sticky left-44 sm:left-60 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("overall_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Overall
+                                  {getSortIcon("overall_score")}
+                                </div>
+                              </th>
+
+                              {/* Difference - Sortable */}
+                              <th 
+                                className="sticky left-60 sm:left-80 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("difference")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Diff
+                                  {getSortIcon("difference")}
+                                </div>
+                              </th>
+
+                              {/* Game 1 - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("game1_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  G1
+                                  {getSortIcon("game1_score")}
+                                </div>
+                              </th>
+
+                              {/* Game 2 - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("game2_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  G2
+                                  {getSortIcon("game2_score")}
+                                </div>
+                              </th>
+
+                              {/* Game 3 - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("game3_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  G3
+                                  {getSortIcon("game3_score")}
+                                </div>
+                              </th>
+
+                              {/* Game 4 - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("game4_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  G4
+                                  {getSortIcon("game4_score")}
+                                </div>
+                              </th>
+
+                              {/* Game 5 - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("game5_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  G5
+                                  {getSortIcon("game5_score")}
+                                </div>
+                              </th>
+
+                              {/* Handicap - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("handicap")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  HCP
+                                  {getSortIcon("handicap")}
+                                </div>
+                              </th>
+
+                              {/* Total - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("total_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Total
+                                  {getSortIcon("total_score")}
+                                </div>
+                              </th>
+
+                              {/* Average - Sortable */}
+                              <th 
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => handleSort("average_score")}
+                              >
+                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                  Avg
+                                  {getSortIcon("average_score")}
+                                </div>
+                              </th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {leaderboard.map((entry, index) => (
+                              <tr key={entry.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center justify-center">
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-600 text-white font-bold text-sm">
+                                      {index + 1}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center gap-3">
+                                    {entry.member.avatar_url ? (
+                                      <Image
+                                        src={entry.member.avatar_url}
+                                        alt={entry.member.username}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full border-2 border-gray-200"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
+                                        {entry.member.username[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                    <span className="font-medium">{entry.member.username}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game1_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game2_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game3_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game4_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game5_score)}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{entry.handicap || "-"}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold text-red-600">{entry.overall_score || "-"}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{entry.total_score || "-"}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">{entry.average_score || "-"}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">
+                                  {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
