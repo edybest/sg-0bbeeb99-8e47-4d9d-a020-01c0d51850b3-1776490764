@@ -67,11 +67,11 @@ export default function FiveFivePage() {
         return;
       }
 
-      const { data: memberData, error } = await supabase
-        .from("members")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .single();
+      const { data: memberData, error } = await supabase.
+      from("members").
+      select("*").
+      eq("user_id", session.user.id).
+      single();
 
       if (error || !memberData) {
         router.push("/login");
@@ -88,26 +88,26 @@ export default function FiveFivePage() {
   const loadGamesWithFiveFive = async () => {
     setLoading(true);
     try {
-      const { data: gamesData, error } = await supabase
-        .from("games")
-        .select(`
+      const { data: gamesData, error } = await supabase.
+      from("games").
+      select(`
           id,
           game_date,
           game_format,
           game_players!inner(is_fivefive)
-        `)
-        .eq("game_players.is_fivefive", true)
-        .order("game_date", { ascending: false });
+        `).
+      eq("game_players.is_fivefive", true).
+      order("game_date", { ascending: false });
 
       if (error) throw error;
 
       if (gamesData && gamesData.length > 0) {
         const uniqueGames = Array.from(
-          new Map(gamesData.map(g => [g.id, { id: g.id, game_date: g.game_date, game_format: g.game_format }])).values()
+          new Map(gamesData.map((g) => [g.id, { id: g.id, game_date: g.game_date, game_format: g.game_format }])).values()
         );
 
         setGames(uniqueGames);
-        
+
         if (uniqueGames.length > 0) {
           setSelectedGameId(uniqueGames[0].id);
         }
@@ -122,21 +122,21 @@ export default function FiveFivePage() {
   const loadFiveFiveData = async (gameId: string) => {
     setLoading(true);
     try {
-      const game = games.find(g => g.id === gameId);
+      const game = games.find((g) => g.id === gameId);
       if (game) {
         setSelectedGame(game);
       }
 
-      const { data: playersData, error: playersError } = await supabase
-        .from("game_players")
-        .select(`
+      const { data: playersData, error: playersError } = await supabase.
+      from("game_players").
+      select(`
           member_id,
           is_fivefive,
           overall_score,
           members!inner(full_name)
-        `)
-        .eq("game_id", gameId)
-        .eq("is_fivefive", true);
+        `).
+      eq("game_id", gameId).
+      eq("is_fivefive", true);
 
       if (playersError) throw playersError;
 
@@ -146,25 +146,25 @@ export default function FiveFivePage() {
         return;
       }
 
-      const sortedPlayers = playersData
-        .map(p => ({
-          member_id: p.member_id,
-          member_name: p.members?.full_name || "Unknown",
-          score: p.overall_score || 0,
-        }))
-        .sort((a, b) => b.score - a.score);
+      const sortedPlayers = playersData.
+      map((p) => ({
+        member_id: p.member_id,
+        member_name: p.members?.full_name || "Unknown",
+        score: p.overall_score || 0
+      })).
+      sort((a, b) => b.score - a.score);
 
-      const { data: prizeConfig, error: prizeError } = await supabase
-        .from("fivefive_prizes")
-        .select("*")
-        .eq("player_count", sortedPlayers.length)
-        .maybeSingle();
+      const { data: prizeConfig, error: prizeError } = await supabase.
+      from("fivefive_prizes").
+      select("*").
+      eq("player_count", sortedPlayers.length).
+      maybeSingle();
 
       if (prizeError) throw prizeError;
 
-      const prizes: number[] = Array.isArray(prizeConfig?.prizes) 
-        ? prizeConfig.prizes.map(Number) 
-        : [];
+      const prizes: number[] = Array.isArray(prizeConfig?.prizes) ?
+      prizeConfig.prizes.map(Number) :
+      [];
 
       const participantsWithPrizes: FiveFiveParticipant[] = sortedPlayers.map((player, index) => {
         const rank = index + 1;
@@ -184,7 +184,7 @@ export default function FiveFivePage() {
           game3_prize,
           game4_prize,
           game5_prize,
-          total_prize,
+          total_prize
         };
       });
 
@@ -202,7 +202,7 @@ export default function FiveFivePage() {
     return new Intl.DateTimeFormat("ms-MY", {
       day: "2-digit",
       month: "short",
-      year: "numeric",
+      year: "numeric"
     }).format(date);
   };
 
@@ -232,19 +232,19 @@ export default function FiveFivePage() {
             </div>
           </div>
 
-          {loading && !selectedGameId ? (
-            <div className="space-y-4">
+          {loading && !selectedGameId ?
+          <div className="space-y-4">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-64 w-full" />
-            </div>
-          ) : games.length === 0 ? (
-            <Alert>
+            </div> :
+          games.length === 0 ?
+          <Alert>
               <AlertDescription>
                 Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
               </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-6">
+            </Alert> :
+
+          <div className="space-y-6">
               <Card>
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -257,19 +257,19 @@ export default function FiveFivePage() {
                         <SelectValue placeholder="Pilih tarikh..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {games.map((game) => (
-                          <SelectItem key={game.id} value={game.id}>
+                        {games.map((game) =>
+                      <SelectItem key={game.id} value={game.id}>
                             {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ''}
                           </SelectItem>
-                        ))}
+                      )}
                       </SelectContent>
                     </Select>
                   </div>
                 </CardHeader>
               </Card>
 
-              {loading ? (
-                <Card>
+              {loading ?
+            <Card>
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       <Skeleton className="h-8 w-full" />
@@ -277,26 +277,26 @@ export default function FiveFivePage() {
                       <Skeleton className="h-8 w-full" />
                     </div>
                   </CardContent>
-                </Card>
-              ) : participants.length === 0 ? (
-                <Alert>
+                </Card> :
+            participants.length === 0 ?
+            <Alert>
                   <AlertDescription>
                     Tiada peserta FiveFive untuk game ini.
                   </AlertDescription>
-                </Alert>
-              ) : (
-                <Card>
+                </Alert> :
+
+            <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span className="flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-green-600" />
                         Agihan Hadiah FiveFive
                       </span>
-                      {selectedGame && (
-                        <Badge variant="outline" className="text-sm">
+                      {selectedGame &&
+                  <Badge variant="outline" className="text-sm">
                           {formatDate(selectedGame.game_date)}
                         </Badge>
-                      )}
+                  }
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
@@ -317,99 +317,99 @@ export default function FiveFivePage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {participants.map((participant, index) => (
-                            <TableRow
-                              key={participant.member_id}
-                              className={`
+                          {participants.map((participant, index) =>
+                      <TableRow
+                        key={participant.member_id}
+                        className={`
                                 ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
                                 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
                                 ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
                                 ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
                                 ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
-                              `}
-                            >
+                              `}>
+                        
                               <TableCell className="text-center font-semibold">
-                                {participant.rank === 1 && (
-                                  <span className="text-2xl">🥇</span>
-                                )}
-                                {participant.rank === 2 && (
-                                  <span className="text-2xl">🥈</span>
-                                )}
-                                {participant.rank === 3 && (
-                                  <span className="text-2xl">🥉</span>
-                                )}
-                                {participant.rank > 3 && (
-                                  <span className="text-gray-600 dark:text-gray-400">#{participant.rank}</span>
-                                )}
+                                {participant.rank === 1 &&
+                          <span className="text-2xl">🥇</span>
+                          }
+                                {participant.rank === 2 &&
+                          <span className="text-2xl">🥈</span>
+                          }
+                                {participant.rank === 3 &&
+                          <span className="text-2xl">🥉</span>
+                          }
+                                {participant.rank > 3 &&
+                          <span className="text-gray-600 dark:text-gray-400">#{participant.rank}</span>
+                          }
                               </TableCell>
                               <TableCell className="font-medium">
                                 {participant.member_name}
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {participant.game1_prize > 0 ? (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                {participant.game1_prize > 0 ?
+                          <span className="text-green-600 dark:text-green-400 font-medium">
                                     {formatCurrency(participant.game1_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {participant.game2_prize > 0 ? (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                {participant.game2_prize > 0 ?
+                          <span className="text-green-600 dark:text-green-400 font-medium">
                                     {formatCurrency(participant.game2_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {participant.game3_prize > 0 ? (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                {participant.game3_prize > 0 ?
+                          <span className="text-green-600 dark:text-green-400 font-medium">
                                     {formatCurrency(participant.game3_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {participant.game4_prize > 0 ? (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                {participant.game4_prize > 0 ?
+                          <span className="text-green-600 dark:text-green-400 font-medium">
                                     {formatCurrency(participant.game4_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                               <TableCell className="text-right tabular-nums">
-                                {participant.game5_prize > 0 ? (
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                {participant.game5_prize > 0 ?
+                          <span className="text-green-600 dark:text-green-400 font-medium">
                                     {formatCurrency(participant.game5_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                               <TableCell className="text-right font-bold tabular-nums bg-yellow-50 dark:bg-yellow-900/20">
-                                {participant.total_prize > 0 ? (
-                                  <span className="text-yellow-700 dark:text-yellow-400 text-lg">
+                                {participant.total_prize > 0 ?
+                          <span className="text-yellow-700 dark:text-yellow-400 text-lg">
                                     {formatCurrency(participant.total_prize)}
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">-</span>
-                                )}
+                                  </span> :
+
+                          <span className="text-gray-400">-</span>
+                          }
                               </TableCell>
                             </TableRow>
-                          ))}
+                      )}
                         </TableBody>
                       </Table>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+            }
 
-              {participants.length > 0 && (
-                <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+              {participants.length > 0 &&
+            <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -425,18 +425,18 @@ export default function FiveFivePage() {
                         <div className="text-right">
                           <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
                           <p className="text-3xl font-bold text-red-600">
-                            {participants.filter(p => p.total_prize > 0).length}
+                            {participants.filter((p) => p.total_prize > 0).length}
                           </p>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              )}
+            }
             </div>
-          )}
+          }
         </div>
       </div>
-    </>
-  );
+    </>);
+
 }
