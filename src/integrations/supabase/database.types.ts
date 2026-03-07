@@ -39,6 +39,126 @@ export type Database = {
         }
         Relationships: []
       }
+      fivefive_games: {
+        Row: {
+          created_at: string | null
+          game_date: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_date: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_date?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      fivefive_participants: {
+        Row: {
+          created_at: string | null
+          fivefive_game_id: string
+          game1_prize: number | null
+          game1_score: number | null
+          game2_prize: number | null
+          game2_score: number | null
+          game3_prize: number | null
+          game3_score: number | null
+          game4_prize: number | null
+          game4_score: number | null
+          game5_prize: number | null
+          game5_score: number | null
+          id: string
+          member_id: string
+          total_prize: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fivefive_game_id: string
+          game1_prize?: number | null
+          game1_score?: number | null
+          game2_prize?: number | null
+          game2_score?: number | null
+          game3_prize?: number | null
+          game3_score?: number | null
+          game4_prize?: number | null
+          game4_score?: number | null
+          game5_prize?: number | null
+          game5_score?: number | null
+          id?: string
+          member_id: string
+          total_prize?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fivefive_game_id?: string
+          game1_prize?: number | null
+          game1_score?: number | null
+          game2_prize?: number | null
+          game2_score?: number | null
+          game3_prize?: number | null
+          game3_score?: number | null
+          game4_prize?: number | null
+          game4_score?: number | null
+          game5_prize?: number | null
+          game5_score?: number | null
+          id?: string
+          member_id?: string
+          total_prize?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fivefive_participants_fivefive_game_id_fkey"
+            columns: ["fivefive_game_id"]
+            isOneToOne: false
+            referencedRelation: "fivefive_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fivefive_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fivefive_prizes: {
+        Row: {
+          created_at: string | null
+          id: string
+          prize_amount: number
+          rank_position: number
+          updated_at: string | null
+          winner_count: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          prize_amount?: number
+          rank_position: number
+          updated_at?: string | null
+          winner_count?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          prize_amount?: number
+          rank_position?: number
+          updated_at?: string | null
+          winner_count?: number
+        }
+        Relationships: []
+      }
       game_players: {
         Row: {
           average_score: number | null
