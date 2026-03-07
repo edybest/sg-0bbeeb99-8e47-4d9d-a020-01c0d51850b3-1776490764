@@ -44,6 +44,7 @@ import {
   deleteTrainingScore,
 } from "@/services/trainingService";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 type Roll = string | null;
 
@@ -56,6 +57,7 @@ interface FrameData {
 
 export default function TrainingPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -275,14 +277,29 @@ export default function TrainingPage() {
 
       if (editingScore) {
         await updateTrainingScore(editingScore.id, scoreData);
+        toast({
+          title: "✅ Score Updated!",
+          description: `Total: ${totalScore} - Changes saved successfully`,
+          duration: 3000,
+        });
       } else {
         await createTrainingScore(scoreData);
+        toast({
+          title: "✅ Score Saved!",
+          description: `Total: ${totalScore} - Successfully saved to your training history`,
+          duration: 3000,
+        });
       }
 
       await loadScores();
       handleCloseDialog();
     } catch (error) {
       console.error("Error saving score:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to save score. Please try again.",
+        variant: "destructive",
+      });
     }
   }
 
@@ -312,6 +329,11 @@ export default function TrainingPage() {
     if (confirm("Delete this training score?")) {
       try {
         await deleteTrainingScore(id);
+        toast({
+          title: "🗑️ Score Deleted",
+          description: "Training score removed from history",
+          duration: 3000,
+        });
         await loadScores();
       } catch (error) {
         console.error("Error deleting score:", error);
