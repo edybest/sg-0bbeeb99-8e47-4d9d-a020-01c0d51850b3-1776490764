@@ -2,8 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type TrainingScore = Database["public"]["Tables"]["training_scores"]["Row"];
-type TrainingScoreInsert = Database["public"]["Tables"]["training_scores"]["Insert"];
-type TrainingScoreUpdate = Database["public"]["Tables"]["training_scores"]["Update"];
 
 export interface TrainingScoreWithMember extends TrainingScore {
   members?: {
@@ -12,7 +10,6 @@ export interface TrainingScoreWithMember extends TrainingScore {
   };
 }
 
-// Get all training scores for current member
 export const getMyTrainingScores = async (): Promise<TrainingScoreWithMember[]> => {
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) throw new Error("Not authenticated");
@@ -38,26 +35,13 @@ export const getMyTrainingScores = async (): Promise<TrainingScoreWithMember[]> 
   return data || [];
 };
 
-// Create new training score
 export const createTrainingScore = async (
-  scoreData: Omit<TrainingScoreInsert, "member_id">
+  scoreData: any
 ): Promise<TrainingScore> => {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) throw new Error("Not authenticated");
-
-  const { data: memberData } = await supabase
-    .from("members")
-    .select("id")
-    .eq("user_id", sessionData.session.user.id)
-    .single();
-
-  if (!memberData) throw new Error("Member not found");
-
   const { data, error } = await supabase
     .from("training_scores")
     .insert({
       ...scoreData,
-      member_id: memberData.id,
     })
     .select()
     .single();
@@ -66,17 +50,13 @@ export const createTrainingScore = async (
   return data;
 };
 
-// Update training score
 export const updateTrainingScore = async (
   id: string,
-  scoreData: TrainingScoreUpdate
+  scoreData: any
 ): Promise<TrainingScore> => {
   const { data, error } = await supabase
     .from("training_scores")
-    .update({
-      ...scoreData,
-      updated_at: new Date().toISOString(),
-    })
+    .update(scoreData)
     .eq("id", id)
     .select()
     .single();
@@ -85,7 +65,6 @@ export const updateTrainingScore = async (
   return data;
 };
 
-// Delete training score
 export const deleteTrainingScore = async (id: string): Promise<void> => {
   const { error } = await supabase
     .from("training_scores")
@@ -95,7 +74,6 @@ export const deleteTrainingScore = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
-// Get training statistics for charts
 export const getTrainingStatistics = async (limit: number = 20) => {
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) throw new Error("Not authenticated");

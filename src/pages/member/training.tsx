@@ -114,7 +114,7 @@ export default function TrainingPage() {
     }
   }
 
-  function handlePinClick(value: string) {
+  function handlePinInput(value: string) {
     const newFrames = [...frames];
     const frame = newFrames[currentFrame];
 
@@ -236,7 +236,7 @@ export default function TrainingPage() {
       
       const scoreData = {
         member_id: memberId,
-        date,
+        training_date: date,
         location: location || null,
         notes: notes || null,
         total_score: totalScore,
@@ -288,7 +288,7 @@ export default function TrainingPage() {
 
   function handleEdit(score: any) {
     setEditingScore(score);
-    setDate(score.date);
+    setDate(score.training_date);
     setLocation(score.location || "");
     setNotes(score.notes || "");
     
@@ -395,12 +395,31 @@ export default function TrainingPage() {
     : 0;
 
   const chartData = [...scores]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .sort((a, b) => new Date(a.training_date).getTime() - new Date(b.training_date).getTime())
     .slice(-10)
     .map((score, index) => ({
       game: `${index + 1}`,
       score: score.total_score,
     }));
+
+  const pinButtons = [
+    { value: "X", label: "X", color: "bg-yellow-500 hover:bg-yellow-600" },
+    { value: "/", label: "/", color: "bg-blue-500 hover:bg-blue-600" },
+    { value: "-", label: "-", color: "bg-gray-400 hover:bg-gray-500" },
+    { value: "0", label: "0", color: "bg-red-500 hover:bg-red-600" },
+    { value: "1", label: "1", color: "bg-orange-500 hover:bg-orange-600" },
+    { value: "2", label: "2", color: "bg-amber-500 hover:bg-amber-600" },
+    { value: "3", label: "3", color: "bg-yellow-500 hover:bg-yellow-600" },
+    { value: "4", label: "4", color: "bg-lime-500 hover:bg-lime-600" },
+    { value: "5", label: "5", color: "bg-green-500 hover:bg-green-600" },
+    { value: "6", label: "6", color: "bg-emerald-500 hover:bg-emerald-600" },
+    { value: "7", label: "7", color: "bg-teal-500 hover:bg-teal-600" },
+    { value: "8", label: "8", color: "bg-cyan-500 hover:bg-cyan-600" },
+    { value: "9", label: "9", color: "bg-sky-500 hover:bg-sky-600" },
+  ];
+
+  const availablePinValues = getAvailablePins();
+  const availablePinButtons = pinButtons.filter(btn => availablePinValues.includes(btn.value));
 
   if (loading) {
     return (
@@ -409,24 +428,6 @@ export default function TrainingPage() {
       </div>
     );
   }
-
-  const availablePins = getAvailablePins();
-
-  const pinButtons = [
-    { value: "X", label: "Strike", color: "bg-green-500 hover:bg-green-600" },
-    { value: "/", label: "Spare", color: "bg-blue-500 hover:bg-blue-600" },
-    { value: "-", label: "Miss", color: "bg-gray-500 hover:bg-gray-600" },
-    { value: "0", label: "0", color: "bg-red-500 hover:bg-red-600" },
-    { value: "1", label: "1", color: "bg-orange-500 hover:bg-orange-600" },
-    { value: "2", label: "2", color: "bg-orange-500 hover:bg-orange-600" },
-    { value: "3", label: "3", color: "bg-orange-500 hover:bg-orange-600" },
-    { value: "4", label: "4", color: "bg-yellow-500 hover:bg-yellow-600" },
-    { value: "5", label: "5", color: "bg-yellow-500 hover:bg-yellow-600" },
-    { value: "6", label: "6", color: "bg-yellow-500 hover:bg-yellow-600" },
-    { value: "7", label: "7", color: "bg-lime-500 hover:bg-lime-600" },
-    { value: "8", label: "8", color: "bg-lime-500 hover:bg-lime-600" },
-    { value: "9", label: "9", color: "bg-lime-500 hover:bg-lime-600" },
-  ];
 
   return (
     <>
@@ -609,46 +610,44 @@ export default function TrainingPage() {
                   {/* Pin Input Buttons */}
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
-                      {pinButtons
-                        .filter(btn => availablePins.includes(btn.value))
-                        .map((btn) => (
+                      {availablePinButtons.map((pin) => (
                         <Button
-                          key={btn.value}
-                          type="button"
-                          onClick={() => handlePinClick(btn.value)}
-                          className={`${btn.color} text-white font-bold text-lg sm:text-xl h-12 sm:h-16 touch-manipulation`}
+                          key={pin.value}
+                          onClick={() => handlePinInput(pin.value)}
+                          className={`${pin.color} text-white font-bold text-xl h-[12vh] sm:h-24 rounded-lg shadow-lg transition-all duration-150 active:scale-95 transform hover:shadow-xl`}
                         >
-                          {btn.label}
+                          {pin.label}
                         </Button>
                       ))}
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-3">
                       <Button
-                        type="button"
-                        variant="outline"
                         onClick={clearCurrentFrame}
-                        className="h-12 sm:h-14 text-sm sm:text-base border-gray-300"
+                        variant="outline"
+                        className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold transition-all duration-150 active:scale-95 transform"
                       >
                         Clear Frame
                       </Button>
+                      
                       <Button
-                        type="button"
-                        variant="outline"
                         onClick={clearAllFrames}
-                        className="h-12 sm:h-14 text-sm sm:text-base bg-red-50 hover:bg-red-100 border-red-300 text-red-600"
+                        variant="outline"
+                        className="border-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold transition-all duration-150 active:scale-95 transform"
                       >
                         Clear All
                       </Button>
+
                       <Button
-                        type="button"
-                        variant={frames[currentFrame]?.split ? "default" : "outline"}
                         onClick={toggleSplit}
-                        disabled={currentRoll !== 1}
-                        className={`h-12 sm:h-14 text-sm sm:text-base ${
-                          frames[currentFrame]?.split ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-gray-300"
+                        variant="outline"
+                        className={`border-2 font-semibold transition-all duration-150 active:scale-95 transform ${
+                          frames[currentFrame]?.split 
+                            ? "border-orange-500 bg-orange-100 text-orange-700 hover:bg-orange-200" 
+                            : "border-gray-300 text-gray-600 hover:bg-gray-50"
                         }`}
+                        disabled={currentRoll !== 1}
                       >
                         Split {frames[currentFrame]?.split && "⊗"}
                       </Button>
@@ -708,7 +707,7 @@ export default function TrainingPage() {
                       {scores.map((score) => (
                         <TableRow key={score.id}>
                           <TableCell className="font-medium">
-                            {new Date(score.date).toLocaleDateString()}
+                            {new Date(score.training_date).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">{score.location || "-"}</TableCell>
                           <TableCell className="text-center font-bold text-lg">{score.total_score}</TableCell>
