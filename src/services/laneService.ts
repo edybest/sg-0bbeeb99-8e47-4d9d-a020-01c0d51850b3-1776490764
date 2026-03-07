@@ -4,7 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 type LaneConfiguration = Database["public"]["Tables"]["lane_configurations"]["Row"];
 type LaneAssignment = Database["public"]["Tables"]["lane_assignments"]["Row"];
 
-export interface LaneConfigurationWithDetails extends LaneConfiguration {}
+export type LaneConfigurationWithDetails = LaneConfiguration;
 
 export interface LaneAssignmentWithMember extends LaneAssignment {
   member: {

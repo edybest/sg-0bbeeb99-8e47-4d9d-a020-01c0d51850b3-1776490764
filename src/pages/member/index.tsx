@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
-import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users } from "lucide-react";
+import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 
 export default function MemberDashboard() {
@@ -179,6 +179,19 @@ export default function MemberDashboard() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">Champions History</p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            {/* Lane Card */}
+            <Link href="/member/lane" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Lane</CardTitle>
+                  <LayoutGrid className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Undian & Kedudukan Lane</p>
                 </CardContent>
               </Card>
             </Link>
