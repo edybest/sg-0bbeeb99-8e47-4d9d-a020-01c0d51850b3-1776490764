@@ -348,6 +348,77 @@ export type Database = {
         }
         Relationships: []
       }
+      training_scores: {
+        Row: {
+          created_at: string | null
+          frame1: number | null
+          frame10: number | null
+          frame2: number | null
+          frame3: number | null
+          frame4: number | null
+          frame5: number | null
+          frame6: number | null
+          frame7: number | null
+          frame8: number | null
+          frame9: number | null
+          id: string
+          location: string | null
+          member_id: string
+          notes: string | null
+          total_score: number | null
+          training_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          frame1?: number | null
+          frame10?: number | null
+          frame2?: number | null
+          frame3?: number | null
+          frame4?: number | null
+          frame5?: number | null
+          frame6?: number | null
+          frame7?: number | null
+          frame8?: number | null
+          frame9?: number | null
+          id?: string
+          location?: string | null
+          member_id: string
+          notes?: string | null
+          total_score?: number | null
+          training_date?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          frame1?: number | null
+          frame10?: number | null
+          frame2?: number | null
+          frame3?: number | null
+          frame4?: number | null
+          frame5?: number | null
+          frame6?: number | null
+          frame7?: number | null
+          frame8?: number | null
+          frame9?: number | null
+          id?: string
+          location?: string | null
+          member_id?: string
+          notes?: string | null
+          total_score?: number | null
+          training_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_scores_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

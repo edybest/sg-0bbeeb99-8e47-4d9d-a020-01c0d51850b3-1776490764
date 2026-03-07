@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
-import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User } from "lucide-react";
+import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function MemberDashboard() {
@@ -158,6 +158,18 @@ export default function MemberDashboard() {
               </Card>
             </Link>
 
+            <Link href="/member/training" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Training</CardTitle>
+                  <Target className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Practice Scores</p>
+                </CardContent>
+              </Card>
+            </Link>
+
             {/* Hall of Fame Card */}
             <Link href="/member/hall-of-fame" className="block transition-transform hover:scale-105">
               <Card className="h-full cursor-pointer hover:shadow-lg">
@@ -204,23 +216,30 @@ export default function MemberDashboard() {
             </Link>
           </div>
 
-          {/* Coming Soon Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {["Liga", "Couple", "Training"].map((title) => (
-              <Card key={title} className="opacity-50 cursor-not-allowed">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-gray-400">
-                    <Award className="h-5 w-5" />
-                    {title}
-                  </CardTitle>
+          {/* Coming Soon Features */}
+          <div className="col-span-full">
+            <h3 className="text-lg font-semibold mb-4">Coming Soon</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="opacity-60">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Liga</CardTitle>
+                  <Trophy className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-400">
-                    Coming Soon...
-                  </p>
+                  <p className="text-xs text-muted-foreground">Coming Soon</p>
                 </CardContent>
               </Card>
-            ))}
+
+              <Card className="opacity-60">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Couple</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Coming Soon</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
