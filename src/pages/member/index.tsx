@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
+import { MobileNav } from "@/components/member/MobileNav";
 import { Trophy, Target, Award, Calendar, TrendingUp, Users, Loader2, LogOut, BarChart3, User } from "lucide-react";
 import Link from "next/link";
 
@@ -77,6 +78,7 @@ export default function MemberDashboard() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
+                <MobileNav />
                 <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
