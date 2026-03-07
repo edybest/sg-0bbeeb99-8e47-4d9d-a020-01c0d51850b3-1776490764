@@ -1,74 +1,120 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClubLogoProps {
-  size?: "sm" | "md" | "xl";
   className?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  width?: number;
+  height?: number;
+  priority?: boolean;
 }
 
-export function ClubLogo({ size = "md", className = "" }: ClubLogoProps) {
+export function ClubLogo({ 
+  className = "", 
+  size,
+  width, 
+  height,
+  priority = false 
+}: ClubLogoProps) {
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadLogo();
-  }, []);
-
   const loadLogo = async () => {
     try {
-      // Fetch logo from club_settings table where setting_key is 'logo_base64'
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("club_settings")
         .select("setting_value")
-        .eq("setting_key", "logo_base64")
-        .maybeSingle(); // Use maybeSingle to avoid 406 error if not found
-
-      if (error && error.code !== 'PGRST116') throw error;
+        .eq("setting_key", "club_logo_url")
+        .maybeSingle();
 
       if (data?.setting_value) {
         setLogoUrl(data.setting_value);
+      } else {
+        // Fallback to default logo
+        setLogoUrl("/ambc-logo.png");
       }
     } catch (error) {
       console.error("Error loading logo:", error);
+      setLogoUrl("/ambc-logo.png");
     } finally {
       setLoading(false);
     }
   };
 
-  const sizeClasses = {
-    sm: "w-10 h-10",
-    md: "w-16 h-16",
-    xl: "w-32 h-32"
-  };
+  useEffect(() => {
+    loadLogo();
+
+    // Listen for logo updates
+    const handleLogoUpdate = (event: any) => {
+      const newLogoUrl = event.detail?.logoUrl;
+      if (newLogoUrl !== undefined) {
+        setLogoUrl(newLogoUrl || "/ambc-logo.png");
+      }
+    };
+
+    window.addEventListener("logo-updated", handleLogoUpdate);
+
+    return () => {
+      window.removeEventListener("logo-updated", handleLogoUpdate);
+    };
+  }, []);
+
+  let finalWidth = width || 120;
+  let finalHeight = height || 120;
+
+  if (size) {
+    switch (size) {
+      case "sm":
+        finalWidth = 40;
+        finalHeight = 40;
+        break;
+      case "md":
+        finalWidth = 80;
+        finalHeight = 80;
+        break;
+      case "lg":
+        finalWidth = 120;
+        finalHeight = 120;
+        break;
+      case "xl":
+        finalWidth = 150;
+        finalHeight = 150;
+        break;
+    }
+  }
 
   if (loading) {
     return (
-      <div
-        className={`${sizeClasses[size]} ${className} rounded-full bg-gray-200 animate-pulse`}
+      <div 
+        className={`animate-pulse bg-gray-200 rounded-lg ${className}`}
+        style={{ width: finalWidth, height: finalHeight }}
       />
     );
   }
 
   if (!logoUrl) {
     return (
-      <div
-        className={`${sizeClasses[size]} ${className} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold text-xl`}
-      >
-        AMBC
-      </div>
+      <Image
+        src="/ambc-logo.png"
+        alt="AMBC Club Logo"
+        width={finalWidth}
+        height={finalHeight}
+        priority={priority}
+        className={`object-contain ${className}`}
+      />
     );
   }
 
   return (
-    <div className={`${sizeClasses[size]} ${className} relative rounded-full overflow-hidden`}>
-      <Image
-        src={logoUrl}
-        alt="Club Logo"
-        fill
-        className="object-cover"
-        priority
-      />
-    </div>
+    <Image
+      src={logoUrl}
+      alt="Club Logo"
+      width={finalWidth}
+      height={finalHeight}
+      priority={priority}
+      className={`object-contain ${className}`}
+      onError={() => setLogoUrl("/ambc-logo.png")}
+    />
   );
 }

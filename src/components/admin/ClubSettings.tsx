@@ -247,7 +247,7 @@ export function ClubSettings() {
       const { data: existing } = await supabase
         .from("club_settings")
         .select("id")
-        .eq("setting_key", "logo_url")
+        .eq("setting_key", "club_logo_url")
         .maybeSingle();
 
       if (existing) {
@@ -262,6 +262,9 @@ export function ClubSettings() {
       setLogoUrl("");
       setLogoPreview("");
       setLogoFile(null);
+      
+      // Force refresh
+      window.dispatchEvent(new CustomEvent("logo-updated", { detail: { logoUrl: "" } }));
 
       toast({
         title: "Success",
@@ -380,8 +383,8 @@ export function ClubSettings() {
         if (error) throw error;
 
         toast({
-          title: "Success",
-          description: "Configuration updated successfully",
+          title: "✅ Berjaya!",
+          description: `Configuration untuk ${dialogPlayerCount} pemain telah dikemaskini.`,
         });
       } else {
         // Insert new
@@ -390,8 +393,8 @@ export function ClubSettings() {
         if (error) throw error;
 
         toast({
-          title: "Success",
-          description: "Configuration added successfully",
+          title: "✅ Berjaya!",
+          description: `Configuration untuk ${dialogPlayerCount} pemain telah ditambah.`,
         });
       }
 
@@ -399,8 +402,8 @@ export function ClubSettings() {
       loadFiveFiveConfigs();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "❌ Ralat",
+        description: error.message || "Gagal menyimpan configuration.",
         variant: "destructive",
       });
     } finally {
@@ -409,9 +412,11 @@ export function ClubSettings() {
   };
 
   const handleDeleteConfig = async () => {
-    if (!configToDelete) return;
-
     try {
+      if (!configToDelete) return;
+
+      const configToDeleteData = fivefiveConfigs.find((c) => c.id === configToDelete);
+
       const { error } = await supabase
         .from("fivefive_prizes")
         .delete()
@@ -420,20 +425,74 @@ export function ClubSettings() {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Configuration deleted successfully",
+        title: "✅ Berjaya!",
+        description: `Configuration untuk ${configToDeleteData?.player_count} pemain telah dipadam.`,
       });
 
+      setDeleteDialogOpen(false);
+      setConfigToDelete(null);
       loadFiveFiveConfigs();
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "❌ Ralat",
+        description: error.message || "Gagal memadam configuration.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setUploading(true);
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split(".").pop();
+      const fileName = `club-logo-${Date.now()}.${fileExt}`;
+      const filePath = `logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("club-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("club-assets")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Save to club_settings
+      const { error: settingError } = await supabase
+        .from("club_settings")
+        .upsert({
+          setting_key: "club_logo_url",
+          setting_value: publicUrl,
+        });
+
+      if (settingError) throw settingError;
+
+      setLogoUrl(publicUrl);
+      
+      // Force refresh by triggering a custom event
+      window.dispatchEvent(new CustomEvent("logo-updated", { detail: { logoUrl: publicUrl } }));
+
+      toast({
+        title: "✅ Berjaya!",
+        description: "Logo kelab telah dikemaskini.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal memuat naik logo.",
         variant: "destructive",
       });
     } finally {
-      setDeleteDialogOpen(false);
-      setConfigToDelete(null);
+      setUploading(false);
     }
   };
 
