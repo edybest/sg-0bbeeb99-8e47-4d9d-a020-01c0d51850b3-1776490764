@@ -162,7 +162,9 @@ export default function FiveFivePage() {
 
       if (prizeError) throw prizeError;
 
-      const prizes = prizeConfig?.prizes || [];
+      const prizes: number[] = Array.isArray(prizeConfig?.prizes) 
+        ? prizeConfig.prizes.map(Number) 
+        : [];
 
       const participantsWithPrizes: FiveFiveParticipant[] = sortedPlayers.map((player, index) => {
         const rank = index + 1;
