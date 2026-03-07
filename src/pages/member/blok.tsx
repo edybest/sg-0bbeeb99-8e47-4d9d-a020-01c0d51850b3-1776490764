@@ -22,6 +22,7 @@ import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 // Define specific types for what we fetch to avoid TS errors
 type GameSummary = Pick<Tables<"games">, "id" | "game_name" | "game_format" | "game_date" | "created_at">;
@@ -76,6 +77,7 @@ type SortDirection = "asc" | "desc";
 
 export default function BlokPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [games, setGames] = useState<GameSummary[]>([]);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
