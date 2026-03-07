@@ -149,9 +149,29 @@ export default function TrainingPage() {
   }
 
   function toggleSplit() {
+    if (currentRoll === 1) {
+      const newFrames = [...frames];
+      newFrames[currentFrame].split = !newFrames[currentFrame].split;
+      setFrames(newFrames);
+    }
+  }
+
+  function clearCurrentFrame() {
     const newFrames = [...frames];
-    newFrames[currentFrame].split = !newFrames[currentFrame].split;
+    newFrames[currentFrame] = {
+      roll1: null,
+      roll2: null,
+      roll3: currentFrame === 9 ? null : undefined,
+      split: false,
+    };
     setFrames(newFrames);
+    setCurrentRoll(1);
+  }
+
+  function clearAllFrames() {
+    setFrames(Array(10).fill(null).map(() => ({ roll1: null, roll2: null, split: false })));
+    setCurrentFrame(0);
+    setCurrentRoll(1);
   }
 
   function calculateBowlingScore(frameData: FrameData[]): number {
@@ -310,6 +330,63 @@ export default function TrainingPage() {
     setCurrentRoll(1);
   }
 
+  const getAvailablePins = (): string[] => {
+    const frame = frames[currentFrame];
+    const roll1Value = frame.roll1;
+
+    // Roll 1 or Frame 10 roll 1/3 (simplified for frame 10 flexibility)
+    if (currentRoll === 1 || (currentFrame === 9 && currentRoll === 3 && frame.roll2 === "X")) {
+      return ["X", "/", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    }
+
+    // Roll 2 validation based on roll 1
+    if (currentRoll === 2 && roll1Value) {
+      if (roll1Value === "X") {
+        // After strike in frame 10
+        return ["X", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      }
+
+      const roll1Pins = roll1Value === "-" ? 0 : parseInt(roll1Value);
+      
+      if (isNaN(roll1Pins)) {
+        return ["/", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      }
+
+      // Calculate remaining pins
+      const remainingPins = 10 - roll1Pins;
+      const availablePins = ["/", "-"]; // Always allow spare and miss
+
+      // Add valid pin counts (0 to remaining)
+      for (let i = 0; i < remainingPins; i++) {
+        availablePins.push(i.toString());
+      }
+
+      return availablePins;
+    }
+    
+    // Roll 3 validation in frame 10
+    if (currentRoll === 3 && currentFrame === 9) {
+      if (frame.roll2 === "/") {
+        return ["X", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+      }
+      if (frame.roll1 === "X" && frame.roll2 && frame.roll2 !== "X") {
+        const roll2Pins = frame.roll2 === "-" ? 0 : parseInt(frame.roll2);
+        if (!isNaN(roll2Pins)) {
+           const remainingPins = 10 - roll2Pins;
+           const availablePins = ["/", "-"];
+           for (let i = 0; i < remainingPins; i++) {
+             availablePins.push(i.toString());
+           }
+           return availablePins;
+        }
+      }
+      return ["X", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    }
+
+    // Default: all options
+    return ["X", "/", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  };
+
   const avgScore = scores.length > 0
     ? Math.round(scores.reduce((sum, s) => sum + s.total_score, 0) / scores.length)
     : 0;
@@ -317,9 +394,9 @@ export default function TrainingPage() {
     ? Math.max(...scores.map(s => s.total_score))
     : 0;
 
-  const chartData = scores
+  const chartData = [...scores]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(-10)
-    .reverse()
     .map((score, index) => ({
       game: `${index + 1}`,
       score: score.total_score,
@@ -332,6 +409,24 @@ export default function TrainingPage() {
       </div>
     );
   }
+
+  const availablePins = getAvailablePins();
+
+  const pinButtons = [
+    { value: "X", label: "Strike", color: "bg-green-500 hover:bg-green-600" },
+    { value: "/", label: "Spare", color: "bg-blue-500 hover:bg-blue-600" },
+    { value: "-", label: "Miss", color: "bg-gray-500 hover:bg-gray-600" },
+    { value: "0", label: "0", color: "bg-red-500 hover:bg-red-600" },
+    { value: "1", label: "1", color: "bg-orange-500 hover:bg-orange-600" },
+    { value: "2", label: "2", color: "bg-orange-500 hover:bg-orange-600" },
+    { value: "3", label: "3", color: "bg-orange-500 hover:bg-orange-600" },
+    { value: "4", label: "4", color: "bg-yellow-500 hover:bg-yellow-600" },
+    { value: "5", label: "5", color: "bg-yellow-500 hover:bg-yellow-600" },
+    { value: "6", label: "6", color: "bg-yellow-500 hover:bg-yellow-600" },
+    { value: "7", label: "7", color: "bg-lime-500 hover:bg-lime-600" },
+    { value: "8", label: "8", color: "bg-lime-500 hover:bg-lime-600" },
+    { value: "9", label: "9", color: "bg-lime-500 hover:bg-lime-600" },
+  ];
 
   return (
     <>
@@ -480,8 +575,12 @@ export default function TrainingPage() {
                     {frames.map((frame, i) => (
                       <div
                         key={i}
-                        className={`relative border-2 rounded-md p-2 ${
-                          i === currentFrame ? "border-red-600 bg-red-50" : "border-gray-300"
+                        onClick={() => {
+                          setCurrentFrame(i);
+                          setCurrentRoll(1);
+                        }}
+                        className={`relative border-2 rounded-md p-2 cursor-pointer transition-colors ${
+                          i === currentFrame ? "border-red-600 bg-red-50" : "border-gray-300 hover:border-gray-400"
                         }`}
                       >
                         <div className="text-[10px] md:text-xs font-bold text-center text-gray-600 mb-1">
@@ -491,7 +590,7 @@ export default function TrainingPage() {
                           <div className="h-8 md:h-10 flex items-center justify-center border border-gray-200 rounded text-sm md:text-base font-bold bg-white relative">
                             {frame.roll1 || ""}
                             {frame.split && (
-                              <span className="absolute top-0 right-0 text-[10px] text-orange-600">⊗</span>
+                              <span className="absolute top-0 right-0 text-[10px] text-orange-600 font-black">⊗</span>
                             )}
                           </div>
                           <div className="h-8 md:h-10 flex items-center justify-center border border-gray-200 rounded text-sm md:text-base font-bold bg-white">
@@ -507,52 +606,59 @@ export default function TrainingPage() {
                     ))}
                   </div>
 
-                  {/* Pin Input Buttons - Mobile Optimized */}
+                  {/* Pin Input Buttons */}
                   <div className="space-y-3">
-                    <div className="grid grid-cols-5 gap-2">
-                      {["X", "/", "-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"].map((pin) => (
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+                      {pinButtons
+                        .filter(btn => availablePins.includes(btn.value))
+                        .map((btn) => (
                         <Button
-                          key={pin}
+                          key={btn.value}
                           type="button"
-                          variant="outline"
-                          onClick={() => handlePinClick(pin)}
-                          className="h-12 md:h-14 text-lg md:text-xl font-bold hover:bg-red-600 hover:text-white active:scale-95 transition-all"
+                          onClick={() => handlePinClick(btn.value)}
+                          className={`${btn.color} text-white font-bold text-lg sm:text-xl h-12 sm:h-16 touch-manipulation`}
                         >
-                          {pin}
+                          {btn.label}
                         </Button>
                       ))}
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={toggleSplit}
-                        className={`h-12 ${frames[currentFrame]?.split ? "bg-orange-100 border-orange-600" : ""}`}
+                        onClick={clearCurrentFrame}
+                        className="h-12 sm:h-14 text-sm sm:text-base border-gray-300"
                       >
-                        <span className="text-lg mr-2">⊗</span> Split
+                        Clear Frame
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          const newFrames = [...frames];
-                          newFrames[currentFrame] = { roll1: null, roll2: null, split: false };
-                          setFrames(newFrames);
-                          setCurrentRoll(1);
-                        }}
-                        className="h-12"
+                        onClick={clearAllFrames}
+                        className="h-12 sm:h-14 text-sm sm:text-base bg-red-50 hover:bg-red-100 border-red-300 text-red-600"
                       >
-                        Clear Frame
+                        Clear All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={frames[currentFrame]?.split ? "default" : "outline"}
+                        onClick={toggleSplit}
+                        disabled={currentRoll !== 1}
+                        className={`h-12 sm:h-14 text-sm sm:text-base ${
+                          frames[currentFrame]?.split ? "bg-orange-500 hover:bg-orange-600 text-white" : "border-gray-300"
+                        }`}
+                      >
+                        Split {frames[currentFrame]?.split && "⊗"}
                       </Button>
                     </div>
                   </div>
 
                   {/* Total Score Display */}
-                  <div className="bg-red-600 text-white p-4 rounded-lg text-center">
-                    <div className="text-sm md:text-base">Total Score</div>
-                    <div className="text-3xl md:text-4xl font-bold">{calculateBowlingScore(frames)}</div>
+                  <div className="bg-red-600 text-white p-4 rounded-lg text-center mt-4">
+                    <div className="text-sm md:text-base font-medium">Total Score</div>
+                    <div className="text-4xl md:text-5xl font-black mt-1">{calculateBowlingScore(frames)}</div>
                   </div>
                 </div>
 
@@ -569,8 +675,8 @@ export default function TrainingPage() {
                 </div>
 
                 {/* Save Button */}
-                <Button onClick={handleSave} className="w-full bg-red-600 hover:bg-red-700 h-12 text-base">
-                  {editingScore ? "Update" : "Save"} Score
+                <Button onClick={handleSave} className="w-full bg-red-600 hover:bg-red-700 h-12 text-base font-bold">
+                  {editingScore ? "Update Score" : "Save Score"}
                 </Button>
               </div>
             </DialogContent>
