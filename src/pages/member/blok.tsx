@@ -21,6 +21,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
+import { MobileNav } from "@/components/member/MobileNav";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 
@@ -78,20 +79,66 @@ type SortDirection = "asc" | "desc";
 export default function BlokPage() {
   const router = useRouter();
   const { toast } = useToast();
+  
+  // ALL HOOKS MUST BE DECLARED FIRST
   const [games, setGames] = useState<GameSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [previousLeaderboard, setPreviousLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+  const loadGames = async (showToast = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: dbError } = await supabase
+        .from("games")
+        .select("id, game_name, game_format, game_date, created_at")
+        .order("game_date", { ascending: false });
+
+      if (dbError) throw dbError;
+
+      if (data && data.length > 0) {
+        setGames(data);
+        setSelectedGame(data[0].id);
+      } else {
+        setGames([]);
+      }
+      
+      if (showToast) {
+        toast({
+          title: "Data refreshed",
+          description: "Games loaded successfully",
+        });
+      }
+    } catch (err) {
+      console.error("Error loading games:", err);
+      setError(err instanceof Error ? err.message : "Failed to load games");
+      
+      if (showToast) {
+        toast({
+          title: "Connection error",
+          description: "Failed to fetch games. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadGames();
-  }, []);
+  }, [retryCount]); // Re-run when retryCount changes
 
   useEffect(() => {
     if (selectedGame) {
@@ -99,26 +146,77 @@ export default function BlokPage() {
     }
   }, [selectedGame]);
 
-  const loadGames = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("games")
-        .select("id, game_name, game_format, game_date, created_at")
-        .order("game_date", { ascending: false });
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setGames(data);
-        setSelectedGame(data[0].id);
-      } else {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error("Error loading games:", error);
-      setLoading(false);
-    }
+  // Retry handler
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
   };
+
+  // Error state UI
+  if (error && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <MobileNav />
+                <ClubLogo size="sm" skipFetch />
+                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="text-red-500 text-5xl">⚠️</div>
+              <h2 className="text-xl font-semibold">Connection Error</h2>
+              <p className="text-gray-600">{error}</p>
+              <Button onClick={handleRetry} className="w-full">
+                Try Again
+              </Button>
+              <Button 
+                onClick={() => router.push("/member")} 
+                variant="outline" 
+                className="w-full"
+              >
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (loading && games.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <MobileNav />
+                <ClubLogo size="sm" skipFetch />
+                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+              <p className="text-gray-600">Loading games...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const loadLeaderboard = async (gameId: string) => {
     if (!gameId) return;
