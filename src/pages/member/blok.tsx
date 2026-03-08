@@ -100,17 +100,26 @@ export default function BlokPage() {
       setLoading(true);
       setError(null);
       
+      console.log("🎯 Blok: Starting to fetch games from Supabase...");
+      
       const { data, error: dbError } = await supabase
         .from("games")
         .select("id, game_name, game_format, game_date, created_at")
         .order("game_date", { ascending: false });
 
-      if (dbError) throw dbError;
+      console.log("🎯 Blok: Supabase response:", { data, error: dbError });
+
+      if (dbError) {
+        console.error("❌ Blok: Database error:", dbError);
+        throw dbError;
+      }
 
       if (data && data.length > 0) {
+        console.log(`✅ Blok: Successfully loaded ${data.length} games`);
         setGames(data);
         setSelectedGame(data[0].id);
       } else {
+        console.log("⚠️ Blok: No games found in database");
         setGames([]);
       }
       
@@ -121,13 +130,14 @@ export default function BlokPage() {
         });
       }
     } catch (err) {
-      console.error("Error loading games:", err);
-      setError(err instanceof Error ? err.message : "Failed to load games");
+      console.error("❌ Blok: Error loading games:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to load games";
+      setError(errorMessage);
       
       if (showToast) {
         toast({
           title: "Connection error",
-          description: "Failed to fetch games. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -173,6 +183,12 @@ export default function BlokPage() {
               <div className="text-red-500 text-5xl">⚠️</div>
               <h2 className="text-xl font-semibold">Connection Error</h2>
               <p className="text-gray-600">{error}</p>
+              <div className="bg-gray-100 p-3 rounded text-xs text-left">
+                <p className="font-mono text-gray-700 break-all">{error}</p>
+              </div>
+              <div className="text-sm text-gray-500">
+                Please check browser console (F12) for more details
+              </div>
               <Button onClick={handleRetry} className="w-full">
                 Try Again
               </Button>
