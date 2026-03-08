@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClubLogo } from "@/components/ClubLogo";
 import { SEO } from "@/components/SEO";
 import { Trophy, Calendar, TrendingUp } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Member = Tables<"members">;
 type Game = Tables<"games">;
