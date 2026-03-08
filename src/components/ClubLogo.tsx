@@ -9,8 +9,8 @@ interface ClubLogoProps {
 
 export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
   const [logoData, setLogoData] = useState<string | null>(null);
-  const [loading, setLoading] = useState(!skipFetch);
-  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [useFallback, setUseFallback] = useState(skipFetch);
 
   const sizeClasses = {
     sm: "h-10 w-10",
@@ -20,18 +20,21 @@ export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
   };
 
   useEffect(() => {
-    if (skipFetch) {
-      setLoading(false);
+    // Skip fetch if explicitly told to or if we're already using fallback
+    if (skipFetch || useFallback) {
       return;
     }
 
     let isMounted = true;
+    setLoading(true);
+
+    // Fast timeout - 1 second max
     const timeoutId = setTimeout(() => {
       if (isMounted) {
-        setError(true);
+        setUseFallback(true);
         setLoading(false);
       }
-    }, 3000);
+    }, 1000);
 
     async function fetchLogo() {
       try {
@@ -41,21 +44,22 @@ export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
           .eq("setting_key", "club_logo_base64")
           .single();
 
+        clearTimeout(timeoutId);
+
         if (!isMounted) return;
 
         if (fetchError || !data?.setting_value) {
-          setError(true);
+          setUseFallback(true);
           setLoading(false);
           return;
         }
 
         setLogoData(data.setting_value);
+        setLoading(false);
       } catch (err) {
+        clearTimeout(timeoutId);
         if (isMounted) {
-          setError(true);
-        }
-      } finally {
-        if (isMounted) {
+          setUseFallback(true);
           setLoading(false);
         }
       }
@@ -65,18 +69,12 @@ export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
     };
-  }, []);
+  }, [skipFetch, useFallback]);
 
-  if (loading) {
-    return (
-      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 animate-pulse flex items-center justify-center`}>
-        <span className="text-white font-bold text-xs">AMBC</span>
-      </div>
-    );
-  }
-
-  if (error || !logoData) {
+  // Show fallback immediately if skipFetch is true or fetch failed
+  if (useFallback || loading) {
     return (
       <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
         <span className="text-white font-bold text-xs">AMBC</span>
@@ -84,16 +82,26 @@ export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
     );
   }
 
+  // Show fetched logo if available
+  if (logoData) {
+    return (
+      <div className={`${sizeClasses[size]} relative rounded-full overflow-hidden shadow-lg`}>
+        <Image
+          src={logoData}
+          alt="AMBC Club Logo"
+          fill
+          className="object-cover"
+          priority
+          onError={() => setUseFallback(true)}
+        />
+      </div>
+    );
+  }
+
+  // Final fallback
   return (
-    <div className={`${sizeClasses[size]} relative rounded-full overflow-hidden shadow-lg`}>
-      <Image
-        src={logoData}
-        alt="AMBC Club Logo"
-        fill
-        className="object-cover"
-        priority
-        onError={() => setError(true)}
-      />
+    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
+      <span className="text-white font-bold text-xs">AMBC</span>
     </div>
   );
 }
