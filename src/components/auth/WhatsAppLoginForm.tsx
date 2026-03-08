@@ -281,14 +281,6 @@ export function WhatsAppLoginForm() {
               </Button>
             </>
           )}
-
-          {/* Register Link */}
-          <div className="text-center text-sm text-gray-600">
-            Belum ada akaun?{" "}
-            <a href="/signup" className="text-red-600 hover:underline font-semibold">
-              Daftar sekarang
-            </a>
-          </div>
         </form>
       </CardContent>
     </Card>
