@@ -21,33 +21,27 @@ export default function MemberDashboard() {
   } | null>(null);
 
   useEffect(() => {
-    checkMemberAuth();
+    // Try to load member data if logged in, but don't require it
+    loadMemberData();
   }, []);
 
-  async function checkMemberAuth() {
+  async function loadMemberData() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        router.push("/login");
-        return;
+      if (session) {
+        const { data: member } = await supabase
+          .from("members")
+          .select("id, username, full_name, avatar_url")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (member) {
+          setMemberData(member);
+        }
       }
-
-      const { data: member } = await supabase
-        .from("members")
-        .select("id, username, full_name, avatar_url")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (!member) {
-        router.push("/login");
-        return;
-      }
-
-      setMemberData(member);
     } catch (error) {
-      console.error("Auth check error:", error);
-      router.push("/login");
+      console.error("Error loading member data:", error);
     } finally {
       setLoading(false);
     }
@@ -55,7 +49,8 @@ export default function MemberDashboard() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/login");
+    setMemberData(null);
+    router.reload();
   }
 
   if (loading) {
@@ -86,27 +81,40 @@ export default function MemberDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {memberData?.avatar_url ? (
-                  <Image 
-                    src={memberData.avatar_url} 
-                    alt={memberData.username}
-                    width={40}
-                    height={40}
-                    className="rounded-full border-2 border-red-600"
-                  />
+                {memberData ? (
+                  <>
+                    {memberData.avatar_url ? (
+                      <Image 
+                        src={memberData.avatar_url} 
+                        alt={memberData.username}
+                        width={40}
+                        height={40}
+                        className="rounded-full border-2 border-red-600"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
+                        {memberData.username[0].toUpperCase()}
+                      </div>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      onClick={handleLogout}
+                      className="border-gray-300 hover:bg-gray-100"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Logout</span>
+                    </Button>
+                  </>
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
-                    {memberData?.username[0].toUpperCase()}
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push("/login")}
+                    className="border-red-600 text-red-600 hover:bg-red-50"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Login</span>
+                  </Button>
                 )}
-                <Button 
-                  variant="outline" 
-                  onClick={handleLogout}
-                  className="border-gray-300 hover:bg-gray-100"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
               </div>
             </div>
           </div>
@@ -119,11 +127,18 @@ export default function MemberDashboard() {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-2">
-                    Selamat Datang, {memberData?.full_name}! 🎳
+                    {memberData ? `Selamat Datang, ${memberData.full_name}! 🎳` : "Selamat Datang ke AMBC Club! 🎳"}
                   </h2>
-                  <p className="text-red-100">
-                    @{memberData?.username}
-                  </p>
+                  {memberData && (
+                    <p className="text-red-100">
+                      @{memberData.username}
+                    </p>
+                  )}
+                  {!memberData && (
+                    <p className="text-red-100">
+                      Sila login untuk akses penuh
+                    </p>
+                  )}
                 </div>
                 <ClubLogo size="xl" skipFetch />
               </div>
@@ -145,7 +160,7 @@ export default function MemberDashboard() {
               </Card>
             </Link>
 
-            {/* FiveFive Card - NOW CLICKABLE */}
+            {/* FiveFive Card */}
             <Link href="/member/five-five" className="block transition-transform hover:scale-105">
               <Card className="h-full cursor-pointer hover:shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -209,25 +224,27 @@ export default function MemberDashboard() {
               </Card>
             </Link>
 
-            <Link href="/member/profile">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-600">
-                    <User className="h-5 w-5" />
-                    Profile
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    Edit profile & rekod game
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+            {memberData && (
+              <Link href="/member/profile">
+                <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-red-600">
+                      <User className="h-5 w-5" />
+                      Profile
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">
+                      Edit profile & rekod game
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
           </div>
 
           {/* Coming Soon Features */}
-          <div className="col-span-full">
+          <div className="col-span-full mt-8">
             <h3 className="text-lg font-semibold mb-4">Coming Soon</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="opacity-60">
