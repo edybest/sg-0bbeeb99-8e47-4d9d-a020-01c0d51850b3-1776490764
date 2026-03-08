@@ -5,7 +5,6 @@ const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 type SendTACRequest = {
   phone: string;
-  code: string;
   username: string;
 };
 
@@ -15,9 +14,15 @@ type SendTACResponse = {
   data?: {
     messageId?: string;
     status?: string;
+    code?: string;
   };
   error?: string;
 };
+
+// Generate random 6-digit TAC code
+function generateTACCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,13 +37,13 @@ export default async function handler(
   }
 
   try {
-    const { phone, code, username } = req.body as SendTACRequest;
+    const { phone, username } = req.body as SendTACRequest;
 
     // Validate required fields
-    if (!phone || !code || !username) {
+    if (!phone || !username) {
       return res.status(400).json({
         success: false,
-        error: "Missing required fields: phone, code, or username",
+        error: "Missing required fields: phone or username",
       });
     }
 
@@ -50,6 +55,9 @@ export default async function handler(
         error: "WhatsApp service not configured",
       });
     }
+
+    // Generate TAC code
+    const code = generateTACCode();
 
     // Format phone number (remove any + or spaces)
     const formattedPhone = phone.replace(/[+\s-]/g, "");
@@ -129,6 +137,7 @@ Terima kasih! 🎳`;
       data: {
         messageId: responseData.id || responseData.message_id,
         status: responseData.status || "sent",
+        code: code, // Return code for verification later
       },
     });
 
