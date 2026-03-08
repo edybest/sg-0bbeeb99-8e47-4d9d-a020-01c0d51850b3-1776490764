@@ -8,9 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ClubLogo } from "@/components/ClubLogo";
 import { SEO } from "@/components/SEO";
-import { Trophy, Calendar, TrendingUp } from "lucide-react";
+import { Trophy, Calendar, TrendingUp, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Member = Tables<"members">;
@@ -185,7 +186,15 @@ export default function FiveFivePage() {
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <ClubLogo size="md" skipFetch />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => router.push("/member")}
+                className="shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <ClubLogo size="md" />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Trophy className="w-8 h-8 text-yellow-500" />
