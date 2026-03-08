@@ -342,7 +342,7 @@ export default function LanePage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <ClubLogo size="sm" skipFetch />
+              <ClubLogo size="sm" />
               <div>
                 <h1 className="text-xl font-bold text-red-600">Kedudukan Lane</h1>
                 <p className="text-xs text-gray-600">
