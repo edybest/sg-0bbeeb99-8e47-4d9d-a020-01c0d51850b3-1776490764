@@ -350,6 +350,8 @@ export type Database = {
           is_verified: boolean | null
           phone: string
           sex: string
+          tac_code: string | null
+          tac_expiry: string | null
           updated_at: string | null
           user_id: string | null
           username: string
@@ -367,6 +369,8 @@ export type Database = {
           is_verified?: boolean | null
           phone: string
           sex: string
+          tac_code?: string | null
+          tac_expiry?: string | null
           updated_at?: string | null
           user_id?: string | null
           username: string
@@ -384,6 +388,8 @@ export type Database = {
           is_verified?: boolean | null
           phone?: string
           sex?: string
+          tac_code?: string | null
+          tac_expiry?: string | null
           updated_at?: string | null
           user_id?: string | null
           username?: string

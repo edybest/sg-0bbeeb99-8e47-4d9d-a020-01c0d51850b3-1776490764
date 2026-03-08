@@ -169,17 +169,19 @@ export const authService = {
   sendWhatsAppTAC: async (identifier: string) => {
     try {
       // Find member by username, email, or phone
-      const { data: member, error: memberError } = await supabase
+      const { data: member, error: fetchError } = await supabase
         .from("members")
-        .select("*")
+        .select("id, username, email, phone, full_name")
         .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
         .maybeSingle();
 
-      if (memberError || !member) {
-        return {
-          data: null,
-          error: { message: "❌ Ahli tidak dijumpai. Sila check username/email/phone atau daftar akaun baru." }
-        };
+      if (fetchError) {
+        console.error("Error fetching member:", fetchError);
+        return { error: "Ralat sistem. Sila cuba lagi." };
+      }
+
+      if (!member) {
+        return { error: "Username, email atau nombor telefon tidak dijumpai." };
       }
 
       // Check if member has phone number

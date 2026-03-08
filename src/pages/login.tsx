@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { Users, Shield } from "lucide-react";
+import { MemberLoginForm } from "@/components/auth/MemberLoginForm";
 
 export default function LoginPage() {
   return (
@@ -22,25 +23,26 @@ export default function LoginPage() {
               <CardTitle className="text-3xl font-bold text-red-600 mb-2">
                 AMBC CLUB
               </CardTitle>
-              <CardDescription className="text-base text-gray-600">
-                Pilih cara untuk login
+              <CardDescription>
+                Sila pilih kaedah log masuk anda
               </CardDescription>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-4 pb-8">
-            {/* Member Login Button */}
-            <Link href="/member/login" className="block">
-              <Button 
-                className="w-full h-16 text-lg font-semibold bg-red-600 hover:bg-red-700 text-white transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl"
-                size="lg"
-              >
-                <Users className="h-6 w-6 mr-3" />
-                Login Sebagai Ahli
-              </Button>
-            </Link>
+          <CardContent className="space-y-4">
+            <MemberLoginForm />
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Atau
+                </span>
+              </div>
+            </div>
 
-            {/* Admin Login Button */}
             <Link href="/admin/login" className="block">
               <Button 
                 className="w-full h-16 text-lg font-semibold bg-gray-800 hover:bg-gray-900 text-white transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl"
