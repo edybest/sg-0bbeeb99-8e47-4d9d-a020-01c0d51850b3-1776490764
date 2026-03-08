@@ -189,7 +189,7 @@ export default function AverageScorePage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <ClubLogo size="sm" skipFetch />
+              <ClubLogo size="sm" />
               <div>
                 <h1 className="text-lg font-bold">Average Score</h1>
                 <p className="text-xs text-muted-foreground">Purata & Handicap</p>
