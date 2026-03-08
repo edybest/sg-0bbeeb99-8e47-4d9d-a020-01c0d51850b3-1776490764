@@ -143,6 +143,14 @@ export default function HallOfFamePage() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/member")}
+                  className="text-white hover:bg-white/20"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
                 <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-2xl font-bold">Hall of Fame</h1>
