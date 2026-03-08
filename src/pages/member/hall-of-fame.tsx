@@ -139,21 +139,16 @@ export default function HallOfFamePage() {
       <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
       <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <header className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg sticky top-0 z-40">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Link href="/member">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <div className="flex items-center gap-2">
-                  <Award className="h-6 w-6 text-yellow-600" />
-                  <h1 className="text-xl font-bold text-yellow-600">Hall of Fame</h1>
+                <ClubLogo size="sm" />
+                <div>
+                  <h1 className="text-2xl font-bold">Hall of Fame</h1>
+                  <p className="text-sm text-yellow-100">Atlet Terbaik AMBC</p>
                 </div>
               </div>
-              <ClubLogo size="sm" skipFetch />
             </div>
           </div>
         </header>
