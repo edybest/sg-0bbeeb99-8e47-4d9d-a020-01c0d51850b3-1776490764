@@ -754,9 +754,9 @@ export default function BlokPage() {
                           <CardContent className="p-4">
                             {/* Compact View */}
                             <div className="flex items-center gap-3">
-                              {/* Rank */}
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-sm">
-                                {index + 1}
+                              {/* Rank - Now with animated medals for top 3 */}
+                              <div className="flex-shrink-0">
+                                {getRankDisplay(entry.rank)}
                               </div>
 
                               {/* Avatar */}
@@ -1005,9 +1005,7 @@ export default function BlokPage() {
                               >
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center justify-center">
-                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-600 text-white font-bold text-sm">
-                                      {index + 1}
-                                    </span>
+                                    {getRankDisplay(entry.rank)}
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
