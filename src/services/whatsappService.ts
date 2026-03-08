@@ -3,37 +3,111 @@ import { supabase } from "@/integrations/supabase/client";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
-const WHATSAPP_API_URL = "https://wasenderapi.com/api/v1/messages";
-const WHATSAPP_API_KEY = "e23496fcb29374cafa1e66bb58203f64a52855a7dc67ac5240841be1c839afda";
-
-interface WhatsAppResponse {
-  success: boolean;
-  message?: string;
-  data?: {
-    id: string;
-    status: string;
-  };
-  error?: string;
-}
-
+/**
+ * Generate a random 6-digit TAC code
+ */
 function generateTACCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/**
+ * Format phone number to international format (60XXXXXXXXX)
+ */
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, "");
   
   if (cleaned.startsWith("0")) {
-    cleaned = "60" + cleaned.substring(1);
-  } else if (!cleaned.startsWith("60")) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  if (!cleaned.startsWith("60")) {
     cleaned = "60" + cleaned;
   }
   
   return cleaned;
 }
 
-function formatWhatsAppMessage(username: string, tacCode: string): string {
-  return `🎯 *AMBC CLUB - Kod Pengesahan Login*
+/**
+ * Store TAC code in database with 5-minute expiry
+ */
+async function storeTACCode(memberId: string, tacCode: string): Promise<void> {
+  const expiry = new Date();
+  expiry.setMinutes(expiry.getMinutes() + 5);
+
+  const { error } = await supabase
+    .from("members")
+    .update({
+      tac_code: tacCode,
+      tac_expiry: expiry.toISOString(),
+    })
+    .eq("id", memberId);
+
+  if (error) {
+    console.error("Error storing TAC code:", error);
+    throw new Error("Failed to store TAC code");
+  }
+}
+
+/**
+ * Verify TAC code from database
+ */
+async function verifyTACCode(
+  memberId: string,
+  tacCode: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: member, error } = await supabase
+      .from("members")
+      .select("tac_code, tac_expiry")
+      .eq("id", memberId)
+      .single();
+
+    if (error || !member) {
+      return { success: false, error: "Member tidak dijumpai" };
+    }
+
+    if (!member.tac_code || !member.tac_expiry) {
+      return { success: false, error: "Kod TAC tidak dijumpai. Sila minta kod baru." };
+    }
+
+    if (member.tac_code !== tacCode) {
+      return { success: false, error: "Kod TAC tidak sah" };
+    }
+
+    const expiryTime = new Date(member.tac_expiry);
+    const now = new Date();
+    if (now > expiryTime) {
+      return { success: false, error: "Kod TAC telah tamat tempoh. Sila minta kod baru." };
+    }
+
+    await supabase
+      .from("members")
+      .update({
+        tac_code: null,
+        tac_expiry: null,
+        is_verified: true,
+      })
+      .eq("id", memberId);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error verifying TAC code:", error);
+    return { success: false, error: "Ralat sistem. Sila cuba lagi." };
+  }
+}
+
+/**
+ * Send WhatsApp TAC code via our server-side API route
+ */
+async function sendWhatsAppTAC(
+  phone: string,
+  tacCode: string,
+  username: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedPhone = formatPhoneNumber(phone);
+    
+    const message = `🎯 *AMBC CLUB - Kod Pengesahan Login*
 
 Hai ${username}! 👋
 
@@ -46,115 +120,46 @@ Kod ini sah untuk 5 minit sahaja.
 ⚠️ Jangan kongsikan kod ini dengan sesiapa.
 
 Terima kasih! 🎳`;
+
+    console.log("Sending WhatsApp TAC request to server API for:", formattedPhone);
+
+    const response = await fetch("/api/send-whatsapp-tac", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        phone: formattedPhone,
+        message: message,
+      }),
+    });
+
+    const data = await response.json();
+    console.log("Server API Response:", { status: response.status, data });
+
+    if (!response.ok || !data.success) {
+      console.error("Failed to send WhatsApp TAC:", data);
+      return {
+        success: false,
+        error: data.error || "Gagal menghantar mesej WhatsApp. Sila cuba lagi.",
+      };
+    }
+
+    console.log("WhatsApp TAC sent successfully");
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending WhatsApp TAC:", error);
+    return {
+      success: false,
+      error: "Ralat sistem. Sila cuba lagi.",
+    };
+  }
 }
 
 export const whatsappService = {
-  storeTACCode: async (memberId: string, tacCode: string): Promise<boolean> => {
-    try {
-      // 5 minutes expiry
-      const expiry = new Date();
-      expiry.setMinutes(expiry.getMinutes() + 5);
-
-      const { error } = await supabase
-        .from("members")
-        .update({
-          tac_code: tacCode,
-          tac_expiry: expiry.toISOString(),
-        })
-        .eq("id", memberId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error("Error storing TAC code:", error);
-      throw error;
-    }
-  },
-
-  verifyTACCode: async (memberId: string, tacCode: string): Promise<{ valid: boolean; error?: string }> => {
-    try {
-      const { data: member, error } = await supabase
-        .from("members")
-        .select("tac_code, tac_expiry")
-        .eq("id", memberId)
-        .single();
-
-      if (error || !member) {
-        return { valid: false, error: "Member tidak dijumpai" };
-      }
-
-      if (!member.tac_code || member.tac_code !== tacCode) {
-        return { valid: false, error: "Kod TAC tidak sah" };
-      }
-
-      if (!member.tac_expiry || new Date(member.tac_expiry) < new Date()) {
-        return { valid: false, error: "Kod TAC telah tamat tempoh. Sila minta kod baru." };
-      }
-
-      // Clear TAC after successful verification
-      await supabase
-        .from("members")
-        .update({
-          tac_code: null,
-          tac_expiry: null,
-        })
-        .eq("id", memberId);
-
-      return { valid: true };
-    } catch (error) {
-      console.error("Error verifying TAC code:", error);
-      return { valid: false, error: "Ralat sistem semasa verify TAC" };
-    }
-  },
-
-  sendWhatsAppTAC: async (phone: string, tacCode: string, username: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      if (!phone) {
-        return { 
-          success: false, 
-          error: "Nombor telefon tidak dijumpai." 
-        };
-      }
-
-      const formattedPhone = formatPhoneNumber(phone);
-      const message = formatWhatsAppMessage(username, tacCode);
-
-      console.log("Sending WhatsApp TAC to:", formattedPhone);
-
-      const response = await fetch(WHATSAPP_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${WHATSAPP_API_KEY}`,
-        },
-        body: JSON.stringify({
-          phone: formattedPhone,
-          text: message,
-        }),
-      });
-
-      const data = await response.json() as WhatsAppResponse;
-
-      if (!response.ok || !data.success) {
-        console.error("WhatsApp API error:", data);
-        return { 
-          success: false, 
-          error: data.error || data.message || "Gagal menghantar mesej WhatsApp. Sila cuba lagi." 
-        };
-      }
-
-      console.log("WhatsApp TAC sent successfully!");
-      return { success: true };
-
-    } catch (error) {
-      console.error("Error sending WhatsApp TAC:", error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : "Ralat sistem. Sila cuba lagi." 
-      };
-    }
-  },
-
+  storeTACCode,
+  verifyTACCode,
+  sendWhatsAppTAC,
   generateTACCode,
   formatPhoneNumber,
 };

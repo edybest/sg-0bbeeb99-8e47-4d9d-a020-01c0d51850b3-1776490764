@@ -224,13 +224,13 @@ export const authService = {
    */
   verifyWhatsAppTAC: async (memberId: string, tacCode: string) => {
     try {
-      // Verify TAC code
+      // Verify TAC
       const verification = await whatsappService.verifyTACCode(memberId, tacCode);
-
-      if (!verification.valid) {
-        return {
-          data: null,
-          error: { message: verification.error || "Kod TAC tidak sah" }
+      
+      if (!verification.success) {
+        return { 
+          user: null, 
+          error: new Error(verification.error || "Kod TAC tidak sah") 
         };
       }
 
