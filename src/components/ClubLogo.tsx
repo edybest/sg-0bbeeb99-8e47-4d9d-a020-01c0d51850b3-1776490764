@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ClubLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
+  skipFetch?: boolean;
 }
 
-export function ClubLogo({ size = "md" }: ClubLogoProps) {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
+  const [logoData, setLogoData] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!skipFetch);
   const [error, setError] = useState(false);
 
   const sizeClasses = {
@@ -19,7 +20,18 @@ export function ClubLogo({ size = "md" }: ClubLogoProps) {
   };
 
   useEffect(() => {
+    if (skipFetch) {
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        setError(true);
+        setLoading(false);
+      }
+    }, 3000);
 
     async function fetchLogo() {
       try {
@@ -37,7 +49,7 @@ export function ClubLogo({ size = "md" }: ClubLogoProps) {
           return;
         }
 
-        setLogoUrl(data.setting_value);
+        setLogoData(data.setting_value);
       } catch (err) {
         if (isMounted) {
           setError(true);
@@ -64,7 +76,7 @@ export function ClubLogo({ size = "md" }: ClubLogoProps) {
     );
   }
 
-  if (error || !logoUrl) {
+  if (error || !logoData) {
     return (
       <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
         <span className="text-white font-bold text-xs">AMBC</span>
@@ -75,7 +87,7 @@ export function ClubLogo({ size = "md" }: ClubLogoProps) {
   return (
     <div className={`${sizeClasses[size]} relative rounded-full overflow-hidden shadow-lg`}>
       <Image
-        src={logoUrl}
+        src={logoData}
         alt="AMBC Club Logo"
         fill
         className="object-cover"
