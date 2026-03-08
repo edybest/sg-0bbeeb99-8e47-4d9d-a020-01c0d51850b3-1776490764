@@ -110,6 +110,7 @@ export function MemberManagement() {
       handicap: 0,
       avatar_base64: ""
     });
+    setAvatarPreview(null);
     setDialogOpen(true);
   }
 
@@ -126,6 +127,7 @@ export function MemberManagement() {
       handicap: member.handicap,
       avatar_base64: ""
     });
+    setAvatarPreview(member.avatar_url);
     setDialogOpen(true);
   }
 
@@ -236,6 +238,21 @@ export function MemberManagement() {
 
       await loadMembers();
       setDialogOpen(false);
+      
+      // Reset form states after successful save
+      setEditingMember(null);
+      setAvatarPreview(null);
+      setFormData({
+        username: "",
+        email: "",
+        full_name: "",
+        phone: "+60",
+        birthday: "",
+        sex: "men",
+        bowling_technique: "",
+        handicap: 0,
+        avatar_base64: ""
+      });
       
       toast({
         title: "✅ Berjaya",
