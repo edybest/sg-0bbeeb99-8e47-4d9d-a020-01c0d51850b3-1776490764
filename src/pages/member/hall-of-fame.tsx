@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Crown, Star, Sparkles, Loader2, Award } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
+import confetti from "canvas-confetti";
 
 type Champion = {
   year: number;
@@ -33,6 +34,34 @@ export default function HallOfFamePage() {
 
   useEffect(() => {
     loadChampions();
+    
+    // Trigger confetti celebration when page loads
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ["#FFD700", "#FFA500", "#FF6347"]
+      });
+      
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ["#FFD700", "#FFA500", "#FF6347"]
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    frame();
   }, []);
 
   async function loadChampions() {
