@@ -171,17 +171,14 @@ export default function MemberDashboard() {
             </Link>
 
             {/* Hall of Fame Card */}
-            <Link href="/member/hall-of-fame" className="block transition-transform hover:scale-105">
-              <Card className="h-full cursor-pointer hover:shadow-lg">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Hall of Fame</CardTitle>
-                  <Award className="h-4 w-4 text-purple-600" />
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Champions History</p>
-                </CardContent>
-              </Card>
-            </Link>
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/member/hall-of-fame")}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-600" />
+                  Hall of Fame
+                </CardTitle>
+              </CardHeader>
+            </Card>
 
             {/* Lane Card */}
             <Link href="/member/lane" className="block transition-transform hover:scale-105">

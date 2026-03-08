@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { whatsappService } from "./whatsappService";
 
 type Member = Tables<"members">;
 
@@ -159,6 +160,162 @@ export const authService = {
       return { success: true, error: null };
     } catch (error: any) {
       return { success: false, error };
+    }
+  },
+
+  /**
+   * 🆕 Send WhatsApp TAC code for login
+   */
+  sendWhatsAppTAC: async (identifier: string) => {
+    try {
+      // Find member by username, email, or phone
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("*")
+        .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+        .maybeSingle();
+
+      if (memberError || !member) {
+        return {
+          data: null,
+          error: { message: "❌ Ahli tidak dijumpai. Sila check username/email/phone atau daftar akaun baru." }
+        };
+      }
+
+      // Check if member has phone number
+      if (!member.phone) {
+        return {
+          data: null,
+          error: { message: "❌ Ahli tidak mempunyai nombor telefon. Sila hubungi admin untuk update." }
+        };
+      }
+
+      // Generate TAC code
+      const tacCode = whatsappService.generateTACCode();
+
+      // Store TAC in database
+      await whatsappService.storeTACCode(member.id, tacCode);
+
+      // Send via WhatsApp
+      await whatsappService.sendWhatsAppTAC(member.phone, tacCode, member.username);
+
+      return {
+        data: { 
+          memberId: member.id,
+          phone: member.phone,
+          username: member.username,
+        },
+        error: null,
+        message: "✅ Kod TAC telah dihantar ke WhatsApp anda!"
+      };
+    } catch (error: any) {
+      console.error("Send WhatsApp TAC error:", error);
+      return { 
+        data: null, 
+        error: { message: error.message || "❌ Gagal menghantar kod TAC. Sila cuba lagi." }
+      };
+    }
+  },
+
+  /**
+   * 🆕 Verify WhatsApp TAC and login
+   */
+  verifyWhatsAppTAC: async (memberId: string, tacCode: string) => {
+    try {
+      // Verify TAC code
+      const verification = await whatsappService.verifyTACCode(memberId, tacCode);
+
+      if (!verification.valid) {
+        return {
+          data: null,
+          error: { message: verification.error || "Kod TAC tidak sah" }
+        };
+      }
+
+      // Get member data
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("*")
+        .eq("id", memberId)
+        .single();
+
+      if (memberError || !member) {
+        return {
+          data: null,
+          error: { message: "Member tidak dijumpai" }
+        };
+      }
+
+      // Auto-verify member if not verified yet
+      if (!member.is_verified) {
+        await supabase
+          .from("members")
+          .update({ 
+            is_verified: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", memberId);
+      }
+
+      // Create or sign in user
+      if (!member.email) {
+        return {
+          data: null,
+          error: { message: "Member tidak mempunyai email. Sila hubungi admin." }
+        };
+      }
+
+      // Check if user already exists in auth
+      const { data: existingUser } = await supabase.auth.admin.getUserById(member.user_id || "");
+
+      if (existingUser) {
+        // User exists, create session (admin function not available, use OTP as fallback)
+        return {
+          data: { member, needsPasswordSetup: true },
+          error: null,
+          message: "✅ TAC verified! Sila set password untuk login.",
+        };
+      }
+
+      // Create new auth user with temporary password
+      const tempPassword = Math.random().toString(36).slice(-12) + "Aa1!";
+      
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: member.email,
+        password: tempPassword,
+        options: {
+          emailRedirectTo: getRedirectUrl(),
+          data: {
+            username: member.username,
+            full_name: member.full_name,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Link user_id to member
+        await supabase
+          .from("members")
+          .update({ 
+            user_id: authData.user.id,
+            is_verified: true,
+          })
+          .eq("id", memberId);
+      }
+
+      return {
+        data: { member, user: authData.user },
+        error: null,
+        message: "✅ Login berjaya!",
+      };
+    } catch (error: any) {
+      console.error("Verify WhatsApp TAC error:", error);
+      return { 
+        data: null, 
+        error: { message: error.message || "❌ Gagal verify kod TAC. Sila cuba lagi." }
+      };
     }
   },
 
