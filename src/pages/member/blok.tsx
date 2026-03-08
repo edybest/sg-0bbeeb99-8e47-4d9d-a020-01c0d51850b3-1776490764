@@ -565,7 +565,7 @@ export default function BlokPage() {
                 ease: "easeInOut"
               }}
             >
-              <Award className="w-8 h-8 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.6)]" />
+              <Trophy className="w-8 h-8 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.6)]" />
             </motion.div>
             <motion.div
               animate={{
