@@ -124,7 +124,7 @@ export default function HallOfFamePage() {
                   <h1 className="text-xl font-bold text-yellow-600">Hall of Fame</h1>
                 </div>
               </div>
-              <ClubLogo size="sm" />
+              <ClubLogo size="sm" skipFetch />
             </div>
           </div>
         </header>
