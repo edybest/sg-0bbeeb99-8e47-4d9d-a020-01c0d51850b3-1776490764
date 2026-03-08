@@ -285,7 +285,7 @@ export default function ProfilePage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <ClubLogo size="sm" />
+              <ClubLogo size="sm" skipFetch />
               <div>
                 <h1 className="text-lg font-bold">Profile</h1>
                 <p className="text-xs text-muted-foreground">Maklumat Ahli</p>

@@ -440,7 +440,7 @@ export default function BlokPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 
-                <ClubLogo size="sm" />
+                <ClubLogo size="sm" skipFetch />
                 
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>

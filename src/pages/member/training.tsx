@@ -486,7 +486,7 @@ export default function TrainingPage() {
                   </Button>
                 </Link>
                 <MobileNav />
-                <ClubLogo size="sm" />
+                <ClubLogo size="sm" skipFetch />
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold text-red-600">Training</h1>
                   <p className="text-xs md:text-sm text-gray-600">Practice Scores</p>
