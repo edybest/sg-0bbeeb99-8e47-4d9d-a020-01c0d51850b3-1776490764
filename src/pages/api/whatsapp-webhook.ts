@@ -1,71 +1,108 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+type FonteWebhookData = {
+  device?: string;
+  sender?: string;
+  message?: string;
+  member?: {
+    jid: string;
+    name: string;
+  };
+  data?: {
+    body: string;
+    from: string;
+  };
+  status?: string;
+  id?: string;
+};
+
 type WebhookResponse = {
   success: boolean;
   message: string;
-  received?: unknown;
 };
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WebhookResponse>
 ) {
-  // Only accept POST requests
+  // Only allow POST requests
   if (req.method !== "POST") {
-    return res.status(405).json({ 
-      success: false, 
-      message: "Method not allowed - Only POST accepted" 
+    return res.status(405).json({
+      success: false,
+      message: "Method not allowed - Only POST requests accepted",
     });
   }
 
   try {
-    const webhookData = req.body;
+    const webhookData = req.body as FonteWebhookData;
 
-    console.log("\n=== WHATSAPP WEBHOOK RECEIVED ===");
+    console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
     console.log("Timestamp:", new Date().toISOString());
     console.log("Headers:", JSON.stringify(req.headers, null, 2));
     console.log("Body:", JSON.stringify(webhookData, null, 2));
     console.log("=== END WEBHOOK ===\n");
 
-    // Process webhook based on event type
-    if (webhookData.event) {
-      console.log("Event Type:", webhookData.event);
+    // Extract message info from Fonnte webhook
+    const sender = webhookData.sender || webhookData.member?.jid || webhookData.data?.from;
+    const messageText = webhookData.message || webhookData.data?.body;
+    const status = webhookData.status;
+    const messageId = webhookData.id;
+
+    if (sender) {
+      console.log("📱 Sender:", sender);
+    }
+
+    if (messageText) {
+      console.log("💬 Message:", messageText);
+    }
+
+    if (status) {
+      console.log("📊 Status:", status);
       
-      switch (webhookData.event) {
-        case "message.sent":
+      // Handle different message statuses
+      switch (status.toLowerCase()) {
+        case "sent":
           console.log("✅ Message sent successfully");
           break;
-        case "message.delivered":
+        case "delivered":
           console.log("✅ Message delivered to recipient");
           break;
-        case "message.read":
+        case "read":
           console.log("✅ Message read by recipient");
           break;
-        case "message.failed":
-          console.error("❌ Message failed:", webhookData.error);
+        case "failed":
+          console.error("❌ Message failed to send");
           break;
         default:
-          console.log("ℹ️ Unknown event type:", webhookData.event);
+          console.log("ℹ️ Status:", status);
       }
     }
 
-    // Store webhook data if needed
-    // You can add database storage here to track message delivery status
+    if (messageId) {
+      console.log("🆔 Message ID:", messageId);
+    }
+
+    // Additional webhook processing can be added here
+    // For example:
+    // - Store delivery status in database
+    // - Track message analytics
+    // - Handle incoming replies
+    // - Update member communication history
 
     // Always return 200 OK to acknowledge webhook receipt
+    // This prevents Fonnte from retrying the webhook
     return res.status(200).json({
       success: true,
-      message: "Webhook received and processed",
-      received: webhookData,
+      message: "Webhook received and processed successfully",
     });
+
   } catch (error) {
-    console.error("\n❌ WEBHOOK ERROR");
+    console.error("\n=== WEBHOOK PROCESSING ERROR ===");
     console.error("Error:", error);
-    console.error("Error Type:", error instanceof Error ? error.constructor.name : typeof error);
-    console.error("Error Message:", error instanceof Error ? error.message : String(error));
-    console.log("=== END WEBHOOK ERROR ===\n");
-    
-    // Still return 200 to prevent webhook retries
+    console.error("Stack:", error instanceof Error ? error.stack : "No stack trace");
+
+    // Even on error, return 200 to prevent webhook retries
+    // Log the error but acknowledge receipt
     return res.status(200).json({
       success: false,
       message: "Webhook processing error",
