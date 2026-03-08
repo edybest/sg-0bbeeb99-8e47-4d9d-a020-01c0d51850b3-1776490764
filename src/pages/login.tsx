@@ -16,7 +16,7 @@ export default function LoginPage() {
             <ClubLogo size="xl" skipFetch={true} />
           </div>
 
-          {/* WhatsApp Login Form - REFRESHED 2026-03-08 */}
+          {/* WhatsApp Login Form */}
           <WhatsAppLoginForm />
         </div>
       </div>

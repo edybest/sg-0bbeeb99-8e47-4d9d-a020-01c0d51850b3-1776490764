@@ -35,55 +35,22 @@ interface GameWithDate {
 
 export default function FiveFivePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [member, setMember] = useState<Member | null>(null);
   const [games, setGames] = useState<GameWithDate[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [participants, setParticipants] = useState<FiveFiveParticipant[]>([]);
   const [selectedGame, setSelectedGame] = useState<GameWithDate | null>(null);
 
   useEffect(() => {
-    checkAuth();
+    loadGamesWithFiveFive();
   }, []);
-
-  useEffect(() => {
-    if (member) {
-      loadGamesWithFiveFive();
-    }
-  }, [member]);
 
   useEffect(() => {
     if (selectedGameId) {
       loadFiveFiveData(selectedGameId);
     }
   }, [selectedGameId]);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        router.push("/login");
-        return;
-      }
-
-      const { data: memberData, error } = await supabase.
-      from("members").
-      select("*").
-      eq("user_id", session.user.id).
-      single();
-
-      if (error || !memberData) {
-        router.push("/login");
-        return;
-      }
-
-      setMember(memberData);
-    } catch (err) {
-      console.error("Auth error:", err);
-      router.push("/login");
-    }
-  };
 
   const loadGamesWithFiveFive = async () => {
     setLoading(true);
@@ -209,10 +176,6 @@ export default function FiveFivePage() {
   const formatCurrency = (amount: number) => {
     return `RM ${amount.toFixed(2)}`;
   };
-
-  if (!member) {
-    return null;
-  }
 
   return (
     <>

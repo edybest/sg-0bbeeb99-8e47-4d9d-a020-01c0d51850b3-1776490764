@@ -32,16 +32,8 @@ export default function HallOfFamePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
     loadChampions();
   }, []);
-
-  async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push("/login");
-    }
-  }
 
   async function loadChampions() {
     try {

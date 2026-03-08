@@ -90,7 +90,6 @@ export default function BlokPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   useEffect(() => {
-    checkAuth();
     loadGames();
   }, []);
 
@@ -99,13 +98,6 @@ export default function BlokPage() {
       loadLeaderboard(selectedGame);
     }
   }, [selectedGame]);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push("/login");
-    }
-  };
 
   const loadGames = async () => {
     try {
