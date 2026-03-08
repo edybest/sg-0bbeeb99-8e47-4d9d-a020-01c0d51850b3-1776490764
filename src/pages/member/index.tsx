@@ -74,7 +74,7 @@ export default function MemberDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <MobileNav />
-                <ClubLogo size="sm" skipFetch />
+                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
                   <p className="text-sm text-gray-600">Member Dashboard</p>
@@ -140,7 +140,7 @@ export default function MemberDashboard() {
                     </p>
                   )}
                 </div>
-                <ClubLogo size="xl" skipFetch />
+                <ClubLogo size="xl" />
               </div>
             </CardContent>
           </Card>
