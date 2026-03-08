@@ -170,7 +170,7 @@ export default function BlokPage() {
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-4">
                 <MobileNav />
-                <ClubLogo size="sm" skipFetch />
+                <ClubLogo size="sm" />
                 <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function BlokPage() {
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-4">
                 <MobileNav />
-                <ClubLogo size="sm" skipFetch />
+                <ClubLogo size="sm" />
                 <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
               </div>
             </div>
@@ -484,7 +484,7 @@ export default function BlokPage() {
             </motion.div>
             <motion.div
               animate={{
-                scale: [1, 1.05, 1],
+                scale: [1, 1.08, 1],
                 opacity: [0.5, 1, 0.5],
               }}
               transition={{
@@ -664,7 +664,7 @@ export default function BlokPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 
-                <ClubLogo size="sm" skipFetch />
+                <ClubLogo size="sm" />
                 
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
