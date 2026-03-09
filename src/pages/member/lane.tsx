@@ -55,6 +55,7 @@ export default function LanePage() {
   useEffect(() => {
     if (selectedGameId) {
       loadLaneAssignments();
+      loadSpinResults(selectedGameId);
     }
   }, [selectedGameId]);
 
