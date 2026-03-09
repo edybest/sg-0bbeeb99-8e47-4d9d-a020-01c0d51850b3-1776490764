@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+);
 
 export function WhatsAppLoginForm() {
   const router = useRouter();
@@ -14,13 +20,46 @@ export function WhatsAppLoginForm() {
   const [sendingTAC, setSendingTAC] = useState(false);
   const [tacSent, setTacSent] = useState(false);
   const [serverTacCode, setServerTacCode] = useState(""); // Store TAC from server
+  const [lastTacSentTime, setLastTacSentTime] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [formData, setFormData] = useState({
     username: "",
     phone: "",
     tac: "",
   });
 
+  // Cooldown timer effect
+  useEffect(() => {
+    if (lastTacSentTime && cooldownRemaining > 0) {
+      const timer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - lastTacSentTime) / 1000);
+        const remaining = Math.max(0, 120 - elapsed); // 2 minutes = 120 seconds
+        setCooldownRemaining(remaining);
+        
+        if (remaining === 0) {
+          clearInterval(timer);
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [lastTacSentTime, cooldownRemaining]);
+
   async function handleSendTAC() {
+    // Check cooldown
+    if (lastTacSentTime) {
+      const elapsed = Math.floor((Date.now() - lastTacSentTime) / 1000);
+      if (elapsed < 120) {
+        const remaining = 120 - elapsed;
+        toast({
+          title: "Sila Tunggu",
+          description: `Sila tunggu ${remaining} saat sebelum memohon kod TAC baru`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (!formData.username || !formData.phone) {
       toast({
         title: "Error",
@@ -73,6 +112,9 @@ export function WhatsAppLoginForm() {
         setServerTacCode(data.data.code);
       }
 
+      const now = Date.now();
+      setLastTacSentTime(now);
+      setCooldownRemaining(120);
       setTacSent(true);
       toast({
         title: "Kod TAC Dihantar",
@@ -126,21 +168,35 @@ export function WhatsAppLoginForm() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/whatsapp-webhook", {
+      // Get magic link token hash from server
+      const response = await fetch("/api/generate-login-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "verify",
           username: formData.username,
-          phone: formData.phone,
-          tac: formData.tac,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || "Gagal mendapatkan token login");
+      }
+
+      // Verify OTP using the token hash
+      if (data.email && data.token_hash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: data.email,
+          token_hash: data.token_hash,
+          type: 'email',
+        });
+
+        if (verifyError) {
+          console.error("Verification error:", verifyError);
+          throw new Error("Gagal verify session login");
+        }
+      } else {
+        throw new Error("Token login tidak sah");
       }
 
       toast({
@@ -259,9 +315,12 @@ export function WhatsAppLoginForm() {
                 }}
                 variant="ghost"
                 className="w-full text-sm"
-                disabled={loading}
+                disabled={loading || cooldownRemaining > 0}
               >
-                Hantar semula kod TAC
+                {cooldownRemaining > 0 
+                  ? `Tunggu ${cooldownRemaining}s untuk hantar semula`
+                  : "Hantar semula kod TAC"
+                }
               </Button>
 
               {/* Login Button */}
