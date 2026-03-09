@@ -271,7 +271,7 @@ export default function UndiLane() {
   }
 
   async function handleResetSpins() {
-    if (!activeGameId) return;
+    if (!activeGameId || !memberId || !username) return;
 
     try {
       setResetting(true);
@@ -282,7 +282,7 @@ export default function UndiLane() {
         description: "Semua undian telah direset. Ahli boleh undi semula.",
       });
 
-      await loadData();
+      await loadData(memberId, username);
     } catch (error) {
       console.error("Error resetting spins:", error);
       toast({
