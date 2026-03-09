@@ -27,6 +27,7 @@ export default function UndiLane() {
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [availableLanes, setAvailableLanes] = useState<LaneAssignment[]>([]);
   const [myResult, setMyResult] = useState<SpinResult | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -65,20 +66,37 @@ export default function UndiLane() {
       }
 
       setMemberId(member.id);
-      await loadLaneData(member.id);
+
+      // Get active game
+      const { data: game, error: gameError } = await supabase
+        .from("games")
+        .select("id")
+        .in("status", ["upcoming", "ongoing"])
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (gameError || !game) {
+        setLoading(false);
+        return;
+      }
+
+      setActiveGameId(game.id);
+      await loadLaneData(member.id, game.id);
     } catch (error) {
       console.error("Auth check error:", error);
       router.push("/login");
     }
   }
 
-  async function loadLaneData(currentMemberId: string) {
+  async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
       // Check if member already spun
       const { data: existingResult, error: resultError } = await supabase
         .from("lane_spin_results")
         .select("*")
         .eq("member_id", currentMemberId)
+        .eq("game_id", gameId)
         .maybeSingle();
 
       if (resultError) {
@@ -93,7 +111,8 @@ export default function UndiLane() {
         // Load available lanes (not yet spun)
         const { data: spunResults, error: spunError } = await supabase
           .from("lane_spin_results")
-          .select("lane_position");
+          .select("lane_position")
+          .eq("game_id", gameId);
 
         if (spunError) {
           console.error("Error loading spun results:", spunError);
@@ -104,7 +123,7 @@ export default function UndiLane() {
         const { data: assignments, error: assignError } = await supabase
           .from("lane_assignments")
           .select("*")
-          .not("lane_position", "in", `(${spunLanes.length > 0 ? spunLanes.map(l => `'${l}'`).join(",") : "''"})`)
+          .eq("game_id", gameId)
           .order("lane_position");
 
         if (assignError) {
@@ -115,7 +134,11 @@ export default function UndiLane() {
             variant: "destructive",
           });
         } else {
-          setAvailableLanes(assignments || []);
+          // Filter out lanes that have already been spun
+          const available = (assignments || []).filter(
+            a => !spunLanes.includes(a.lane_position)
+          );
+          setAvailableLanes(available);
         }
       }
     } catch (error) {
@@ -131,7 +154,7 @@ export default function UndiLane() {
   }
 
   async function spinWheel() {
-    if (availableLanes.length === 0 || !memberId || spinning) return;
+    if (availableLanes.length === 0 || !memberId || !activeGameId || spinning) return;
 
     setSpinning(true);
     setShowResult(false);
@@ -154,8 +177,8 @@ export default function UndiLane() {
         const { data: result, error: saveError } = await supabase
           .from("lane_spin_results")
           .insert({
+            game_id: activeGameId,
             member_id: memberId,
-            lane_assignment_id: selectedAssignment.id,
             lane_position: selectedAssignment.lane_position
           })
           .select()

@@ -34,6 +34,9 @@ export default function LanePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeGame, setActiveGame] = useState<any>(null);
+  const [lanes, setLanes] = useState<any[]>([]);
+  const [spinResults, setSpinResults] = useState<any[]>([]);
   
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState("");
@@ -65,34 +68,36 @@ export default function LanePage() {
         return;
       }
 
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", session.user.id)
-        .single();
+      if (session) {
+        const { data: member, error: memberError } = await supabase
+          .from("members")
+          .select("is_admin")
+          .eq("user_id", session.user.id)
+          .single();
 
-      if (memberError) {
-        console.error("Member lookup error:", memberError);
-        toast({
-          title: "Error",
-          description: "Failed to load member data. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+        if (memberError) {
+          console.error("Member lookup error:", memberError);
+          toast({
+            title: "Error",
+            description: "Failed to load member data. Please try again.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (!member) {
+          console.error("No member found for user");
+          router.push("/login");
+          return;
+        }
+
+        if (member?.is_admin) {
+          setIsAdmin(true);
+        }
+
+        await loadData();
       }
-
-      if (!member) {
-        console.error("No member found for user");
-        router.push("/login");
-        return;
-      }
-
-      if (member?.is_admin) {
-        setIsAdmin(true);
-      }
-
-      await loadData();
     } catch (error) {
       console.error("Auth check error:", error);
       toast({
@@ -118,8 +123,10 @@ export default function LanePage() {
       setMembers(membersData);
       
       // Auto select latest game
-      if (gamesData.length > 0) {
+      if (gamesData && gamesData.length > 0) {
+        setActiveGame(gamesData[0]);
         setSelectedGameId(gamesData[0].id);
+        await loadSpinResults(gamesData[0].id);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -130,6 +137,26 @@ export default function LanePage() {
       });
     }
   }
+
+  async function loadSpinResults(gameId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("lane_spin_results")
+        .select("lane_position, member_id")
+        .eq("game_id", gameId);
+        
+      if (error) throw error;
+      setSpinResults(data || []);
+    } catch (error) {
+      console.error("Error loading spin results:", error);
+    }
+  }
+
+  // Helper to check if a lane is revealed
+  const isLaneRevealed = (lanePosition: string, memberId: string) => {
+    if (isAdmin) return true;
+    return spinResults.some(r => r.lane_position === lanePosition && r.member_id === memberId);
+  };
 
   async function loadLaneAssignments() {
     try {
@@ -230,6 +257,9 @@ export default function LanePage() {
 
   function renderLaneSlot(lanePosition: string) {
     const assignment = getMemberAtPosition(lanePosition);
+    
+    // Check if lane is revealed
+    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id) : false;
 
     return (
       <div
@@ -242,20 +272,31 @@ export default function LanePage() {
         {assignment ? (
           <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-gray-200 rounded px-2 py-1 shadow-sm">
             <div className="flex items-center gap-2 overflow-hidden">
-              {assignment.member.avatar_url ? (
-                <Image
-                  src={assignment.member.avatar_url}
-                  alt={assignment.member.username}
-                  width={24}
-                  height={24}
-                  className="rounded-full shrink-0"
-                />
+              {revealed ? (
+                <>
+                  {assignment.member.avatar_url ? (
+                    <Image
+                      src={assignment.member.avatar_url}
+                      alt={assignment.member.username}
+                      width={24}
+                      height={24}
+                      className="rounded-full shrink-0"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {assignment.member.username[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-xs font-medium truncate">{assignment.member.username}</span>
+                </>
               ) : (
-                <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                  {assignment.member.username[0].toUpperCase()}
-                </div>
+                <>
+                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">
+                    ?
+                  </div>
+                  <span className="text-xs font-medium text-gray-500 italic truncate">Belum Undi</span>
+                </>
               )}
-              <span className="text-xs font-medium truncate">{assignment.member.username}</span>
             </div>
             
             {isAdmin && (
