@@ -38,7 +38,7 @@ interface SpinResult {
 export default function UndiLane() {
   const router = useRouter();
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -53,10 +53,14 @@ export default function UndiLane() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   useEffect(() => {
-    if (router.isReady) {
-      loadData();
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login");
+      } else {
+        loadData();
+      }
     }
-  }, [router.isReady]);
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -68,19 +72,12 @@ export default function UndiLane() {
   async function loadData() {
     try {
       setLoading(true);
-      
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        router.push("/login");
-        return;
-      }
 
+      // Get current member directly
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("id, username")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single();
 
       if (memberError || !member) {
@@ -123,8 +120,13 @@ export default function UndiLane() {
       setActiveGameId(game.id);
       await loadLaneData(member.id, game.id);
     } catch (error) {
-      console.error("Auth check error:", error);
-      router.push("/login");
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load data. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
     }
   }
 

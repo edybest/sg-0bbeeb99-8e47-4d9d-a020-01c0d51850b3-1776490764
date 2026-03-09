@@ -65,6 +65,7 @@ type TrainingScoreWithDate = any;
 export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<TrainingScoreWithDate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -92,34 +93,27 @@ export default function TrainingPage() {
   const paginatedScores = scores.slice(startIndex, endIndex);
 
   useEffect(() => {
-    if (router.isReady) {
-      loadMemberData();
+    if (!authLoading) {
+      if (!user) {
+        router.push("/login");
+      } else {
+        loadMemberData();
+      }
     }
-  }, [router.isReady]);
+  }, [authLoading, user, router]);
 
   async function loadMemberData() {
     try {
       setLoading(true);
-      
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        router.push("/login");
-        return;
-      }
 
-      console.log("Session found, loading member data");
-
-      // Get current member
+      // Get current member directly
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("id")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single();
 
-      if (memberError) {
+      if (memberError || !member) {
         console.error("Member lookup error:", memberError);
         toast({
           title: "Error",
@@ -130,19 +124,13 @@ export default function TrainingPage() {
         return;
       }
 
-      if (!member) {
-        console.error("No member found for user");
-        router.push("/login");
-        return;
-      }
-
       setMemberId(member.id);
       await loadScores();
     } catch (error) {
-      console.error("Auth check error:", error);
+      console.error("Error loading member data:", error);
       toast({
         title: "Error",
-        description: "Authentication error. Please login again.",
+        description: "Failed to load data. Please try again.",
         variant: "destructive",
       });
     } finally {
