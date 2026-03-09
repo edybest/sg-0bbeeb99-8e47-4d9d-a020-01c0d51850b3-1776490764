@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trophy, ArrowLeft } from "lucide-react";
+import { Loader2, Trophy, ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -28,12 +29,14 @@ export default function UndiLane() {
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(null);
+  const [username, setUsername] = useState<string>("");
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [availableLanes, setAvailableLanes] = useState<LaneAssignment[]>([]);
   const [myResult, setMyResult] = useState<SpinResult | null>(null);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [selectedLane, setSelectedLane] = useState<string | null>(null);
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
   useEffect(() => {
     if (router.isReady) {
@@ -41,11 +44,18 @@ export default function UndiLane() {
     }
   }, [router.isReady]);
 
+  // Initialize audio context
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      setAudioContext(ctx);
+    }
+  }, []);
+
   async function loadData() {
     try {
       setLoading(true);
       
-      // Check session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -54,12 +64,9 @@ export default function UndiLane() {
         return;
       }
 
-      console.log("Session found, loading undi lane data");
-
-      // Get current member
       const { data: member, error: memberError } = await supabase
         .from("members")
-        .select("id")
+        .select("id, username")
         .eq("user_id", session.user.id)
         .single();
 
@@ -75,16 +82,14 @@ export default function UndiLane() {
       }
 
       setMemberId(member.id);
+      setUsername(member.username);
 
-      // Get latest game (regardless of status)
       const { data: game, error: gameError } = await supabase
         .from("games")
         .select("id, game_date")
         .order("game_date", { ascending: false })
         .limit(1)
         .maybeSingle();
-
-      console.log("Game query:", { game, error: gameError });
 
       if (gameError) {
         console.error("Error loading game:", gameError);
@@ -98,7 +103,6 @@ export default function UndiLane() {
       }
 
       if (!game) {
-        console.log("No game found");
         setLoading(false);
         return;
       }
@@ -113,9 +117,6 @@ export default function UndiLane() {
 
   async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
-      console.log("Loading lane data for:", { currentMemberId, gameId });
-
-      // Check if member already spun
       const { data: existingResult, error: resultError } = await supabase
         .from("lane_spin_results")
         .select("*")
@@ -127,14 +128,11 @@ export default function UndiLane() {
         console.error("Error checking spin result:", resultError);
       }
 
-      console.log("Existing spin result:", existingResult);
-
       if (existingResult) {
         setMyResult(existingResult);
         setSelectedLane(existingResult.lane_position);
         setShowResult(true);
       } else {
-        // Load available lanes (not yet spun)
         const { data: spunResults, error: spunError } = await supabase
           .from("lane_spin_results")
           .select("lane_position")
@@ -144,9 +142,7 @@ export default function UndiLane() {
           console.error("Error loading spun results:", spunError);
         }
 
-        console.log("Spun results:", spunResults);
         const spunLanes = spunResults?.map(r => r.lane_position) || [];
-        console.log("Spun lanes:", spunLanes);
 
         const { data: assignments, error: assignError } = await supabase
           .from("lane_assignments")
@@ -162,12 +158,9 @@ export default function UndiLane() {
             variant: "destructive",
           });
         } else {
-          console.log("All assignments:", assignments);
-          // Filter out lanes that have already been spun
           const available = (assignments || []).filter(
             a => !spunLanes.includes(a.lane_position)
           );
-          console.log("Available lanes:", available);
           setAvailableLanes(available);
         }
       }
@@ -183,27 +176,66 @@ export default function UndiLane() {
     }
   }
 
+  // Play spin sound
+  function playSpinSound() {
+    if (!audioContext) return;
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 200;
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  }
+
+  // Play win sound
+  function playWinSound() {
+    if (!audioContext) return;
+
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C
+    
+    notes.forEach((freq, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.value = freq;
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + index * 0.15);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.3);
+
+      oscillator.start(audioContext.currentTime + index * 0.15);
+      oscillator.stop(audioContext.currentTime + index * 0.15 + 0.3);
+    });
+  }
+
   async function spinWheel() {
     if (availableLanes.length === 0 || !memberId || !activeGameId || spinning) return;
 
     setSpinning(true);
     setShowResult(false);
 
-    // Random lane selection
+    // Play spin sound
+    playSpinSound();
+
     const randomIndex = Math.floor(Math.random() * availableLanes.length);
     const selectedAssignment = availableLanes[randomIndex];
 
-    // Calculate rotation for animation (5-8 full spins + position)
-    const baseRotation = 360 * (5 + Math.random() * 3);
+    const baseRotation = 360 * (7 + Math.random() * 3);
     const segmentAngle = 360 / availableLanes.length;
     const targetRotation = baseRotation + (randomIndex * segmentAngle);
 
     setRotation(targetRotation);
 
-    // Wait for animation to complete
     setTimeout(async () => {
       try {
-        // Save result to database
         const { data: result, error: saveError } = await supabase
           .from("lane_spin_results")
           .insert({
@@ -225,12 +257,14 @@ export default function UndiLane() {
           return;
         }
 
+        // Play win sound
+        playWinSound();
+
         setMyResult(result);
         setSelectedLane(selectedAssignment.lane_position);
         setShowResult(true);
         setSpinning(false);
 
-        // Remove selected lane from available lanes
         setAvailableLanes(prev => prev.filter(l => l.id !== selectedAssignment.id));
       } catch (error) {
         console.error("Error in spin:", error);
@@ -241,12 +275,12 @@ export default function UndiLane() {
         });
         setSpinning(false);
       }
-    }, 4000); // 4 seconds spin animation
+    }, 5000);
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-950 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     );
@@ -258,7 +292,7 @@ export default function UndiLane() {
         <title>Undi Lane - AMBC Club</title>
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-950 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
@@ -268,42 +302,48 @@ export default function UndiLane() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white">Roda Impian Lane</h1>
-              <p className="text-blue-200 mt-1">Pusing roda untuk dapatkan lane anda!</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="h-8 w-8 text-yellow-400" />
+                Roda Impian Lane
+              </h1>
+              <p className="text-red-200 mt-1">Pusing roda untuk dapatkan lane anda!</p>
             </div>
           </div>
 
           {/* Main Content */}
           {myResult ? (
             // Show Result
-            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-2 border-yellow-400">
+            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-4 border-yellow-400">
               <CardHeader className="text-center pb-4">
                 <div className="flex justify-center mb-4">
-                  <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-6">
-                    <Trophy className="h-16 w-16 text-white" />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-50 animate-pulse" />
+                    <div className="relative bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full p-6">
+                      <Trophy className="h-16 w-16 text-white" />
+                    </div>
                   </div>
                 </div>
-                <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  Tahniah!
+                <CardTitle className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                  Tahniah {username}!
                 </CardTitle>
                 <CardDescription className="text-lg text-gray-600 mt-2">
                   Lane anda telah ditentukan
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center">
-                <div className="bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl p-8 mb-6">
-                  <div className="text-6xl md:text-8xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent animate-pulse">
+                <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-8 mb-6 border-2 border-red-200">
+                  <div className="text-7xl md:text-9xl font-black bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent animate-pulse">
                     {selectedLane}
                   </div>
                   <p className="text-xl text-gray-700 mt-4 font-semibold">Lane Anda</p>
                 </div>
 
-                <p className="text-gray-600 mb-6">
+                <p className="text-gray-600 mb-6 text-lg">
                   Lane ini telah diperuntukkan kepada anda. Semoga berjaya dalam perlawanan!
                 </p>
 
                 <Link href="/member/lane">
-                  <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                  <Button size="lg" className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-lg px-8 py-6">
                     Lihat Carta Lane
                   </Button>
                 </Link>
@@ -330,53 +370,84 @@ export default function UndiLane() {
             // Spinning Wheel
             <div className="space-y-8">
               {/* Wheel Container */}
-              <Card className="bg-white/95 backdrop-blur-sm shadow-2xl overflow-hidden">
-                <CardContent className="p-8">
+              <Card className="bg-white/95 backdrop-blur-sm shadow-2xl overflow-visible">
+                <CardContent className="p-8 md:p-12">
                   <div className="relative flex justify-center items-center">
                     {/* Pointer */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-10">
-                      <div className="w-0 h-0 border-l-[20px] border-r-[20px] border-t-[30px] border-l-transparent border-r-transparent border-t-red-500 drop-shadow-lg" />
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-red-500 blur-md" />
+                        <div className="relative w-0 h-0 border-l-[25px] border-r-[25px] border-t-[40px] border-l-transparent border-r-transparent border-t-red-600 drop-shadow-2xl" />
+                      </div>
+                    </div>
+
+                    {/* Outer glow ring */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className={`w-[420px] h-[420px] rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 blur-2xl opacity-30 ${spinning ? "animate-pulse" : ""}`} />
                     </div>
 
                     {/* Wheel */}
                     <div 
-                      className="relative w-80 h-80 md:w-96 md:h-96 rounded-full shadow-2xl border-8 border-yellow-400"
+                      className="relative w-96 h-96 md:w-[420px] md:h-[420px] rounded-full shadow-2xl"
                       style={{
                         transform: `rotate(${rotation}deg)`,
-                        transition: spinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+                        transition: spinning ? "transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
                         background: `conic-gradient(${availableLanes.map((_, i) => {
-                          const colors = ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
+                          const colors = ["#DC2626", "#EA580C", "#D97706", "#CA8A04", "#EAB308", "#F59E0B"];
                           const color = colors[i % colors.length];
                           const nextColor = colors[(i + 1) % colors.length];
                           const percent1 = (i / availableLanes.length) * 100;
                           const percent2 = ((i + 1) / availableLanes.length) * 100;
                           return `${color} ${percent1}% ${percent2}%`;
-                        }).join(", ")})`
+                        }).join(", ")})`,
+                        border: "8px solid #FCD34D",
+                        boxShadow: "0 0 60px rgba(252, 211, 77, 0.6), inset 0 0 40px rgba(0,0,0,0.2)"
                       }}
                     >
-                      {/* Center Circle */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-full shadow-lg flex items-center justify-center border-4 border-white">
-                        <Trophy className="h-10 w-10 text-white" />
+                      {/* Center Circle with Logo */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-yellow-400 z-10">
+                        <Image
+                          src="/ambc-logo.png"
+                          alt="AMBC Logo"
+                          width={80}
+                          height={80}
+                          className="object-contain"
+                        />
                       </div>
 
                       {/* Lane Labels */}
                       {availableLanes.map((lane, index) => {
                         const angle = (360 / availableLanes.length) * index;
-                        const radius = 140; // Distance from center
+                        const radius = 150;
                         const x = Math.sin((angle * Math.PI) / 180) * radius;
                         const y = -Math.cos((angle * Math.PI) / 180) * radius;
 
                         return (
                           <div
                             key={lane.id}
-                            className="absolute top-1/2 left-1/2 font-bold text-white text-xl"
+                            className="absolute top-1/2 left-1/2 font-black text-white text-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
                             style={{
                               transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${-rotation}deg)`,
-                              textShadow: "2px 2px 4px rgba(0,0,0,0.5)"
+                              textShadow: "3px 3px 6px rgba(0,0,0,0.9), -1px -1px 2px rgba(255,255,255,0.3)"
                             }}
                           >
                             {lane.lane_position}
                           </div>
+                        );
+                      })}
+
+                      {/* Decorative segments dividers */}
+                      {availableLanes.map((_, index) => {
+                        const angle = (360 / availableLanes.length) * index;
+                        return (
+                          <div
+                            key={`divider-${index}`}
+                            className="absolute top-1/2 left-1/2 w-1 bg-white/30 origin-bottom"
+                            style={{
+                              height: "50%",
+                              transform: `translate(-50%, -100%) rotate(${angle}deg)`,
+                            }}
+                          />
                         );
                       })}
                     </div>
@@ -390,49 +461,76 @@ export default function UndiLane() {
                   size="lg"
                   onClick={spinWheel}
                   disabled={spinning || availableLanes.length === 0}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold text-xl px-12 py-6 rounded-full shadow-2xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold text-2xl px-16 py-8 rounded-full shadow-2xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none relative overflow-hidden group"
                 >
                   {spinning ? (
                     <>
-                      <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                      <Loader2 className="mr-3 h-7 w-7 animate-spin" />
                       Memutar...
                     </>
                   ) : (
-                    "PUSING RODA!"
+                    <>
+                      <Sparkles className="mr-3 h-7 w-7" />
+                      PUSING RODA!
+                    </>
                   )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
                 </Button>
 
-                <p className="text-white/80 mt-4 text-sm">
+                <p className="text-white/90 mt-6 text-lg font-semibold">
                   {availableLanes.length} lane masih tersedia
                 </p>
               </div>
 
-              {/* Result Animation */}
+              {/* Result Animation Overlay */}
               {showResult && selectedLane && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-500">
-                  <Card className="bg-white max-w-md mx-4 shadow-2xl border-4 border-yellow-400 animate-in zoom-in duration-700">
-                    <CardContent className="p-8 text-center">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-500">
+                  <div className="absolute inset-0 overflow-hidden">
+                    {/* Confetti effect */}
+                    {[...Array(30)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-3 h-3 bg-yellow-400 rounded-full animate-ping"
+                        style={{
+                          left: `${Math.random() * 100}%`,
+                          top: `-10%`,
+                          animationDelay: `${Math.random() * 2}s`,
+                          animationDuration: `${2 + Math.random() * 2}s`
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  <Card className="bg-white max-w-md mx-4 shadow-2xl border-4 border-yellow-400 animate-in zoom-in duration-700 relative">
+                    <CardContent className="p-10 text-center">
                       <div className="mb-6">
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full w-24 h-24 mx-auto flex items-center justify-center animate-bounce">
-                          <Trophy className="h-12 w-12 text-white" />
+                        <div className="relative inline-block">
+                          <div className="absolute inset-0 bg-yellow-400 rounded-full blur-2xl animate-pulse" />
+                          <div className="relative bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full w-32 h-32 flex items-center justify-center animate-bounce shadow-2xl">
+                            <Trophy className="h-16 w-16 text-white" />
+                          </div>
                         </div>
                       </div>
 
-                      <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                        Lane Anda
+                      <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                        Tahniah {username}!
                       </h2>
+                      
+                      <p className="text-lg text-gray-600 mb-6">Lane anda telah ditentukan</p>
 
-                      <div className="text-8xl font-black bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent mb-6 animate-pulse">
-                        {selectedLane}
+                      <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-8 mb-6 border-2 border-red-200">
+                        <div className="text-9xl font-black bg-gradient-to-r from-red-600 via-orange-600 to-red-600 bg-clip-text text-transparent animate-pulse">
+                          {selectedLane}
+                        </div>
                       </div>
 
-                      <p className="text-gray-600 mb-6">
-                        Tahniah! Lane ini telah diperuntukkan kepada anda.
+                      <p className="text-gray-600 mb-6 text-lg">
+                        Semoga berjaya dalam perlawanan!
                       </p>
 
                       <Button
                         onClick={() => setShowResult(false)}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                        className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
                         size="lg"
                       >
                         OK
