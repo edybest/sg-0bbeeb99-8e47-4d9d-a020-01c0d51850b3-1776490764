@@ -90,3 +90,18 @@ export async function getSpunLanePositions(gameId: string): Promise<string[]> {
 
   return data?.map(r => r.lane_position) || [];
 }
+
+/**
+ * Reset all spin results for a game (Admin only)
+ */
+export async function resetAllSpinResults(gameId: string): Promise<void> {
+  const { error } = await supabase
+    .from("lane_spin_results")
+    .delete()
+    .eq("game_id", gameId);
+
+  if (error) {
+    console.error("Error resetting spin results:", error);
+    throw error;
+  }
+}

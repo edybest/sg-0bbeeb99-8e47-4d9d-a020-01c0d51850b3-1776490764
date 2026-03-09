@@ -6,9 +6,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trophy, ArrowLeft, Sparkles } from "lucide-react";
+import { Loader2, Trophy, ArrowLeft, Sparkles, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { resetAllSpinResults } from "@/services/laneSpinService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface LaneAssignment {
   id: string;
@@ -26,8 +38,10 @@ interface SpinResult {
 export default function UndiLane() {
   const router = useRouter();
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
@@ -44,7 +58,6 @@ export default function UndiLane() {
     }
   }, [router.isReady]);
 
-  // Initialize audio context
   useEffect(() => {
     if (typeof window !== "undefined") {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -176,7 +189,6 @@ export default function UndiLane() {
     }
   }
 
-  // Play spin sound
   function playSpinSound() {
     if (!audioContext) return;
 
@@ -194,11 +206,10 @@ export default function UndiLane() {
     oscillator.stop(audioContext.currentTime + 0.5);
   }
 
-  // Play win sound
   function playWinSound() {
     if (!audioContext) return;
 
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C, E, G, C
+    const notes = [523.25, 659.25, 783.99, 1046.50];
     
     notes.forEach((freq, index) => {
       const oscillator = audioContext.createOscillator();
@@ -222,7 +233,6 @@ export default function UndiLane() {
     setSpinning(true);
     setShowResult(false);
 
-    // Play spin sound
     playSpinSound();
 
     const randomIndex = Math.floor(Math.random() * availableLanes.length);
@@ -257,7 +267,6 @@ export default function UndiLane() {
           return;
         }
 
-        // Play win sound
         playWinSound();
 
         setMyResult(result);
@@ -278,6 +287,31 @@ export default function UndiLane() {
     }, 5000);
   }
 
+  async function handleResetSpins() {
+    if (!activeGameId) return;
+
+    try {
+      setResetting(true);
+      await resetAllSpinResults(activeGameId);
+      
+      toast({
+        title: "Reset Berjaya",
+        description: "Semua undian telah direset. Ahli boleh undi semula.",
+      });
+
+      await loadData();
+    } catch (error) {
+      console.error("Error resetting spins:", error);
+      toast({
+        title: "Error",
+        description: "Gagal reset undian. Sila cuba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-950 flex items-center justify-center">
@@ -294,25 +328,59 @@ export default function UndiLane() {
 
       <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-950 py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Link href="/member">
-              <Button variant="outline" size="icon" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-8 w-8 text-yellow-400" />
-                Roda Impian Lane
-              </h1>
-              <p className="text-red-200 mt-1">Pusing roda untuk dapatkan lane anda!</p>
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-4">
+              <Link href="/member">
+                <Button variant="outline" size="icon" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-2">
+                  <Sparkles className="h-8 w-8 text-yellow-400" />
+                  Roda Impian Lane
+                </h1>
+                <p className="text-red-200 mt-1">Pusing roda untuk dapatkan lane anda!</p>
+              </div>
             </div>
+
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={resetting}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    {resetting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                    )}
+                    Reset Undian
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Semua Undian?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tindakan ini akan memadam semua rekod undian untuk game ini. 
+                      Semua ahli boleh undi semula. Tindakan ini tidak boleh dibatalkan.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleResetSpins}>
+                      Ya, Reset Undian
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
 
-          {/* Main Content */}
           {myResult ? (
-            // Show Result
             <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-4 border-yellow-400">
               <CardHeader className="text-center pb-4">
                 <div className="flex justify-center mb-4">
@@ -350,7 +418,6 @@ export default function UndiLane() {
               </CardContent>
             </Card>
           ) : availableLanes.length === 0 ? (
-            // No lanes available
             <Card className="bg-white/95 backdrop-blur-sm shadow-2xl">
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">Tiada Lane Tersedia</CardTitle>
@@ -367,13 +434,10 @@ export default function UndiLane() {
               </CardContent>
             </Card>
           ) : (
-            // Spinning Wheel
             <div className="space-y-8">
-              {/* Wheel Container */}
               <Card className="bg-white/95 backdrop-blur-sm shadow-2xl overflow-visible">
                 <CardContent className="p-8 md:p-12">
                   <div className="relative flex justify-center items-center">
-                    {/* Pointer */}
                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-20">
                       <div className="relative">
                         <div className="absolute inset-0 bg-red-500 blur-md" />
@@ -381,12 +445,10 @@ export default function UndiLane() {
                       </div>
                     </div>
 
-                    {/* Outer glow ring */}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className={`w-[420px] h-[420px] rounded-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 blur-2xl opacity-30 ${spinning ? "animate-pulse" : ""}`} />
                     </div>
 
-                    {/* Wheel */}
                     <div 
                       className="relative w-96 h-96 md:w-[420px] md:h-[420px] rounded-full shadow-2xl"
                       style={{
@@ -404,7 +466,6 @@ export default function UndiLane() {
                         boxShadow: "0 0 60px rgba(252, 211, 77, 0.6), inset 0 0 40px rgba(0,0,0,0.2)"
                       }}
                     >
-                      {/* Center Circle with Logo */}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-yellow-400 z-10">
                         <Image
                           src="/ambc-logo.png"
@@ -415,7 +476,6 @@ export default function UndiLane() {
                         />
                       </div>
 
-                      {/* Lane Labels */}
                       {availableLanes.map((lane, index) => {
                         const angle = (360 / availableLanes.length) * index;
                         const radius = 150;
@@ -436,7 +496,6 @@ export default function UndiLane() {
                         );
                       })}
 
-                      {/* Decorative segments dividers */}
                       {availableLanes.map((_, index) => {
                         const angle = (360 / availableLanes.length) * index;
                         return (
@@ -455,7 +514,6 @@ export default function UndiLane() {
                 </CardContent>
               </Card>
 
-              {/* Spin Button */}
               <div className="text-center">
                 <Button
                   size="lg"
@@ -482,11 +540,9 @@ export default function UndiLane() {
                 </p>
               </div>
 
-              {/* Result Animation Overlay */}
               {showResult && selectedLane && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-500">
                   <div className="absolute inset-0 overflow-hidden">
-                    {/* Confetti effect */}
                     {[...Array(30)].map((_, i) => (
                       <div
                         key={i}
