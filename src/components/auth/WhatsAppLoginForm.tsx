@@ -6,12 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-);
+import { authService } from "@/services/authService";
+import { supabase } from "@/integrations/supabase/client";
 
 export function WhatsAppLoginForm() {
   const router = useRouter();
@@ -168,42 +164,25 @@ export function WhatsAppLoginForm() {
 
     setLoading(true);
     try {
-      // Get magic link token hash from server
-      const response = await fetch("/api/generate-login-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username,
-        }),
-      });
+      // Get member ID from username
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("username", formData.username)
+        .single();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Generate token error:", data);
-        throw new Error(data.error || "Gagal mendapatkan token login");
+      if (!member) {
+        throw new Error("Member tidak dijumpai");
       }
 
-      console.log("Token generated, verifying OTP...");
+      // Use authService to verify TAC and establish session
+      const { data: authResult, error: authError } = await authService.verifyWhatsAppTAC(
+        member.id,
+        formData.tac
+      );
 
-      // Verify OTP using the token hash
-      if (data.email && data.token_hash) {
-        console.log("Verifying OTP for email:", data.email);
-        
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: data.email,
-          token_hash: data.token_hash,
-          type: "email",
-        });
-
-        if (verifyError) {
-          console.error("Verify OTP error:", verifyError);
-          throw new Error("Gagal verify session login");
-        }
-
-        console.log("OTP verified successfully");
-      } else {
-        throw new Error("Token login tidak sah");
+      if (authError || !authResult) {
+        throw new Error(authError?.message || "Login gagal");
       }
 
       toast({

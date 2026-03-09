@@ -221,20 +221,26 @@ export const authService = {
 
   /**
    * 🆕 Verify WhatsApp TAC and login
+   * FIXED: Properly verify custom TAC code and establish session
    */
   verifyWhatsAppTAC: async (memberId: string, tacCode: string) => {
     try {
-      // Verify TAC
+      console.log("Verifying TAC for member:", memberId);
+
+      // Step 1: Verify TAC code in database
       const verification = await whatsappService.verifyTACCode(memberId, tacCode);
       
       if (!verification.success) {
+        console.error("TAC verification failed:", verification.error);
         return { 
-          user: null, 
-          error: new Error(verification.error || "Kod TAC tidak sah") 
+          data: null, 
+          error: { message: verification.error || "Kod TAC tidak sah" }
         };
       }
 
-      // Get member data
+      console.log("✅ TAC verified successfully");
+
+      // Step 2: Get member data
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("*")
@@ -242,13 +248,23 @@ export const authService = {
         .single();
 
       if (memberError || !member) {
+        console.error("Member fetch error:", memberError);
         return {
           data: null,
           error: { message: "Member tidak dijumpai" }
         };
       }
 
-      // Auto-verify member if not verified yet
+      if (!member.email) {
+        return {
+          data: null,
+          error: { message: "Member tidak mempunyai email. Sila hubungi admin." }
+        };
+      }
+
+      console.log("Member found:", member.email);
+
+      // Step 3: Auto-verify member if not verified yet
       if (!member.is_verified) {
         await supabase
           .from("members")
@@ -257,58 +273,55 @@ export const authService = {
             updated_at: new Date().toISOString()
           })
           .eq("id", memberId);
+        
+        console.log("✅ Member auto-verified");
       }
 
-      // Create or sign in user
-      if (!member.email) {
-        return {
-          data: null,
-          error: { message: "Member tidak mempunyai email. Sila hubungi admin." }
-        };
-      }
-
-      // Check if user already exists in auth
-      const { data: existingUser } = await supabase.auth.admin.getUserById(member.user_id || "");
-
-      if (existingUser) {
-        // User exists, create session (admin function not available, use OTP as fallback)
-        return {
-          data: { member, needsPasswordSetup: true },
-          error: null,
-          message: "✅ TAC verified! Sila set password untuk login.",
-        };
-      }
-
-      // Create new auth user with temporary password
-      const tempPassword = Math.random().toString(36).slice(-12) + "Aa1!";
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: member.email,
-        password: tempPassword,
-        options: {
-          emailRedirectTo: getRedirectUrl(),
-          data: {
-            username: member.username,
-            full_name: member.full_name,
-          },
-        },
+      // Step 4: Call backend API to generate magic link token
+      console.log("Generating magic link token...");
+      const tokenResponse = await fetch("/api/generate-login-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: member.username }),
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Link user_id to member
-        await supabase
-          .from("members")
-          .update({ 
-            user_id: authData.user.id,
-            is_verified: true,
-          })
-          .eq("id", memberId);
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        console.error("Token generation failed:", errorData);
+        throw new Error(errorData.error || "Failed to generate login token");
       }
 
+      const tokenData = await tokenResponse.json();
+      console.log("Magic link token generated:", { 
+        email: tokenData.email, 
+        hasToken: !!tokenData.token_hash 
+      });
+
+      if (!tokenData.token_hash) {
+        throw new Error("Token hash tidak dijumpai");
+      }
+
+      // Step 5: Verify OTP with token_hash to establish session
+      console.log("Establishing session with token_hash...");
+      const { data: sessionData, error: verifyError } = await supabase.auth.verifyOtp({
+        email: tokenData.email,
+        token_hash: tokenData.token_hash,
+        type: "email",
+      });
+
+      if (verifyError) {
+        console.error("Session establishment error:", verifyError);
+        throw verifyError;
+      }
+
+      if (!sessionData?.session) {
+        throw new Error("Session tidak dapat diwujudkan");
+      }
+
+      console.log("✅ Session established successfully");
+
       return {
-        data: { member, user: authData.user },
+        data: { member, session: sessionData.session },
         error: null,
         message: "✅ Login berjaya!",
       };

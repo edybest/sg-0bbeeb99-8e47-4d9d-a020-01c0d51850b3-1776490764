@@ -91,11 +91,16 @@ export default function TrainingPage() {
   const paginatedScores = scores.slice(startIndex, endIndex);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (router.isReady) {
+      loadMemberData();
+    }
+  }, [router.isReady]);
 
-  async function checkAuth() {
+  async function loadMemberData() {
     try {
+      setLoading(true);
+      
+      // Check session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -104,6 +109,9 @@ export default function TrainingPage() {
         return;
       }
 
+      console.log("Session found, loading member data");
+
+      // Get current member
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("id")

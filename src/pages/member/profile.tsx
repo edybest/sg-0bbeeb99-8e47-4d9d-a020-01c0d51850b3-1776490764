@@ -78,13 +78,28 @@ export default function ProfilePage() {
   async function loadProfile() {
     try {
       setLoading(true);
+      
+      // Check session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError) {
         console.error("Session error:", sessionError);
+        toast({
+          title: "Error",
+          description: "Session error. Please login again.",
+          variant: "destructive",
+        });
         router.push("/login");
         return;
       }
+
+      if (!session) {
+        console.log("No session found, redirecting to login");
+        router.push("/login");
+        return;
+      }
+
+      console.log("Session found:", session.user.email);
 
       // Determine whose profile to show
       let targetId = queryId;

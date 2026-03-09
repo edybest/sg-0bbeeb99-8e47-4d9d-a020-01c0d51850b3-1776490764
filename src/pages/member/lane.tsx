@@ -49,8 +49,10 @@ export default function LanePage() {
   const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (router.isReady) {
+      loadData();
+    }
+  }, [router.isReady]);
 
   useEffect(() => {
     if (selectedGameId) {
@@ -59,8 +61,11 @@ export default function LanePage() {
     }
   }, [selectedGameId]);
 
-  async function checkAuth() {
+  async function loadData() {
     try {
+      setLoading(true);
+      
+      // Check session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -69,50 +74,36 @@ export default function LanePage() {
         return;
       }
 
-      if (session) {
-        const { data: member, error: memberError } = await supabase
-          .from("members")
-          .select("is_admin")
-          .eq("user_id", session.user.id)
-          .single();
+      console.log("Session found, loading lane data");
 
-        if (memberError) {
-          console.error("Member lookup error:", memberError);
-          toast({
-            title: "Error",
-            description: "Failed to load member data. Please try again.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
+      // Get current member
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("is_admin")
+        .eq("user_id", session.user.id)
+        .single();
 
-        if (!member) {
-          console.error("No member found for user");
-          router.push("/login");
-          return;
-        }
-
-        if (member?.is_admin) {
-          setIsAdmin(true);
-        }
-
-        await loadData();
+      if (memberError) {
+        console.error("Member lookup error:", memberError);
+        toast({
+          title: "Error",
+          description: "Failed to load member data. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error("Auth check error:", error);
-      toast({
-        title: "Error",
-        description: "Authentication error. Please login again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  async function loadData() {
-    try {
+      if (!member) {
+        console.error("No member found for user");
+        router.push("/login");
+        return;
+      }
+
+      if (member?.is_admin) {
+        setIsAdmin(true);
+      }
+
       const [gamesData, configsData, membersData] = await Promise.all([
         gameService.getAllGames(),
         laneService.getLaneConfigurations(),
@@ -136,6 +127,8 @@ export default function LanePage() {
         description: "Failed to load data",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   }
 

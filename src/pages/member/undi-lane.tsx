@@ -35,19 +35,27 @@ export default function UndiLane() {
   const [selectedLane, setSelectedLane] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    if (router.isReady) {
+      loadData();
+    }
+  }, [router.isReady]);
 
-  async function checkAuth() {
+  async function loadData() {
     try {
+      setLoading(true);
+      
+      // Check session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
+      
       if (sessionError || !session) {
         console.error("Session error:", sessionError);
         router.push("/login");
         return;
       }
 
+      console.log("Session found, loading undi lane data");
+
+      // Get current member
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("id")
