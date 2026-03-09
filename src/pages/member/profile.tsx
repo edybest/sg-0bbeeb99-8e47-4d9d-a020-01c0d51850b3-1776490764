@@ -114,8 +114,8 @@ export default function ProfilePage() {
       
       setMember(mappedMember);
 
-      // Load game history with proper query - use maybeSingle to handle 0 or 1 results
-      const { data: historyData, error: historyError } = await supabase
+      // Load game history
+      const { data: gameHistory } = await supabase
         .from("game_players")
         .select(`
           id,
@@ -126,44 +126,35 @@ export default function ProfilePage() {
           game5_score,
           total_score,
           overall_score,
+          average_score,
+          created_at,
           games (
             game_name,
             game_date,
-            game_type
+            game_format
           )
         `)
         .eq("member_id", targetId)
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (historyError) {
-        console.error("History load error:", historyError);
-        setHistory([]);
-      } else {
-        // Handle array response properly
-        const gameArray = Array.isArray(historyData) ? historyData : (historyData ? [historyData] : []);
-        
-        const mappedHistory: GameHistory[] = gameArray
-          .filter((item: any) => item && item.games) // Filter out invalid items
-          .map((item: any) => ({
-            id: item.id,
-            game1_score: item.game1_score,
-            game2_score: item.game2_score,
-            game3_score: item.game3_score,
-            game4_score: item.game4_score,
-            game5_score: item.game5_score,
-            total_score: item.total_score,
-            overall_score: item.overall_score,
-            games: {
-              game_name: item.games.game_name,
-              game_date: item.games.game_date,
-              game_type: item.games.game_type,
-            }
-          }));
+      const formattedHistory = (gameHistory || []).map((item) => ({
+        id: item.id,
+        game_name: item.games?.game_name || "Unknown Game",
+        game_date: item.games?.game_date || null,
+        game_format: item.games?.game_format || null,
+        game1_score: item.game1_score,
+        game2_score: item.game2_score,
+        game3_score: item.game3_score,
+        game4_score: item.game4_score,
+        game5_score: item.game5_score,
+        total_score: item.total_score,
+        overall_score: item.overall_score,
+        average_score: item.average_score,
+        created_at: item.created_at,
+      }));
 
-        setHistory(mappedHistory);
-      }
-
+      setHistory(formattedHistory);
     } catch (error) {
       console.error("Load profile error:", error);
       toast({

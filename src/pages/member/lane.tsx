@@ -15,6 +15,7 @@ import { ArrowLeft, Save, Users, Loader2, GripVertical, X } from "lucide-react";
 import Link from "next/link";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
+import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 
 interface Game {
   id: string;
@@ -333,12 +334,9 @@ export default function LanePage() {
     );
   }
 
+  // Show loading while checking auth
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
+    return <BowlingBallLoaderOverlay />;
   }
 
   return (
