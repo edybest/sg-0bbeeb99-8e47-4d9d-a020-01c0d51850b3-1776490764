@@ -67,16 +67,29 @@ export default function UndiLane() {
 
       setMemberId(member.id);
 
-      // Get active game
+      // Get latest game (regardless of status)
       const { data: game, error: gameError } = await supabase
         .from("games")
-        .select("id")
-        .or("status.eq.upcoming,status.eq.ongoing")
+        .select("id, date, status")
         .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (gameError || !game) {
+      console.log("Game query:", { game, error: gameError });
+
+      if (gameError) {
+        console.error("Error loading game:", gameError);
+        toast({
+          title: "Error",
+          description: "Failed to load game data.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!game) {
+        console.log("No game found");
         setLoading(false);
         return;
       }
@@ -91,6 +104,8 @@ export default function UndiLane() {
 
   async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
+      console.log("Loading lane data for:", { currentMemberId, gameId });
+
       // Check if member already spun
       const { data: existingResult, error: resultError } = await supabase
         .from("lane_spin_results")
@@ -102,6 +117,8 @@ export default function UndiLane() {
       if (resultError) {
         console.error("Error checking spin result:", resultError);
       }
+
+      console.log("Existing spin result:", existingResult);
 
       if (existingResult) {
         setMyResult(existingResult);
@@ -118,7 +135,9 @@ export default function UndiLane() {
           console.error("Error loading spun results:", spunError);
         }
 
+        console.log("Spun results:", spunResults);
         const spunLanes = spunResults?.map(r => r.lane_position) || [];
+        console.log("Spun lanes:", spunLanes);
 
         const { data: assignments, error: assignError } = await supabase
           .from("lane_assignments")
@@ -134,10 +153,12 @@ export default function UndiLane() {
             variant: "destructive",
           });
         } else {
+          console.log("All assignments:", assignments);
           // Filter out lanes that have already been spun
           const available = (assignments || []).filter(
             a => !spunLanes.includes(a.lane_position)
           );
+          console.log("Available lanes:", available);
           setAvailableLanes(available);
         }
       }
