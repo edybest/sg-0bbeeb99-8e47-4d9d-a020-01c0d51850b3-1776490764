@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { createClient } from "@supabase/supabase-js";
 
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 type SendTACRequest = {
   phone: string;
@@ -15,6 +18,7 @@ type SendTACResponse = {
     messageId?: string;
     status?: string;
     code?: string;
+    memberId?: string;
   };
   error?: string;
 };
@@ -56,6 +60,68 @@ export default async function handler(
       });
     }
 
+    console.log("\n=== SEND WHATSAPP TAC REQUEST ===");
+    console.log("Username:", username);
+    console.log("Phone:", phone);
+
+    // Create Supabase admin client
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Find member by username AND phone number
+    const { data: member, error: memberError } = await supabaseAdmin
+      .from("members")
+      .select("id, username, phone, user_id")
+      .ilike("username", username.trim())
+      .maybeSingle();
+
+    console.log("Member lookup result:", { member, error: memberError });
+
+    if (memberError) {
+      console.error("❌ Database error:", memberError);
+      return res.status(500).json({
+        success: false,
+        error: "Database error - Sila cuba lagi",
+      });
+    }
+
+    if (!member) {
+      console.log("❌ Member not found with username:", username);
+      return res.status(404).json({
+        success: false,
+        error: "Username tidak dijumpai dalam sistem",
+      });
+    }
+
+    // Validate phone number matches (normalize both for comparison)
+    const normalizePhone = (p: string) => p.replace(/[\s\-+]/g, "");
+    const memberPhone = normalizePhone(member.phone || "");
+    const inputPhone = normalizePhone(phone);
+
+    console.log("Phone validation:", {
+      memberPhone,
+      inputPhone,
+      match: memberPhone.includes(inputPhone) || inputPhone.includes(memberPhone),
+    });
+
+    if (!memberPhone.includes(inputPhone) && !inputPhone.includes(memberPhone)) {
+      console.log("❌ Phone number mismatch");
+      return res.status(400).json({
+        success: false,
+        error: "Nombor telefon tidak sepadan dengan username dalam sistem",
+      });
+    }
+
+    console.log("✅ Member found:", {
+      id: member.id,
+      username: member.username,
+      has_user_id: !!member.user_id,
+    });
+
     // Generate TAC code
     const code = generateTACCode();
 
@@ -81,7 +147,7 @@ Terima kasih! 🎳`;
     console.log("Target Phone:", formattedPhone);
     console.log("Username:", username);
     console.log("TAC Code:", code);
-    console.log("API URL:", FONNTE_API_URL);
+    console.log("Member ID:", member.id);
 
     // Prepare Fonnte request
     const fonteRequest = {
@@ -137,7 +203,8 @@ Terima kasih! 🎳`;
       data: {
         messageId: responseData.id || responseData.message_id,
         status: responseData.status || "sent",
-        code: code, // Return code for verification later
+        code: code, // Return code for verification
+        memberId: member.id, // CRITICAL: Return member ID for verification
       },
     });
 
