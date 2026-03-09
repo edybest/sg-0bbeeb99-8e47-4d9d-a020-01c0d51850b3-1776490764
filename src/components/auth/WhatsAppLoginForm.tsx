@@ -103,9 +103,12 @@ export function WhatsAppLoginForm() {
         throw new Error(data.error || "Failed to send TAC");
       }
 
-      // Store TAC code from server response
+      // Store TAC code and memberId from server response
       if (data.data?.code) {
         setServerTacCode(data.data.code);
+      }
+      if (data.data?.memberId) {
+        setFormData(prev => ({ ...prev, memberId: data.data.memberId }));
       }
 
       const now = Date.now();
@@ -152,32 +155,18 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    // Verify TAC code matches
-    if (formData.tac !== serverTacCode) {
-      toast({
-        title: "Error",
-        description: "Kod TAC tidak sah. Sila cuba lagi.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // Get member ID from username
-      const { data: member } = await supabase
-        .from("members")
-        .select("id")
-        .eq("username", formData.username)
-        .single();
-
-      if (!member) {
-        throw new Error("Member tidak dijumpai");
+      // Get member ID from stored data
+      const memberId = (formData as any).memberId;
+      
+      if (!memberId) {
+        throw new Error("Member ID not found. Please resend TAC.");
       }
 
       // Use authService to verify TAC and establish session
       const { data: authResult, error: authError } = await authService.verifyWhatsAppTAC(
-        member.id,
+        memberId,
         formData.tac
       );
 

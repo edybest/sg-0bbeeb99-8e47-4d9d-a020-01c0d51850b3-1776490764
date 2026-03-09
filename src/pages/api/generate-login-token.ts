@@ -14,13 +14,13 @@ export default async function handler(
   }
 
   try {
-    const { username } = req.body;
+    const { username, memberId } = req.body;
 
-    if (!username) {
-      return res.status(400).json({ error: "Username diperlukan" });
+    if (!username && !memberId) {
+      return res.status(400).json({ error: "Username or memberId required" });
     }
 
-    console.log("Generate login token request for username:", username);
+    console.log("Generate login token request:", { username, memberId });
 
     // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -30,30 +30,35 @@ export default async function handler(
       },
     });
 
-    // Get member by username
-    const { data: member, error: memberError } = await supabaseAdmin
+    // Get member by username or memberId
+    let query = supabaseAdmin
       .from("members")
-      .select("user_id")
-      .ilike("username", username.trim())
-      .maybeSingle();
+      .select("user_id, username, email");
+
+    if (memberId) {
+      query = query.eq("id", memberId);
+    } else if (username) {
+      query = query.ilike("username", username.trim());
+    }
+
+    const { data: member, error: memberError } = await query.maybeSingle();
 
     console.log("Member lookup result:", { member, error: memberError });
 
     if (memberError) {
       console.error("Error finding member:", memberError);
-      console.error("Full error details:", JSON.stringify(memberError, null, 2));
       return res.status(500).json({ 
         error: "Database error", 
-        details: memberError.message || "Unknown error"
+        details: memberError.message 
       });
     }
 
     if (!member || !member.user_id) {
-      console.log("Member not found for username:", username);
+      console.log("Member not found");
       return res.status(404).json({ error: "Member tidak dijumpai" });
     }
 
-    console.log("Member found, user_id:", member.user_id);
+    console.log("Member found:", { user_id: member.user_id, email: member.email });
 
     // Get user email from auth
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(
@@ -68,10 +73,9 @@ export default async function handler(
 
     if (authError || !authUser.user) {
       console.error("Error getting user:", authError);
-      console.error("Full auth error details:", JSON.stringify(authError, null, 2));
       return res.status(500).json({ 
         error: "User tidak dijumpai",
-        details: authError?.message || "No user found"
+        details: authError?.message 
       });
     }
 
@@ -81,7 +85,7 @@ export default async function handler(
       return res.status(400).json({ error: "Email tidak dijumpai untuk user ini" });
     }
 
-    // Generate magic link token
+    // Generate magic link
     const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: userEmail,
@@ -96,14 +100,12 @@ export default async function handler(
 
     if (magicLinkError || !magicLinkData) {
       console.error("Error generating magic link:", magicLinkError);
-      console.error("Full magic link error:", JSON.stringify(magicLinkError, null, 2));
       return res.status(500).json({ 
         error: "Gagal generate token login",
-        details: magicLinkError?.message || "Token generation failed"
+        details: magicLinkError?.message 
       });
     }
 
-    // Extract token hash from the hashed_token
     const tokenHash = magicLinkData.properties?.hashed_token;
 
     if (!tokenHash) {
@@ -111,9 +113,8 @@ export default async function handler(
       return res.status(500).json({ error: "Token hash tidak dijumpai" });
     }
 
-    console.log("Login token generated successfully for:", username);
+    console.log("Login token generated successfully");
 
-    // Return email and token hash to client
     return res.status(200).json({
       success: true,
       email: userEmail,
