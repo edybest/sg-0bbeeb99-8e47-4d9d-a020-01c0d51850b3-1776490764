@@ -148,101 +148,6 @@ export default function BlokPage() {
     }
   };
 
-  useEffect(() => {
-    loadGames();
-  }, [retryCount]); // Re-run when retryCount changes
-
-  useEffect(() => {
-    if (selectedGame) {
-      loadLeaderboard(selectedGame);
-    }
-  }, [selectedGame]);
-
-  // Retry handler
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-  };
-
-  // Error state UI
-  if (error && !loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <MobileNav />
-                <ClubLogo size="sm" />
-                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-md mx-auto">
-            <CardContent className="pt-6 text-center space-y-4">
-              <div className="text-red-500 text-5xl">⚠️</div>
-              <h2 className="text-xl font-semibold">Connection Error</h2>
-              <p className="text-gray-600">{error}</p>
-              <div className="bg-gray-100 p-3 rounded text-xs text-left">
-                <p className="font-mono text-gray-700 break-all">{error}</p>
-              </div>
-              <div className="text-sm text-gray-500">
-                Please check browser console (F12) for more details
-              </div>
-              <Button onClick={handleRetry} className="w-full">
-                Try Again
-              </Button>
-              <Button 
-                onClick={() => router.push("/member")} 
-                variant="outline" 
-                className="w-full"
-              >
-                Back to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-
-  if (loading && games.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <MobileNav />
-                <ClubLogo size="sm" />
-                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-              <p className="text-gray-600">Loading games...</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
-  }
-
   const loadLeaderboard = async (gameId: string) => {
     if (!gameId) return;
 
@@ -389,6 +294,101 @@ export default function BlokPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadGames();
+  }, [retryCount]); // Re-run when retryCount changes
+
+  useEffect(() => {
+    if (selectedGame) {
+      loadLeaderboard(selectedGame);
+    }
+  }, [selectedGame]);
+
+  // Retry handler
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
+
+  // Error state UI
+  if (error && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <MobileNav />
+                <ClubLogo size="sm" />
+                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="text-red-500 text-5xl">⚠️</div>
+              <h2 className="text-xl font-semibold">Connection Error</h2>
+              <p className="text-gray-600">{error}</p>
+              <div className="bg-gray-100 p-3 rounded text-xs text-left">
+                <p className="font-mono text-gray-700 break-all">{error}</p>
+              </div>
+              <div className="text-sm text-gray-500">
+                Please check browser console (F12) for more details
+              </div>
+              <Button onClick={handleRetry} className="w-full">
+                Try Again
+              </Button>
+              <Button 
+                onClick={() => router.push("/member")} 
+                variant="outline" 
+                className="w-full"
+              >
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (loading && games.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <MobileNav />
+                <ClubLogo size="sm" />
+                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+              <p className="text-gray-600">Loading games...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   const sortData = (
     data: LeaderboardEntry[],
