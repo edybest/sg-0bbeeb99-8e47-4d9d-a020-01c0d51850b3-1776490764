@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
-import { authService } from "@/services/authService";
-import { supabase } from "@/integrations/supabase/client";
+import { sessionService } from "@/services/sessionService";
 
 export function WhatsAppLoginForm() {
   const router = useRouter();
@@ -15,7 +14,6 @@ export function WhatsAppLoginForm() {
   const [loading, setLoading] = useState(false);
   const [sendingTAC, setSendingTAC] = useState(false);
   const [tacSent, setTacSent] = useState(false);
-  const [serverTacCode, setServerTacCode] = useState(""); // Store TAC from server
   const [lastTacSentTime, setLastTacSentTime] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [formData, setFormData] = useState({
@@ -30,7 +28,7 @@ export function WhatsAppLoginForm() {
     if (lastTacSentTime && cooldownRemaining > 0) {
       const timer = setInterval(() => {
         const elapsed = Math.floor((Date.now() - lastTacSentTime) / 1000);
-        const remaining = Math.max(0, 120 - elapsed); // 2 minutes = 120 seconds
+        const remaining = Math.max(0, 120 - elapsed);
         setCooldownRemaining(remaining);
         
         if (remaining === 0) {
@@ -66,7 +64,7 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    // Validate phone number format (Malaysian format)
+    // Validate phone number format
     const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
     let cleanPhone = formData.phone.replace(/\s+/g, "").replace(/-/g, "");
     
@@ -104,25 +102,20 @@ export function WhatsAppLoginForm() {
         throw new Error(data.error || "Failed to send TAC");
       }
 
-      // Store TAC code and memberId from server response
-      if (data.data?.code) {
-        setServerTacCode(data.data.code);
-      }
+      // Store memberId from response
       if (data.data?.memberId) {
-        setFormData(prev => ({ ...prev, memberId: data.data.memberId }));
+        setFormData(prev => ({ ...prev, memberId: data.data.memberId, phone: cleanPhone }));
       }
 
       const now = Date.now();
       setLastTacSentTime(now);
       setCooldownRemaining(120);
       setTacSent(true);
+      
       toast({
         title: "Kod TAC Dihantar",
         description: `Kod TAC telah dihantar ke WhatsApp ${cleanPhone}. Sila semak WhatsApp anda.`,
       });
-
-      // Update phone with clean format
-      setFormData(prev => ({ ...prev, phone: cleanPhone }));
     } catch (error: unknown) {
       console.error("Send TAC error:", error);
       toast({
@@ -140,7 +133,7 @@ export function WhatsAppLoginForm() {
 
     if (!tacSent) {
       toast({
-        title: "❌ Sila hantar kod TAC dahulu",
+        title: "Sila hantar kod TAC dahulu",
         variant: "destructive",
       });
       return;
@@ -148,7 +141,7 @@ export function WhatsAppLoginForm() {
 
     if (!formData.tac || formData.tac.length !== 6) {
       toast({
-        title: "❌ Sila masukkan kod TAC 6 digit",
+        title: "Sila masukkan kod TAC 6 digit",
         variant: "destructive",
       });
       return;
@@ -156,7 +149,7 @@ export function WhatsAppLoginForm() {
 
     if (!formData.memberId) {
       toast({
-        title: "❌ Member ID tidak dijumpai",
+        title: "Member ID tidak dijumpai",
         description: "Sila hantar kod TAC semula",
         variant: "destructive",
       });
@@ -166,65 +159,43 @@ export function WhatsAppLoginForm() {
     setLoading(true);
 
     try {
-      console.log("=== LOGIN ATTEMPT START ===");
-      console.log("Member ID:", formData.memberId);
-      console.log("TAC Code:", formData.tac);
+      // Verify TAC and create session
+      const response = await fetch("/api/verify-tac-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: formData.memberId,
+          code: formData.tac,
+        }),
+      });
 
-      // Verify TAC and establish session
-      const { data: authData, error: authError } = await authService.verifyWhatsAppTAC(
-        formData.memberId,
-        formData.tac
-      );
+      const result = await response.json();
 
-      if (authError) {
-        console.error("❌ TAC Verification Error:", authError);
-        toast({
-          title: "❌ Kod TAC tidak sah",
-          description: authError.message,
-          variant: "destructive",
-        });
-        return;
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to verify TAC");
       }
 
-      console.log("✅ TAC verified, session data:", authData?.session ? "EXISTS" : "NULL");
-
-      // CRITICAL: Verify session was actually created
-      const { data: { session: verifySession } } = await supabase.auth.getSession();
-      console.log("=== SESSION VERIFICATION ===");
-      console.log("Session exists:", !!verifySession);
-      console.log("User ID:", verifySession?.user?.id);
-      console.log("User email:", verifySession?.user?.email);
-      console.log("Access token:", verifySession?.access_token ? "EXISTS" : "NULL");
-      console.log("Expires at:", verifySession?.expires_at);
-
-      if (!verifySession) {
-        console.error("❌ CRITICAL: Session not found after login!");
-        toast({
-          title: "❌ Session Error",
-          description: "Session tidak dapat diwujudkan. Sila cuba lagi atau hubungi admin.",
-          variant: "destructive",
-        });
-        return;
+      // Session cookie is set by API
+      // Store session token in service for client-side access
+      if (result.data?.sessionToken && result.data?.expiresAt) {
+        sessionService.setSessionCookie(result.data.sessionToken, result.data.expiresAt);
       }
 
-      console.log("✅ Session verified successfully!");
-      
       toast({
-        title: "✅ Log masuk berjaya!",
+        title: "Log masuk berjaya!",
         description: "Mengalihkan ke dashboard...",
       });
 
-      // Small delay to ensure session is fully persisted
+      // Redirect to member dashboard
       setTimeout(() => {
-        console.log("=== REDIRECTING TO /member ===");
         router.push("/member");
       }, 500);
 
     } catch (error: any) {
-      console.error("❌ Login Error:", error);
+      console.error("Login error:", error);
       toast({
-        title: "❌ Ralat semasa log masuk",
-        description: error.message || "Sila cuba lagi",
+        title: "Ralat semasa log masuk",
+        description: error.message || "Kod TAC tidak sah atau telah tamat tempoh",
         variant: "destructive",
       });
     } finally {
@@ -322,8 +293,7 @@ export function WhatsAppLoginForm() {
                 type="button"
                 onClick={() => {
                   setTacSent(false);
-                  setServerTacCode("");
-                  setFormData(prev => ({ ...prev, tac: "" }));
+                  setFormData(prev => ({ ...prev, tac: "", memberId: "" }));
                 }}
                 variant="ghost"
                 className="w-full text-sm"

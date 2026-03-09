@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { memberService } from "@/services/memberService";
 import { gameService } from "@/services/gameService";
 import { storageService } from "@/services/storageService";
+import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Save, Loader2, Camera, Upload, History, Trophy } from "lucide-react";
+import { ArrowLeft, User, Save, Loader2, Camera, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ClubLogo } from "@/components/ClubLogo";
 
@@ -52,6 +53,9 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Use new auth hook - will auto redirect if not logged in
+  const { member: currentMember, loading: authLoading, isAuthenticated } = useAuth(true);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -64,10 +68,10 @@ export default function ProfilePage() {
   const queryId = router.query.id as string;
 
   useEffect(() => {
-    if (router.isReady) {
+    if (!authLoading && isAuthenticated && currentMember) {
       loadProfile();
     }
-  }, [router.isReady, queryId]);
+  }, [authLoading, isAuthenticated, currentMember, queryId]);
 
   // Helper function to check if avatar is base64
   const isBase64Image = (url: string | null) => {
@@ -78,80 +82,17 @@ export default function ProfilePage() {
   async function loadProfile() {
     try {
       setLoading(true);
-      
-      console.log("=== PROFILE PAGE - AUTH CHECK ===");
-      
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      console.log("Session check result:");
-      console.log("- Session exists:", !!session);
-      console.log("- User ID:", session?.user?.id);
-      console.log("- User email:", session?.user?.email);
-      console.log("- Access token:", session?.access_token ? "EXISTS" : "NULL");
-      console.log("- Session error:", sessionError);
 
-      if (sessionError) {
-        console.error("❌ Session error:", sessionError);
-        toast({
-          title: "Error",
-          description: "Session error. Please login again.",
-          variant: "destructive",
-        });
-        router.push("/login");
+      if (!currentMember) {
+        console.error("No current member found");
         return;
       }
-
-      if (!session) {
-        console.log("❌ No session found, redirecting to login");
-        router.push("/login");
-        return;
-      }
-
-      console.log("✅ Session found, loading member data");
 
       // Determine whose profile to show
-      let targetId = queryId;
+      const targetId = queryId || currentMember.id;
       
-      // If no query ID, find current user's member ID
-      if (!targetId) {
-        const { data: currentMember, error: memberError } = await supabase
-          .from("members")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .single();
-
-        if (memberError) {
-          console.error("Member lookup error:", memberError);
-          toast({
-            title: "Error",
-            description: "Failed to load member data. Please try again.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-          
-        if (currentMember) {
-          targetId = currentMember.id;
-          setIsOwnProfile(true);
-        } else {
-          console.error("No member found for user");
-          router.push("/login");
-          return;
-        }
-      } else {
-        // Check if viewing own profile via ID
-        const { data: currentMember } = await supabase
-          .from("members")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .single();
-          
-        if (currentMember && currentMember.id === targetId) {
-          setIsOwnProfile(true);
-        }
-      }
+      // Check if viewing own profile
+      setIsOwnProfile(targetId === currentMember.id);
 
       // Load member data
       const memberData = await memberService.getMemberById(targetId);
@@ -196,10 +137,8 @@ export default function ProfilePage() {
 
       if (historyError) {
         console.error("History load error:", historyError);
-        // Don't fail the whole page if history fails
         setHistory([]);
       } else {
-        // Map the data to our GameHistory type
         const mappedHistory: GameHistory[] = (historyData || []).map((item: any) => ({
           id: item.id,
           game1_score: item.game1_score,
@@ -293,7 +232,8 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading) {
+  // Show loading while checking auth
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-red-600" />
