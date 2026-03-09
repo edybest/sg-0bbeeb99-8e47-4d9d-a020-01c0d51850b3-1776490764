@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -645,6 +645,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_member_id: { Args: never; Returns: string }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
     }
     Enums: {
