@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -16,52 +20,92 @@ export default async function handler(
       return res.status(400).json({ error: "Username diperlukan" });
     }
 
-    // Use service role key to bypass RLS and generate magic link
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-    );
+    console.log("Generate login token request for username:", username);
 
-    // 1. Get user_id from members table using username
+    // Create admin client with service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Get member by username
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("user_id")
-      .eq("username", username)
-      .single();
+      .eq("username", username.trim())
+      .maybeSingle();
 
-    if (memberError || !member) {
-      console.error("Member lookup error:", memberError);
+    console.log("Member lookup result:", { member, error: memberError });
+
+    if (memberError) {
+      console.error("Error finding member:", memberError);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    if (!member || !member.user_id) {
+      console.log("Member not found for username:", username);
       return res.status(404).json({ error: "Member tidak dijumpai" });
     }
 
-    // 2. Get user email from Auth
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(
+    console.log("Member found, user_id:", member.user_id);
+
+    // Get user email from auth
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(
       member.user_id
     );
 
-    if (userError || !userData.user || !userData.user.email) {
-      console.error("User lookup error:", userError);
-      return res.status(404).json({ error: "Email member tidak dijumpai" });
-    }
-
-    const email = userData.user.email;
-
-    // 3. Generate magic link token hash
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: email,
+    console.log("Auth user lookup:", { 
+      user_id: member.user_id, 
+      email: authUser?.user?.email,
+      error: authError 
     });
 
-    if (linkError || !linkData.properties?.hashed_token) {
-      console.error("Generate link error:", linkError);
-      return res.status(500).json({ error: "Gagal menjana token login" });
+    if (authError || !authUser.user) {
+      console.error("Error getting user:", authError);
+      return res.status(500).json({ error: "User tidak dijumpai" });
     }
 
-    // Return the email and token hash to client
+    const userEmail = authUser.user.email;
+
+    if (!userEmail) {
+      return res.status(400).json({ error: "Email tidak dijumpai untuk user ini" });
+    }
+
+    // Generate magic link token
+    const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "magiclink",
+      email: userEmail,
+    });
+
+    console.log("Magic link generation:", {
+      email: userEmail,
+      success: !!magicLinkData,
+      error: magicLinkError,
+      hasTokenHash: !!magicLinkData?.properties?.hashed_token
+    });
+
+    if (magicLinkError || !magicLinkData) {
+      console.error("Error generating magic link:", magicLinkError);
+      return res.status(500).json({ error: "Gagal generate token login" });
+    }
+
+    // Extract token hash from the hashed_token
+    const tokenHash = magicLinkData.properties?.hashed_token;
+
+    if (!tokenHash) {
+      console.error("No token hash in magic link data");
+      return res.status(500).json({ error: "Token hash tidak dijumpai" });
+    }
+
+    console.log("Login token generated successfully for:", username);
+
+    // Return email and token hash to client
     return res.status(200).json({
       success: true,
-      email: email,
-      token_hash: linkData.properties.hashed_token,
+      email: userEmail,
+      token_hash: tokenHash,
     });
   } catch (error) {
     console.error("Generate login token error:", error);

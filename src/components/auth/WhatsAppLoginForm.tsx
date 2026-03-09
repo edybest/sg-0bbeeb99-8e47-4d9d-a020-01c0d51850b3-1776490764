@@ -180,21 +180,28 @@ export function WhatsAppLoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
+        console.error("Generate token error:", data);
         throw new Error(data.error || "Gagal mendapatkan token login");
       }
 
+      console.log("Token generated, verifying OTP...");
+
       // Verify OTP using the token hash
       if (data.email && data.token_hash) {
+        console.log("Verifying OTP for email:", data.email);
+        
         const { error: verifyError } = await supabase.auth.verifyOtp({
           email: data.email,
           token_hash: data.token_hash,
-          type: 'email',
+          type: "email",
         });
 
         if (verifyError) {
-          console.error("Verification error:", verifyError);
+          console.error("Verify OTP error:", verifyError);
           throw new Error("Gagal verify session login");
         }
+
+        console.log("OTP verified successfully");
       } else {
         throw new Error("Token login tidak sah");
       }
