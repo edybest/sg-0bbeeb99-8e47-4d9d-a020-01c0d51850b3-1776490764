@@ -647,6 +647,10 @@ export type Database = {
     Functions: {
       get_current_member_id: { Args: never; Returns: string }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
+      set_session_context: {
+        Args: { session_token_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
