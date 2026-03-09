@@ -385,7 +385,7 @@ export default function ProfilePage() {
                         <div className="space-y-2">
                           <Label htmlFor="sex">Jantina</Label>
                           <Select 
-                            value={member.sex || "Lelaki"} 
+                            value={member.sex || "men"} 
                             onValueChange={(val) => setMember({...member, sex: val})}
                             disabled={!isOwnProfile}
                           >
@@ -393,8 +393,8 @@ export default function ProfilePage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Lelaki">Lelaki</SelectItem>
-                              <SelectItem value="Perempuan">Perempuan</SelectItem>
+                              <SelectItem value="men">Lelaki</SelectItem>
+                              <SelectItem value="women">Perempuan</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
