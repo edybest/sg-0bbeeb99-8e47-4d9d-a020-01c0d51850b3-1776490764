@@ -124,38 +124,27 @@ export default async function handler(
     // Generate TAC code
     const code = generateTACCode();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minutes expiry
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
 
-    // Delete any existing unused TAC codes for this member
-    await supabaseAdmin
-      .from("whatsapp_tac_codes")
-      .delete()
-      .eq("member_id", member.id)
-      .eq("used", false);
-
-    // Store TAC code in database
-    const { data: tacRecord, error: tacError } = await supabaseAdmin
-      .from("whatsapp_tac_codes")
-      .insert({
-        member_id: member.id,
-        code: code,
-        expires_at: expiresAt.toISOString(),
-        used: false,
-        created_at: new Date().toISOString(),
+    // Store TAC code in members table
+    const { error: updateError } = await supabaseAdmin
+      .from("members")
+      .update({
+        tac_code: code,
+        tac_expiry: expiresAt.toISOString(),
       })
-      .select()
-      .single();
+      .eq("id", member.id);
 
-    if (tacError || !tacRecord) {
-      console.error("❌ Failed to store TAC code:", tacError);
+    if (updateError) {
+      console.error("❌ Failed to store TAC code:", updateError);
       return res.status(500).json({
         success: false,
         error: "Failed to generate TAC code",
       });
     }
 
-    console.log("✅ TAC code stored in database:", {
-      id: tacRecord.id,
+    console.log("✅ TAC code stored in members table:", {
+      member_id: member.id,
       code: code,
       expires_at: expiresAt.toISOString(),
     });
@@ -172,7 +161,7 @@ Kod TAC anda adalah:
 
 *${code}*
 
-Kod ini sah untuk 5 minit sahaja.
+Kod ini sah untuk 10 minit sahaja.
 
 ⚠️ Jangan kongsikan kod ini dengan sesiapa.
 
@@ -223,11 +212,14 @@ Terima kasih! 🎳`;
     if (!response.ok) {
       console.error("❌ Fonnte API Error:", responseData);
       
-      // Delete TAC code if WhatsApp failed to send
+      // Clear TAC code if WhatsApp failed to send
       await supabaseAdmin
-        .from("whatsapp_tac_codes")
-        .delete()
-        .eq("id", tacRecord.id);
+        .from("members")
+        .update({
+          tac_code: null,
+          tac_expiry: null,
+        })
+        .eq("id", member.id);
       
       return res.status(response.status).json({
         success: false,
