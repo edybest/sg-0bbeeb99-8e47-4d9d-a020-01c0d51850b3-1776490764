@@ -36,11 +36,18 @@ interface SpinResultWithMember {
   };
 }
 
-const LANE_COLORS = [
-  "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
-  "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B739", "#52D273",
-  "#FF8787", "#6C5CE7", "#00B894", "#FDCB6E", "#E17055",
-  "#74B9FF", "#A29BFE", "#FD79A8", "#FFEAA7", "#55EFC4"
+// Beautiful alternating colors like wheelofnames.com
+const WHEEL_COLORS = [
+  "#E74C3C", // Red
+  "#3498DB", // Blue
+  "#F39C12", // Orange
+  "#2ECC71", // Green
+  "#9B59B6", // Purple
+  "#E67E22", // Dark Orange
+  "#1ABC9C", // Turquoise
+  "#E91E63", // Pink
+  "#F1C40F", // Yellow
+  "#34495E", // Dark Blue
 ];
 
 export default function UndiLanePage() {
@@ -72,10 +79,10 @@ export default function UndiLanePage() {
     try {
       const data = await gameService.getAllGames();
       setGames(data);
-      if (data.length > 0) {
+      if (data.length > 0 && member) {
         const firstGameId = data[0].id;
         setActiveGameId(firstGameId);
-        await loadLaneData(member!.id, member!.username, firstGameId);
+        await loadLaneData(member.id, firstGameId);
       }
     } catch (error) {
       console.error("Error loading games:", error);
@@ -89,7 +96,7 @@ export default function UndiLanePage() {
     }
   }
 
-  async function loadLaneData(currentMemberId: string, username: string, gameId: string) {
+  async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
       const [mySpinResult, gameResults, spunLanes] = await Promise.all([
         getMemberSpinResult(gameId, currentMemberId),
@@ -118,19 +125,21 @@ export default function UndiLanePage() {
         description: "Failed to load lane data",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   }
 
   async function handleGameChange(gameId: string) {
+    if (!member) return;
     setActiveGameId(gameId);
     setLoading(true);
-    await loadLaneData(member!.id, member!.username, gameId);
+    await loadLaneData(member.id, gameId);
     setLoading(false);
   }
 
   async function spinWheel() {
-    if (availableLanes.length === 0) {
+    if (!member || availableLanes.length === 0) {
       toast({
         title: "No lanes available",
         description: "All lanes have been assigned",
@@ -155,8 +164,11 @@ export default function UndiLanePage() {
       setShowConfetti(true);
       
       try {
-        await saveSpinResult(activeGameId, member!.id, winningLane);
-        await loadLaneData(member!.id, member!.username, activeGameId);
+        console.log("Saving spin result:", { gameId: activeGameId, memberId: member.id, lane: winningLane });
+        await saveSpinResult(activeGameId, member.id, winningLane);
+        console.log("Spin result saved successfully");
+        
+        await loadLaneData(member.id, activeGameId);
         
         toast({
           title: "🎉 Lane Assigned!",
@@ -169,7 +181,7 @@ export default function UndiLanePage() {
         console.error("Error saving spin result:", error);
         toast({
           title: "Error",
-          description: "Failed to save lane assignment",
+          description: "Failed to save lane assignment. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -179,12 +191,12 @@ export default function UndiLanePage() {
   }
 
   async function handleResetSpins() {
-    if (!member?.is_admin) return;
+    if (!member?.is_admin || !activeGameId) return;
     if (!confirm("Reset all spin results for this game?")) return;
 
     try {
       await resetAllSpinResults(activeGameId);
-      await loadLaneData(member.id, member.username, activeGameId);
+      await loadLaneData(member.id, activeGameId);
       toast({
         title: "Reset successful",
         description: "All spin results have been cleared",
@@ -289,10 +301,10 @@ export default function UndiLanePage() {
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-center text-white text-2xl">
-                  {myResult ? "Your Lane" : "Spin the Wheel!"}
+                  {myResult ? "Your Lane" : "Click to Spin!"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center p-8">
+              <CardContent className="flex flex-col items-center justify-center p-4 md:p-8">
                 {myResult ? (
                   <div className="text-center">
                     <div className="text-8xl font-black text-red-500 mb-4 animate-bounce">
@@ -301,59 +313,86 @@ export default function UndiLanePage() {
                     <p className="text-gray-400 text-lg">Your assigned lane</p>
                   </div>
                 ) : (
-                  <div className="relative w-full max-w-md aspect-square">
-                    {/* Wheel Pointer */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20">
-                      <div className="w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[40px] border-t-red-500 drop-shadow-lg" />
-                    </div>
+                  <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
+                    {/* Wheel Container with Pointer */}
+                    <div className="relative w-full">
+                      {/* Pointer Arrow at Top */}
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20">
+                        <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-yellow-400 drop-shadow-2xl" />
+                      </div>
 
-                    {/* Spinning Wheel */}
-                    <div
-                      className="relative w-full h-full rounded-full shadow-2xl overflow-hidden border-8 border-gray-700"
-                      style={{
-                        transform: `rotate(${rotation}deg)`,
-                        transition: spinning ? "transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-                      }}
-                    >
-                      {availableLanes.map((lane, index) => {
-                        const segmentAngle = 360 / availableLanes.length;
-                        const startAngle = index * segmentAngle;
-                        const color = LANE_COLORS[index % LANE_COLORS.length];
-
-                        return (
-                          <div
-                            key={lane}
-                            className="absolute w-full h-full"
-                            style={{
-                              transform: `rotate(${startAngle}deg)`,
-                              transformOrigin: "50% 50%",
-                            }}
+                      {/* Spinning Wheel */}
+                      <div className="relative w-full aspect-square">
+                        <svg
+                          viewBox="0 0 400 400"
+                          className="w-full h-full drop-shadow-2xl"
+                          style={{
+                            transform: `rotate(${rotation}deg)`,
+                            transition: spinning ? "transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+                          }}
+                        >
+                          {/* Outer circle border */}
+                          <circle cx="200" cy="200" r="195" fill="none" stroke="#fff" strokeWidth="10" />
+                          
+                          {/* Wheel segments */}
+                          {availableLanes.map((lane, index) => {
+                            const segmentAngle = 360 / availableLanes.length;
+                            const startAngle = index * segmentAngle - 90;
+                            const endAngle = startAngle + segmentAngle;
+                            
+                            const startRad = (startAngle * Math.PI) / 180;
+                            const endRad = (endAngle * Math.PI) / 180;
+                            
+                            const x1 = 200 + 190 * Math.cos(startRad);
+                            const y1 = 200 + 190 * Math.sin(startRad);
+                            const x2 = 200 + 190 * Math.cos(endRad);
+                            const y2 = 200 + 190 * Math.sin(endRad);
+                            
+                            const largeArc = segmentAngle > 180 ? 1 : 0;
+                            const pathData = `M 200 200 L ${x1} ${y1} A 190 190 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                            
+                            const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
+                            
+                            const midAngle = startAngle + segmentAngle / 2;
+                            const textRadius = 130;
+                            const textX = 200 + textRadius * Math.cos((midAngle * Math.PI) / 180);
+                            const textY = 200 + textRadius * Math.sin((midAngle * Math.PI) / 180);
+                            
+                            return (
+                              <g key={lane}>
+                                <path d={pathData} fill={color} stroke="#fff" strokeWidth="3" />
+                                <text
+                                  x={textX}
+                                  y={textY}
+                                  fill="white"
+                                  fontSize="28"
+                                  fontWeight="bold"
+                                  textAnchor="middle"
+                                  dominantBaseline="middle"
+                                  transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
+                                  style={{ 
+                                    textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
+                                    fontFamily: "Arial, sans-serif"
+                                  }}
+                                >
+                                  {lane}
+                                </text>
+                              </g>
+                            );
+                          })}
+                          
+                          {/* Center circle with bowling pin */}
+                          <circle cx="200" cy="200" r="50" fill="white" stroke="#333" strokeWidth="3" />
+                          <text
+                            x="200"
+                            y="210"
+                            fontSize="40"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
                           >
-                            <div
-                              className="absolute w-full h-1/2"
-                              style={{
-                                background: color,
-                                clipPath: `polygon(50% 0%, 100% 100%, 0% 100%)`,
-                                transform: `rotate(${segmentAngle / 2}deg)`,
-                                transformOrigin: "50% 100%",
-                              }}
-                            >
-                              <div
-                                className="absolute top-[15%] left-1/2 -translate-x-1/2 text-white font-black text-xl md:text-2xl drop-shadow-lg"
-                                style={{
-                                  transform: `rotate(${-segmentAngle / 2}deg)`,
-                                }}
-                              >
-                                {lane}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {/* Center Circle */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white rounded-full shadow-xl border-4 border-gray-700 flex items-center justify-center">
-                        <Sparkles className="h-12 w-12 text-red-500" />
+                            🎳
+                          </text>
+                        </svg>
                       </div>
                     </div>
 
@@ -361,7 +400,7 @@ export default function UndiLanePage() {
                     <Button
                       onClick={spinWheel}
                       disabled={spinning || availableLanes.length === 0}
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-16 bg-red-600 hover:bg-red-700 text-white font-bold text-xl px-12 py-6 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-xl px-10 py-6 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-transform hover:scale-105"
                     >
                       {spinning ? (
                         <>
