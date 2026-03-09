@@ -116,6 +116,11 @@ export default function TrainingPage() {
       setCurrentPage(1);
     } catch (error) {
       console.error("Error loading scores:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load training scores. Please try again.",
+        variant: "destructive",
+      });
     }
   }
 

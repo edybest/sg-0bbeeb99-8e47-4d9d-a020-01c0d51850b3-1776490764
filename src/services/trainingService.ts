@@ -11,13 +11,13 @@ export interface TrainingScoreWithMember extends TrainingScore {
 }
 
 export const getMyTrainingScores = async (): Promise<TrainingScoreWithMember[]> => {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) throw new Error("Not authenticated");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
 
   const { data: memberData } = await supabase
     .from("members")
     .select("id")
-    .eq("user_id", sessionData.session.user.id)
+    .eq("user_id", session.user.id)
     .single();
 
   if (!memberData) throw new Error("Member not found");
@@ -40,9 +40,7 @@ export const createTrainingScore = async (
 ): Promise<TrainingScore> => {
   const { data, error } = await supabase
     .from("training_scores")
-    .insert({
-      ...scoreData,
-    })
+    .insert(scoreData)
     .select()
     .single();
 
@@ -75,13 +73,13 @@ export const deleteTrainingScore = async (id: string): Promise<void> => {
 };
 
 export const getTrainingStatistics = async (limit: number = 20) => {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) throw new Error("Not authenticated");
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
 
   const { data: memberData } = await supabase
     .from("members")
     .select("id")
-    .eq("user_id", sessionData.session.user.id)
+    .eq("user_id", session.user.id)
     .single();
 
   if (!memberData) throw new Error("Member not found");
