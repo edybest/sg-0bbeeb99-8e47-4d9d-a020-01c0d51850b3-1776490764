@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
+import { useAuth } from "@/hooks/useAuth";
 
 type PlayerStats = {
   member_id: string;
@@ -29,13 +30,13 @@ type PlayerStats = {
 
 export default function AverageScorePage() {
   const router = useRouter();
+  const { member, loading, isAuthenticated } = useAuth(true);
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
     loadPlayerStats();
   }, []);
 
@@ -43,11 +44,12 @@ export default function AverageScorePage() {
     filterPlayers();
   }, [searchQuery, players]);
 
-  async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push("/login");
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
   }
 
   async function loadPlayerStats() {
@@ -230,7 +232,7 @@ export default function AverageScorePage() {
           </Card>
 
           {/* Player Stats */}
-          {loading ? (
+          {loadingData ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>

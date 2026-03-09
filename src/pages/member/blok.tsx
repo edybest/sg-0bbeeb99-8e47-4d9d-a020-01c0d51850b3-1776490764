@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import type { Tables } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define specific types for what we fetch to avoid TS errors
 type GameSummary = Pick<Tables<"games">, "id" | "game_name" | "game_format" | "game_date" | "created_at">;
@@ -78,6 +79,7 @@ type SortDirection = "asc" | "desc";
 
 export default function BlokPage() {
   const router = useRouter();
+  const { member, loading: authLoading, isAuthenticated } = useAuth(true);
   const { toast } = useToast();
   
   // ALL HOOKS MUST BE DECLARED FIRST
@@ -206,7 +208,6 @@ export default function BlokPage() {
     );
   }
 
-  // Loading state
   if (loading && games.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
@@ -230,6 +231,14 @@ export default function BlokPage() {
             </div>
           </div>
         </main>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     );
   }

@@ -14,6 +14,7 @@ import { gameService } from "@/services/gameService";
 import { ArrowLeft, Save, Users, Loader2, GripVertical, X } from "lucide-react";
 import Link from "next/link";
 import { MobileNav } from "@/components/member/MobileNav";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Game {
   id: string;
@@ -47,6 +48,7 @@ export default function LanePage() {
   const [draggedMember, setDraggedMember] = useState<Member | null>(null);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const { member, loading: authLoading, isAuthenticated } = useAuth(true);
 
   useEffect(() => {
     if (router.isReady) {
@@ -374,10 +376,10 @@ export default function LanePage() {
     );
   }
 
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-red-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     );
   }

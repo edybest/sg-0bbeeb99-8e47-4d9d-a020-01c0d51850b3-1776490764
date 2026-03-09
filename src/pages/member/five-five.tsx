@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClubLogo } from "@/components/ClubLogo";
 import { SEO } from "@/components/SEO";
-import { Trophy, Calendar, TrendingUp, ArrowLeft } from "lucide-react";
+import { Trophy, Calendar, TrendingUp, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 type Member = Tables<"members">;
 type Game = Tables<"games">;
@@ -37,8 +38,9 @@ interface GameWithDate {
 
 export default function FiveFivePage() {
   const router = useRouter();
+  const { member, loading, isAuthenticated } = useAuth(true);
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoading] = useState(true);
   const [games, setGames] = useState<GameWithDate[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [participants, setParticipants] = useState<FiveFiveParticipant[]>([]);
@@ -53,6 +55,14 @@ export default function FiveFivePage() {
       loadFiveFiveData(selectedGameId);
     }
   }, [selectedGameId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   const loadGamesWithFiveFive = async () => {
     setLoading(true);

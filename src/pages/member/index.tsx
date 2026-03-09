@@ -9,54 +9,20 @@ import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
 import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [memberData, setMemberData] = useState<{
-    id: string;
-    username: string;
-    full_name: string;
-    avatar_url: string | null;
-  } | null>(null);
-
-  useEffect(() => {
-    // Try to load member data if logged in, but don't require it
-    loadMemberData();
-  }, []);
-
-  async function loadMemberData() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        const { data: member } = await supabase
-          .from("members")
-          .select("id, username, full_name, avatar_url")
-          .eq("user_id", session.user.id)
-          .single();
-
-        if (member) {
-          setMemberData(member);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading member data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { member, loading, isAuthenticated, logout } = useAuth(true);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    setMemberData(null);
-    router.reload();
+    await logout();
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-red-600" />
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
       </div>
     );
   }
@@ -81,19 +47,19 @@ export default function MemberDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                {memberData ? (
+                {member ? (
                   <>
-                    {memberData.avatar_url ? (
+                    {member.avatar_url ? (
                       <Image 
-                        src={memberData.avatar_url} 
-                        alt={memberData.username}
+                        src={member.avatar_url} 
+                        alt={member.username}
                         width={40}
                         height={40}
                         className="rounded-full border-2 border-red-600"
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
-                        {memberData.username[0].toUpperCase()}
+                        {member.username[0].toUpperCase()}
                       </div>
                     )}
                     <Button 
@@ -127,14 +93,14 @@ export default function MemberDashboard() {
               <div className="flex items-center gap-4">
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-2">
-                    {memberData ? `Selamat Datang, ${memberData.full_name}! 🎳` : "Selamat Datang ke AMBC Club! 🎳"}
+                    {member ? `Selamat Datang, ${member.full_name}! 🎳` : "Selamat Datang ke AMBC Club! 🎳"}
                   </h2>
-                  {memberData && (
+                  {member && (
                     <p className="text-red-100">
-                      @{memberData.username}
+                      @{member.username}
                     </p>
                   )}
-                  {!memberData && (
+                  {!member && (
                     <p className="text-red-100">
                       Sila login untuk akses penuh
                     </p>
@@ -224,7 +190,7 @@ export default function MemberDashboard() {
               </Card>
             </Link>
 
-            {memberData && (
+            {member && (
               <Link href="/member/profile">
                 <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
                   <CardHeader>

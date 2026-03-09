@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Crown, Star, Sparkles, Loader2, Award } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import confetti from "canvas-confetti";
+import { useAuth } from "@/hooks/useAuth";
 
 type Champion = {
   year: number;
@@ -27,10 +28,12 @@ type Champion = {
 
 export default function HallOfFamePage() {
   const router = useRouter();
+  const { member, loading, isAuthenticated } = useAuth(true);
+  
   const [champions, setChampions] = useState<Champion[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [years, setYears] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingChampions, setLoadingChampions] = useState(true);
 
   useEffect(() => {
     loadChampions();
@@ -64,9 +67,17 @@ export default function HallOfFamePage() {
     frame();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
+
   async function loadChampions() {
     try {
-      setLoading(true);
+      setLoadingChampions(true);
 
       // Get all Blok games with their top scorer
       const { data: games, error } = await supabase
@@ -126,7 +137,7 @@ export default function HallOfFamePage() {
     } catch (error) {
       console.error("Load champions error:", error);
     } finally {
-      setLoading(false);
+      setLoadingChampions(false);
     }
   }
 
@@ -189,7 +200,7 @@ export default function HallOfFamePage() {
           </Card>
 
           {/* Champions List */}
-          {loading ? (
+          {loadingChampions ? (
             <div className="flex justify-center items-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-yellow-600" />
             </div>

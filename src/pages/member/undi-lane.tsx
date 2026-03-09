@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trophy, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LaneAssignment {
   id: string;
