@@ -46,37 +46,19 @@ export default function FiveFivePage() {
   const [participants, setParticipants] = useState<FiveFiveParticipant[]>([]);
   const [selectedGame, setSelectedGame] = useState<GameWithDate | null>(null);
 
-  useEffect(() => {
-    loadGamesWithFiveFive();
-  }, []);
-
-  useEffect(() => {
-    if (selectedGameId) {
-      loadFiveFiveData(selectedGameId);
-    }
-  }, [selectedGameId]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
-  }
-
   const loadGamesWithFiveFive = async () => {
     setLoading(true);
     try {
-      const { data: gamesData, error } = await supabase.
-      from("games").
-      select(`
+      const { data: gamesData, error } = await supabase
+        .from("games")
+        .select(`
           id,
           game_date,
           game_format,
           game_players!inner(is_fivefive)
-        `).
-      eq("game_players.is_fivefive", true).
-      order("game_date", { ascending: false });
+        `)
+        .eq("game_players.is_fivefive", true)
+        .order("game_date", { ascending: false });
 
       if (error) throw error;
 
@@ -106,16 +88,16 @@ export default function FiveFivePage() {
         setSelectedGame(game);
       }
 
-      const { data: playersData, error: playersError } = await supabase.
-      from("game_players").
-      select(`
+      const { data: playersData, error: playersError } = await supabase
+        .from("game_players")
+        .select(`
           member_id,
           is_fivefive,
           overall_score,
           members!inner(full_name)
-        `).
-      eq("game_id", gameId).
-      eq("is_fivefive", true);
+        `)
+        .eq("game_id", gameId)
+        .eq("is_fivefive", true);
 
       if (playersError) throw playersError;
 
@@ -125,25 +107,25 @@ export default function FiveFivePage() {
         return;
       }
 
-      const sortedPlayers = playersData.
-      map((p) => ({
-        member_id: p.member_id,
-        member_name: p.members?.full_name || "Unknown",
-        score: p.overall_score || 0
-      })).
-      sort((a, b) => b.score - a.score);
+      const sortedPlayers = playersData
+        .map((p) => ({
+          member_id: p.member_id,
+          member_name: p.members?.full_name || "Unknown",
+          score: p.overall_score || 0,
+        }))
+        .sort((a, b) => b.score - a.score);
 
-      const { data: prizeConfig, error: prizeError } = await supabase.
-      from("fivefive_prizes").
-      select("*").
-      eq("player_count", sortedPlayers.length).
-      maybeSingle();
+      const { data: prizeConfig, error: prizeError } = await supabase
+        .from("fivefive_prizes")
+        .select("*")
+        .eq("player_count", sortedPlayers.length)
+        .maybeSingle();
 
       if (prizeError) throw prizeError;
 
-      const prizes: number[] = Array.isArray(prizeConfig?.prizes) ?
-      prizeConfig.prizes.map(Number) :
-      [];
+      const prizes: number[] = Array.isArray(prizeConfig?.prizes)
+        ? prizeConfig.prizes.map(Number)
+        : [];
 
       const participantsWithPrizes: FiveFiveParticipant[] = sortedPlayers.map((player, index) => {
         const rank = index + 1;
@@ -163,7 +145,7 @@ export default function FiveFivePage() {
           game3_prize,
           game4_prize,
           game5_prize,
-          total_prize
+          total_prize,
         };
       });
 
@@ -175,6 +157,24 @@ export default function FiveFivePage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadGamesWithFiveFive();
+  }, []);
+
+  useEffect(() => {
+    if (selectedGameId) {
+      loadFiveFiveData(selectedGameId);
+    }
+  }, [selectedGameId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
