@@ -26,6 +26,9 @@ export default async function handler(
     console.log("=== ADMIN CREATE MEMBER ===");
     console.log("Email:", email);
     console.log("Member data:", memberData);
+    console.log("Supabase URL:", supabaseUrl);
+    console.log("Service key exists:", !!supabaseServiceKey);
+    console.log("Service key length:", supabaseServiceKey.length);
 
     // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -36,7 +39,17 @@ export default async function handler(
     });
 
     // Step 1: Check if user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    console.log("Step 1: Checking if user already exists...");
+    const { data: existingUser, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error("Error listing users:", listError);
+      return res.status(500).json({ 
+        error: "Failed to check existing users", 
+        details: listError.message 
+      });
+    }
+
     const userExists = existingUser?.users?.find((u: any) => u.email === email);
 
     let userId: string;
@@ -46,7 +59,7 @@ export default async function handler(
       userId = userExists.id;
     } else {
       // Step 2: Create auth user (no password - will use WhatsApp login)
-      console.log("Creating new auth user...");
+      console.log("Step 2: Creating new auth user...");
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         email_confirm: true, // Auto-confirm email
@@ -60,7 +73,7 @@ export default async function handler(
         console.error("Error creating auth user:", createUserError);
         return res.status(500).json({ 
           error: "Failed to create auth user", 
-          details: createUserError?.message 
+          details: createUserError?.message || "Unknown error"
         });
       }
 
@@ -69,7 +82,7 @@ export default async function handler(
     }
 
     // Step 3: Create member record with user_id
-    console.log("Creating member record with user_id:", userId);
+    console.log("Step 3: Creating member record with user_id:", userId);
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .insert({
