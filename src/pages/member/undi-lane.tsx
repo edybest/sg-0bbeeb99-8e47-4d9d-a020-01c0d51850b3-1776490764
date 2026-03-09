@@ -38,7 +38,7 @@ interface SpinResult {
 export default function UndiLane() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { member, isAuthenticated, isAdmin, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -54,13 +54,13 @@ export default function UndiLane() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
+      if (!isAuthenticated || !member) {
         router.push("/login");
       } else {
-        loadData();
+        loadData(member.id, member.username);
       }
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, isAuthenticated, member, router]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -69,30 +69,11 @@ export default function UndiLane() {
     }
   }, []);
 
-  async function loadData() {
+  async function loadData(currentMemberId: string, currentUsername: string) {
     try {
       setLoading(true);
-
-      // Get current member directly
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .select("id, username")
-        .eq("user_id", user.id)
-        .single();
-
-      if (memberError || !member) {
-        console.error("Member lookup error:", memberError);
-        toast({
-          title: "Error",
-          description: "Failed to load member data. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      setMemberId(member.id);
-      setUsername(member.username);
+      setMemberId(currentMemberId);
+      setUsername(currentUsername);
 
       const { data: game, error: gameError } = await supabase
         .from("games")
@@ -118,7 +99,7 @@ export default function UndiLane() {
       }
 
       setActiveGameId(game.id);
-      await loadLaneData(member.id, game.id);
+      await loadLaneData(currentMemberId, game.id);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({

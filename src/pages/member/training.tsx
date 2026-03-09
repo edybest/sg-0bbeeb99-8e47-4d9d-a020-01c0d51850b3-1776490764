@@ -65,7 +65,7 @@ type TrainingScoreWithDate = any;
 export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { member, isAuthenticated, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<TrainingScoreWithDate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -94,48 +94,19 @@ export default function TrainingPage() {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
+      if (!isAuthenticated || !member) {
         router.push("/login");
       } else {
-        loadMemberData();
+        setMemberId(member.id);
+        fetchScores();
       }
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, isAuthenticated, member, router]);
 
-  async function loadMemberData() {
-    try {
-      setLoading(true);
-
-      // Get current member directly
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (memberError || !member) {
-        console.error("Member lookup error:", memberError);
-        toast({
-          title: "Error",
-          description: "Failed to load member data. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      setMemberId(member.id);
-      await loadScores();
-    } catch (error) {
-      console.error("Error loading member data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load data. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  async function fetchScores() {
+    setLoading(true);
+    await loadScores();
+    setLoading(false);
   }
 
   async function loadScores() {
