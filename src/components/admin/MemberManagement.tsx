@@ -191,6 +191,7 @@ export function MemberManagement() {
     try {
       let avatarUrl = editingMember?.avatar_url;
 
+      // Handle avatar upload if needed
       if (formData.avatar_base64) {
         const base64Data = formData.avatar_base64.split(",")[1];
         const mimeType = formData.avatar_base64.split(";")[0].split(":")[1];
@@ -208,6 +209,7 @@ export function MemberManagement() {
       }
 
       if (editingMember) {
+        // ✅ UPDATE existing member (no auth user changes)
         await memberService.updateMember(editingMember.id, {
           username: formData.username,
           email: formData.email || null,
@@ -219,20 +221,58 @@ export function MemberManagement() {
           handicap: formData.handicap,
           avatar_url: avatarUrl
         });
+
+        toast({
+          title: "✅ Berjaya",
+          description: "Ahli telah dikemaskini",
+          duration: 3000,
+        });
       } else {
-        await memberService.createMember({
-          user_id: null,
-          username: formData.username,
-          email: formData.email || null,
-          full_name: formData.full_name,
-          phone: formData.phone,
-          birthday: formData.birthday,
-          sex: formData.sex,
-          bowling_technique: formData.bowling_technique || null,
-          handicap: formData.handicap,
-          avatar_url: avatarUrl,
-          is_admin: false,
-          is_verified: true
+        // ✅ CREATE new member WITH auth user via admin API
+        console.log("Creating new member with auth user...");
+
+        // Validate email is provided for new members
+        if (!formData.email) {
+          toast({
+            title: "❌ Email Diperlukan",
+            description: "Email diperlukan untuk membuat akaun ahli baru",
+            variant: "destructive",
+            duration: 3000,
+          });
+          setSubmitting(false);
+          return;
+        }
+
+        const response = await fetch("/api/admin-create-member", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            memberData: {
+              username: formData.username,
+              full_name: formData.full_name,
+              phone: formData.phone,
+              birthday: formData.birthday,
+              sex: formData.sex,
+              bowling_technique: formData.bowling_technique || null,
+              handicap: formData.handicap,
+              avatar_url: avatarUrl,
+            },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to create member");
+        }
+
+        console.log("✅ Member created with auth user:", data.data);
+
+        toast({
+          title: "✅ Berjaya",
+          description: "Ahli baru telah ditambah dengan akaun auth",
+          duration: 3000,
         });
       }
 
@@ -253,17 +293,12 @@ export function MemberManagement() {
         handicap: 0,
         avatar_base64: ""
       });
-      
-      toast({
-        title: "✅ Berjaya",
-        description: editingMember ? "Ahli telah dikemaskini" : "Ahli baru telah ditambah",
-        duration: 3000,
-      });
-    } catch (error) {
+
+    } catch (error: any) {
       console.error("Error saving member:", error);
       toast({
         title: "❌ Gagal",
-        description: "Gagal menyimpan ahli",
+        description: error.message || "Gagal menyimpan ahli",
         variant: "destructive",
         duration: 3000,
       });
@@ -515,14 +550,26 @@ export function MemberManagement() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-300">Email</Label>
+                <Label htmlFor="email" className="text-gray-300">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required={!editingMember}
+                  disabled={!!editingMember}
                   className="bg-gray-800 border-gray-700"
                 />
+                {!editingMember && (
+                  <p className="text-xs text-gray-500">
+                    Email diperlukan untuk membuat akaun auth member. Member akan login menggunakan WhatsApp TAC.
+                  </p>
+                )}
+                {editingMember && (
+                  <p className="text-xs text-yellow-500">
+                    Email tidak boleh diubah selepas akaun dicipta
+                  </p>
+                )}
               </div>
             </div>
 
