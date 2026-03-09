@@ -2,32 +2,32 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Get cache control setting from database
- * Returns true (enabl
-...
-ue) by default
+ * @returns Cache duration in seconds, or "0" if disabled
  */
-async function getCacheControl(): Promise<boolean> {
+async function getCacheControl(): Promise<string> {
   try {
-    const { data, error } = await supabase
+    // Check if cache is enabled
+    const { data: enableData } = await supabase
       .from("club_settings")
       .select("setting_value")
       .eq("setting_key", "enable_cache")
-      .maybeSingle();
+      .single();
 
-    if (error) {
-      console.error("Error fetching cache setting:", error);
-      return true; // Default to cache enabled on error
+    if (enableData?.setting_value !== "true") {
+      return "0"; // Cache disabled
     }
 
-    // If setting doesn't exist, default to true (cache enabled)
-    if (!data) {
-      return true;
-    }
+    // Get cache duration
+    const { data: durationData } = await supabase
+      .from("club_settings")
+      .select("setting_value")
+      .eq("setting_key", "cache_duration")
+      .single();
 
-    return data.setting_value === "true";
+    return durationData?.setting_value || "3600"; // Default 1 hour
   } catch (error) {
-    console.error("Error in getCacheControl:", error);
-    return true; // Default to cache enabled on error
+    console.error("Error getting cache control setting:", error);
+    return "3600"; // Default to 1 hour on error
   }
 }
 
@@ -43,19 +43,21 @@ export const storageService = {
     file: File
   ): Promise<string> {
     try {
+      // Get cache control setting
       const cacheEnabled = await getCacheControl();
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("member-assets")
+      const { error } = await supabase.storage
+        .from("avatars")
         .upload(filePath, file, {
-          cacheControl: cacheEnabled ? "3600" : "0",
+          cacheControl: cacheEnabled,
           upsert: true,
         });
 
-      if (uploadError) throw uploadError;
+      if (error) throw error;
 
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -196,15 +198,17 @@ export const storageService = {
     folder: string = "images"
   ): Promise<string> {
     try {
+      // Get cache control setting
       const cacheEnabled = await getCacheControl();
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("member-assets")
+        .from("images")
         .upload(filePath, file, {
-          cacheControl: cacheEnabled ? "3600" : "0",
+          cacheControl: cacheEnabled,
           upsert: true,
         });
 
