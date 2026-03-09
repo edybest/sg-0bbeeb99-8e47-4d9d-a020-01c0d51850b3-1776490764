@@ -140,9 +140,6 @@ export default function ProfilePage() {
 
       const formattedHistory = (gameHistory || []).map((item) => ({
         id: item.id,
-        game_name: item.games?.game_name || "Unknown Game",
-        game_date: item.games?.game_date || null,
-        game_format: item.games?.game_format || null,
         game1_score: item.game1_score,
         game2_score: item.game2_score,
         game3_score: item.game3_score,
@@ -150,8 +147,11 @@ export default function ProfilePage() {
         game5_score: item.game5_score,
         total_score: item.total_score,
         overall_score: item.overall_score,
-        average_score: item.average_score,
-        created_at: item.created_at,
+        games: {
+          game_name: item.games?.game_name || "Unknown Game",
+          game_date: item.games?.game_date || new Date().toISOString(),
+          game_type: item.games?.game_format || "Unknown"
+        }
       }));
 
       setHistory(formattedHistory);
@@ -176,9 +176,9 @@ export default function ProfilePage() {
       
       await memberService.updateMember(member.id, {
         full_name: member.full_name,
-        phone: member.phone,
+        phone: member.phone || null,
         sex: member.sex,
-        birthday: member.birthday,
+        birthday: member.birthday || null,
         bowling_technique: member.technique,
       });
 

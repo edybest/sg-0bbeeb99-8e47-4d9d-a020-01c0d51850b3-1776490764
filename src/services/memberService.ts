@@ -79,9 +79,10 @@ export const memberService = {
       .update(updates)
       .eq("id", id)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
+    if (!data) throw new Error("Gagal mengemaskini: Tiada kebenaran (RLS) atau profil tidak wujud.");
     return data;
   },
 
@@ -111,9 +112,10 @@ export const memberService = {
       .update({ avatar_url: avatarUrl })
       .eq("id", memberId)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
+    if (!data) throw new Error("Gagal mengemaskini: Tiada kebenaran (RLS).");
     return data;
   }
 };
