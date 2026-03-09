@@ -164,7 +164,7 @@ export function WhatsAppLoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          memberId: formData.memberId,
+          username: formData.username,
           code: formData.tac,
         }),
       });
