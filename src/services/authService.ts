@@ -231,7 +231,7 @@ export const authService = {
 
       // Step 1: Verify TAC code in database
       console.log("Step 1: Checking TAC in database...");
-      const { data: tacRecord, error: tacError } = await supabase
+      const { data: tacRecord, error: tacError } = await (supabase as any)
         .from("whatsapp_tac_codes")
         .select("*")
         .eq("member_id", memberId)
@@ -251,7 +251,7 @@ export const authService = {
       if (!tacRecord) {
         console.log("❌ TAC not found or invalid");
         console.log("Checking for any TAC codes for this member:");
-        const { data: allTacs } = await supabase
+        const { data: allTacs } = await (supabase as any)
           .from("whatsapp_tac_codes")
           .select("*")
           .eq("member_id", memberId)
@@ -270,7 +270,7 @@ export const authService = {
 
       // Step 2: Mark TAC as used
       console.log("Step 2: Marking TAC as used...");
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("whatsapp_tac_codes")
         .update({ 
           is_used: true, 
@@ -339,7 +339,7 @@ export const authService = {
       const { data: sessionData, error: verifyError } = await supabase.auth.verifyOtp({
         email: tokenData.email,
         token_hash: tokenData.token_hash,
-        type: "email",
+        type: "magiclink",
       });
 
       if (verifyError) {

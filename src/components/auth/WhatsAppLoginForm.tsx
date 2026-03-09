@@ -22,6 +22,7 @@ export function WhatsAppLoginForm() {
     username: "",
     phone: "",
     tac: "",
+    memberId: "",
   });
 
   // Cooldown timer effect
@@ -153,7 +154,7 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    if (!currentMemberId) {
+    if (!formData.memberId) {
       toast({
         title: "❌ Member ID tidak dijumpai",
         description: "Sila hantar kod TAC semula",
@@ -166,12 +167,12 @@ export function WhatsAppLoginForm() {
 
     try {
       console.log("=== LOGIN ATTEMPT START ===");
-      console.log("Member ID:", currentMemberId);
+      console.log("Member ID:", formData.memberId);
       console.log("TAC Code:", formData.tac);
 
       // Verify TAC and establish session
       const { data: authData, error: authError } = await authService.verifyWhatsAppTAC(
-        currentMemberId,
+        formData.memberId,
         formData.tac
       );
 
