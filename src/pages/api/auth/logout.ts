@@ -27,7 +27,7 @@ export default async function handler(
 
   try {
     // Get session token from cookie
-    const sessionToken = req.cookies.ambc_session;
+    const sessionToken = req.cookies.session_token;
 
     if (sessionToken) {
       // Delete session from database
@@ -37,11 +37,11 @@ export default async function handler(
         .eq("session_token", sessionToken);
     }
 
-    // Clear session cookie
-    res.setHeader(
-      "Set-Cookie",
-      "ambc_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0"
-    );
+    // Clear session cookie - manual string format
+    const isProd = process.env.NODE_ENV === "production";
+    const cookie = `session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`;
+    
+    res.setHeader("Set-Cookie", cookie);
 
     return res.status(200).json({
       success: true,
@@ -51,11 +51,11 @@ export default async function handler(
   } catch (error) {
     console.error("Error during logout:", error);
     
-    // Always clear cookie even if DB delete fails
-    res.setHeader(
-      "Set-Cookie",
-      "ambc_session=; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=0"
-    );
+    // Always clear cookie even if DB delete fails - manual string format
+    const isProd = process.env.NODE_ENV === "production";
+    const cookie = `session_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`;
+    
+    res.setHeader("Set-Cookie", cookie);
 
     return res.status(500).json({
       error: error instanceof Error ? error.message : "Internal server error"

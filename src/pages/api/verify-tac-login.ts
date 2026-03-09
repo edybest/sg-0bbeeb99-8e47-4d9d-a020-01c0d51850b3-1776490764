@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import { serialize } from "cookie";
 import crypto from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -155,14 +154,10 @@ export default async function handler(
       })
       .eq("id", member.id);
 
-    // Set session cookie
-    const cookie = serialize("session_token", sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
+    // Set session cookie manually
+    const isProd = process.env.NODE_ENV === "production";
+    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    const cookie = `session_token=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? '; Secure' : ''}`;
 
     res.setHeader("Set-Cookie", cookie);
 

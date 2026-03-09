@@ -27,7 +27,7 @@ export default async function handler(
 
   try {
     // Get session token from cookie
-    const sessionToken = req.cookies.ambc_session;
+    const sessionToken = req.cookies.session_token;
 
     if (!sessionToken) {
       return res.status(401).json({
