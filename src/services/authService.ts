@@ -225,22 +225,67 @@ export const authService = {
    */
   verifyWhatsAppTAC: async (memberId: string, tacCode: string) => {
     try {
-      console.log("Verifying TAC for member:", memberId);
+      console.log("=== VERIFY WHATSAPP TAC START ===");
+      console.log("Member ID:", memberId);
+      console.log("TAC Code:", tacCode);
 
       // Step 1: Verify TAC code in database
-      const verification = await whatsappService.verifyTACCode(memberId, tacCode);
-      
-      if (!verification.success) {
-        console.error("TAC verification failed:", verification.error);
+      console.log("Step 1: Checking TAC in database...");
+      const { data: tacRecord, error: tacError } = await supabase
+        .from("whatsapp_tac_codes")
+        .select("*")
+        .eq("member_id", memberId)
+        .eq("code", tacCode)
+        .eq("is_used", false)
+        .gte("expires_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (tacError) {
+        console.error("❌ TAC lookup error:", tacError);
         return { 
           data: null, 
-          error: { message: verification.error || "Kod TAC tidak sah" }
+          error: { message: "Database error: " + tacError.message }
         };
       }
 
-      console.log("✅ TAC verified successfully");
+      if (!tacRecord) {
+        console.log("❌ TAC not found or invalid");
+        console.log("Checking for any TAC codes for this member:");
+        const { data: allTacs } = await supabase
+          .from("whatsapp_tac_codes")
+          .select("*")
+          .eq("member_id", memberId)
+          .order("created_at", { ascending: false })
+          .limit(3);
+        
+        console.log("Recent TAC codes:", allTacs);
+        
+        return { 
+          data: null, 
+          error: { message: "❌ Kod TAC tidak dijumpai. Sila minta kod baru." }
+        };
+      }
 
-      // Step 2: Get member data
+      console.log("✅ TAC verified in database:", tacRecord.id);
+
+      // Step 2: Mark TAC as used
+      console.log("Step 2: Marking TAC as used...");
+      const { error: updateError } = await supabase
+        .from("whatsapp_tac_codes")
+        .update({ 
+          is_used: true, 
+          used_at: new Date().toISOString() 
+        })
+        .eq("id", tacRecord.id);
+
+      if (updateError) {
+        console.error("⚠️ Warning: Could not mark TAC as used:", updateError);
+      } else {
+        console.log("✅ TAC marked as used");
+      }
+
+      // Step 3: Get member data
+      console.log("Step 3: Getting member data...");
       const { data: member, error: memberError } = await supabase
         .from("members")
         .select("*")
@@ -248,7 +293,7 @@ export const authService = {
         .single();
 
       if (memberError || !member) {
-        console.error("Member fetch error:", memberError);
+        console.error("❌ Member not found:", memberError);
         return {
           data: null,
           error: { message: "Member tidak dijumpai" }
@@ -256,53 +301,41 @@ export const authService = {
       }
 
       if (!member.email) {
+        console.error("❌ Member has no email");
         return {
           data: null,
           error: { message: "Member tidak mempunyai email. Sila hubungi admin." }
         };
       }
 
-      console.log("Member found:", member.email);
+      console.log("✅ Member found:", member.email);
 
-      // Step 3: Auto-verify member if not verified yet
-      if (!member.is_verified) {
-        await supabase
-          .from("members")
-          .update({ 
-            is_verified: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", memberId);
-        
-        console.log("✅ Member auto-verified");
-      }
-
-      // Step 4: Call backend API to generate magic link token
-      console.log("Generating magic link token...");
+      // Step 4: Generate magic link token via backend
+      console.log("Step 4: Generating magic link token via API...");
       const tokenResponse = await fetch("/api/generate-login-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: member.username }),
+        body: JSON.stringify({ memberId }),
       });
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
-        console.error("Token generation failed:", errorData);
+        console.error("❌ Token generation failed:", errorData);
         throw new Error(errorData.error || "Failed to generate login token");
       }
 
       const tokenData = await tokenResponse.json();
-      console.log("Magic link token generated:", { 
-        email: tokenData.email, 
-        hasToken: !!tokenData.token_hash 
-      });
+      console.log("✅ Magic link token generated");
+      console.log("- Email:", tokenData.email);
+      console.log("- Has token_hash:", !!tokenData.token_hash);
 
       if (!tokenData.token_hash) {
+        console.error("❌ No token_hash in response");
         throw new Error("Token hash tidak dijumpai");
       }
 
       // Step 5: Verify OTP with token_hash to establish session
-      console.log("Establishing session with token_hash...");
+      console.log("Step 5: Establishing session with verifyOtp...");
       const { data: sessionData, error: verifyError } = await supabase.auth.verifyOtp({
         email: tokenData.email,
         token_hash: tokenData.token_hash,
@@ -310,15 +343,20 @@ export const authService = {
       });
 
       if (verifyError) {
-        console.error("Session establishment error:", verifyError);
+        console.error("❌ Session establishment error:", verifyError);
         throw verifyError;
       }
 
       if (!sessionData?.session) {
+        console.error("❌ No session in response");
         throw new Error("Session tidak dapat diwujudkan");
       }
 
-      console.log("✅ Session established successfully");
+      console.log("✅ Session established successfully!");
+      console.log("- User ID:", sessionData.session.user.id);
+      console.log("- Access token:", sessionData.session.access_token ? "EXISTS" : "NULL");
+      console.log("- Expires at:", sessionData.session.expires_at);
+      console.log("=== VERIFY WHATSAPP TAC END ===");
 
       return {
         data: { member, session: sessionData.session },
@@ -326,7 +364,7 @@ export const authService = {
         message: "✅ Login berjaya!",
       };
     } catch (error: any) {
-      console.error("Verify WhatsApp TAC error:", error);
+      console.error("❌ Verify WhatsApp TAC error:", error);
       return { 
         data: null, 
         error: { message: error.message || "❌ Gagal verify kod TAC. Sila cuba lagi." }

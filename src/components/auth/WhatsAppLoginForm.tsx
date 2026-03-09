@@ -139,55 +139,91 @@ export function WhatsAppLoginForm() {
 
     if (!tacSent) {
       toast({
-        title: "Error",
-        description: "Sila hantar kod TAC terlebih dahulu",
+        title: "❌ Sila hantar kod TAC dahulu",
         variant: "destructive",
       });
       return;
     }
 
-    if (!formData.tac) {
+    if (!formData.tac || formData.tac.length !== 6) {
       toast({
-        title: "Error",
-        description: "Sila masukkan kod TAC",
+        title: "❌ Sila masukkan kod TAC 6 digit",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentMemberId) {
+      toast({
+        title: "❌ Member ID tidak dijumpai",
+        description: "Sila hantar kod TAC semula",
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
-    try {
-      // Get member ID from stored data
-      const memberId = (formData as any).memberId;
-      
-      if (!memberId) {
-        throw new Error("Member ID not found. Please resend TAC.");
-      }
 
-      // Use authService to verify TAC and establish session
-      const { data: authResult, error: authError } = await authService.verifyWhatsAppTAC(
-        memberId,
+    try {
+      console.log("=== LOGIN ATTEMPT START ===");
+      console.log("Member ID:", currentMemberId);
+      console.log("TAC Code:", formData.tac);
+
+      // Verify TAC and establish session
+      const { data: authData, error: authError } = await authService.verifyWhatsAppTAC(
+        currentMemberId,
         formData.tac
       );
 
-      if (authError || !authResult) {
-        throw new Error(authError?.message || "Login gagal");
+      if (authError) {
+        console.error("❌ TAC Verification Error:", authError);
+        toast({
+          title: "❌ Kod TAC tidak sah",
+          description: authError.message,
+          variant: "destructive",
+        });
+        return;
       }
 
+      console.log("✅ TAC verified, session data:", authData?.session ? "EXISTS" : "NULL");
+
+      // CRITICAL: Verify session was actually created
+      const { data: { session: verifySession } } = await supabase.auth.getSession();
+      console.log("=== SESSION VERIFICATION ===");
+      console.log("Session exists:", !!verifySession);
+      console.log("User ID:", verifySession?.user?.id);
+      console.log("User email:", verifySession?.user?.email);
+      console.log("Access token:", verifySession?.access_token ? "EXISTS" : "NULL");
+      console.log("Expires at:", verifySession?.expires_at);
+
+      if (!verifySession) {
+        console.error("❌ CRITICAL: Session not found after login!");
+        toast({
+          title: "❌ Session Error",
+          description: "Session tidak dapat diwujudkan. Sila cuba lagi atau hubungi admin.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("✅ Session verified successfully!");
+      
       toast({
-        title: "Berjaya",
-        description: "Login berjaya! Redirecting...",
+        title: "✅ Log masuk berjaya!",
+        description: "Mengalihkan ke dashboard...",
       });
 
-      // Small delay before redirect
+      // Small delay to ensure session is fully persisted
       setTimeout(() => {
+        console.log("=== REDIRECTING TO /member ===");
         router.push("/member");
-      }, 1000);
-    } catch (error: unknown) {
-      console.error("Login error:", error);
+      }, 500);
+
+    } catch (error: any) {
+      console.error("❌ Login Error:", error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Login gagal. Sila cuba lagi.",
+        title: "❌ Ralat semasa log masuk",
+        description: error.message || "Sila cuba lagi",
         variant: "destructive",
       });
     } finally {
