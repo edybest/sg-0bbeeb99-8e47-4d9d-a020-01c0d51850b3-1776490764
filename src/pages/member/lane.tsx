@@ -57,18 +57,36 @@ export default function LanePage() {
 
   async function checkAuth() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
         router.push("/login");
         return;
       }
 
-      const { data: member } = await supabase
+      const { data: member, error: memberError } = await supabase
         .from("members")
         .select("is_admin")
         .eq("user_id", session.user.id)
         .single();
+
+      if (memberError) {
+        console.error("Member lookup error:", memberError);
+        toast({
+          title: "Error",
+          description: "Failed to load member data. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!member) {
+        console.error("No member found for user");
+        router.push("/login");
+        return;
+      }
 
       if (member?.is_admin) {
         setIsAdmin(true);
@@ -76,8 +94,12 @@ export default function LanePage() {
 
       await loadData();
     } catch (error) {
-      console.error("Auth error:", error);
-      router.push("/login");
+      console.error("Auth check error:", error);
+      toast({
+        title: "Error",
+        description: "Authentication error. Please login again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

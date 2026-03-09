@@ -96,19 +96,33 @@ export default function TrainingPage() {
 
   async function checkAuth() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
         router.push("/login");
         return;
       }
 
-      const { data: member } = await supabase
+      const { data: member, error: memberError } = await supabase
         .from("members")
         .select("id")
         .eq("user_id", session.user.id)
         .single();
 
+      if (memberError) {
+        console.error("Member lookup error:", memberError);
+        toast({
+          title: "Error",
+          description: "Failed to load member data. Please try again.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       if (!member) {
+        console.error("No member found for user");
         router.push("/login");
         return;
       }
@@ -116,8 +130,12 @@ export default function TrainingPage() {
       setMemberId(member.id);
       await loadScores();
     } catch (error) {
-      console.error("Auth error:", error);
-      router.push("/login");
+      console.error("Auth check error:", error);
+      toast({
+        title: "Error",
+        description: "Authentication error. Please login again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

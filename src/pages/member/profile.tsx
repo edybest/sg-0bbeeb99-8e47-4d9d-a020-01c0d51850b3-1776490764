@@ -78,9 +78,10 @@ export default function ProfilePage() {
   async function loadProfile() {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
         router.push("/login");
         return;
       }
@@ -90,17 +91,28 @@ export default function ProfilePage() {
       
       // If no query ID, find current user's member ID
       if (!targetId) {
-        const { data: currentMember } = await supabase
+        const { data: currentMember, error: memberError } = await supabase
           .from("members")
           .select("id")
           .eq("user_id", session.user.id)
           .single();
+
+        if (memberError) {
+          console.error("Member lookup error:", memberError);
+          toast({
+            title: "Error",
+            description: "Failed to load member data. Please try again.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
           
         if (currentMember) {
           targetId = currentMember.id;
           setIsOwnProfile(true);
         } else {
-          // Should not happen if logged in properly
+          console.error("No member found for user");
           router.push("/login");
           return;
         }
@@ -158,32 +170,36 @@ export default function ProfilePage() {
         .order("created_at", { ascending: false })
         .limit(10);
 
-      if (historyError) throw historyError;
+      if (historyError) {
+        console.error("History load error:", historyError);
+        // Don't fail the whole page if history fails
+        setHistory([]);
+      } else {
+        // Map the data to our GameHistory type
+        const mappedHistory: GameHistory[] = (historyData || []).map((item: any) => ({
+          id: item.id,
+          game1_score: item.game1_score,
+          game2_score: item.game2_score,
+          game3_score: item.game3_score,
+          game4_score: item.game4_score,
+          game5_score: item.game5_score,
+          total_score: item.total_score,
+          overall_score: item.overall_score,
+          games: {
+            game_name: item.games.game_name,
+            game_date: item.games.game_date,
+            game_type: item.games.game_type,
+          }
+        }));
 
-      // Map the data to our GameHistory type
-      const mappedHistory: GameHistory[] = (historyData || []).map((item: any) => ({
-        id: item.id,
-        game1_score: item.game1_score,
-        game2_score: item.game2_score,
-        game3_score: item.game3_score,
-        game4_score: item.game4_score,
-        game5_score: item.game5_score,
-        total_score: item.total_score,
-        overall_score: item.overall_score,
-        games: {
-          game_name: item.games.game_name,
-          game_date: item.games.game_date,
-          game_type: item.games.game_type,
-        }
-      }));
-
-      setHistory(mappedHistory);
+        setHistory(mappedHistory);
+      }
 
     } catch (error) {
       console.error("Load profile error:", error);
       toast({
         title: "Error",
-        description: "Gagal memuatkan profil",
+        description: "Gagal memuatkan profil. Sila cuba lagi.",
         variant: "destructive",
       });
     } finally {
