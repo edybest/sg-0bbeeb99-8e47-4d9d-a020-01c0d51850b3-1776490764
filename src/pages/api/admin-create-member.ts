@@ -29,6 +29,25 @@ export default async function handler(
     console.log("Supabase URL:", supabaseUrl);
     console.log("Service key exists:", !!supabaseServiceKey);
     console.log("Service key length:", supabaseServiceKey.length);
+    console.log("Service key starts with:", supabaseServiceKey.substring(0, 20));
+    console.log("URL project ref:", supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]);
+    console.log("Key project ref:", supabaseServiceKey.split('.')[1] ? JSON.parse(atob(supabaseServiceKey.split('.')[1])).ref : 'invalid');
+
+    // Verify keys match
+    const urlProjectRef = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+    const keyProjectRef = supabaseServiceKey.split('.')[1] ? JSON.parse(atob(supabaseServiceKey.split('.')[1])).ref : null;
+    
+    console.log("Project ref from URL:", urlProjectRef);
+    console.log("Project ref from service key:", keyProjectRef);
+    console.log("Keys match:", urlProjectRef === keyProjectRef);
+
+    if (urlProjectRef !== keyProjectRef) {
+      console.error("❌ CRITICAL: Service key does not match project URL!");
+      return res.status(500).json({ 
+        error: "Configuration error",
+        details: `Service key is for project '${keyProjectRef}' but URL is for project '${urlProjectRef}'`
+      });
+    }
 
     // Create admin client with service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
