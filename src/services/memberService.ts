@@ -21,9 +21,10 @@ export const memberService = {
       .from("members")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
     
     if (error) throw error;
+    if (!data) throw new Error("Member not found");
     return data;
   },
 
