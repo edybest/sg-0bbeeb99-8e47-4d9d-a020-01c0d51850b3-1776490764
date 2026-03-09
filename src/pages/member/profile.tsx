@@ -113,7 +113,7 @@ export default function ProfilePage() {
       
       setMember(mappedMember);
 
-      // Load game history with proper query
+      // Load game history with proper query - use maybeSingle to handle 0 or 1 results
       const { data: historyData, error: historyError } = await supabase
         .from("game_players")
         .select(`
@@ -125,7 +125,7 @@ export default function ProfilePage() {
           game5_score,
           total_score,
           overall_score,
-          games!inner (
+          games (
             game_name,
             game_date,
             game_type
@@ -139,21 +139,26 @@ export default function ProfilePage() {
         console.error("History load error:", historyError);
         setHistory([]);
       } else {
-        const mappedHistory: GameHistory[] = (historyData || []).map((item: any) => ({
-          id: item.id,
-          game1_score: item.game1_score,
-          game2_score: item.game2_score,
-          game3_score: item.game3_score,
-          game4_score: item.game4_score,
-          game5_score: item.game5_score,
-          total_score: item.total_score,
-          overall_score: item.overall_score,
-          games: {
-            game_name: item.games.game_name,
-            game_date: item.games.game_date,
-            game_type: item.games.game_type,
-          }
-        }));
+        // Handle array response properly
+        const gameArray = Array.isArray(historyData) ? historyData : (historyData ? [historyData] : []);
+        
+        const mappedHistory: GameHistory[] = gameArray
+          .filter((item: any) => item && item.games) // Filter out invalid items
+          .map((item: any) => ({
+            id: item.id,
+            game1_score: item.game1_score,
+            game2_score: item.game2_score,
+            game3_score: item.game3_score,
+            game4_score: item.game4_score,
+            game5_score: item.game5_score,
+            total_score: item.total_score,
+            overall_score: item.overall_score,
+            games: {
+              game_name: item.games.game_name,
+              game_date: item.games.game_date,
+              game_type: item.games.game_type,
+            }
+          }));
 
         setHistory(mappedHistory);
       }
