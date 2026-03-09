@@ -71,7 +71,7 @@ export default function UndiLane() {
       const { data: game, error: gameError } = await supabase
         .from("games")
         .select("id")
-        .in("status", ["upcoming", "ongoing"])
+        .or("status.eq.upcoming,status.eq.ongoing")
         .order("date", { ascending: false })
         .limit(1)
         .maybeSingle();
