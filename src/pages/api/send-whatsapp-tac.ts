@@ -17,7 +17,6 @@ type SendTACResponse = {
   data?: {
     messageId?: string;
     status?: string;
-    code?: string;
     memberId?: string;
   };
   error?: string;
@@ -72,7 +71,7 @@ export default async function handler(
       },
     });
 
-    // Find member by username AND phone number
+    // Find member by username
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("id, username, phone, user_id")
@@ -124,6 +123,42 @@ export default async function handler(
 
     // Generate TAC code
     const code = generateTACCode();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minutes expiry
+
+    // Delete any existing unused TAC codes for this member
+    await supabaseAdmin
+      .from("whatsapp_tac_codes")
+      .delete()
+      .eq("member_id", member.id)
+      .eq("used", false);
+
+    // Store TAC code in database
+    const { data: tacRecord, error: tacError } = await supabaseAdmin
+      .from("whatsapp_tac_codes")
+      .insert({
+        member_id: member.id,
+        code: code,
+        expires_at: expiresAt.toISOString(),
+        used: false,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (tacError || !tacRecord) {
+      console.error("❌ Failed to store TAC code:", tacError);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to generate TAC code",
+      });
+    }
+
+    console.log("✅ TAC code stored in database:", {
+      id: tacRecord.id,
+      code: code,
+      expires_at: expiresAt.toISOString(),
+    });
 
     // Format phone number (remove any + or spaces)
     const formattedPhone = phone.replace(/[+\s-]/g, "");
@@ -148,6 +183,7 @@ Terima kasih! 🎳`;
     console.log("Username:", username);
     console.log("TAC Code:", code);
     console.log("Member ID:", member.id);
+    console.log("Expires At:", expiresAt.toISOString());
 
     // Prepare Fonnte request
     const fonteRequest = {
@@ -186,6 +222,13 @@ Terima kasih! 🎳`;
     // Check if request was successful
     if (!response.ok) {
       console.error("❌ Fonnte API Error:", responseData);
+      
+      // Delete TAC code if WhatsApp failed to send
+      await supabaseAdmin
+        .from("whatsapp_tac_codes")
+        .delete()
+        .eq("id", tacRecord.id);
+      
       return res.status(response.status).json({
         success: false,
         error: responseData.reason || responseData.detail || "Failed to send WhatsApp message",
@@ -203,8 +246,7 @@ Terima kasih! 🎳`;
       data: {
         messageId: responseData.id || responseData.message_id,
         status: responseData.status || "sent",
-        code: code, // Return code for verification
-        memberId: member.id, // CRITICAL: Return member ID for verification
+        memberId: member.id,
       },
     });
 
