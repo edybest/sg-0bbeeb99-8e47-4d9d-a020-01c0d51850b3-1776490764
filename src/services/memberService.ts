@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { sessionService } from "./sessionService";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 type MemberInsert = Database["public"]["Tables"]["members"]["Insert"];
@@ -7,6 +8,8 @@ type MemberUpdate = Database["public"]["Tables"]["members"]["Update"];
 
 export const memberService = {
   async getAllMembers() {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -17,6 +20,8 @@ export const memberService = {
   },
 
   async getMemberById(id: string) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -29,6 +34,8 @@ export const memberService = {
   },
 
   async getMemberByUsername(username: string) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -40,6 +47,8 @@ export const memberService = {
   },
 
   async getMemberByUserId(userId: string) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -51,6 +60,8 @@ export const memberService = {
   },
 
   async findMemberByIdentifier(identifier: string) {
+    await sessionService.initializeSessionContext();
+    
     // Try to find member by username, email, or phone
     const { data, error } = await supabase
       .from("members")
@@ -63,6 +74,8 @@ export const memberService = {
   },
 
   async createMember(member: MemberInsert) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .insert(member)
@@ -74,6 +87,8 @@ export const memberService = {
   },
 
   async updateMember(id: string, updates: MemberUpdate) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .update(updates)
@@ -87,6 +102,8 @@ export const memberService = {
   },
 
   async deleteMember(id: string) {
+    await sessionService.initializeSessionContext();
+    
     const { error } = await supabase
       .from("members")
       .delete()
@@ -96,6 +113,8 @@ export const memberService = {
   },
 
   async searchMembers(query: string) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .select("*")
@@ -107,6 +126,8 @@ export const memberService = {
   },
 
   async updateAvatar(memberId: string, avatarUrl: string) {
+    await sessionService.initializeSessionContext();
+    
     const { data, error } = await supabase
       .from("members")
       .update({ avatar_url: avatarUrl })
