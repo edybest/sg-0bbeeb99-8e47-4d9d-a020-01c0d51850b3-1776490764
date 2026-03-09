@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
-import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid, ChevronRight } from "lucide-react";
+import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -115,122 +115,133 @@ export default function MemberDashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Blok Card */}
             <Link href="/member/blok" className="block transition-transform hover:scale-105">
-              <Card className="h-full cursor-pointer hover:shadow-lg">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-yellow-600">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Blok</CardTitle>
-                  <Trophy className="h-4 w-4 text-yellow-600" />
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Blok</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Leaderboard & Rankings</p>
+                  </div>
+                  <Trophy className="h-6 w-6 text-yellow-600" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Leaderboard & Rankings</p>
-                </CardContent>
               </Card>
             </Link>
 
             {/* FiveFive Card */}
             <Link href="/member/five-five" className="block transition-transform hover:scale-105">
-              <Card className="h-full cursor-pointer hover:shadow-lg">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-blue-600">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">FiveFive</CardTitle>
-                  <Target className="h-4 w-4 text-blue-600" />
+                  <div>
+                    <CardTitle className="text-lg font-semibold">FiveFive</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Prize Distribution</p>
+                  </div>
+                  <Target className="h-6 w-6 text-blue-600" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Prize Distribution</p>
-                </CardContent>
               </Card>
             </Link>
 
+            {/* Training Card */}
             <Link href="/member/training" className="block transition-transform hover:scale-105">
-              <Card className="h-full cursor-pointer hover:shadow-lg">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-green-600">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Training</CardTitle>
-                  <Target className="h-4 w-4 text-green-600" />
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Training</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Practice Scores</p>
+                  </div>
+                  <Target className="h-6 w-6 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Practice Scores</p>
-                </CardContent>
               </Card>
             </Link>
 
             {/* Hall of Fame Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push("/member/hall-of-fame")}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-amber-600" />
-                  Hall of Fame
-                </CardTitle>
-              </CardHeader>
-            </Card>
+            <Link href="/member/hall-of-fame" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-amber-600">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Hall of Fame</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Top Performers</p>
+                  </div>
+                  <Trophy className="h-6 w-6 text-amber-600" />
+                </CardHeader>
+              </Card>
+            </Link>
 
             {/* Lane Card */}
             <Link href="/member/lane" className="block transition-transform hover:scale-105">
-              <Card className="h-full cursor-pointer hover:shadow-lg">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-orange-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Lane</CardTitle>
-                  <LayoutGrid className="h-4 w-4 text-orange-500" />
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Lane</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Kedudukan Lane</p>
+                  </div>
+                  <LayoutGrid className="h-6 w-6 text-orange-500" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Undian & Kedudukan Lane</p>
-                </CardContent>
               </Card>
             </Link>
 
-            <Link href="/member/average-score">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-red-600">
-                    <BarChart3 className="h-5 w-5" />
-                    Average Score
-                  </CardTitle>
+            {/* Undi Lane Card - NEW */}
+            <Link href="/member/undi-lane" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-purple-600">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Undi Lane</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Undian Lane Bertuah</p>
+                  </div>
+                  <Shuffle className="h-6 w-6 text-purple-600" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    Purata skor 3 game terkini
-                  </p>
-                </CardContent>
               </Card>
             </Link>
 
+            {/* Average Score Card */}
+            <Link href="/member/average-score" className="block transition-transform hover:scale-105">
+              <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-red-600">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Average Score</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Purata 3 game terkini</p>
+                  </div>
+                  <BarChart3 className="h-6 w-6 text-red-600" />
+                </CardHeader>
+              </Card>
+            </Link>
+
+            {/* Profile Card - Only show if logged in */}
             {member && (
-              <Link href="/member/profile">
-                <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-red-600">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-600">
-                      <User className="h-5 w-5" />
-                      Profile
-                    </CardTitle>
+              <Link href="/member/profile" className="block transition-transform hover:scale-105">
+                <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-red-600">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div>
+                      <CardTitle className="text-lg font-semibold">Profile</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-1">Edit profile & rekod game</p>
+                    </div>
+                    <User className="h-6 w-6 text-red-600" />
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600">
-                      Edit profile & rekod game
-                    </p>
-                  </CardContent>
                 </Card>
               </Link>
             )}
           </div>
 
           {/* Coming Soon Features */}
-          <div className="col-span-full mt-8">
-            <h3 className="text-lg font-semibold mb-4">Coming Soon</h3>
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">Coming Soon</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="opacity-60">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Liga</CardTitle>
+                  <div>
+                    <CardTitle className="text-sm font-medium">Liga</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
+                  </div>
                   <Trophy className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Coming Soon</p>
-                </CardContent>
               </Card>
 
               <Card className="opacity-60">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Couple</CardTitle>
+                  <div>
+                    <CardTitle className="text-sm font-medium">Couple</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
+                  </div>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Coming Soon</p>
-                </CardContent>
               </Card>
             </div>
           </div>
