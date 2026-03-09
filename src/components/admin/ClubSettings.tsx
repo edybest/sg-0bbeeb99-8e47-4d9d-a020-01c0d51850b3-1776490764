@@ -51,10 +51,64 @@ export function ClubSettings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState<string | null>(null);
 
+  const [enableCache, setEnableCache] = useState(true);
+
   useEffect(() => {
     loadSettings();
     loadFiveFiveConfigs();
+    fetchCacheSetting();
   }, []);
+
+  const fetchCacheSetting = async () => {
+    try {
+      const { data } = await supabase
+        .from("club_settings")
+        .select("setting_key, setting_value")
+        .eq("setting_key", "enable_cache")
+        .single();
+
+      if (data) {
+        setEnableCache(data.setting_value === "true");
+      }
+    } catch (error: any) {
+      console.error("Error fetching cache setting:", error);
+    }
+  };
+
+  const handleCacheToggle = async (enabled: boolean) => {
+    try {
+      // First try to update
+      const { data, error } = await supabase
+        .from("club_settings")
+        .update({ setting_value: enabled ? "true" : "false" })
+        .eq("setting_key", "enable_cache")
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      // If it didn't exist, insert it
+      if (!data) {
+        const { error: insertError } = await supabase
+          .from("club_settings")
+          .insert({ setting_key: "enable_cache", setting_value: enabled ? "true" : "false" });
+          
+        if (insertError) throw insertError;
+      }
+
+      setEnableCache(enabled);
+      toast({
+        title: "✅ Berjaya!",
+        description: `Tetapan cache telah dikemaskini ke ${enabled ? "dihidupkan" : "dimatikan"}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal mengemaskini tetapan cache.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const loadSettings = async () => {
     setLoading(true);
@@ -620,6 +674,42 @@ export function ClubSettings() {
             <Upload className="h-4 w-4 mr-2" />
             Add Configuration
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Cache Control Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            🔄 Cache Control
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Manage cache settings for the club
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h4 className="font-medium text-blue-900 mb-2">ℹ️ How It Works</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Enable or disable cache to control data freshness</li>
+              <li>• Cache is used to speed up data retrieval</li>
+              <li>• Disable cache to force data refresh</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cache-enable">Enable Cache</Label>
+            <Input
+              id="cache-enable"
+              type="checkbox"
+              checked={enableCache}
+              onChange={(e) => handleCacheToggle(e.target.checked)}
+              className="w-auto h-auto mt-2"
+            />
+            <p className="text-xs text-muted-foreground">
+              Turn off caching temporarily to force fresh data loads if you are experiencing issues.
+            </p>
+          </div>
         </CardContent>
       </Card>
 

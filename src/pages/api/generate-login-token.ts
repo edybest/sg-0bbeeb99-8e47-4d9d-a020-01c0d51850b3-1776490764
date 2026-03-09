@@ -34,14 +34,18 @@ export default async function handler(
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("user_id")
-      .eq("username", username.trim())
+      .ilike("username", username.trim())
       .maybeSingle();
 
     console.log("Member lookup result:", { member, error: memberError });
 
     if (memberError) {
       console.error("Error finding member:", memberError);
-      return res.status(500).json({ error: "Database error" });
+      console.error("Full error details:", JSON.stringify(memberError, null, 2));
+      return res.status(500).json({ 
+        error: "Database error", 
+        details: memberError.message || "Unknown error"
+      });
     }
 
     if (!member || !member.user_id) {
@@ -64,7 +68,11 @@ export default async function handler(
 
     if (authError || !authUser.user) {
       console.error("Error getting user:", authError);
-      return res.status(500).json({ error: "User tidak dijumpai" });
+      console.error("Full auth error details:", JSON.stringify(authError, null, 2));
+      return res.status(500).json({ 
+        error: "User tidak dijumpai",
+        details: authError?.message || "No user found"
+      });
     }
 
     const userEmail = authUser.user.email;
@@ -88,7 +96,11 @@ export default async function handler(
 
     if (magicLinkError || !magicLinkData) {
       console.error("Error generating magic link:", magicLinkError);
-      return res.status(500).json({ error: "Gagal generate token login" });
+      console.error("Full magic link error:", JSON.stringify(magicLinkError, null, 2));
+      return res.status(500).json({ 
+        error: "Gagal generate token login",
+        details: magicLinkError?.message || "Token generation failed"
+      });
     }
 
     // Extract token hash from the hashed_token

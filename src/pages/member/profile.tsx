@@ -245,7 +245,7 @@ export default function ProfilePage() {
     try {
       setUploading(true);
       
-      const publicUrl = await storageService.uploadAvatar(file);
+      const publicUrl = await storageService.uploadAvatar(member.id, file);
       
       await memberService.updateMember(member.id, {
         avatar_url: publicUrl

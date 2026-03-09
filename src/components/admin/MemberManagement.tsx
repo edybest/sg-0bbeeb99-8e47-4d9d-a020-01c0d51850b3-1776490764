@@ -204,7 +204,7 @@ export function MemberManagement() {
         const file = new File([blob], `avatar.${mimeType.split("/")[1]}`, { type: mimeType });
 
         const userId = editingMember?.id || crypto.randomUUID();
-        avatarUrl = await storageService.uploadAvatar(file, userId);
+        avatarUrl = await storageService.uploadAvatar(userId, file);
       }
 
       if (editingMember) {

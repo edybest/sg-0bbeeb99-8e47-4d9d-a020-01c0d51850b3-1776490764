@@ -1,5 +1,36 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Get cache control setting from database
+ * Returns true (enabl
+...
+ue) by default
+ */
+async function getCacheControl(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("club_settings")
+      .select("setting_value")
+      .eq("setting_key", "enable_cache")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching cache setting:", error);
+      return true; // Default to cache enabled on error
+    }
+
+    // If setting doesn't exist, default to true (cache enabled)
+    if (!data) {
+      return true;
+    }
+
+    return data.setting_value === "true";
+  } catch (error) {
+    console.error("Error in getCacheControl:", error);
+    return true; // Default to cache enabled on error
+  }
+}
+
 export const storageService = {
   /**
    * Upload member avatar to Supabase Storage
@@ -7,56 +38,34 @@ export const storageService = {
    * @param targetMemberId - Optional: Upload for specific member ID (for admins)
    * @returns Public URL of uploaded avatar
    */
-  async uploadAvatar(file: File, targetMemberId?: string): Promise<string> {
-    let memberId = targetMemberId;
+  async uploadAvatar(
+    userId: string,
+    file: File
+  ): Promise<string> {
+    try {
+      const cacheEnabled = await getCacheControl();
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
 
-    // If no target ID provided, get from current session
-    if (!memberId) {
-      // Get current user session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
+      const { error: uploadError } = await supabase.storage
+        .from("member-assets")
+        .upload(filePath, file, {
+          cacheControl: cacheEnabled ? "3600" : "0",
+          upsert: true,
+        });
 
-      // Get member ID from session
-      const { data: member } = await supabase
-        .from("members")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .single();
+      if (uploadError) throw uploadError;
 
-      if (!member) throw new Error("Member not found");
-      memberId = member.id;
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("member-assets")
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      throw error;
     }
-
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${memberId}/${fileName}`;
-
-    // Delete old avatar if exists
-    const { data: existingFiles } = await supabase.storage
-      .from("avatars")
-      .list(memberId);
-
-    if (existingFiles && existingFiles.length > 0) {
-      const filesToDelete = existingFiles.map((f) => `${memberId}/${f.name}`);
-      await supabase.storage.from("avatars").remove(filesToDelete);
-    }
-
-    // Upload new avatar
-    const { data, error } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: true,
-      });
-
-    if (error) throw error;
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath);
-
-    return urlData.publicUrl;
   },
 
   /**
@@ -173,6 +182,42 @@ export const storageService = {
         .remove(filesToDelete);
 
       if (error) throw error;
+    }
+  },
+
+  /**
+   * Upload image to Supabase Storage
+   * @param file - Image file to upload
+   * @param folder - Optional: Folder to upload to (default: "images")
+   * @returns Public URL of uploaded image
+   */
+  async uploadImage(
+    file: File,
+    folder: string = "images"
+  ): Promise<string> {
+    try {
+      const cacheEnabled = await getCacheControl();
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${folder}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("member-assets")
+        .upload(filePath, file, {
+          cacheControl: cacheEnabled ? "3600" : "0",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("member-assets")
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      throw error;
     }
   },
 };
