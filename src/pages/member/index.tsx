@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
-import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid } from "lucide-react";
+import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 export default function MemberDashboard() {
