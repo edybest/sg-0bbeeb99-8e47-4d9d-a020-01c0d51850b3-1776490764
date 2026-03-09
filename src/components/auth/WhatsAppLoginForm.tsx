@@ -3,10 +3,10 @@ import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
 import { sessionService } from "@/services/sessionService";
+import Image from "next/image";
 
 export function WhatsAppLoginForm() {
   const router = useRouter();
@@ -204,126 +204,162 @@ export function WhatsAppLoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-2xl font-bold">Log Masuk Member</CardTitle>
-        <CardDescription>
-          Login dengan WhatsApp TAC untuk keselamatan yang lebih baik
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          {/* Username Field */}
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="Masukkan username anda"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              disabled={loading || sendingTAC || tacSent}
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-8">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo */}
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="relative w-32 h-32">
+              <Image
+                src="/ambc-logo.png"
+                alt="AMBC Club Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">AMBC Club</h1>
+          <p className="text-gray-600">Log Masuk Member</p>
+        </div>
 
-          {/* Phone Field */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Nombor WhatsApp</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="0123456789 atau +60123456789"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              disabled={loading || sendingTAC || tacSent}
-              required
-            />
-            <p className="text-xs text-gray-500">
-              Format: 0123456789 atau +60123456789
+        {/* Login Form */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Selamat Datang</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Login dengan WhatsApp TAC untuk keselamatan yang lebih baik
             </p>
           </div>
 
-          {/* Send TAC Button */}
-          {!tacSent && (
-            <Button
-              type="button"
-              onClick={handleSendTAC}
-              disabled={sendingTAC || loading}
-              className="w-full"
-              variant="outline"
-            >
-              {sendingTAC ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menghantar...
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Hantar Kod TAC ke WhatsApp
-                </>
-              )}
-            </Button>
-          )}
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Username Field */}
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                Username
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Masukkan username anda"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                disabled={loading || sendingTAC || tacSent}
+                required
+                className="h-11"
+              />
+            </div>
 
-          {/* TAC Field - Only show after TAC sent */}
-          {tacSent && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="tac">Kod TAC (6 digit)</Label>
-                <Input
-                  id="tac"
-                  type="text"
-                  placeholder="Masukkan kod TAC dari WhatsApp"
-                  value={formData.tac}
-                  onChange={(e) => setFormData({ ...formData, tac: e.target.value })}
-                  disabled={loading}
-                  maxLength={6}
-                  pattern="[0-9]{6}"
-                  required
-                />
-                <p className="text-xs text-green-600">
-                  ✓ Kod TAC telah dihantar ke WhatsApp anda
-                </p>
-              </div>
+            {/* Phone Field */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                Nombor WhatsApp
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="0123456789 atau +60123456789"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={loading || sendingTAC || tacSent}
+                required
+                className="h-11"
+              />
+              <p className="text-xs text-gray-500">
+                Format: 0123456789 atau +60123456789
+              </p>
+            </div>
 
-              {/* Resend TAC Button */}
+            {/* Send TAC Button */}
+            {!tacSent && (
               <Button
                 type="button"
-                onClick={() => {
-                  setTacSent(false);
-                  setFormData(prev => ({ ...prev, tac: "", memberId: "" }));
-                }}
-                variant="ghost"
-                className="w-full text-sm"
-                disabled={loading || cooldownRemaining > 0}
+                onClick={handleSendTAC}
+                disabled={sendingTAC || loading}
+                className="w-full h-11 bg-green-600 hover:bg-green-700"
               >
-                {cooldownRemaining > 0 
-                  ? `Tunggu ${cooldownRemaining}s untuk hantar semula`
-                  : "Hantar semula kod TAC"
-                }
-              </Button>
-
-              {/* Login Button */}
-              <Button
-                type="submit"
-                disabled={loading || !formData.tac}
-                className="w-full"
-              >
-                {loading ? (
+                {sendingTAC ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Log Masuk...
+                    Menghantar...
                   </>
                 ) : (
-                  "Log Masuk"
+                  <>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Hantar Kod TAC ke WhatsApp
+                  </>
                 )}
               </Button>
-            </>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+            )}
+
+            {/* TAC Field - Only show after TAC sent */}
+            {tacSent && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="tac" className="text-sm font-medium text-gray-700">
+                    Kod TAC (6 digit)
+                  </Label>
+                  <Input
+                    id="tac"
+                    type="text"
+                    placeholder="Masukkan kod TAC dari WhatsApp"
+                    value={formData.tac}
+                    onChange={(e) => setFormData({ ...formData, tac: e.target.value })}
+                    disabled={loading}
+                    maxLength={6}
+                    pattern="[0-9]{6}"
+                    required
+                    className="h-11 text-center text-2xl tracking-widest font-mono"
+                  />
+                  <p className="text-xs text-green-600 flex items-center justify-center">
+                    ✓ Kod TAC telah dihantar ke WhatsApp anda
+                  </p>
+                </div>
+
+                {/* Resend TAC Button */}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setTacSent(false);
+                    setFormData(prev => ({ ...prev, tac: "", memberId: "" }));
+                  }}
+                  variant="ghost"
+                  className="w-full text-sm"
+                  disabled={loading || cooldownRemaining > 0}
+                >
+                  {cooldownRemaining > 0 
+                    ? `Tunggu ${cooldownRemaining}s untuk hantar semula`
+                    : "Hantar semula kod TAC"
+                  }
+                </Button>
+
+                {/* Login Button */}
+                <Button
+                  type="submit"
+                  disabled={loading || !formData.tac}
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Log Masuk...
+                    </>
+                  ) : (
+                    "Log Masuk"
+                  )}
+                </Button>
+              </>
+            )}
+          </form>
+
+          {/* Footer */}
+          <div className="text-center pt-4 border-t">
+            <p className="text-xs text-gray-500">
+              Masalah log masuk? Hubungi admin untuk bantuan.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
