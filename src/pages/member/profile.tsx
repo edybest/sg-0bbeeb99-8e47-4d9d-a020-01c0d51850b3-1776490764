@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Save, Loader2, Camera, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ClubLogo } from "@/components/ClubLogo";
+import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 
 type Member = {
   id: string;
@@ -239,11 +240,7 @@ export default function ProfilePage() {
 
   // Show loading while checking auth
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
+    return <BowlingBallLoaderOverlay />;
   }
 
   if (!member) {
