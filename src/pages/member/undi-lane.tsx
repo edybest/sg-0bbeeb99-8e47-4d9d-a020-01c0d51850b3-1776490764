@@ -70,8 +70,8 @@ export default function UndiLane() {
       // Get latest game (regardless of status)
       const { data: game, error: gameError } = await supabase
         .from("games")
-        .select("id, date, status")
-        .order("date", { ascending: false })
+        .select("id, game_date, status")
+        .order("game_date", { ascending: false })
         .limit(1)
         .maybeSingle();
 
