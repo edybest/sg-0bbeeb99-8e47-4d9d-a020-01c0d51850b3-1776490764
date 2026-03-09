@@ -8,7 +8,7 @@ export const sessionService = {
   async setSessionContext(sessionToken: string): Promise<void> {
     try {
       const { error } = await supabase.rpc("set_session_context", {
-        session_token: sessionToken
+        session_token_param: sessionToken
       });
 
       if (error) {
@@ -62,5 +62,14 @@ export const sessionService = {
   clearSessionCookie(): void {
     if (typeof document === "undefined") return;
     document.cookie = "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  },
+
+  /**
+   * Set session cookie
+   */
+  setSessionCookie(token: string, expiresAt: string): void {
+    if (typeof document === "undefined") return;
+    const expires = new Date(expiresAt).toUTCString();
+    document.cookie = `session_token=${token}; path=/; expires=${expires}; SameSite=Lax`;
   }
 };
