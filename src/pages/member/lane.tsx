@@ -34,9 +34,7 @@ export default function LanePage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [activeGame, setActiveGame] = useState<any>(null);
-  const [lanes, setLanes] = useState<any[]>([]);
   const [spinResults, setSpinResults] = useState<any[]>([]);
   
   const [games, setGames] = useState<Game[]>([]);
@@ -48,13 +46,13 @@ export default function LanePage() {
   const [draggedMember, setDraggedMember] = useState<Member | null>(null);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const { member, loading: authLoading, isAuthenticated } = useAuth(true);
+  const { member, loading: authLoading, isAuthenticated, isAdmin } = useAuth(true);
 
   useEffect(() => {
-    if (router.isReady) {
+    if (router.isReady && !authLoading && isAuthenticated) {
       loadData();
     }
-  }, [router.isReady]);
+  }, [router.isReady, authLoading, isAuthenticated]);
 
   useEffect(() => {
     if (selectedGameId) {
@@ -67,49 +65,10 @@ export default function LanePage() {
     try {
       setLoading(true);
       
-      // Check session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        console.error("Session error:", sessionError);
-        router.push("/login");
-        return;
-      }
-
-      console.log("Session found, loading lane data");
-
-      // Get current member
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (memberError) {
-        console.error("Member lookup error:", memberError);
-        toast({
-          title: "Error",
-          description: "Failed to load member data. Please try again.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!member) {
-        console.error("No member found for user");
-        router.push("/login");
-        return;
-      }
-
-      if (member?.is_admin) {
-        setIsAdmin(true);
-      }
-
       const [gamesData, configsData, membersData] = await Promise.all([
         gameService.getAllGames(),
         laneService.getLaneConfigurations(),
-        laneService.getAllMembers(),
+        isAdmin ? laneService.getAllMembers() : Promise.resolve([]),
       ]);
 
       setGames(gamesData);
@@ -317,8 +276,6 @@ export default function LanePage() {
     const leftLane = lanes[0] || "?";
     const rightLane = lanes[1] || "?";
 
-    // Susunan seperti dalam gambar
-    // Kiri: A, B, C | Kanan: A, B, C
     const leftPositions = [`${leftLane}A`, `${leftLane}B`, `${leftLane}C`];
     const rightPositions = [`${rightLane}A`, `${rightLane}B`, `${rightLane}C`];
 
@@ -376,7 +333,7 @@ export default function LanePage() {
     );
   }
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-red-600" />
@@ -415,7 +372,7 @@ export default function LanePage() {
         <div className="container mx-auto px-4 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
-            {/* Kiri: Lane Grid (Ambil 3 column atau full bergantung role) */}
+            {/* Kiri: Lane Grid */}
             <div className={`space-y-6 ${isAdmin ? "lg:col-span-3" : "lg:col-span-4 max-w-5xl mx-auto w-full"}`}>
               {/* Pemilihan Game */}
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -439,12 +396,9 @@ export default function LanePage() {
               </div>
 
               {selectedGameId ? (
-                <>
-                  {/* Lane Layouts - Tiru Gambar Tepat-Tepat */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                    {laneConfigs.map(config => renderLaneSection(config))}
-                  </div>
-                </>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                  {laneConfigs.map(config => renderLaneSection(config))}
+                </div>
               ) : (
                 <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
                   Sila pilih game untuk melihat lane
@@ -452,7 +406,7 @@ export default function LanePage() {
               )}
             </div>
 
-            {/* Kanan: Drag & Drop List (HANYA UNTUK ADMIN) */}
+            {/* Kanan: Drag & Drop List (ADMIN SAHAJA) */}
             {isAdmin && (
               <div className="lg:col-span-1">
                 <Card className="sticky top-24 shadow-sm border-gray-200">
@@ -464,30 +418,30 @@ export default function LanePage() {
                   </div>
                   <CardContent className="p-3 max-h-[calc(100vh-200px)] overflow-y-auto">
                     <div className="space-y-1.5">
-                      {members.map(member => (
+                      {members.map(m => (
                         <div
-                          key={member.id}
+                          key={m.id}
                           draggable
-                          onDragStart={() => handleDragStart(member)}
+                          onDragStart={() => handleDragStart(m)}
                           className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
                         >
                           <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400" />
-                          {member.avatar_url ? (
+                          {m.avatar_url ? (
                             <Image
-                              src={member.avatar_url}
-                              alt={member.username}
+                              src={m.avatar_url}
+                              alt={m.username}
                               width={28}
                               height={28}
                               className="rounded-full"
                             />
                           ) : (
                             <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
-                              {member.username[0].toUpperCase()}
+                              {m.username[0].toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate leading-tight">{member.username}</p>
-                            <p className="text-[10px] text-gray-500 truncate">{member.full_name}</p>
+                            <p className="text-sm font-medium truncate leading-tight">{m.username}</p>
+                            <p className="text-[10px] text-gray-500 truncate">{m.full_name}</p>
                           </div>
                         </div>
                       ))}
