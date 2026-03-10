@@ -345,7 +345,7 @@ export function WhatsAppLoginForm() {
 
                     <div className="text-center pt-4 border-t">
                         <p className="text-xs text-gray-500">
-                            Masalah log masuk? Hubungi admin untuk bantuan.
+                            Masalah log masuk? Hubungi admin untuk bantuan,TQ.
                         </p>
                     </div>
                 </div>
