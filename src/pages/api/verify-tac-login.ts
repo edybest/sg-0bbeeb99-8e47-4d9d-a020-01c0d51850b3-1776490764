@@ -178,30 +178,46 @@ export default async function handler(
       member.user_id = newAuthUser.user.id;
     }
 
-    // Create a session for the user using admin API
+    // Create a session for the user using the temp password workaround
     try {
-      // Create session directly using admin privileges
-      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.createSession({
-        userId: member.user_id,
-      });
+      // 1. Generate a secure random temporary password
+      const crypto = require("crypto");
+      const tempPassword = crypto.randomUUID() + crypto.randomUUID();
 
-      if (sessionError || !sessionData?.session) {
-        console.error("❌ Failed to create session:", sessionError);
-        throw new Error("Failed to create session");
+      // 2. Update the user's password using Admin API
+      const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
+        member.user_id,
+        { password: tempPassword }
+      );
+
+      if (updatePasswordError) {
+        console.error("❌ Failed to update temporary password:", updatePasswordError);
+        throw new Error("Failed to prepare session");
       }
 
-      console.log("✅ Admin session created:", {
+      // 3. Sign in with the temporary password to get the session tokens
+      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+        phone: cleanPhone,
+        password: tempPassword,
+      });
+
+      if (signInError || !signInData.session) {
+        console.error("❌ Failed to sign in with temp password:", signInError);
+        throw new Error("Failed to generate session tokens");
+      }
+
+      console.log("✅ Session tokens generated successfully:", {
         userId: member.user_id,
-        hasAccessToken: !!sessionData.session.access_token,
-        hasRefreshToken: !!sessionData.session.refresh_token,
+        hasAccessToken: !!signInData.session.access_token,
+        hasRefreshToken: !!signInData.session.refresh_token,
       });
 
       return res.status(200).json({
         success: true,
         message: "Login successful",
         data: {
-          access_token: sessionData.session.access_token,
-          refresh_token: sessionData.session.refresh_token,
+          access_token: signInData.session.access_token,
+          refresh_token: signInData.session.refresh_token,
           user: {
             id: member.user_id,
             username: member.username,
