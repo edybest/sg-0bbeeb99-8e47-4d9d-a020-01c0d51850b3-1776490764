@@ -20,6 +20,7 @@ import { ArrowLeft, User, Save, Loader2, Camera, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ClubLogo } from "@/components/ClubLogo";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 type Member = {
   id: string;
@@ -248,275 +249,277 @@ export default function ProfilePage() {
   }
 
   return (
-    <>
-      <SEO title="Profile - AMBC Club" description="Member profile and statistics" />
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-        {/* Header */}
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between px-4">
-            <div className="flex items-center gap-3">
-              <Link href="/member">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <ClubLogo size="sm" />
-              <div>
-                <h1 className="text-lg font-bold">Profile</h1>
-                <p className="text-xs text-muted-foreground">Maklumat Ahli</p>
+    <PageAccessGuard pagePath="/member/profile" requireAuth={true}>
+      <>
+        <SEO title="Profile - AMBC Club" description="Member profile and statistics" />
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+          {/* Header */}
+          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-16 items-center justify-between px-4">
+              <div className="flex items-center gap-3">
+                <Link href="/member">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <ClubLogo size="sm" />
+                <div>
+                  <h1 className="text-lg font-bold">Profile</h1>
+                  <p className="text-xs text-muted-foreground">Maklumat Ahli</p>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <main className="container mx-auto px-4 py-6">
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="details">Butiran Diri</TabsTrigger>
-              <TabsTrigger value="history">Sejarah Game</TabsTrigger>
-            </TabsList>
+          <main className="container mx-auto px-4 py-6">
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="details">Butiran Diri</TabsTrigger>
+                <TabsTrigger value="history">Sejarah Game</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="details">
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* Avatar Section */}
-                <Card className="md:col-span-1">
-                  <CardContent className="pt-6 flex flex-col items-center">
-                    <div className="relative mb-4">
-                      {member.avatar_url ? (
-                        isBase64Image(member.avatar_url) ? (
-                          <img
-                            src={member.avatar_url}
-                            alt={member.username}
-                            className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
-                          />
-                        ) : (
-                          <Image
-                            src={member.avatar_url}
-                            alt={member.username}
-                            width={150}
-                            height={150}
-                            className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
-                          />
-                        )
-                      ) : (
-                        <div className="w-[150px] h-[150px] rounded-full bg-red-100 flex items-center justify-center text-red-600 text-4xl font-bold border-4 border-white shadow">
-                          {member.username[0].toUpperCase()}
-                        </div>
-                      )}
-                      
-                      {isOwnProfile && (
-                        <Button
-                          size="icon"
-                          className="absolute bottom-0 right-0 rounded-full shadow-lg"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                        >
-                          {uploading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+              <TabsContent value="details">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Avatar Section */}
+                  <Card className="md:col-span-1">
+                    <CardContent className="pt-6 flex flex-col items-center">
+                      <div className="relative mb-4">
+                        {member.avatar_url ? (
+                          isBase64Image(member.avatar_url) ? (
+                            <img
+                              src={member.avatar_url}
+                              alt={member.username}
+                              className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                            />
                           ) : (
-                            <Camera className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                      />
-                    </div>
-                    
-                    <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
-                    <p className="text-gray-500 text-center mb-2">@{member.username}</p>
-                    <Badge variant="outline" className="mb-4">
-                      Handicap: {member.handicap}
-                    </Badge>
-                  </CardContent>
-                </Card>
+                            <Image
+                              src={member.avatar_url}
+                              alt={member.username}
+                              width={150}
+                              height={150}
+                              className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                            />
+                          )
+                        ) : (
+                          <div className="w-[150px] h-[150px] rounded-full bg-red-100 flex items-center justify-center text-red-600 text-4xl font-bold border-4 border-white shadow">
+                            {member.username[0].toUpperCase()}
+                          </div>
+                        )}
+                        
+                        {isOwnProfile && (
+                          <Button
+                            size="icon"
+                            className="absolute bottom-0 right-0 rounded-full shadow-lg"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                          >
+                            {uploading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Camera className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleAvatarUpload}
+                        />
+                      </div>
+                      
+                      <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
+                      <p className="text-gray-500 text-center mb-2">@{member.username}</p>
+                      <Badge variant="outline" className="mb-4">
+                        Handicap: {member.handicap}
+                      </Badge>
+                    </CardContent>
+                  </Card>
 
-                {/* Edit Form */}
-                <Card className="md:col-span-2">
+                  {/* Edit Form */}
+                  <Card className="md:col-span-2">
+                    <CardHeader>
+                      <CardTitle>Maklumat Peribadi</CardTitle>
+                      <CardDescription>
+                        {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleUpdateProfile} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input id="username" value={member.username} disabled />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" value={member.email || "-"} disabled />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="full_name">Nama Penuh</Label>
+                            <Input 
+                              id="full_name" 
+                              value={member.full_name} 
+                              onChange={(e) => setMember({...member, full_name: e.target.value})}
+                              disabled={!isOwnProfile}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="phone">No. Telefon</Label>
+                            <Input 
+                              id="phone" 
+                              value={member.phone || ""} 
+                              onChange={(e) => setMember({...member, phone: e.target.value})}
+                              placeholder="+60123456789"
+                              disabled={!isOwnProfile}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="sex">Jantina</Label>
+                            <Select 
+                              value={member.sex || "men"} 
+                              onValueChange={(val) => setMember({...member, sex: val})}
+                              disabled={!isOwnProfile}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="men">Lelaki</SelectItem>
+                                <SelectItem value="women">Perempuan</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="birthday">Tarikh Lahir</Label>
+                            <Input 
+                              id="birthday" 
+                              type="date"
+                              value={member.birthday || ""} 
+                              onChange={(e) => setMember({...member, birthday: e.target.value})}
+                              disabled={!isOwnProfile}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="technique">Teknik Balingan</Label>
+                            <Select 
+                              value={member.technique || "Straight"} 
+                              onValueChange={(val) => setMember({...member, technique: val})}
+                              disabled={!isOwnProfile}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Straight">Straight</SelectItem>
+                                <SelectItem value="Hook">Hook</SelectItem>
+                                <SelectItem value="Spinner">Spinner</SelectItem>
+                                <SelectItem value="Backup">Backup</SelectItem>
+                                <SelectItem value="Kidal">Kidal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {isOwnProfile && (
+                          <div className="pt-4 flex justify-end">
+                            <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700">
+                              {saving ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Save className="mr-2 h-4 w-4" />
+                                  Simpan Perubahan
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="history">
+                <Card>
                   <CardHeader>
-                    <CardTitle>Maklumat Peribadi</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5" />
+                      Sejarah Permainan
+                    </CardTitle>
                     <CardDescription>
-                      {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
+                      10 game terkini yang disertai
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleUpdateProfile} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="username">Username</Label>
-                          <Input id="username" value={member.username} disabled />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input id="email" value={member.email || "-"} disabled />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="full_name">Nama Penuh</Label>
-                          <Input 
-                            id="full_name" 
-                            value={member.full_name} 
-                            onChange={(e) => setMember({...member, full_name: e.target.value})}
-                            disabled={!isOwnProfile}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">No. Telefon</Label>
-                          <Input 
-                            id="phone" 
-                            value={member.phone || ""} 
-                            onChange={(e) => setMember({...member, phone: e.target.value})}
-                            placeholder="+60123456789"
-                            disabled={!isOwnProfile}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="sex">Jantina</Label>
-                          <Select 
-                            value={member.sex || "men"} 
-                            onValueChange={(val) => setMember({...member, sex: val})}
-                            disabled={!isOwnProfile}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="men">Lelaki</SelectItem>
-                              <SelectItem value="women">Perempuan</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="birthday">Tarikh Lahir</Label>
-                          <Input 
-                            id="birthday" 
-                            type="date"
-                            value={member.birthday || ""} 
-                            onChange={(e) => setMember({...member, birthday: e.target.value})}
-                            disabled={!isOwnProfile}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="technique">Teknik Balingan</Label>
-                          <Select 
-                            value={member.technique || "Straight"} 
-                            onValueChange={(val) => setMember({...member, technique: val})}
-                            disabled={!isOwnProfile}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Straight">Straight</SelectItem>
-                              <SelectItem value="Hook">Hook</SelectItem>
-                              <SelectItem value="Spinner">Spinner</SelectItem>
-                              <SelectItem value="Backup">Backup</SelectItem>
-                              <SelectItem value="Kidal">Kidal</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    {history.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Belum ada rekod permainan.
                       </div>
-
-                      {isOwnProfile && (
-                        <div className="pt-4 flex justify-end">
-                          <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700">
-                            {saving ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                              </>
-                            ) : (
-                              <>
-                                <Save className="mr-2 h-4 w-4" />
-                                Simpan Perubahan
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </form>
+                    ) : (
+                      <div className="space-y-4">
+                        {history.map((game) => (
+                          <div 
+                            key={game.id} 
+                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex justify-between items-start mb-3">
+                              <div>
+                                <h3 className="font-bold">{game.games.game_name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs text-muted-foreground">Overall</span>
+                                <p className="text-xl font-bold text-red-600">{game.overall_score}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                              <div className="bg-gray-100 rounded p-1">
+                                <span className="text-xs text-gray-500 block">G1</span>
+                                <span className="font-medium">{game.game1_score}</span>
+                              </div>
+                              <div className="bg-gray-100 rounded p-1">
+                                <span className="text-xs text-gray-500 block">G2</span>
+                                <span className="font-medium">{game.game2_score}</span>
+                              </div>
+                              <div className="bg-gray-100 rounded p-1">
+                                <span className="text-xs text-gray-500 block">G3</span>
+                                <span className="font-medium">{game.game3_score}</span>
+                              </div>
+                              <div className="bg-gray-100 rounded p-1">
+                                <span className="text-xs text-gray-500 block">G4</span>
+                                <span className="font-medium">{game.game4_score}</span>
+                              </div>
+                              <div className="bg-gray-100 rounded p-1">
+                                <span className="text-xs text-gray-500 block">G5</span>
+                                <span className="font-medium">{game.game5_score}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="history">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Sejarah Permainan
-                  </CardTitle>
-                  <CardDescription>
-                    10 game terkini yang disertai
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {history.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Belum ada rekod permainan.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {history.map((game) => (
-                        <div 
-                          key={game.id} 
-                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <h3 className="font-bold">{game.games.game_name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-xs text-muted-foreground">Overall</span>
-                              <p className="text-xl font-bold text-red-600">{game.overall_score}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                            <div className="bg-gray-100 rounded p-1">
-                              <span className="text-xs text-gray-500 block">G1</span>
-                              <span className="font-medium">{game.game1_score}</span>
-                            </div>
-                            <div className="bg-gray-100 rounded p-1">
-                              <span className="text-xs text-gray-500 block">G2</span>
-                              <span className="font-medium">{game.game2_score}</span>
-                            </div>
-                            <div className="bg-gray-100 rounded p-1">
-                              <span className="text-xs text-gray-500 block">G3</span>
-                              <span className="font-medium">{game.game3_score}</span>
-                            </div>
-                            <div className="bg-gray-100 rounded p-1">
-                              <span className="text-xs text-gray-500 block">G4</span>
-                              <span className="font-medium">{game.game4_score}</span>
-                            </div>
-                            <div className="bg-gray-100 rounded p-1">
-                              <span className="text-xs text-gray-500 block">G5</span>
-                              <span className="font-medium">{game.game5_score}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </main>
-      </div>
-    </>
+              </TabsContent>
+            </Tabs>
+          </main>
+        </div>
+      </>
+    </PageAccessGuard>
   );
 }

@@ -25,6 +25,7 @@ import { MobileNav } from "@/components/member/MobileNav";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 // Define specific types for what we fetch to avoid TS errors
 type GameSummary = Pick<Tables<"games">, "id" | "game_name" | "game_format" | "game_date" | "created_at">;
@@ -618,448 +619,450 @@ export default function BlokPage() {
   };
 
   return (
-    <>
-      <style jsx global>{`
-        @keyframes scoreChange {
-          0% {
-            transform: scale(1);
-            background-color: transparent;
+    <PageAccessGuard pagePath="/member/blok" requireAuth={true}>
+      <>
+        <style jsx global>{`
+          @keyframes scoreChange {
+            0% {
+              transform: scale(1);
+              background-color: transparent;
+            }
+            50% {
+              transform: scale(1.1);
+              background-color: rgb(254, 240, 138);
+            }
+            100% {
+              transform: scale(1);
+              background-color: transparent;
+            }
           }
-          50% {
-            transform: scale(1.1);
-            background-color: rgb(254, 240, 138);
-          }
-          100% {
-            transform: scale(1);
-            background-color: transparent;
-          }
-        }
 
-        @keyframes rankChange {
-          0% {
-            transform: translateX(-10px);
-            opacity: 0.5;
+          @keyframes rankChange {
+            0% {
+              transform: translateX(-10px);
+              opacity: 0.5;
+            }
+            100% {
+              transform: translateX(0);
+              opacity: 1;
+            }
           }
-          100% {
-            transform: translateX(0);
-            opacity: 1;
+
+          .score-changed {
+            animation: scoreChange 1s ease-in-out;
           }
-        }
 
-        .score-changed {
-          animation: scoreChange 1s ease-in-out;
-        }
-
-        .rank-changed {
-          animation: rankChange 0.5s ease-out;
-        }
-      `}</style>
-      <SEO 
-        title="Blok Leaderboard - AMBC Club"
-        description="View Blok game leaderboard and rankings"
-      />
-      <div className="min-h-screen bg-white">
-        {/* Header with white background */}
-        <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.push("/member")}
-                  className="text-gray-700 hover:text-red-600"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                
-                <ClubLogo size="sm" />
-                
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                  <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+          .rank-changed {
+            animation: rankChange 0.5s ease-out;
+          }
+        `}</style>
+        <SEO 
+          title="Blok Leaderboard - AMBC Club"
+          description="View Blok game leaderboard and rankings"
+        />
+        <div className="min-h-screen bg-white">
+          {/* Header with white background */}
+          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push("/member")}
+                    className="text-gray-700 hover:text-red-600"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  
+                  <ClubLogo size="sm" />
+                  
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <main className="container mx-auto px-4 py-6">
-          <Card className="bg-white border-gray-200 shadow-md">
-            <CardHeader className="border-b border-gray-200">
-              <CardTitle className="text-gray-900">Pilih Game</CardTitle>
-              <CardDescription className="text-gray-600">
-                Pilih game untuk melihat kedudukan
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-4">
-              {loading && games.length === 0 ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-red-600" />
-                </div>
-              ) : games.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Tiada game tersedia
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {games.map((game) => (
-                    <motion.button
-                      key={game.id}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedGame(game.id)}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        selectedGame === game.id
-                          ? "bg-red-600 border-red-600 text-white shadow-lg"
-                          : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"
-                      }`}
-                    >
-                      <div className="font-semibold">{game.game_name}</div>
-                      <div className="text-sm opacity-80">
-                        {new Date(game.game_date).toLocaleDateString("ms-MY")}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {selectedGame && (
-            <Card className="mt-6 bg-white border-gray-200 shadow-md overflow-hidden">
-              <CardHeader className="border-b border-gray-200 bg-gray-50/50">
-                <CardTitle className="text-gray-900 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-500" />
-                  Leaderboard
-                </CardTitle>
+          <main className="container mx-auto px-4 py-6">
+            <Card className="bg-white border-gray-200 shadow-md">
+              <CardHeader className="border-b border-gray-200">
+                <CardTitle className="text-gray-900">Pilih Game</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Pilih game untuk melihat kedudukan
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="flex justify-center items-center py-20">
-                    <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-                    <span className="ml-3 text-gray-600">Memuatkan skor...</span>
+              <CardContent className="p-4">
+                {loading && games.length === 0 ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-red-600" />
                   </div>
-                ) : leaderboard.length === 0 ? (
-                  <div className="text-center py-20 text-gray-500">
-                    <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>Tiada skor untuk game ini</p>
+                ) : games.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Tiada game tersedia
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile View - Compact Cards */}
-                    <div className="block md:hidden space-y-2">
-                      {leaderboard.map((entry, index) => (
-                        <Card
-                          key={entry.id}
-                          className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                            animatingScores.has(entry.id) 
-                              ? 'animate-pulse bg-yellow-50 border-yellow-400 border-2' 
-                              : ''
-                          }`}
-                          onClick={() => setExpandedRow(
-                            expandedRow === entry.id ? null : entry.id
-                          )}
-                        >
-                          <CardContent className="p-4">
-                            {/* Compact View */}
-                            <div className="flex items-center gap-3">
-                              {/* Rank - Now with animated medals for top 3 */}
-                              <div className="flex-shrink-0">
-                                {getRankDisplay(entry.rank)}
-                              </div>
-
-                              {/* Avatar */}
-                              <div className="flex-shrink-0">
-                                {entry.member.avatar_url ? (
-                                  <Image
-                                    src={entry.member.avatar_url}
-                                    alt={entry.member.username}
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full border-2 border-gray-200"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
-                                    {entry.member.username[0].toUpperCase()}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Username & Scores */}
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm truncate">{entry.member.username}</div>
-                                <div className="flex items-center gap-2 text-xs text-gray-600">
-                                  <span className="font-bold text-red-600">{entry.overall_score || "-"}</span>
-                                  <span className="text-gray-400">•</span>
-                                  <span>{entry.difference > 0 ? `+${entry.difference}` : entry.difference}</span>
-                                </div>
-                              </div>
-
-                              {/* Expand Indicator */}
-                              <ChevronRight 
-                                className={`w-5 h-5 text-gray-400 transition-transform ${
-                                  expandedRow === entry.id ? "rotate-90" : ""
-                                }`}
-                              />
-                            </div>
-
-                            {/* Expanded Details */}
-                            {expandedRow === entry.id && (
-                              <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-                                {/* Game Scores Grid */}
-                                <div className="grid grid-cols-5 gap-2">
-                                  <div className="text-center">
-                                    <div className="text-xs text-gray-500 mb-1">G1</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game1_score, entry.member.id)}</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-xs text-gray-500 mb-1">G2</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game2_score, entry.member.id)}</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-xs text-gray-500 mb-1">G3</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game3_score, entry.member.id)}</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-xs text-gray-500 mb-1">G4</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game4_score, entry.member.id)}</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="text-xs text-gray-500 mb-1">G5</div>
-                                    <div className="text-sm font-semibold">{formatScore(entry.game5_score, entry.member.id)}</div>
-                                  </div>
-                                </div>
-
-                                {/* Stats */}
-                                <div className="grid grid-cols-3 gap-3 text-sm">
-                                  <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-xs text-gray-500">Handicap</div>
-                                    <div className="font-semibold">{entry.handicap || "-"}</div>
-                                  </div>
-                                  <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-xs text-gray-500">Total Games</div>
-                                    <div className="font-semibold">{entry.total_score || "-"}</div>
-                                  </div>
-                                  <div className="bg-gray-50 p-2 rounded">
-                                    <div className="text-xs text-gray-500">Average</div>
-                                    <div className="font-semibold">{entry.average_score || "-"}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-
-                    {/* Desktop View - Table */}
-                    <div className="hidden md:block">
-                      {/* Scroll hint gradient for mobile */}
-                      <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-20" />
-                      
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              {/* Rank - Sortable */}
-                              <th 
-                                className="sticky left-0 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("rank")}
-                              >
-                                <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  #
-                                  {getSortIcon("rank")}
-                                </div>
-                              </th>
-
-                              {/* Avatar - Not sortable */}
-                              <th className="sticky left-12 sm:left-16 z-20 bg-white px-2 py-3">
-                                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Avatar
-                                </span>
-                              </th>
-
-                              {/* Username - Sortable */}
-                              <th 
-                                className="sticky left-24 sm:left-32 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("username")}
-                              >
-                                <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Player
-                                  {getSortIcon("username")}
-                                </div>
-                              </th>
-
-                              {/* Overall - Sortable */}
-                              <th 
-                                className="sticky left-44 sm:left-60 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("overall_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Overall
-                                  {getSortIcon("overall_score")}
-                                </div>
-                              </th>
-
-                              {/* Difference - Sortable */}
-                              <th 
-                                className="sticky left-60 sm:left-80 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("difference")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Diff
-                                  {getSortIcon("difference")}
-                                </div>
-                              </th>
-
-                              {/* Game 1 - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("game1_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  G1
-                                  {getSortIcon("game1_score")}
-                                </div>
-                              </th>
-
-                              {/* Game 2 - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("game2_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  G2
-                                  {getSortIcon("game2_score")}
-                                </div>
-                              </th>
-
-                              {/* Game 3 - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("game3_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  G3
-                                  {getSortIcon("game3_score")}
-                                </div>
-                              </th>
-
-                              {/* Game 4 - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("game4_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  G4
-                                  {getSortIcon("game4_score")}
-                                </div>
-                              </th>
-
-                              {/* Game 5 - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("game5_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  G5
-                                  {getSortIcon("game5_score")}
-                                </div>
-                              </th>
-
-                              {/* Handicap - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("handicap")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  HCP
-                                  {getSortIcon("handicap")}
-                                </div>
-                              </th>
-
-                              {/* Total - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("total_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Total
-                                  {getSortIcon("total_score")}
-                                </div>
-                              </th>
-
-                              {/* Average - Sortable */}
-                              <th 
-                                className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleSort("average_score")}
-                              >
-                                <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                                  Avg
-                                  {getSortIcon("average_score")}
-                                </div>
-                              </th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {leaderboard.map((entry, index) => (
-                              <tr 
-                                key={entry.member.id} 
-                                className={`border-b transition-all duration-500 ${
-                                  animatingScores.has(entry.member.id)
-                                    ? 'bg-yellow-100 animate-pulse'
-                                    : 'hover:bg-gray-50'
-                                }`}
-                              >
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center justify-center">
-                                    {getRankDisplay(entry.rank)}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center gap-3">
-                                    {entry.member.avatar_url ? (
-                                      <Image
-                                        src={entry.member.avatar_url}
-                                        alt={entry.member.username}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full border-2 border-gray-200"
-                                      />
-                                    ) : (
-                                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
-                                        {entry.member.username[0].toUpperCase()}
-                                      </div>
-                                    )}
-                                    <span className="font-medium">{entry.member.username}</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game1_score, entry.member.id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game2_score, entry.member.id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game3_score, entry.member.id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game4_score, entry.member.id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game5_score, entry.member.id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{entry.handicap || "-"}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold text-red-600">{entry.overall_score || "-"}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{entry.total_score || "-"}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center">{entry.average_score || "-"}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">
-                                  {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {games.map((game) => (
+                      <motion.button
+                        key={game.id}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedGame(game.id)}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          selectedGame === game.id
+                            ? "bg-red-600 border-red-600 text-white shadow-lg"
+                            : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"
+                        }`}
+                      >
+                        <div className="font-semibold">{game.game_name}</div>
+                        <div className="text-sm opacity-80">
+                          {new Date(game.game_date).toLocaleDateString("ms-MY")}
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
-          )}
-        </main>
-      </div>
-    </>
+
+            {selectedGame && (
+              <Card className="mt-6 bg-white border-gray-200 shadow-md overflow-hidden">
+                <CardHeader className="border-b border-gray-200 bg-gray-50/50">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-500" />
+                    Leaderboard
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                      <span className="ml-3 text-gray-600">Memuatkan skor...</span>
+                    </div>
+                  ) : leaderboard.length === 0 ? (
+                    <div className="text-center py-20 text-gray-500">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p>Tiada skor untuk game ini</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile View - Compact Cards */}
+                      <div className="block md:hidden space-y-2">
+                        {leaderboard.map((entry, index) => (
+                          <Card
+                            key={entry.id}
+                            className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                              animatingScores.has(entry.id) 
+                                ? 'animate-pulse bg-yellow-50 border-yellow-400 border-2' 
+                                : ''
+                            }`}
+                            onClick={() => setExpandedRow(
+                              expandedRow === entry.id ? null : entry.id
+                            )}
+                          >
+                            <CardContent className="p-4">
+                              {/* Compact View */}
+                              <div className="flex items-center gap-3">
+                                {/* Rank - Now with animated medals for top 3 */}
+                                <div className="flex-shrink-0">
+                                  {getRankDisplay(entry.rank)}
+                                </div>
+
+                                {/* Avatar */}
+                                <div className="flex-shrink-0">
+                                  {entry.member.avatar_url ? (
+                                    <Image
+                                      src={entry.member.avatar_url}
+                                      alt={entry.member.username}
+                                      width={40}
+                                      height={40}
+                                      className="rounded-full border-2 border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
+                                      {entry.member.username[0].toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Username & Scores */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-sm truncate">{entry.member.username}</div>
+                                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                                    <span className="font-bold text-red-600">{entry.overall_score || "-"}</span>
+                                    <span className="text-gray-400">•</span>
+                                    <span>{entry.difference > 0 ? `+${entry.difference}` : entry.difference}</span>
+                                  </div>
+                                </div>
+
+                                {/* Expand Indicator */}
+                                <ChevronRight 
+                                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                                    expandedRow === entry.id ? "rotate-90" : ""
+                                  }`}
+                                />
+                              </div>
+
+                              {/* Expanded Details */}
+                              {expandedRow === entry.id && (
+                                <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                                  {/* Game Scores Grid */}
+                                  <div className="grid grid-cols-5 gap-2">
+                                    <div className="text-center">
+                                      <div className="text-xs text-gray-500 mb-1">G1</div>
+                                      <div className="text-sm font-semibold">{formatScore(entry.game1_score, entry.member.id)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-xs text-gray-500 mb-1">G2</div>
+                                      <div className="text-sm font-semibold">{formatScore(entry.game2_score, entry.member.id)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-xs text-gray-500 mb-1">G3</div>
+                                      <div className="text-sm font-semibold">{formatScore(entry.game3_score, entry.member.id)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-xs text-gray-500 mb-1">G4</div>
+                                      <div className="text-sm font-semibold">{formatScore(entry.game4_score, entry.member.id)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-xs text-gray-500 mb-1">G5</div>
+                                      <div className="text-sm font-semibold">{formatScore(entry.game5_score, entry.member.id)}</div>
+                                    </div>
+                                  </div>
+
+                                  {/* Stats */}
+                                  <div className="grid grid-cols-3 gap-3 text-sm">
+                                    <div className="bg-gray-50 p-2 rounded">
+                                      <div className="text-xs text-gray-500">Handicap</div>
+                                      <div className="font-semibold">{entry.handicap || "-"}</div>
+                                    </div>
+                                    <div className="bg-gray-50 p-2 rounded">
+                                      <div className="text-xs text-gray-500">Total Games</div>
+                                      <div className="font-semibold">{entry.total_score || "-"}</div>
+                                    </div>
+                                    <div className="bg-gray-50 p-2 rounded">
+                                      <div className="text-xs text-gray-500">Average</div>
+                                      <div className="font-semibold">{entry.average_score || "-"}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {/* Desktop View - Table */}
+                      <div className="hidden md:block">
+                        {/* Scroll hint gradient for mobile */}
+                        <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none z-20" />
+                        
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                {/* Rank - Sortable */}
+                                <th 
+                                  className="sticky left-0 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("rank")}
+                                >
+                                  <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    #
+                                    {getSortIcon("rank")}
+                                  </div>
+                                </th>
+
+                                {/* Avatar - Not sortable */}
+                                <th className="sticky left-12 sm:left-16 z-20 bg-white px-2 py-3">
+                                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Avatar
+                                  </span>
+                                </th>
+
+                                {/* Username - Sortable */}
+                                <th 
+                                  className="sticky left-24 sm:left-32 z-20 bg-white px-2 sm:px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("username")}
+                                >
+                                  <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Player
+                                    {getSortIcon("username")}
+                                  </div>
+                                </th>
+
+                                {/* Overall - Sortable */}
+                                <th 
+                                  className="sticky left-44 sm:left-60 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("overall_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Overall
+                                    {getSortIcon("overall_score")}
+                                  </div>
+                                </th>
+
+                                {/* Difference - Sortable */}
+                                <th 
+                                  className="sticky left-60 sm:left-80 z-20 bg-white px-2 sm:px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("difference")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Diff
+                                    {getSortIcon("difference")}
+                                  </div>
+                                </th>
+
+                                {/* Game 1 - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("game1_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    G1
+                                    {getSortIcon("game1_score")}
+                                  </div>
+                                </th>
+
+                                {/* Game 2 - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("game2_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    G2
+                                    {getSortIcon("game2_score")}
+                                  </div>
+                                </th>
+
+                                {/* Game 3 - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("game3_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    G3
+                                    {getSortIcon("game3_score")}
+                                  </div>
+                                </th>
+
+                                {/* Game 4 - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("game4_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    G4
+                                    {getSortIcon("game4_score")}
+                                  </div>
+                                </th>
+
+                                {/* Game 5 - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("game5_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    G5
+                                    {getSortIcon("game5_score")}
+                                  </div>
+                                </th>
+
+                                {/* Handicap - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("handicap")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    HCP
+                                    {getSortIcon("handicap")}
+                                  </div>
+                                </th>
+
+                                {/* Total - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("total_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Total
+                                    {getSortIcon("total_score")}
+                                  </div>
+                                </th>
+
+                                {/* Average - Sortable */}
+                                <th 
+                                  className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleSort("average_score")}
+                                >
+                                  <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    Avg
+                                    {getSortIcon("average_score")}
+                                  </div>
+                                </th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {leaderboard.map((entry, index) => (
+                                <tr 
+                                  key={entry.member.id} 
+                                  className={`border-b transition-all duration-500 ${
+                                    animatingScores.has(entry.member.id)
+                                      ? 'bg-yellow-100 animate-pulse'
+                                      : 'hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center justify-center">
+                                      {getRankDisplay(entry.rank)}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-3">
+                                      {entry.member.avatar_url ? (
+                                        <Image
+                                          src={entry.member.avatar_url}
+                                          alt={entry.member.username}
+                                          width={40}
+                                          height={40}
+                                          className="rounded-full border-2 border-gray-200"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
+                                          {entry.member.username[0].toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span className="font-medium">{entry.member.username}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game1_score, entry.member.id)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game2_score, entry.member.id)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game3_score, entry.member.id)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game4_score, entry.member.id)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{formatScore(entry.game5_score, entry.member.id)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">{entry.handicap || "-"}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center font-semibold text-red-600">{entry.overall_score || "-"}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{entry.total_score || "-"}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center">{entry.average_score || "-"}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-center font-semibold">
+                                    {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        </div>
+      </>
+    </PageAccessGuard>
   );
 }

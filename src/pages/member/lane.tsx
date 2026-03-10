@@ -16,6 +16,7 @@ import Link from "next/link";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 interface Game {
   id: string;
@@ -340,118 +341,120 @@ export default function LanePage() {
   }
 
   return (
-    <>
-      <SEO 
-        title="Lane Assignment - AMBC Club"
-        description="Kedudukan Lane Ahli"
-      />
-      <div className="min-h-screen bg-gray-50 pb-20">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <MobileNav />
-              <Link href="/member">
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-              </Link>
-              <ClubLogo size="sm" />
-              <div>
-                <h1 className="text-xl font-bold text-red-600">Kedudukan Lane</h1>
-                <p className="text-xs text-gray-600">
-                  {isAdmin ? "Admin: Drag & Drop Ahli" : "Lihat kedudukan lane terkini"}
-                </p>
+    <PageAccessGuard pagePath="/member/lane" requireAuth={true}>
+      <>
+        <SEO 
+          title="Lane Assignment - AMBC Club"
+          description="Kedudukan Lane Ahli"
+        />
+        <div className="min-h-screen bg-gray-50 pb-20">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center gap-4">
+                <MobileNav />
+                <Link href="/member">
+                  <Button variant="ghost" size="icon" className="hidden sm:flex">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <ClubLogo size="sm" />
+                <div>
+                  <h1 className="text-xl font-bold text-red-600">Kedudukan Lane</h1>
+                  <p className="text-xs text-gray-600">
+                    {isAdmin ? "Admin: Drag & Drop Ahli" : "Lihat kedudukan lane terkini"}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            
-            {/* Kiri: Lane Grid */}
-            <div className={`space-y-6 ${isAdmin ? "lg:col-span-3" : "lg:col-span-4 max-w-5xl mx-auto w-full"}`}>
-              {/* Pemilihan Game */}
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                  Pilih Game:
-                </h2>
-                <div className="w-full sm:w-72">
-                  <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tiada Game" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {games.map(game => (
-                        <SelectItem key={game.id} value={game.id}>
-                          {game.game_name} ({new Date(game.game_date).toLocaleDateString("ms-MY")})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <div className="container mx-auto px-4 py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              
+              {/* Kiri: Lane Grid */}
+              <div className={`space-y-6 ${isAdmin ? "lg:col-span-3" : "lg:col-span-4 max-w-5xl mx-auto w-full"}`}>
+                {/* Pemilihan Game */}
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                    Pilih Game:
+                  </h2>
+                  <div className="w-full sm:w-72">
+                    <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tiada Game" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {games.map(game => (
+                          <SelectItem key={game.id} value={game.id}>
+                            {game.game_name} ({new Date(game.game_date).toLocaleDateString("ms-MY")})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {selectedGameId ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                    {laneConfigs.map(config => renderLaneSection(config))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
+                    Sila pilih game untuk melihat lane
+                  </div>
+                )}
               </div>
 
-              {selectedGameId ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                  {laneConfigs.map(config => renderLaneSection(config))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
-                  Sila pilih game untuk melihat lane
+              {/* Kanan: Drag & Drop List (ADMIN SAHAJA) */}
+              {isAdmin && (
+                <div className="lg:col-span-1">
+                  <Card className="sticky top-24 shadow-sm border-gray-200">
+                    <div className="bg-red-600 text-white p-3 rounded-t-lg">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <Users className="h-4 w-4" /> Senarai Ahli
+                      </h3>
+                      <p className="text-[10px] text-red-100 mt-1">Drag (Tarik) nama ahli ke dalam kotak Lane di sebelah</p>
+                    </div>
+                    <CardContent className="p-3 max-h-[calc(100vh-200px)] overflow-y-auto">
+                      <div className="space-y-1.5">
+                        {members.map(m => (
+                          <div
+                            key={m.id}
+                            draggable
+                            onDragStart={() => handleDragStart(m)}
+                            className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
+                          >
+                            <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400" />
+                            {m.avatar_url ? (
+                              <Image
+                                src={m.avatar_url}
+                                alt={m.username}
+                                width={28}
+                                height={28}
+                                className="rounded-full"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
+                                {m.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate leading-tight">{m.username}</p>
+                              <p className="text-[10px] text-gray-500 truncate">{m.full_name}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
+
             </div>
-
-            {/* Kanan: Drag & Drop List (ADMIN SAHAJA) */}
-            {isAdmin && (
-              <div className="lg:col-span-1">
-                <Card className="sticky top-24 shadow-sm border-gray-200">
-                  <div className="bg-red-600 text-white p-3 rounded-t-lg">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <Users className="h-4 w-4" /> Senarai Ahli
-                    </h3>
-                    <p className="text-[10px] text-red-100 mt-1">Drag (Tarik) nama ahli ke dalam kotak Lane di sebelah</p>
-                  </div>
-                  <CardContent className="p-3 max-h-[calc(100vh-200px)] overflow-y-auto">
-                    <div className="space-y-1.5">
-                      {members.map(m => (
-                        <div
-                          key={m.id}
-                          draggable
-                          onDragStart={() => handleDragStart(m)}
-                          className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
-                        >
-                          <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400" />
-                          {m.avatar_url ? (
-                            <Image
-                              src={m.avatar_url}
-                              alt={m.username}
-                              width={28}
-                              height={28}
-                              className="rounded-full"
-                            />
-                          ) : (
-                            <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
-                              {m.username[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate leading-tight">{m.username}</p>
-                            <p className="text-[10px] text-gray-500 truncate">{m.full_name}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
           </div>
         </div>
-      </div>
-    </>
+      </>
+    </PageAccessGuard>
   );
 }

@@ -14,6 +14,7 @@ import { SEO } from "@/components/SEO";
 import { Trophy, Calendar, TrendingUp, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 type Member = Tables<"members">;
 type Game = Tables<"games">;
@@ -190,127 +191,128 @@ export default function FiveFivePage() {
   };
 
   return (
-    <>
-      <SEO title="FiveFive - AMBC Club" />
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.push("/member")}
-                className="shrink-0"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <ClubLogo size="md" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Trophy className="w-8 h-8 text-yellow-500" />
-                  FiveFive
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Prize Distribution System</p>
+    <PageAccessGuard pagePath="/member/five-five" requireAuth={true}>
+      <>
+        <SEO title="FiveFive - AMBC Club" />
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+          <div className="container mx-auto px-4 py-8 max-w-7xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push("/member")}
+                  className="shrink-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <ClubLogo size="md" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Trophy className="w-8 h-8 text-yellow-500" />
+                    FiveFive
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Prize Distribution System</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {loading && !selectedGameId ?
-          <div className="space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-64 w-full" />
-            </div> :
-          games.length === 0 ?
-          <Alert>
-              <AlertDescription>
-                Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
-              </AlertDescription>
-            </Alert> :
-
-          <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-red-600" />
-                      Pilih Tarikh Game
-                    </CardTitle>
-                    <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                      <SelectTrigger className="w-full sm:w-64">
-                        <SelectValue placeholder="Pilih tarikh..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {games.map((game) =>
-                      <SelectItem key={game.id} value={game.id}>
-                            {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ''}
-                          </SelectItem>
-                      )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              {loading ?
-            <Card>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                      <Skeleton className="h-8 w-full" />
-                    </div>
-                  </CardContent>
-                </Card> :
-            participants.length === 0 ?
+            {loading && !selectedGameId ?
+            <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div> :
+            games.length === 0 ?
             <Alert>
-                  <AlertDescription>
-                    Tiada peserta FiveFive untuk game ini.
-                  </AlertDescription>
-                </Alert> :
+                <AlertDescription>
+                  Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
+                </AlertDescription>
+              </Alert> :
 
-            <Card>
+            <div className="space-y-6">
+                <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-green-600" />
-                        Agihan Hadiah FiveFive
-                      </span>
-                      {selectedGame &&
-                  <Badge variant="outline" className="text-sm">
-                          {formatDate(selectedGame.game_date)}
-                        </Badge>
-                  }
-                    </CardTitle>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-red-600" />
+                        Pilih Tarikh Game
+                      </CardTitle>
+                      <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+                        <SelectTrigger className="w-full sm:w-64">
+                          <SelectValue placeholder="Pilih tarikh..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {games.map((game) =>
+                        <SelectItem key={game.id} value={game.id}>
+                              {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ''}
+                            </SelectItem>
+                        )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-gray-50 dark:bg-gray-800">
-                            <TableHead className="font-semibold text-center w-16">Rank</TableHead>
-                            <TableHead className="font-semibold">Nama Pemain</TableHead>
-                            <TableHead className="font-semibold text-right">G1 Prize</TableHead>
-                            <TableHead className="font-semibold text-right">G2 Prize</TableHead>
-                            <TableHead className="font-semibold text-right">G3 Prize</TableHead>
-                            <TableHead className="font-semibold text-right">G4 Prize</TableHead>
-                            <TableHead className="font-semibold text-right">G5 Prize</TableHead>
-                            <TableHead className="font-semibold text-right bg-yellow-50 dark:bg-yellow-900/20">
-                              Total Prize
-                            </TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {participants.map((participant, index) =>
-                      <TableRow
-                        key={participant.member_id}
-                        className={`
-                                ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
-                                hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
-                                ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
-                                ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
-                                ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
-                              `}>
-                        
+                </Card>
+
+                {loading ?
+              <Card>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                      </div>
+                    </CardContent>
+                  </Card> :
+              participants.length === 0 ?
+              <Alert>
+                    <AlertDescription>
+                      Tiada peserta FiveFive untuk game ini.
+                    </AlertDescription>
+                  </Alert> :
+
+              <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          Agihan Hadiah FiveFive
+                        </span>
+                        {selectedGame &&
+                    <Badge variant="outline" className="text-sm">
+                            {formatDate(selectedGame.game_date)}
+                          </Badge>
+                    }
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-50 dark:bg-gray-800">
+                              <TableHead className="font-semibold text-center w-16">Rank</TableHead>
+                              <TableHead className="font-semibold">Nama Pemain</TableHead>
+                              <TableHead className="font-semibold text-right">G1 Prize</TableHead>
+                              <TableHead className="font-semibold text-right">G2 Prize</TableHead>
+                              <TableHead className="font-semibold text-right">G3 Prize</TableHead>
+                              <TableHead className="font-semibold text-right">G4 Prize</TableHead>
+                              <TableHead className="font-semibold text-right">G5 Prize</TableHead>
+                              <TableHead className="font-semibold text-right bg-yellow-50 dark:bg-yellow-900/20">
+                                Total Prize
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {participants.map((participant, index) =>
+                        <TableRow
+                          key={participant.member_id}
+                          className={`
+                                  ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
+                                  hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
+                                  ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
+                                  ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
+                                  ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
+                                `}>
+                          
                               <TableCell className="text-center font-semibold">
                                 {participant.rank === 1 &&
                           <span className="text-2xl">🥇</span>
@@ -383,16 +385,16 @@ export default function FiveFivePage() {
                           }
                               </TableCell>
                             </TableRow>
-                      )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                        )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
             }
 
-              {participants.length > 0 &&
-            <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+                {participants.length > 0 &&
+              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
                   <CardContent className="p-6">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -419,7 +421,8 @@ export default function FiveFivePage() {
             </div>
           }
         </div>
-      </div>
-    </>);
+      </>
+    </PageAccessGuard>
+  );
 
 }
