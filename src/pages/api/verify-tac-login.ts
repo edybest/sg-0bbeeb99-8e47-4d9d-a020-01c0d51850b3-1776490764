@@ -142,24 +142,38 @@ export default async function handler(
       });
     }
 
-    // Create a session token for the user
-    // We'll use a magic link approach - generate it and extract the tokens
+    // Create a session for the user using admin API
     try {
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: member.user_id, // Use user_id as identifier
-      });
+      // Use admin.getUserById to get the auth user
+      const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(
+        member.user_id
+      );
 
-      if (linkError || !linkData) {
-        console.error("❌ Failed to generate magic link:", linkError);
-        throw linkError;
+      if (userError || !authUser) {
+        console.error("❌ Failed to get auth user:", userError);
+        throw new Error("Failed to authenticate user");
       }
 
-      console.log("✅ Session link generated successfully");
+      console.log("✅ Auth user retrieved:", authUser.user.id);
 
-      // Extract tokens from the hashed_token
-      // The hashed_token is what we need to create a session
-      const hashedToken = linkData.properties.hashed_token;
+      // Generate access token for the user
+      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "magiclink",
+        email: authUser.user.phone || `${member.user_id}@temp.local`, // Use phone or temp email
+        options: {
+          redirectTo: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+        },
+      });
+
+      if (sessionError || !sessionData) {
+        console.error("❌ Failed to generate session:", sessionError);
+        throw sessionError;
+      }
+
+      console.log("✅ Session link generated");
+
+      // Extract the hashed token and verify it to get proper session tokens
+      const hashedToken = sessionData.properties.hashed_token;
 
       if (!hashedToken) {
         console.error("❌ No hashed token in response");
@@ -167,14 +181,14 @@ export default async function handler(
       }
 
       // Verify the OTP to get proper session tokens
-      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+      const { data: verifyData, error: verifyError } = await supabaseAdmin.auth.verifyOtp({
         type: "magiclink",
         token_hash: hashedToken,
       });
 
-      if (sessionError || !sessionData?.session) {
-        console.error("❌ Failed to verify OTP:", sessionError);
-        throw sessionError;
+      if (verifyError || !verifyData?.session) {
+        console.error("❌ Failed to verify OTP:", verifyError);
+        throw verifyError;
       }
 
       console.log("✅ Session created successfully");
@@ -183,8 +197,8 @@ export default async function handler(
         success: true,
         message: "Login successful",
         data: {
-          access_token: sessionData.session.access_token,
-          refresh_token: sessionData.session.refresh_token,
+          access_token: verifyData.session.access_token,
+          refresh_token: verifyData.session.refresh_token,
           user: {
             id: member.user_id,
             username: member.username,
