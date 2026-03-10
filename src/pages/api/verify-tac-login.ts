@@ -20,6 +20,8 @@ type VerifyTACResponse = {
     user?: any;
   };
   error?: string;
+  details?: any;
+  debug?: any;
 };
 
 export default async function handler(
@@ -238,18 +240,25 @@ export default async function handler(
         hasError: !!signInError,
       });
 
-      if (signInError) {
-        console.error("❌ Sign in error details:", {
-          message: signInError.message,
-          status: signInError.status,
-          name: signInError.name,
-        });
-      }
-
       if (signInError || !signInData.session) {
-        console.error("❌ Failed to sign in with temp password:", signInError);
-        console.error("❌ Sign in error full details:", JSON.stringify(signInError, null, 2));
-        throw new Error("Failed to generate session tokens");
+        console.error("❌ Failed to generate session tokens");
+        console.error("SIGN IN ERROR:", JSON.stringify(signInError, null, 2));
+        console.error("SIGN IN DATA:", JSON.stringify(signInData, null, 2));
+        
+        // Return actual error to frontend for debugging
+        return res.status(500).json({
+          success: false,
+          error: "Failed to generate session tokens",
+          details: signInError || "No session data returned",
+          debug: {
+            hasError: !!signInError,
+            hasData: !!signInData,
+            hasSession: !!signInData?.session,
+            errorMessage: signInError?.message,
+            errorCode: signInError?.code,
+            errorStatus: signInError?.status,
+          }
+        });
       }
 
       console.log("✅ Session tokens generated successfully:", {
