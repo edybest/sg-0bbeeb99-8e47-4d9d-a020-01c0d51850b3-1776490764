@@ -52,7 +52,7 @@ export default async function handler(
     console.log("\n=== SEND WHATSAPP TAC REQUEST ===");
     console.log("Phone (original):", phone);
 
-    // Validate phone number format and normalize
+    // Normalize phone format to match what was stored during send-whatsapp-tac
     const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
     let cleanPhone = phone.replace(/\s+/g, "").replace(/-/g, "");
     
@@ -135,6 +135,7 @@ export default async function handler(
         phone: cleanPhone,
         phone_confirm: true,
         user_metadata: {
+          member_id: member.id,
           full_name: member.full_name,
           username: member.username,
         }

@@ -222,7 +222,7 @@ export default async function handler(
       console.log("🔐 Password length:", tempPassword.length);
       
       const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-        phone: cleanPhone,
+        phone: cleanPhone.replace("+", ""),
         password: tempPassword,
       });
 
