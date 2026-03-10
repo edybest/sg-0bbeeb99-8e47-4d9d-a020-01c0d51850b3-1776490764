@@ -11,6 +11,7 @@ import { MobileNav } from "@/components/member/MobileNav";
 import { Trophy, Target, Award, Loader2, LogOut, BarChart3, User, Users, LayoutGrid, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 const cardVariants = {
   hidden: { 
@@ -105,7 +106,7 @@ export default function MemberDashboard() {
   ];
 
   return (
-    <>
+    <PageAccessGuard pagePath="/member" requireAuth={true}>
       <SEO 
         title="Member Dashboard - AMBC Club"
         description="Dashboard ahli AMBC Club"
@@ -285,6 +286,6 @@ export default function MemberDashboard() {
           </motion.div>
         </div>
       </div>
-    </>
+    </PageAccessGuard>
   );
 }

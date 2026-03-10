@@ -27,12 +27,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { pageAccessService, type AccessLevel } from "@/services/pageAccessService";
 
 type FiveFivePrizeConfig = {
   id: string;
   player_count: number;
   prize_count: number;
   prizes: number[];
+};
+
+type PageAccessControl = {
+  id: string;
+  page_path: string;
+  page_name: string;
+  access_level: AccessLevel;
+  is_enabled: boolean;
 };
 
 export function ClubSettings() {
@@ -61,11 +70,16 @@ export function ClubSettings() {
     totalConfigs: 0
   });
 
+  // Page Access Control states
+  const [pageAccessList, setPageAccessList] = useState<PageAccessControl[]>([]);
+  const [loadingPageAccess, setLoadingPageAccess] = useState(false);
+
   useEffect(() => {
     loadSettings();
     loadFiveFiveConfigs();
     loadCacheSetting();
     loadStats();
+    loadPageAccessSettings();
   }, []);
 
   const loadStats = async () => {
@@ -80,11 +94,73 @@ export function ClubSettings() {
         
       setStats({
         totalMembers: totalMembers || 0,
-        activeMembers: totalMembers || 0, // Menggunakan total sebagai active untuk sekarang
+        activeMembers: totalMembers || 0,
         totalConfigs: totalConfigs || 0
       });
     } catch (error) {
       console.error("Error loading stats:", error);
+    }
+  };
+
+  const loadPageAccessSettings = async () => {
+    setLoadingPageAccess(true);
+    try {
+      const pages = await pageAccessService.getAllPageAccess();
+      setPageAccessList(pages as PageAccessControl[]);
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal memuatkan tetapan page access",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPageAccess(false);
+    }
+  };
+
+  const handleAccessLevelChange = async (pageId: string, newLevel: AccessLevel) => {
+    try {
+      await pageAccessService.updatePageAccess(pageId, { access_level: newLevel });
+      
+      setPageAccessList(prev =>
+        prev.map(page =>
+          page.id === pageId ? { ...page, access_level: newLevel } : page
+        )
+      );
+
+      toast({
+        title: "✅ Berjaya!",
+        description: "Access level telah dikemaskini",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal mengemas kini access level",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePageToggle = async (pageId: string, isEnabled: boolean) => {
+    try {
+      await pageAccessService.togglePageEnabled(pageId, isEnabled);
+      
+      setPageAccessList(prev =>
+        prev.map(page =>
+          page.id === pageId ? { ...page, is_enabled: isEnabled } : page
+        )
+      );
+
+      toast({
+        title: "✅ Berjaya!",
+        description: `Page telah ${isEnabled ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal mengemas kini status page",
+        variant: "destructive",
+      });
     }
   };
 
@@ -611,9 +687,10 @@ export function ClubSettings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="handicap">Handicap</TabsTrigger>
           <TabsTrigger value="statistics">Statistics</TabsTrigger>
         </TabsList>
@@ -1018,6 +1095,132 @@ export function ClubSettings() {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Settings Tab */}
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Page Access Control</CardTitle>
+              <CardDescription>
+                Manage access permissions for all member pages
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-blue-900 mb-2">ℹ️ Access Levels</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>Public:</strong> Semua orang boleh akses (Guest, Member, Admin)</li>
+                  <li>• <strong>Member:</strong> Member dan Admin sahaja boleh akses</li>
+                  <li>• <strong>Admin:</strong> Admin sahaja boleh akses</li>
+                </ul>
+              </div>
+
+              {loadingPageAccess ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Memuatkan tetapan page access...</p>
+                </div>
+              ) : pageAccessList.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Tiada page access settings dijumpai</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pageAccessList.map((page) => (
+                    <div
+                      key={page.id}
+                      className={`border rounded-lg p-4 transition-colors ${
+                        page.is_enabled ? "bg-white" : "bg-gray-50 opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h4 className="font-semibold text-base">{page.page_name}</h4>
+                            {!page.is_enabled && (
+                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                                Disabled
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground font-mono">
+                            {page.page_path}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex flex-col items-end gap-1">
+                            <Label htmlFor={`access-${page.id}`} className="text-xs text-muted-foreground">
+                              Access Level
+                            </Label>
+                            <Select
+                              value={page.access_level}
+                              onValueChange={(value: AccessLevel) => handleAccessLevelChange(page.id, value)}
+                              disabled={!page.is_enabled}
+                            >
+                              <SelectTrigger id={`access-${page.id}`} className="w-[140px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="public">
+                                  <span className="flex items-center gap-2">
+                                    🌐 Public
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="member">
+                                  <span className="flex items-center gap-2">
+                                    🔒 Member
+                                  </span>
+                                </SelectItem>
+                                <SelectItem value="admin">
+                                  <span className="flex items-center gap-2">
+                                    👑 Admin
+                                  </span>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col items-center gap-1">
+                            <Label htmlFor={`enabled-${page.id}`} className="text-xs text-muted-foreground">
+                              Enable
+                            </Label>
+                            <Switch
+                              id={`enabled-${page.id}`}
+                              checked={page.is_enabled}
+                              onCheckedChange={(checked) => handlePageToggle(page.id, checked)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+                        <span>Current Access:</span>
+                        {page.access_level === "public" && (
+                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                            🌐 Semua orang
+                          </span>
+                        )}
+                        {page.access_level === "member" && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                            🔒 Member + Admin
+                          </span>
+                        )}
+                        {page.access_level === "admin" && (
+                          <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                            👑 Admin sahaja
+                          </span>
+                        )}
+                        {!page.is_enabled && (
+                          <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
+                            ⛔ Disabled
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
