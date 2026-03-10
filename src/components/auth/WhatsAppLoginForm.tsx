@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
-import { sessionService } from "@/services/sessionService";
 import Image from "next/image";
 
 export function WhatsAppLoginForm() {
@@ -17,10 +17,8 @@ export function WhatsAppLoginForm() {
   const [lastTacSentTime, setLastTacSentTime] = useState<number | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [formData, setFormData] = useState({
-    username: "",
     phone: "",
     tac: "",
-    memberId: "",
   });
 
   // Cooldown timer effect
@@ -55,10 +53,10 @@ export function WhatsAppLoginForm() {
       }
     }
 
-    if (!formData.username || !formData.phone) {
+    if (!formData.phone) {
       toast({
         title: "Error",
-        description: "Sila masukkan username dan nombor telefon",
+        description: "Sila masukkan nombor telefon",
         variant: "destructive",
       });
       return;
@@ -87,11 +85,24 @@ export function WhatsAppLoginForm() {
 
     setSendingTAC(true);
     try {
+      // Step 1: Generate OTP via Supabase Auth
+      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
+        phone: cleanPhone,
+        options: {
+          shouldCreateUser: false, // Don't auto-create user, we manage members manually
+        }
+      });
+
+      if (otpError) {
+        // If user doesn't exist, that's expected - we'll handle it in backend
+        console.log("Supabase OTP generation (expected if user not in auth):", otpError);
+      }
+
+      // Step 2: Call our backend to send TAC via WhatsApp
       const response = await fetch("/api/send-whatsapp-tac", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: formData.username,
           phone: cleanPhone,
         }),
       });
@@ -102,10 +113,7 @@ export function WhatsAppLoginForm() {
         throw new Error(data.error || "Failed to send TAC");
       }
 
-      // Store memberId from response
-      if (data.data?.memberId) {
-        setFormData(prev => ({ ...prev, memberId: data.data.memberId, phone: cleanPhone }));
-      }
+      setFormData(prev => ({ ...prev, phone: cleanPhone }));
 
       const now = Date.now();
       setLastTacSentTime(now);
@@ -147,38 +155,20 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    if (!formData.memberId) {
-      toast({
-        title: "Member ID tidak dijumpai",
-        description: "Sila hantar kod TAC semula",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
-      // Verify TAC and create session
-      const response = await fetch("/api/verify-tac-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username,
-          code: formData.tac,
-        }),
+      // Verify OTP using Supabase Auth
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formData.phone,
+        token: formData.tac,
+        type: 'sms' // Use 'sms' type even though we sent via WhatsApp
       });
 
-      const result = await response.json();
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to verify TAC");
-      }
-
-      // Session cookie is set by API
-      // Store session token in service for client-side access
-      if (result.data?.sessionToken && result.data?.expiresAt) {
-        sessionService.setSessionCookie(result.data.sessionToken, result.data.expiresAt);
+      if (!data.user) {
+        throw new Error("Login gagal");
       }
 
       toast({
@@ -233,23 +223,6 @@ export function WhatsAppLoginForm() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
-            {/* Username Field */}
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
-                Username
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Masukkan username anda"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                disabled={loading || sendingTAC || tacSent}
-                required
-                className="h-11"
-              />
-            </div>
-
             {/* Phone Field */}
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
@@ -321,7 +294,7 @@ export function WhatsAppLoginForm() {
                   type="button"
                   onClick={() => {
                     setTacSent(false);
-                    setFormData(prev => ({ ...prev, tac: "", memberId: "" }));
+                    setFormData(prev => ({ ...prev, tac: "" }));
                   }}
                   variant="ghost"
                   className="w-full text-sm"

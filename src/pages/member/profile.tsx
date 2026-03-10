@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { memberService } from "@/services/memberService";
 import { gameService } from "@/services/gameService";
 import { storageService } from "@/services/storageService";
+import { sessionService } from "@/services/sessionService";
 import { useAuth } from "@/hooks/useAuth";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,9 @@ export default function ProfilePage() {
   async function loadProfile() {
     try {
       setLoading(true);
+
+      // Initialize session context for RLS
+      await sessionService.initializeSessionContext();
 
       if (!currentMember) {
         console.error("No current member found");

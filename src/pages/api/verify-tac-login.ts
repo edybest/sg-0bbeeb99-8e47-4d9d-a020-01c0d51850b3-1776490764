@@ -1,23 +1,25 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 type VerifyTACRequest = {
-  username: string;
+  phone: string;
   code: string;
 };
 
 type VerifyTACResponse = {
   success: boolean;
   message?: string;
-  member?: {
-    id: string;
-    username: string;
-    full_name: string;
-    is_admin: boolean;
+  data?: {
+    member: {
+      id: string;
+      username: string;
+      full_name: string;
+      is_admin: boolean;
+    };
+    session?: any;
   };
   error?: string;
 };
@@ -34,18 +36,18 @@ export default async function handler(
   }
 
   try {
-    const { username, code } = req.body as VerifyTACRequest;
+    const { phone, code } = req.body as VerifyTACRequest;
 
-    if (!username || !code) {
+    if (!phone || !code) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
       });
     }
 
-    console.log("\n=== VERIFY TAC LOGIN REQUEST ===");
-    console.log("Username:", username);
-    console.log("TAC Code:", code);
+    console.log("\n=== VERIFY TAC REQUEST ===");
+    console.log("Phone:", phone);
+    console.log("Code:", code);
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -55,35 +57,20 @@ export default async function handler(
       },
     });
 
-    // Find member with matching username
+    // Find member by phone and verify TAC
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
-      .select("id, username, full_name, is_admin, tac_code, tac_expiry")
-      .ilike("username", username.trim())
+      .select("id, username, full_name, is_admin, user_id, tac_code, tac_expiry")
+      .eq("phone", phone)
       .maybeSingle();
 
-    if (memberError) {
-      console.error("❌ Database error:", memberError);
-      return res.status(500).json({
-        success: false,
-        error: "Database error",
-      });
-    }
-
-    if (!member) {
-      console.log("❌ Member not found");
+    if (memberError || !member) {
+      console.error("❌ Member not found");
       return res.status(404).json({
         success: false,
-        error: "Username tidak dijumpai",
+        error: "Member tidak dijumpai",
       });
     }
-
-    console.log("✅ Member found:", {
-      id: member.id,
-      username: member.username,
-      has_tac: !!member.tac_code,
-      tac_expiry: member.tac_expiry,
-    });
 
     // Verify TAC code
     if (!member.tac_code || member.tac_code !== code) {
@@ -94,17 +81,13 @@ export default async function handler(
       });
     }
 
-    // Check if TAC expired
+    // Check expiry
     if (!member.tac_expiry || new Date(member.tac_expiry) < new Date()) {
-      console.log("❌ TAC code expired");
+      console.log("❌ TAC expired");
       
-      // Clear expired TAC
       await supabaseAdmin
         .from("members")
-        .update({
-          tac_code: null,
-          tac_expiry: null,
-        })
+        .update({ tac_code: null, tac_expiry: null })
         .eq("id", member.id);
       
       return res.status(400).json({
@@ -113,71 +96,44 @@ export default async function handler(
       });
     }
 
-    console.log("✅ TAC code valid and not expired");
+    console.log("✅ TAC verified successfully");
 
-    // Generate session token
-    const sessionToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    // Clear TAC after verification
+    await supabaseAdmin
+      .from("members")
+      .update({ tac_code: null, tac_expiry: null })
+      .eq("id", member.id);
 
-    // Create session in database
-    const { error: sessionError } = await supabaseAdmin
-      .from("member_sessions")
-      .insert({
-        member_id: member.id,
-        session_token: sessionToken,
-        expires_at: expiresAt.toISOString(),
-        user_agent: req.headers["user-agent"] || null,
-        ip_address: (req.headers["x-forwarded-for"] as string)?.split(",")[0] || 
-                   req.socket.remoteAddress || null,
-      });
+    // Create Supabase Auth session using admin
+    // Since we verified the TAC manually, we can create a session for the user
+    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      phone: phone,
+    });
 
     if (sessionError) {
       console.error("❌ Failed to create session:", sessionError);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to create session",
-      });
     }
 
-    console.log("✅ Session created:", {
-      member_id: member.id,
-      expires_at: expiresAt.toISOString(),
-    });
-
-    // Clear TAC code after successful verification
-    await supabaseAdmin
-      .from("members")
-      .update({
-        tac_code: null,
-        tac_expiry: null,
-      })
-      .eq("id", member.id);
-
-    // Set session cookie manually
-    const isProd = process.env.NODE_ENV === "production";
-    const maxAge = 60 * 60 * 24 * 7; // 7 days
-    const cookie = `session_token=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? '; Secure' : ''}`;
-
-    res.setHeader("Set-Cookie", cookie);
-
-    console.log("✅ TAC verification successful - Session created");
+    console.log("✅ Login successful");
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      member: {
-        id: member.id,
-        username: member.username,
-        full_name: member.full_name,
-        is_admin: member.is_admin || false,
+      data: {
+        member: {
+          id: member.id,
+          username: member.username,
+          full_name: member.full_name,
+          is_admin: member.is_admin || false,
+        },
+        session: sessionData,
       },
     });
 
   } catch (error) {
-    console.error("\n=== ERROR VERIFYING TAC ===");
+    console.error("\n=== ERROR ===");
     console.error("Error:", error);
-    console.error("Stack:", error instanceof Error ? error.stack : "No stack trace");
 
     return res.status(500).json({
       success: false,

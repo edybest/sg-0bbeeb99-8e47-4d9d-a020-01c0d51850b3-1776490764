@@ -8,7 +8,6 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 type SendTACRequest = {
   phone: string;
-  username: string;
 };
 
 type SendTACResponse = {
@@ -17,42 +16,33 @@ type SendTACResponse = {
   data?: {
     messageId?: string;
     status?: string;
-    memberId?: string;
   };
   error?: string;
 };
-
-// Generate random 6-digit TAC code
-function generateTACCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<SendTACResponse>
 ) {
-  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Method not allowed - Only POST requests accepted",
+      error: "Method not allowed",
     });
   }
 
   try {
-    const { phone, username } = req.body as SendTACRequest;
+    const { phone } = req.body as SendTACRequest;
 
-    // Validate required fields
-    if (!phone || !username) {
+    if (!phone) {
       return res.status(400).json({
         success: false,
-        error: "Missing required fields: phone or username",
+        error: "Missing phone number",
       });
     }
 
-    // Validate Fonnte token
     if (!FONNTE_TOKEN) {
-      console.error("❌ FONNTE_API_TOKEN not configured in environment variables");
+      console.error("❌ FONNTE_API_TOKEN not configured");
       return res.status(500).json({
         success: false,
         error: "WhatsApp service not configured",
@@ -60,7 +50,6 @@ export default async function handler(
     }
 
     console.log("\n=== SEND WHATSAPP TAC REQUEST ===");
-    console.log("Username:", username);
     console.log("Phone:", phone);
 
     // Create Supabase admin client
@@ -71,47 +60,26 @@ export default async function handler(
       },
     });
 
-    // Find member by username
+    // Check if member exists with this phone number
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
-      .select("id, username, phone, user_id")
-      .ilike("username", username.trim())
+      .select("id, username, phone, user_id, full_name")
+      .eq("phone", phone)
       .maybeSingle();
-
-    console.log("Member lookup result:", { member, error: memberError });
 
     if (memberError) {
       console.error("❌ Database error:", memberError);
       return res.status(500).json({
         success: false,
-        error: "Database error - Sila cuba lagi",
+        error: "Database error",
       });
     }
 
     if (!member) {
-      console.log("❌ Member not found with username:", username);
+      console.log("❌ Member not found with phone:", phone);
       return res.status(404).json({
         success: false,
-        error: "Username tidak dijumpai dalam sistem",
-      });
-    }
-
-    // Validate phone number matches (normalize both for comparison)
-    const normalizePhone = (p: string) => p.replace(/[\s\-+]/g, "");
-    const memberPhone = normalizePhone(member.phone || "");
-    const inputPhone = normalizePhone(phone);
-
-    console.log("Phone validation:", {
-      memberPhone,
-      inputPhone,
-      match: memberPhone.includes(inputPhone) || inputPhone.includes(memberPhone),
-    });
-
-    if (!memberPhone.includes(inputPhone) && !inputPhone.includes(memberPhone)) {
-      console.log("❌ Phone number mismatch");
-      return res.status(400).json({
-        success: false,
-        error: "Nombor telefon tidak sepadan dengan username dalam sistem",
+        error: "Nombor telefon tidak dijumpai dalam sistem",
       });
     }
 
@@ -121,45 +89,87 @@ export default async function handler(
       has_user_id: !!member.user_id,
     });
 
-    // Generate TAC code
-    const code = generateTACCode();
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+    // If member doesn't have user_id, create Supabase Auth user
+    let authUserId = member.user_id;
+    
+    if (!authUserId) {
+      console.log("Creating Supabase Auth user for member...");
+      
+      // Create auth user with phone
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        phone: phone,
+        phone_confirm: true,
+        user_metadata: {
+          full_name: member.full_name,
+          username: member.username,
+        }
+      });
 
-    // Store TAC code in members table
-    const { error: updateError } = await supabaseAdmin
+      if (authError) {
+        console.error("❌ Failed to create auth user:", authError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to create auth user",
+        });
+      }
+
+      authUserId = authData.user.id;
+
+      // Update member with user_id
+      await supabaseAdmin
+        .from("members")
+        .update({ user_id: authUserId })
+        .eq("id", member.id);
+
+      console.log("✅ Auth user created and linked:", authUserId);
+    }
+
+    // Generate OTP using Supabase Auth
+    const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      phone: phone,
+    });
+
+    if (otpError) {
+      console.error("❌ Failed to generate OTP:", otpError);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to generate OTP",
+      });
+    }
+
+    // Extract OTP from the magic link or generate a custom one
+    // Since Supabase doesn't expose OTP directly, we'll generate our own and store it
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+    // Store OTP in member record temporarily
+    await supabaseAdmin
       .from("members")
       .update({
-        tac_code: code,
+        tac_code: otpCode,
         tac_expiry: expiresAt.toISOString(),
       })
       .eq("id", member.id);
 
-    if (updateError) {
-      console.error("❌ Failed to store TAC code:", updateError);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to generate TAC code",
-      });
-    }
-
-    console.log("✅ TAC code stored in members table:", {
+    console.log("✅ OTP generated and stored:", {
       member_id: member.id,
-      code: code,
+      code: otpCode,
       expires_at: expiresAt.toISOString(),
     });
 
-    // Format phone number (remove any + or spaces)
+    // Format phone for WhatsApp
     const formattedPhone = phone.replace(/[+\s-]/g, "");
 
-    // Create WhatsApp message with formatting
+    // Create WhatsApp message
     const message = `🎯 *AMBC CLUB - Kod Pengesahan Login*
 
-Hai ${username}! 👋
+Hai ${member.full_name || member.username}! 👋
 
 Kod TAC anda adalah:
 
-*${code}*
+*${otpCode}*
 
 Kod ini sah untuk 10 minit sahaja.
 
@@ -167,23 +177,17 @@ Kod ini sah untuk 10 minit sahaja.
 
 Terima kasih! 🎳`;
 
-    console.log("\n=== SENDING WHATSAPP TAC VIA FONNTE ===");
+    console.log("\n=== SENDING WHATSAPP TAC ===");
     console.log("Target Phone:", formattedPhone);
-    console.log("Username:", username);
-    console.log("TAC Code:", code);
-    console.log("Member ID:", member.id);
-    console.log("Expires At:", expiresAt.toISOString());
+    console.log("OTP Code:", otpCode);
 
-    // Prepare Fonnte request
+    // Send via Fonnte
     const fonteRequest = {
       target: formattedPhone,
       message: message,
-      countryCode: "60", // Malaysia country code
+      countryCode: "60",
     };
 
-    console.log("Request Payload:", JSON.stringify(fonteRequest, null, 2));
-
-    // Send request to Fonnte API
     const response = await fetch(FONNTE_API_URL, {
       method: "POST",
       headers: {
@@ -194,25 +198,19 @@ Terima kasih! 🎳`;
     });
 
     const responseText = await response.text();
-    console.log("\n=== FONNTE API RESPONSE ===");
-    console.log("Status:", response.status);
-    console.log("Status Text:", response.statusText);
-    console.log("Response Body:", responseText);
+    console.log("Fonnte Response:", response.status, responseText);
 
-    // Parse response
     let responseData;
     try {
       responseData = JSON.parse(responseText);
     } catch (e) {
-      console.error("Failed to parse response as JSON:", e);
       responseData = { detail: responseText };
     }
 
-    // Check if request was successful
     if (!response.ok) {
       console.error("❌ Fonnte API Error:", responseData);
       
-      // Clear TAC code if WhatsApp failed to send
+      // Clear OTP if failed to send
       await supabaseAdmin
         .from("members")
         .update({
@@ -223,29 +221,24 @@ Terima kasih! 🎳`;
       
       return res.status(response.status).json({
         success: false,
-        error: responseData.reason || responseData.detail || "Failed to send WhatsApp message",
-        data: responseData,
+        error: responseData.reason || "Failed to send WhatsApp message",
       });
     }
 
-    // Success response from Fonnte
-    console.log("✅ WhatsApp TAC sent successfully via Fonnte");
-    console.log("Response Data:", JSON.stringify(responseData, null, 2));
+    console.log("✅ WhatsApp TAC sent successfully");
 
     return res.status(200).json({
       success: true,
       message: "WhatsApp TAC sent successfully",
       data: {
         messageId: responseData.id || responseData.message_id,
-        status: responseData.status || "sent",
-        memberId: member.id,
+        status: "sent",
       },
     });
 
   } catch (error) {
-    console.error("\n=== ERROR SENDING WHATSAPP TAC ===");
+    console.error("\n=== ERROR ===");
     console.error("Error:", error);
-    console.error("Stack:", error instanceof Error ? error.stack : "No stack trace");
 
     return res.status(500).json({
       success: false,
