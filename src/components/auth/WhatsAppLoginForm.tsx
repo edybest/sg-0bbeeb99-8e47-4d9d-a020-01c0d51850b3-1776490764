@@ -219,6 +219,7 @@ export function WhatsAppLoginForm() {
                 src="/ambc-logo.png"
                 alt="AMBC Club Logo"
                 fill
+                sizes="128px"
                 className="object-contain"
                 priority
               />
