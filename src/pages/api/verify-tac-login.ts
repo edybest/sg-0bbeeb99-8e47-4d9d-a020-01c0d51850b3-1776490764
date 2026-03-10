@@ -184,8 +184,14 @@ export default async function handler(
     try {
       // 1. Generate a secure random temporary password
       const tempPassword = crypto.randomUUID() + crypto.randomUUID();
+      
+      console.log("🔐 Step 1: Temporary password generated");
+      console.log("🔐 Temp password length:", tempPassword.length);
 
       // 2. Update the user's password using Admin API
+      console.log("🔐 Step 2: Updating user password via Admin API...");
+      console.log("🔐 User ID:", member.user_id);
+      
       const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
         member.user_id,
         { password: tempPassword }
@@ -195,20 +201,46 @@ export default async function handler(
         console.error("❌ Failed to update temporary password:", updatePasswordError);
         throw new Error("Failed to prepare session");
       }
+      
+      console.log("✅ Step 2: Password updated successfully");
 
       // 3. Create a regular Supabase client for sign in (admin client doesn't support signInWithPassword)
+      console.log("🔐 Step 3: Creating regular Supabase client for sign in...");
+      
       const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false,
         },
       });
+      
+      console.log("✅ Step 3: Regular client created");
 
       // 4. Sign in with the temporary password to get the session tokens
+      console.log("🔐 Step 4: Signing in with temporary password...");
+      console.log("🔐 Phone:", cleanPhone);
+      console.log("🔐 Password length:", tempPassword.length);
+      
       const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
         phone: cleanPhone,
         password: tempPassword,
       });
+
+      console.log("🔐 Step 4 Result:", {
+        hasData: !!signInData,
+        hasSession: !!signInData?.session,
+        hasAccessToken: !!signInData?.session?.access_token,
+        hasRefreshToken: !!signInData?.session?.refresh_token,
+        hasError: !!signInError,
+      });
+
+      if (signInError) {
+        console.error("❌ Sign in error details:", {
+          message: signInError.message,
+          status: signInError.status,
+          name: signInError.name,
+        });
+      }
 
       if (signInError || !signInData.session) {
         console.error("❌ Failed to sign in with temp password:", signInError);
@@ -238,11 +270,20 @@ export default async function handler(
       });
 
     } catch (sessionError) {
-      console.error("❌ Session creation failed:", sessionError);
+      console.error("\n❌❌❌ SESSION CREATION FAILED ❌❌❌");
+      console.error("Error type:", sessionError instanceof Error ? sessionError.constructor.name : typeof sessionError);
+      console.error("Error message:", sessionError instanceof Error ? sessionError.message : String(sessionError));
+      console.error("Error stack:", sessionError instanceof Error ? sessionError.stack : "No stack trace");
+      console.error("Member info:", {
+        id: member.id,
+        username: member.username,
+        user_id: member.user_id,
+        phone: cleanPhone,
+      });
       
       return res.status(500).json({
         success: false,
-        error: "Failed to create session",
+        error: sessionError instanceof Error ? sessionError.message : "Failed to create session",
       });
     }
 
