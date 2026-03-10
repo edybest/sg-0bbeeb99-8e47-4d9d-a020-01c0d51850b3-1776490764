@@ -45,6 +45,28 @@ export default async function handler(
     console.log("Phone:", phone);
     console.log("Code:", code);
 
+    // Normalize phone format to match what was stored during send-whatsapp-tac
+    const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
+    let cleanPhone = phone.replace(/\s+/g, "").replace(/-/g, "");
+    
+    if (!cleanPhone.startsWith("+")) {
+      if (cleanPhone.startsWith("01")) {
+        cleanPhone = "+6" + cleanPhone;
+      } else if (cleanPhone.startsWith("6")) {
+        cleanPhone = "+" + cleanPhone;
+      }
+    }
+
+    console.log("Phone (normalized):", cleanPhone);
+
+    if (!phoneRegex.test(cleanPhone.replace("+", ""))) {
+      console.log("❌ Invalid phone format");
+      return res.status(400).json({
+        success: false,
+        error: "Format nombor telefon tidak sah",
+      });
+    }
+
     // Create Supabase admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -57,7 +79,7 @@ export default async function handler(
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("id, username, full_name, is_admin, user_id, tac_code, tac_expiry")
-      .eq("phone", phone)
+      .eq("phone", cleanPhone)
       .maybeSingle();
 
     if (memberError || !member) {
@@ -68,9 +90,21 @@ export default async function handler(
       });
     }
 
+    console.log("✅ Member found:", {
+      id: member.id,
+      username: member.username,
+      stored_tac: member.tac_code,
+      provided_tac: code,
+      tac_expiry: member.tac_expiry,
+    });
+
     // Verify TAC code
     if (!member.tac_code || member.tac_code !== code) {
       console.log("❌ Invalid TAC code");
+      console.log("Stored TAC:", member.tac_code);
+      console.log("Provided TAC:", code);
+      console.log("Match:", member.tac_code === code);
+      
       return res.status(400).json({
         success: false,
         error: "Kod TAC tidak sah",
@@ -156,7 +190,7 @@ export default async function handler(
             username: member.username,
             full_name: member.full_name,
             is_admin: member.is_admin || false,
-            phone: phone,
+            phone: cleanPhone,
           },
         },
       });
@@ -175,7 +209,7 @@ export default async function handler(
             username: member.username,
             full_name: member.full_name,
             is_admin: member.is_admin || false,
-            phone: phone,
+            phone: cleanPhone,
           },
         },
       });
