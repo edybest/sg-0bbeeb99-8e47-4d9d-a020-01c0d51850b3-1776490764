@@ -136,7 +136,7 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
 
 export default function BlokPage() {
     const router = useRouter();
-    const { loading: authLoading } = useAuth(true);
+    const { loading: authLoading } = useAuth(false);
     const { toast } = useToast();
 
     const [games, setGames] = useState < GameSummary[] > ([]);
