@@ -13,13 +13,8 @@ type VerifyTACResponse = {
   success: boolean;
   message?: string;
   data?: {
-    member: {
-      id: string;
-      username: string;
-      full_name: string;
-      is_admin: boolean;
-    };
     session?: any;
+    user?: any;
   };
   error?: string;
 };
@@ -104,30 +99,33 @@ export default async function handler(
       .update({ tac_code: null, tac_expiry: null })
       .eq("id", member.id);
 
-    // Create Supabase Auth session using admin
-    // Since we verified the TAC manually, we can create a session for the user
+    // Create session for the user using admin API
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
-      phone: phone,
+      email: `${member.username}@temp.ambc.club`, // Temporary email for session
     });
 
     if (sessionError) {
       console.error("❌ Failed to create session:", sessionError);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to create session",
+      });
     }
 
-    console.log("✅ Login successful");
+    console.log("✅ Session created successfully");
 
     return res.status(200).json({
       success: true,
       message: "Login successful",
       data: {
-        member: {
-          id: member.id,
+        session: sessionData,
+        user: {
+          id: member.user_id,
           username: member.username,
           full_name: member.full_name,
           is_admin: member.is_admin || false,
         },
-        session: sessionData,
       },
     });
 

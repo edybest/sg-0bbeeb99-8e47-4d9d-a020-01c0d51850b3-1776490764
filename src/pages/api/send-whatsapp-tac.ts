@@ -89,13 +89,13 @@ export default async function handler(
       has_user_id: !!member.user_id,
     });
 
-    // If member doesn't have user_id, create Supabase Auth user
+    // Step 1: Ensure auth user exists with phone number
     let authUserId = member.user_id;
     
     if (!authUserId) {
-      console.log("Creating Supabase Auth user for member...");
+      // Create new auth user with phone
+      console.log("Creating Supabase Auth user with phone...");
       
-      // Create auth user with phone
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         phone: phone,
         phone_confirm: true,
@@ -115,16 +115,33 @@ export default async function handler(
 
       authUserId = authData.user.id;
 
-      // Update member with user_id
+      // Link auth user to member
       await supabaseAdmin
         .from("members")
         .update({ user_id: authUserId })
         .eq("id", member.id);
 
       console.log("✅ Auth user created and linked:", authUserId);
+    } else {
+      // Update existing auth user to ensure phone is set
+      console.log("Updating existing auth user with phone...");
+      
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        authUserId,
+        { phone: phone, phone_confirm: true }
+      );
+
+      if (updateError) {
+        console.log("⚠️ Could not update phone (might already exist):", updateError.message);
+        // Continue anyway - phone might already be set
+      } else {
+        console.log("✅ Auth user phone updated");
+      }
     }
 
-    // Generate OTP using Supabase Auth
+    // Step 2: Generate OTP using Supabase Auth
+    console.log("Generating OTP via Supabase Auth...");
+    
     const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       phone: phone,
@@ -138,13 +155,13 @@ export default async function handler(
       });
     }
 
-    // Extract OTP from the magic link or generate a custom one
-    // Since Supabase doesn't expose OTP directly, we'll generate our own and store it
+    // Extract OTP from hashed token (Supabase doesn't expose plain OTP)
+    // So we generate our own 6-digit code and store it temporarily
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
-    // Store OTP in member record temporarily
+    // Store OTP temporarily in member record
     await supabaseAdmin
       .from("members")
       .update({
@@ -159,10 +176,9 @@ export default async function handler(
       expires_at: expiresAt.toISOString(),
     });
 
-    // Format phone for WhatsApp
+    // Step 3: Send OTP to WhatsApp via Fonnte
     const formattedPhone = phone.replace(/[+\s-]/g, "");
 
-    // Create WhatsApp message
     const message = `🎯 *AMBC CLUB - Kod Pengesahan Login*
 
 Hai ${member.full_name || member.username}! 👋
@@ -181,7 +197,6 @@ Terima kasih! 🎳`;
     console.log("Target Phone:", formattedPhone);
     console.log("OTP Code:", otpCode);
 
-    // Send via Fonnte
     const fonteRequest = {
       target: formattedPhone,
       message: message,
