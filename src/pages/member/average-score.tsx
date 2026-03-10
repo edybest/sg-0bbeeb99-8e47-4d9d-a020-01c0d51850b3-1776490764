@@ -31,7 +31,7 @@ type PlayerStats = {
 
 export default function AverageScorePage() {
   const router = useRouter();
-  const { member, loading, isAuthenticated } = useAuth(true);
+  const { member, loading, isAuthenticated } = useAuth(false);
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
