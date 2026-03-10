@@ -32,7 +32,7 @@ const cardVariants = {
 
 export default function MemberDashboard() {
   const router = useRouter();
-  //const { member, loading, isAuthenticated, logout } = useAuth(true);
+  
 
   async function handleLogout() {
     await logout();
