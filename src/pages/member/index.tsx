@@ -99,8 +99,7 @@ const navigationCards = [
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, loading, logout } = useAuth(true);
-
+  
   async function handleLogout() {
     await logout();
   }
