@@ -7,6 +7,17 @@ type PageAccessUpdate = Database["public"]["Tables"]["page_access_control"]["Upd
 
 export type AccessLevel = "public" | "member" | "admin";
 
+// Simple in-memory cache to reduce database calls
+const cache: {
+  userRole?: "guest" | "member" | "admin";
+  userRoleTimestamp?: number;
+  pageAccess: Map<string, { data: PageAccess | null; timestamp: number }>;
+} = {
+  pageAccess: new Map(),
+};
+
+const CACHE_DURATION = 60000; // 1 minute
+
 export const pageAccessService = {
   // Get all page access settings
   async getAllPageAccess(): Promise<PageAccess[]> {
@@ -23,18 +34,30 @@ export const pageAccessService = {
     return data || [];
   },
 
-  // Get access level for specific page
+  // Get access level for specific page (with caching)
   async getPageAccess(pagePath: string): Promise<PageAccess | null> {
+    // Check cache first
+    const cached = cache.pageAccess.get(pagePath);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data;
+    }
+
     const { data, error } = await supabase
       .from("page_access_control")
       .select("*")
       .eq("page_path", pagePath)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching page access:", error);
       return null;
     }
+
+    // Cache the result
+    cache.pageAccess.set(pagePath, {
+      data,
+      timestamp: Date.now(),
+    });
 
     return data;
   },
@@ -55,6 +78,10 @@ export const pageAccessService = {
       console.error("Error updating page access:", error);
       throw error;
     }
+
+    // Clear cache for this page
+    const pagePath = data.page_path;
+    cache.pageAccess.delete(pagePath);
 
     return data;
   },
@@ -102,25 +129,50 @@ export const pageAccessService = {
     return { hasAccess, accessLevel, isEnabled: pageAccess.is_enabled };
   },
 
-  // Get user role from session
+  // Get user role from session (with caching)
   async getUserRole(): Promise<"guest" | "member" | "admin"> {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
+    // Check cache first
+    if (
+      cache.userRole &&
+      cache.userRoleTimestamp &&
+      Date.now() - cache.userRoleTimestamp < CACHE_DURATION
+    ) {
+      return cache.userRole;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        cache.userRole = "guest";
+        cache.userRoleTimestamp = Date.now();
+        return "guest";
+      }
+
+      // Check if admin
+      const { data: memberData } = await supabase
+        .from("members")
+        .select("is_admin")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const role = memberData?.is_admin ? "admin" : "member";
+      
+      // Cache the result
+      cache.userRole = role;
+      cache.userRoleTimestamp = Date.now();
+
+      return role;
+    } catch (error) {
+      console.error("Error getting user role:", error);
       return "guest";
     }
+  },
 
-    // Check if admin
-    const { data: memberData } = await supabase
-      .from("members")
-      .select("is_admin")
-      .eq("user_id", session.user.id)
-      .single();
-
-    if (memberData?.is_admin) {
-      return "admin";
-    }
-
-    return "member";
+  // Clear cache (useful after login/logout)
+  clearCache() {
+    cache.userRole = undefined;
+    cache.userRoleTimestamp = undefined;
+    cache.pageAccess.clear();
   },
 };

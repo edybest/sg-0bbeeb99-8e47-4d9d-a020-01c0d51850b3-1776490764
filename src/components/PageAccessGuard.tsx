@@ -13,12 +13,21 @@ export function PageAccessGuard({ children, pagePath, requireAuth = false }: Pag
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
+    // Prevent multiple simultaneous checks
+    if (checking) return;
+    
     checkAccess();
-  }, [pagePath]);
+  }, [pagePath]); // Only re-run when pagePath changes
 
   const checkAccess = async () => {
+    // Prevent concurrent checks
+    if (checking) return;
+    
+    setChecking(true);
+    
     try {
       // Get user role
       const userRole = await pageAccessService.getUserRole();
@@ -66,12 +75,13 @@ export function PageAccessGuard({ children, pagePath, requireAuth = false }: Pag
       setHasAccess(true);
     } finally {
       setLoading(false);
+      setChecking(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <BowlingBallLoader />
       </div>
     );
