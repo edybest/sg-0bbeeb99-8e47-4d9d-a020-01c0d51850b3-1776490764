@@ -39,7 +39,7 @@ interface GameWithDate {
 
 export default function FiveFivePage() {
   const router = useRouter();
-  const { member, loading, isAuthenticated } = useAuth(true);
+  const { member, loading, isAuthenticated } = useAuth(false);
   const { toast } = useToast();
   const [loadingData, setLoading] = useState(true);
   const [games, setGames] = useState<GameWithDate[]>([]);
