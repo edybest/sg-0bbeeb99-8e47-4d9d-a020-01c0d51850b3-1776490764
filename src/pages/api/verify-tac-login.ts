@@ -181,7 +181,6 @@ export default async function handler(
     // Create a session for the user using the temp password workaround
     try {
       // 1. Generate a secure random temporary password
-      const crypto = require("crypto");
       const tempPassword = crypto.randomUUID() + crypto.randomUUID();
 
       // 2. Update the user's password using Admin API
