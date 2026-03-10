@@ -50,7 +50,29 @@ export default async function handler(
     }
 
     console.log("\n=== SEND WHATSAPP TAC REQUEST ===");
-    console.log("Phone:", phone);
+    console.log("Phone (original):", phone);
+
+    // Validate phone number format and normalize
+    const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
+    let cleanPhone = phone.replace(/\s+/g, "").replace(/-/g, "");
+    
+    if (!cleanPhone.startsWith("+")) {
+      if (cleanPhone.startsWith("01")) {
+        cleanPhone = "+6" + cleanPhone;
+      } else if (cleanPhone.startsWith("6")) {
+        cleanPhone = "+" + cleanPhone;
+      }
+    }
+
+    console.log("Phone (normalized):", cleanPhone);
+
+    if (!phoneRegex.test(cleanPhone.replace("+", ""))) {
+      console.log("❌ Invalid phone format");
+      return res.status(400).json({
+        success: false,
+        error: "Format nombor telefon tidak sah. Gunakan format: 0123456789 atau +60123456789",
+      });
+    }
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -61,25 +83,38 @@ export default async function handler(
     });
 
     // Check if member exists with this phone number
+    console.log("Searching for member with phone:", cleanPhone);
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("id, username, phone, user_id, full_name")
-      .eq("phone", phone)
+      .eq("phone", cleanPhone)
       .maybeSingle();
 
     if (memberError) {
       console.error("❌ Database error:", memberError);
       return res.status(500).json({
         success: false,
-        error: "Database error",
+        error: "Ralat pangkalan data",
       });
     }
 
     if (!member) {
-      console.log("❌ Member not found with phone:", phone);
+      console.log("❌ Member not found with phone:", cleanPhone);
+      
+      // List all available phone numbers for debugging (only in development)
+      if (process.env.NODE_ENV === "development") {
+        const { data: allMembers } = await supabaseAdmin
+          .from("members")
+          .select("username, phone")
+          .not("phone", "is", null)
+          .limit(5);
+        
+        console.log("Available phone numbers in database:", allMembers?.map(m => m.phone));
+      }
+      
       return res.status(404).json({
         success: false,
-        error: "Nombor telefon tidak dijumpai dalam sistem",
+        error: `Nombor telefon ${cleanPhone} tidak dijumpai dalam sistem. Sila hubungi admin untuk mendaftar.`,
       });
     }
 

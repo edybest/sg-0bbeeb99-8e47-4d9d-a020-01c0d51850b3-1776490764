@@ -113,9 +113,11 @@ export function WhatsAppLoginForm() {
       });
     } catch (error: unknown) {
       console.error("Send TAC error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Gagal menghantar kod TAC. Sila cuba lagi.";
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Gagal menghantar kod TAC",
+        title: "Ralat",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
