@@ -167,6 +167,25 @@ export function WhatsAppLoginForm() {
         throw new Error(data.error || "Login gagal");
       }
 
+      // Set session using the returned tokens
+      if (data.data?.access_token && data.data?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.data.access_token,
+          refresh_token: data.data.refresh_token,
+        });
+
+        if (sessionError) {
+          console.error("Session creation error:", sessionError);
+          throw new Error("Gagal mencipta sesi. Sila cuba lagi.");
+        }
+
+        console.log("✅ Session created successfully");
+      } else {
+        // Fallback: If no tokens, try to sign in with OTP
+        // This shouldn't happen but kept for backward compatibility
+        console.warn("⚠️ No tokens received from API");
+      }
+
       toast({
         title: "Log masuk berjaya!",
         description: "Mengalihkan ke dashboard...",
