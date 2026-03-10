@@ -158,17 +158,24 @@ export function WhatsAppLoginForm() {
     setLoading(true);
 
     try {
-      // Verify OTP using Supabase Auth
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: formData.phone,
-        token: formData.tac,
-        type: 'sms' // Use 'sms' type even though we sent via WhatsApp
+      // Call our custom verification API instead of Supabase's verifyOtp
+      const response = await fetch("/api/verify-tac-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: formData.phone,
+          code: formData.tac,
+        }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      if (!data.user) {
-        throw new Error("Login gagal");
+      if (!response.ok) {
+        throw new Error(data.error || "Verification failed");
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || "Login gagal");
       }
 
       toast({

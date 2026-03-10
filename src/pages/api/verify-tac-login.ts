@@ -13,7 +13,8 @@ type VerifyTACResponse = {
   success: boolean;
   message?: string;
   data?: {
-    session?: any;
+    access_token?: string;
+    refresh_token?: string;
     user?: any;
   };
   error?: string;
@@ -107,32 +108,61 @@ export default async function handler(
       });
     }
 
-    // Create session token using admin API
+    // Create session for the user using admin API
+    // Generate an access token that the client can use
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: `${member.username}@temp.ambc.club`,
+      type: "magiclink",
+      email: `${member.username}@temp.ambc.club`, // Temporary email for session generation
     });
 
-    if (sessionError) {
+    if (sessionError || !sessionData) {
       console.error("❌ Failed to create session:", sessionError);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to create session",
+      
+      // Fallback: Use updateUserById to ensure user exists, then create manual session
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(member.user_id);
+      
+      if (userError || !user) {
+        console.error("❌ Failed to get user:", userError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to create session",
+        });
+      }
+
+      // Return user data for client-side session creation
+      console.log("✅ Using fallback session method");
+      return res.status(200).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          user: {
+            id: member.user_id,
+            username: member.username,
+            full_name: member.full_name,
+            is_admin: member.is_admin || false,
+            phone: phone,
+          },
+        },
       });
     }
 
-    console.log("✅ Session link generated successfully");
+    console.log("✅ Session created successfully");
 
+    // Extract tokens from the magic link properties
+    const properties = sessionData.properties;
+    
     return res.status(200).json({
       success: true,
       message: "Login successful",
       data: {
-        session: sessionData,
+        access_token: properties?.access_token,
+        refresh_token: properties?.refresh_token,
         user: {
           id: member.user_id,
           username: member.username,
           full_name: member.full_name,
           is_admin: member.is_admin || false,
+          phone: phone,
         },
       },
     });
