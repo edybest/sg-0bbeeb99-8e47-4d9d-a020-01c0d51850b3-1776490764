@@ -29,7 +29,7 @@ type Champion = {
 
 export default function HallOfFamePage() {
   const router = useRouter();
-  const { member, loading, isAuthenticated } = useAuth(true);
+  const { member, loading, isAuthenticated } = useAuth(false);
   
   const [champions, setChampions] = useState<Champion[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("all");
