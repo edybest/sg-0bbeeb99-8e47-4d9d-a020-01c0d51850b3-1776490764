@@ -66,8 +66,7 @@ type TrainingScoreWithDate = any;
 export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
-      const { member, loading, isAuthenticated } = useAuth(false);
-
+  const { member, isAuthenticated, loading: authLoading } = useAuth(false);
     const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<TrainingScoreWithDate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
