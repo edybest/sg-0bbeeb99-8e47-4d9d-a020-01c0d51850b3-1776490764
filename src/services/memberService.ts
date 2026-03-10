@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/database.types";
 
-type Member = Tables<"members">;
-type MemberInsert = TablesInsert<"members">;
-type MemberUpdate = TablesUpdate<"members">;
+type Member = Database['public']['Tables']['members']['Row'];
+type MemberInsert = Database['public']['Tables']['members']['Insert'];
+type MemberUpdate = Database['public']['Tables']['members']['Update'];
 
 export const memberService = {
   /**
