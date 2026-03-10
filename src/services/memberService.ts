@@ -1,142 +1,117 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-import { sessionService } from "./sessionService";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-type Member = Database["public"]["Tables"]["members"]["Row"];
-type MemberInsert = Database["public"]["Tables"]["members"]["Insert"];
-type MemberUpdate = Database["public"]["Tables"]["members"]["Update"];
+type Member = Tables<"members">;
+type MemberInsert = TablesInsert<"members">;
+type MemberUpdate = TablesUpdate<"members">;
 
 export const memberService = {
-  async getAllMembers() {
-    await sessionService.initializeSessionContext();
-    
-    const { data, error } = await supabase
-      .from("members")
-      .select("*")
-      .order("full_name");
-    
-    if (error) throw error;
-    return data || [];
-  },
-
-  async getMemberById(id: string) {
-    await sessionService.initializeSessionContext();
-    
+  /**
+   * Get member by ID
+   */
+  async getMemberById(id: string): Promise<Member> {
     const { data, error } = await supabase
       .from("members")
       .select("*")
       .eq("id", id)
-      .maybeSingle();
-    
+      .single();
+
     if (error) throw error;
     if (!data) throw new Error("Member not found");
+    
     return data;
   },
 
-  async getMemberByUsername(username: string) {
-    await sessionService.initializeSessionContext();
-    
-    const { data, error } = await supabase
-      .from("members")
-      .select("*")
-      .eq("username", username)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  async getMemberByUserId(userId: string) {
-    await sessionService.initializeSessionContext();
-    
+  /**
+   * Get member by user_id (Supabase Auth ID)
+   */
+  async getMemberByUserId(userId: string): Promise<Member | null> {
     const { data, error } = await supabase
       .from("members")
       .select("*")
       .eq("user_id", userId)
-      .single();
-    
+      .maybeSingle();
+
     if (error) throw error;
     return data;
   },
 
-  async findMemberByIdentifier(identifier: string) {
-    await sessionService.initializeSessionContext();
-    
-    // Try to find member by username, email, or phone
+  /**
+   * Get member by phone number
+   */
+  async getMemberByPhone(phone: string): Promise<Member | null> {
     const { data, error } = await supabase
       .from("members")
       .select("*")
-      .or(`username.eq.${identifier},email.eq.${identifier},phone.eq.${identifier}`)
+      .eq("phone", phone)
       .maybeSingle();
-    
+
     if (error) throw error;
     return data;
   },
 
-  async createMember(member: MemberInsert) {
-    await sessionService.initializeSessionContext();
-    
+  /**
+   * Get all members
+   */
+  async getAllMembers(): Promise<Member[]> {
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .order("username");
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  /**
+   * Create new member
+   */
+  async createMember(member: MemberInsert): Promise<Member> {
     const { data, error } = await supabase
       .from("members")
       .insert(member)
       .select()
       .single();
-    
+
     if (error) throw error;
+    if (!data) throw new Error("Failed to create member");
+    
     return data;
   },
 
-  async updateMember(id: string, updates: MemberUpdate) {
-    await sessionService.initializeSessionContext();
-    
+  /**
+   * Update member
+   */
+  async updateMember(id: string, updates: MemberUpdate): Promise<Member> {
     const { data, error } = await supabase
       .from("members")
       .update(updates)
       .eq("id", id)
       .select()
-      .maybeSingle();
-    
+      .single();
+
     if (error) throw error;
-    if (!data) throw new Error("Gagal mengemaskini: Tiada kebenaran (RLS) atau profil tidak wujud.");
+    if (!data) throw new Error("Failed to update member");
+    
     return data;
   },
 
-  async deleteMember(id: string) {
-    await sessionService.initializeSessionContext();
-    
+  /**
+   * Delete member
+   */
+  async deleteMember(id: string): Promise<void> {
     const { error } = await supabase
       .from("members")
       .delete()
       .eq("id", id);
-    
+
     if (error) throw error;
   },
 
-  async searchMembers(query: string) {
-    await sessionService.initializeSessionContext();
-    
-    const { data, error } = await supabase
-      .from("members")
-      .select("*")
-      .or(`username.ilike.%${query}%,full_name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%`)
-      .order("full_name");
-    
-    if (error) throw error;
-    return data || [];
+  /**
+   * Link member to Supabase Auth user
+   */
+  async linkAuthUser(memberId: string, userId: string): Promise<Member> {
+    return this.updateMember(memberId, { user_id: userId });
   },
-
-  async updateAvatar(memberId: string, avatarUrl: string) {
-    await sessionService.initializeSessionContext();
-    
-    const { data, error } = await supabase
-      .from("members")
-      .update({ avatar_url: avatarUrl })
-      .eq("id", memberId)
-      .select()
-      .maybeSingle();
-    
-    if (error) throw error;
-    if (!data) throw new Error("Gagal mengemaskini: Tiada kebenaran (RLS).");
-    return data;
-  }
 };

@@ -85,9 +85,7 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-      // Initialize session context for RLS
-      await sessionService.initializeSessionContext();
-
+      // No need for session context - using native Supabase Auth
       if (!currentMember) {
         console.error("No current member found");
         return;

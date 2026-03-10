@@ -1,102 +1,112 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { sessionService } from "@/services/sessionService";
-import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+import { memberService } from "@/services/memberService";
+import type { Tables } from "@/integrations/supabase/types";
 
-type Member = Database["public"]["Tables"]["members"]["Row"];
-type MemberSession = Database["public"]["Tables"]["member_sessions"]["Row"];
-
-interface AuthState {
-  member: Member | null;
-  session: MemberSession | null;
-  loading: boolean;
-  error: string | null;
-}
+type Member = Tables<"members">;
 
 /**
- * Custom hook for session-based authentication
- * Usage: const { member, loading, logout } = useAuth();
+ * Custom hook for authentication using Supabase Auth
+ * Supports both admin (email/password) and member (WhatsApp OTP) login
+ * @param requireAuth - If true, redirects to login page when not authenticated
+ * @param requireAdmin - If true, redirects to member page when not admin
  */
-export function useAuth(requireAuth: boolean = false) {
+export function useAuth(requireAuth = false, requireAdmin = false) {
   const router = useRouter();
-  const [authState, setAuthState] = useState<AuthState>({
-    member: null,
-    session: null,
-    loading: true,
-    error: null,
-  });
+  const [member, setMember] = useState<Member | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    checkSession();
-  }, []);
+    checkAuth();
 
-  const checkSession = async () => {
-    try {
-      const response = await fetch("/api/auth/session");
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setAuthState({
-          member: result.data.member,
-          session: result.data.session,
-          loading: false,
-          error: null,
-        });
-      } else {
-        setAuthState({
-          member: null,
-          session: null,
-          loading: false,
-          error: result.error || "No session found",
-        });
-
-        // Redirect to login if auth is required
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
+      if (event === "SIGNED_IN" && session) {
+        await loadMemberData(session.user.id);
+      } else if (event === "SIGNED_OUT") {
+        setMember(null);
+        setIsAuthenticated(false);
         if (requireAuth) {
           router.push("/login");
         }
       }
-    } catch (error) {
-      setAuthState({
-        member: null,
-        session: null,
-        loading: false,
-        error: error instanceof Error ? error.message : "Failed to check session",
-      });
+    });
 
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [requireAuth, requireAdmin]);
+
+  async function checkAuth() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("Session error:", error);
+        setIsAuthenticated(false);
+        if (requireAuth) {
+          router.push("/login");
+        }
+        return;
+      }
+
+      if (!session) {
+        setIsAuthenticated(false);
+        if (requireAuth) {
+          router.push("/login");
+        }
+        return;
+      }
+
+      await loadMemberData(session.user.id);
+    } catch (error) {
+      console.error("Auth check error:", error);
+      setIsAuthenticated(false);
+      if (requireAuth) {
+        router.push("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMemberData(userId: string) {
+    try {
+      const memberData = await memberService.getMemberByUserId(userId);
+      
+      if (!memberData) {
+        console.error("Member not found for user:", userId);
+        setIsAuthenticated(false);
+        if (requireAuth) {
+          router.push("/login");
+        }
+        return;
+      }
+
+      setMember(memberData);
+      setIsAuthenticated(true);
+
+      // Check admin requirement
+      if (requireAdmin && !memberData.is_admin) {
+        router.push("/member");
+      }
+    } catch (error) {
+      console.error("Error loading member data:", error);
+      setIsAuthenticated(false);
       if (requireAuth) {
         router.push("/login");
       }
     }
-  };
-
-  const logout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      sessionService.clearSessionCookie();
-      setAuthState({
-        member: null,
-        session: null,
-        loading: false,
-        error: null,
-      });
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
-
-  const refreshSession = () => {
-    checkSession();
-  };
+  }
 
   return {
-    member: authState.member,
-    session: authState.session,
-    loading: authState.loading,
-    error: authState.error,
-    isAuthenticated: !!authState.member,
-    isAdmin: authState.member?.is_admin || false,
-    logout,
-    refreshSession,
+    member,
+    loading,
+    isAuthenticated,
+    isAdmin: member?.is_admin || false,
+    refetch: checkAuth,
   };
 }

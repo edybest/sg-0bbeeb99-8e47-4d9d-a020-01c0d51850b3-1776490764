@@ -1,75 +1,29 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Session Service - DEPRECATED
+ * This file is kept for backwards compatibility but is no longer used.
+ * We now use native Supabase Auth session management instead of custom sessions.
+ * 
+ * All authentication now flows through:
+ * - Admin: supabase.auth.signInWithPassword (email/password)
+ * - Member: supabase.auth.signInWithOtp (phone/WhatsApp)
+ * 
+ * RLS policies use auth.uid() directly - no custom session context needed.
+ */
 
 export const sessionService = {
   /**
-   * Set session context in database for current request
-   * Must be called before any RLS-protected queries
+   * @deprecated No longer needed - Supabase Auth handles sessions automatically
    */
-  async setSessionContext(sessionToken: string): Promise<void> {
-    try {
-      const { error } = await supabase.rpc("set_session_context", {
-        session_token_param: sessionToken
-      });
-
-      if (error) {
-        console.error("Failed to set session context:", error);
-        throw error;
-      }
-    } catch (error) {
-      console.error("Error setting session context:", error);
-      throw error;
-    }
+  async initializeSessionContext(): Promise<void> {
+    console.warn("sessionService.initializeSessionContext() is deprecated - using native Supabase Auth");
+    return;
   },
 
   /**
-   * Get session token from cookie
+   * @deprecated No longer needed - use supabase.auth.getSession() instead
    */
-  getSessionTokenFromCookie(): string | null {
-    if (typeof document === "undefined") return null;
-    
-    const cookies = document.cookie.split(";");
-    const sessionCookie = cookies.find(c => c.trim().startsWith("session_token="));
-    
-    if (!sessionCookie) return null;
-    
-    return sessionCookie.split("=")[1];
+  async getSession(): Promise<any> {
+    console.warn("sessionService.getSession() is deprecated - use supabase.auth.getSession()");
+    return null;
   },
-
-  /**
-   * Initialize session context automatically
-   * Call this before making any database queries
-   */
-  async initializeSessionContext(): Promise<boolean> {
-    const sessionToken = this.getSessionTokenFromCookie();
-    
-    if (!sessionToken) {
-      console.warn("No session token found in cookie");
-      return false;
-    }
-
-    try {
-      await this.setSessionContext(sessionToken);
-      return true;
-    } catch (error) {
-      console.error("Failed to initialize session context:", error);
-      return false;
-    }
-  },
-
-  /**
-   * Clear session cookie (for logout)
-   */
-  clearSessionCookie(): void {
-    if (typeof document === "undefined") return;
-    document.cookie = "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-  },
-
-  /**
-   * Set session cookie
-   */
-  setSessionCookie(token: string, expiresAt: string): void {
-    if (typeof document === "undefined") return;
-    const expires = new Date(expiresAt).toUTCString();
-    document.cookie = `session_token=${token}; path=/; expires=${expires}; SameSite=Lax`;
-  }
 };
