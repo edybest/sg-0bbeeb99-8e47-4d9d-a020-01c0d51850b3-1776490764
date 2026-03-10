@@ -102,11 +102,23 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     }
   }
 
+  async function logout() {
+    try {
+      await supabase.auth.signOut();
+      setMember(null);
+      setIsAuthenticated(false);
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
+
   return {
     member,
     loading,
     isAuthenticated,
     isAdmin: member?.is_admin || false,
     refetch: checkAuth,
+    logout,
   };
 }
