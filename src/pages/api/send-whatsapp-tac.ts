@@ -139,29 +139,14 @@ export default async function handler(
       }
     }
 
-    // Step 2: Generate OTP using Supabase Auth
-    console.log("Generating OTP via Supabase Auth...");
+    // Step 2: Generate OTP - We'll create our own 6-digit code since Supabase doesn't expose OTP directly
+    console.log("Generating OTP code...");
     
-    const { data: otpData, error: otpError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      phone: phone,
-    });
-
-    if (otpError) {
-      console.error("❌ Failed to generate OTP:", otpError);
-      return res.status(500).json({
-        success: false,
-        error: "Failed to generate OTP",
-      });
-    }
-
-    // Extract OTP from hashed token (Supabase doesn't expose plain OTP)
-    // So we generate our own 6-digit code and store it temporarily
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
-    // Store OTP temporarily in member record
+    // Store OTP in member record for verification
     await supabaseAdmin
       .from("members")
       .update({

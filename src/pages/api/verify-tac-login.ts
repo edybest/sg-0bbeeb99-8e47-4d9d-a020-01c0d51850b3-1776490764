@@ -99,10 +99,18 @@ export default async function handler(
       .update({ tac_code: null, tac_expiry: null })
       .eq("id", member.id);
 
-    // Create session for the user using admin API
+    if (!member.user_id) {
+      console.error("❌ Member has no linked auth user");
+      return res.status(500).json({
+        success: false,
+        error: "Account configuration error",
+      });
+    }
+
+    // Create session token using admin API
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
-      email: `${member.username}@temp.ambc.club`, // Temporary email for session
+      email: `${member.username}@temp.ambc.club`,
     });
 
     if (sessionError) {
@@ -113,7 +121,7 @@ export default async function handler(
       });
     }
 
-    console.log("✅ Session created successfully");
+    console.log("✅ Session link generated successfully");
 
     return res.status(200).json({
       success: true,
