@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 type VerifyTACRequest = {
   phone: string;
@@ -194,8 +196,16 @@ export default async function handler(
         throw new Error("Failed to prepare session");
       }
 
-      // 3. Sign in with the temporary password to get the session tokens
-      const { data: signInData, error: signInError } = await supabaseAdmin.auth.signInWithPassword({
+      // 3. Create a regular Supabase client for sign in (admin client doesn't support signInWithPassword)
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+
+      // 4. Sign in with the temporary password to get the session tokens
+      const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
         phone: cleanPhone,
         password: tempPassword,
       });
