@@ -170,13 +170,27 @@ export function WhatsAppLoginForm() {
             });
 
             const data = await response.json();
+            
+            // Log full response for debugging
+            console.log("🔍 Verify TAC Response:", {
+                status: response.status,
+                ok: response.ok,
+                data: data,
+            });
 
             if (!response.ok) {
+                console.error("❌ Verify TAC Failed:", {
+                    status: response.status,
+                    error: data.error,
+                    message: data.message,
+                    fullData: data,
+                });
                 throw new Error(data.error || "Verification failed");
             }
 
             if (!data.success) {
-                throw new Error(data.error || "Login gagal");
+                console.error("❌ Verify TAC Not Successful:", data);
+                throw new Error(data.error || "Verification failed");
             }
 
             if (data.data?.access_token && data.data?.refresh_token) {

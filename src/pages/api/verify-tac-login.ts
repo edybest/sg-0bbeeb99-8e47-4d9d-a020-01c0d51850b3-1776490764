@@ -221,8 +221,12 @@ export default async function handler(
       console.log("🔐 Phone:", cleanPhone);
       console.log("🔐 Password length:", tempPassword.length);
       
+      // Convert phone for auth (remove + prefix)
+      const authPhone = cleanPhone.replace("+", "");
+      console.log("🔐 Auth phone format (for sign in):", authPhone);
+      
       const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-        phone: cleanPhone.replace("+", ""),
+        phone: authPhone,
         password: tempPassword,
       });
 
@@ -244,6 +248,7 @@ export default async function handler(
 
       if (signInError || !signInData.session) {
         console.error("❌ Failed to sign in with temp password:", signInError);
+        console.error("❌ Sign in error full details:", JSON.stringify(signInError, null, 2));
         throw new Error("Failed to generate session tokens");
       }
 
