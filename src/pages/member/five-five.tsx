@@ -393,31 +393,31 @@ export default function FiveFivePage() {
                   </Card>
             }
 
-                {participants.length > 0 &&
-              <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <Trophy className="w-8 h-8 text-yellow-600" />
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Hadiah Keseluruhan</p>
-                          <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">
-                            {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
-                          </p>
+                {participants.length > 0 && (
+                  <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Trophy className="w-8 h-8 text-yellow-600" />
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Hadiah Keseluruhan</p>
+                            <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">
+                              {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
+                            <p className="text-3xl font-bold text-red-600">
+                              {participants.filter((p) => p.total_prize > 0).length}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
-                          <p className="text-3xl font-bold text-red-600">
-                            {participants.filter((p) => p.total_prize > 0).length}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-            }
+                    </CardContent>
+                  </Card>
+                )}
             </div>
           </div>
         </div>
