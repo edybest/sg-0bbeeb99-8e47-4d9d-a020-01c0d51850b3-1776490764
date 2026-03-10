@@ -217,19 +217,19 @@ export default function FiveFivePage() {
               </div>
             </div>
 
-            {loading && !selectedGameId ?
-            <div className="space-y-4">
+            {loadingData && !selectedGameId ? (
+              <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-64 w-full" />
-              </div> :
-            games.length === 0 ?
-            <Alert>
+              </div>
+            ) : games.length === 0 ? (
+              <Alert>
                 <AlertDescription>
                   Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
                 </AlertDescription>
-              </Alert> :
-
-            <div className="space-y-6">
+              </Alert>
+            ) : (
+              <div className="space-y-6">
                 <Card>
                   <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -242,19 +242,19 @@ export default function FiveFivePage() {
                           <SelectValue placeholder="Pilih tarikh..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {games.map((game) =>
-                        <SelectItem key={game.id} value={game.id}>
-                              {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ''}
+                          {games.map((game) => (
+                            <SelectItem key={game.id} value={game.id}>
+                              {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ""}
                             </SelectItem>
-                        )}
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </CardHeader>
                 </Card>
 
-                {loading ?
-              <Card>
+                {loadingData ? (
+                  <Card>
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <Skeleton className="h-8 w-full" />
@@ -262,167 +262,163 @@ export default function FiveFivePage() {
                         <Skeleton className="h-8 w-full" />
                       </div>
                     </CardContent>
-                  </Card> :
-              participants.length === 0 ?
-              <Alert>
+                  </Card>
+                ) : participants.length === 0 ? (
+                  <Alert>
                     <AlertDescription>
                       Tiada peserta FiveFive untuk game ini.
                     </AlertDescription>
-                  </Alert> :
-
-              <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                          Agihan Hadiah FiveFive
-                        </span>
-                        {selectedGame &&
-                    <Badge variant="outline" className="text-sm">
-                            {formatDate(selectedGame.game_date)}
-                          </Badge>
-                    }
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-50 dark:bg-gray-800">
-                              <TableHead className="font-semibold text-center w-16">Rank</TableHead>
-                              <TableHead className="font-semibold">Nama Pemain</TableHead>
-                              <TableHead className="font-semibold text-right">G1 Prize</TableHead>
-                              <TableHead className="font-semibold text-right">G2 Prize</TableHead>
-                              <TableHead className="font-semibold text-right">G3 Prize</TableHead>
-                              <TableHead className="font-semibold text-right">G4 Prize</TableHead>
-                              <TableHead className="font-semibold text-right">G5 Prize</TableHead>
-                              <TableHead className="font-semibold text-right bg-yellow-50 dark:bg-yellow-900/20">
-                                Total Prize
-                              </TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {participants.map((participant, index) =>
-                        <TableRow
-                          key={participant.member_id}
-                          className={`
-                                  ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
-                                  hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
-                                  ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
-                                  ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
-                                  ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
-                                `}>
-                          
-                              <TableCell className="text-center font-semibold">
-                                {participant.rank === 1 &&
-                          <span className="text-2xl">🥇</span>
-                          }
-                                {participant.rank === 2 &&
-                          <span className="text-2xl">🥈</span>
-                          }
-                                {participant.rank === 3 &&
-                          <span className="text-2xl">🥉</span>
-                          }
-                                {participant.rank > 3 &&
-                          <span className="text-gray-600 dark:text-gray-400">#{participant.rank}</span>
-                          }
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                {participant.member_name}
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {participant.game1_prize > 0 ?
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(participant.game1_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {participant.game2_prize > 0 ?
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(participant.game2_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {participant.game3_prize > 0 ?
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(participant.game3_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {participant.game4_prize > 0 ?
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(participant.game4_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                              <TableCell className="text-right tabular-nums">
-                                {participant.game5_prize > 0 ?
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {formatCurrency(participant.game5_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                              <TableCell className="text-right font-bold tabular-nums bg-yellow-50 dark:bg-yellow-900/20">
-                                {participant.total_prize > 0 ?
-                          <span className="text-yellow-700 dark:text-yellow-400 text-lg">
-                                    {formatCurrency(participant.total_prize)}
-                                  </span> :
-
-                          <span className="text-gray-400">-</span>
-                          }
-                              </TableCell>
-                            </TableRow>
-                        )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
-            }
-
-                {participants.length > 0 && (
-                  <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
-                    <CardContent className="p-6">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <Trophy className="w-8 h-8 text-yellow-600" />
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Hadiah Keseluruhan</p>
-                            <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">
-                              {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
-                            </p>
-                          </div>
+                  </Alert>
+                ) : (
+                  <>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-green-600" />
+                            Agihan Hadiah FiveFive
+                          </span>
+                          {selectedGame && (
+                            <Badge variant="outline" className="text-sm">
+                              {formatDate(selectedGame.game_date)}
+                            </Badge>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gray-50 dark:bg-gray-800">
+                                <TableHead className="font-semibold text-center w-16">Rank</TableHead>
+                                <TableHead className="font-semibold">Nama Pemain</TableHead>
+                                <TableHead className="font-semibold text-right">G1 Prize</TableHead>
+                                <TableHead className="font-semibold text-right">G2 Prize</TableHead>
+                                <TableHead className="font-semibold text-right">G3 Prize</TableHead>
+                                <TableHead className="font-semibold text-right">G4 Prize</TableHead>
+                                <TableHead className="font-semibold text-right">G5 Prize</TableHead>
+                                <TableHead className="font-semibold text-right bg-yellow-50 dark:bg-yellow-900/20">
+                                  Total Prize
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {participants.map((participant, index) => (
+                                <TableRow
+                                  key={participant.member_id}
+                                  className={`
+                                    ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
+                                    hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
+                                    ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
+                                    ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
+                                    ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
+                                  `}
+                                >
+                                  <TableCell className="text-center font-semibold">
+                                    {participant.rank === 1 && <span className="text-2xl">🥇</span>}
+                                    {participant.rank === 2 && <span className="text-2xl">🥈</span>}
+                                    {participant.rank === 3 && <span className="text-2xl">🥉</span>}
+                                    {participant.rank > 3 && (
+                                      <span className="text-gray-600 dark:text-gray-400">#{participant.rank}</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="font-medium">
+                                    {participant.member_name}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {participant.game1_prize > 0 ? (
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {formatCurrency(participant.game1_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {participant.game2_prize > 0 ? (
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {formatCurrency(participant.game2_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {participant.game3_prize > 0 ? (
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {formatCurrency(participant.game3_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {participant.game4_prize > 0 ? (
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {formatCurrency(participant.game4_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {participant.game5_prize > 0 ? (
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        {formatCurrency(participant.game5_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right font-bold tabular-nums bg-yellow-50 dark:bg-yellow-900/20">
+                                    {participant.total_prize > 0 ? (
+                                      <span className="text-yellow-700 dark:text-yellow-400 text-lg">
+                                        {formatCurrency(participant.total_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400">-</span>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
-                            <p className="text-3xl font-bold text-red-600">
-                              {participants.filter((p) => p.total_prize > 0).length}
-                            </p>
+                      </CardContent>
+                    </Card>
+
+                    {participants.length > 0 && (
+                      <Card className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-200 dark:border-yellow-800">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <Trophy className="w-8 h-8 text-yellow-600" />
+                              <div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Hadiah Keseluruhan</p>
+                                <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">
+                                  {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
+                                <p className="text-3xl font-bold text-red-600">
+                                  {participants.filter((p) => p.total_prize > 0).length}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
                 )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </>
     </PageAccessGuard>
   );
-
 }
