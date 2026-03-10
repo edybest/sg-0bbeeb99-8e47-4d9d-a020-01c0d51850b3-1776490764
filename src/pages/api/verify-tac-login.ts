@@ -135,70 +135,73 @@ export default async function handler(
       .eq("id", member.id);
 
     if (!member.user_id) {
-      console.error("❌ Member has no linked auth user");
-      return res.status(500).json({
-        success: false,
-        error: "Account configuration error",
+      console.log("⚠️ Member has no linked auth user, creating one...");
+      
+      // Create auth user for this member
+      const { data: newAuthUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+        phone: cleanPhone,
+        phone_confirm: true,
+        user_metadata: {
+          username: member.username,
+          full_name: member.full_name,
+          member_id: member.id,
+        },
       });
+
+      if (createUserError || !newAuthUser.user) {
+        console.error("❌ Failed to create auth user:", createUserError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to create user account",
+        });
+      }
+
+      console.log("✅ Auth user created:", newAuthUser.user.id);
+
+      // Update member with new user_id
+      const { error: updateError } = await supabaseAdmin
+        .from("members")
+        .update({ user_id: newAuthUser.user.id })
+        .eq("id", member.id);
+
+      if (updateError) {
+        console.error("❌ Failed to link user to member:", updateError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to link user account",
+        });
+      }
+
+      console.log("✅ Member linked to auth user");
+
+      // Update member object with new user_id
+      member.user_id = newAuthUser.user.id;
     }
 
     // Create a session for the user using admin API
     try {
-      // Use admin.getUserById to get the auth user
-      const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(
-        member.user_id
-      );
-
-      if (userError || !authUser) {
-        console.error("❌ Failed to get auth user:", userError);
-        throw new Error("Failed to authenticate user");
-      }
-
-      console.log("✅ Auth user retrieved:", authUser.user.id);
-
-      // Generate access token for the user
-      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: authUser.user.phone || `${member.user_id}@temp.local`, // Use phone or temp email
-        options: {
-          redirectTo: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
-        },
+      // Create session directly using admin privileges
+      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.createSession({
+        userId: member.user_id,
       });
 
-      if (sessionError || !sessionData) {
-        console.error("❌ Failed to generate session:", sessionError);
-        throw sessionError;
+      if (sessionError || !sessionData?.session) {
+        console.error("❌ Failed to create session:", sessionError);
+        throw new Error("Failed to create session");
       }
 
-      console.log("✅ Session link generated");
-
-      // Extract the hashed token and verify it to get proper session tokens
-      const hashedToken = sessionData.properties.hashed_token;
-
-      if (!hashedToken) {
-        console.error("❌ No hashed token in response");
-        throw new Error("Failed to generate session token");
-      }
-
-      // Verify the OTP to get proper session tokens
-      const { data: verifyData, error: verifyError } = await supabaseAdmin.auth.verifyOtp({
-        type: "magiclink",
-        token_hash: hashedToken,
+      console.log("✅ Admin session created:", {
+        userId: member.user_id,
+        hasAccessToken: !!sessionData.session.access_token,
+        hasRefreshToken: !!sessionData.session.refresh_token,
       });
-
-      if (verifyError || !verifyData?.session) {
-        console.error("❌ Failed to verify OTP:", verifyError);
-        throw verifyError;
-      }
-
-      console.log("✅ Session created successfully");
 
       return res.status(200).json({
         success: true,
         message: "Login successful",
         data: {
-          access_token: verifyData.session.access_token,
-          refresh_token: verifyData.session.refresh_token,
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
           user: {
             id: member.user_id,
             username: member.username,
@@ -212,20 +215,9 @@ export default async function handler(
     } catch (sessionError) {
       console.error("❌ Session creation failed:", sessionError);
       
-      // Fallback: Return user data without tokens
-      // Client can use this to create session on their end
-      return res.status(200).json({
-        success: true,
-        message: "Login successful",
-        data: {
-          user: {
-            id: member.user_id,
-            username: member.username,
-            full_name: member.full_name,
-            is_admin: member.is_admin || false,
-            phone: cleanPhone,
-          },
-        },
+      return res.status(500).json({
+        success: false,
+        error: "Failed to create session",
       });
     }
 
