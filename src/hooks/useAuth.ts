@@ -44,6 +44,12 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
+      console.log("🔍 Session check:", { 
+        hasSession: !!session, 
+        userId: session?.user?.id,
+        error: error?.message 
+      });
+
       if (error) {
         console.error("Session error:", error);
         setIsAuthenticated(false);
@@ -54,6 +60,7 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
       }
 
       if (!session) {
+        console.log("❌ No session found");
         setIsAuthenticated(false);
         if (requireAuth) {
           router.push("/login");
@@ -61,6 +68,7 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
         return;
       }
 
+      console.log("✅ Session found, loading member data...");
       await loadMemberData(session.user.id);
     } catch (error) {
       console.error("Auth check error:", error);
@@ -75,10 +83,11 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
 
   async function loadMemberData(userId: string) {
     try {
+      console.log("📊 Loading member data for userId:", userId);
       const memberData = await memberService.getMemberByUserId(userId);
       
       if (!memberData) {
-        console.error("Member not found for user:", userId);
+        console.error("❌ Member not found for user:", userId);
         setIsAuthenticated(false);
         if (requireAuth) {
           router.push("/login");
@@ -86,11 +95,18 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
         return;
       }
 
+      console.log("✅ Member loaded:", {
+        id: memberData.id,
+        username: memberData.username,
+        isAdmin: memberData.is_admin
+      });
+
       setMember(memberData);
       setIsAuthenticated(true);
 
       // Check admin requirement
       if (requireAdmin && !memberData.is_admin) {
+        console.log("⚠️ Admin required but user is not admin, redirecting...");
         router.push("/member");
       }
     } catch (error) {
