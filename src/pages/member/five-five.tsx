@@ -419,7 +419,7 @@ export default function FiveFivePage() {
                 </Card>
             }
             </div>
-          }
+          </div>
         </div>
       </>
     </PageAccessGuard>
