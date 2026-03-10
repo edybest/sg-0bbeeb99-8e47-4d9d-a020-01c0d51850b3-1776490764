@@ -85,20 +85,7 @@ export function WhatsAppLoginForm() {
 
     setSendingTAC(true);
     try {
-      // Step 1: Generate OTP via Supabase Auth
-      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
-        phone: cleanPhone,
-        options: {
-          shouldCreateUser: false, // Don't auto-create user, we manage members manually
-        }
-      });
-
-      if (otpError) {
-        // If user doesn't exist, that's expected - we'll handle it in backend
-        console.log("Supabase OTP generation (expected if user not in auth):", otpError);
-      }
-
-      // Step 2: Call our backend to send TAC via WhatsApp
+      // Call our backend to send TAC via WhatsApp
       const response = await fetch("/api/send-whatsapp-tac", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
