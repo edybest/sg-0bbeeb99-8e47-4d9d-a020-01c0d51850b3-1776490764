@@ -132,7 +132,7 @@ export default async function handler(
       console.log("Creating Supabase Auth user with phone...");
       
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        phone: phone,
+        phone: cleanPhone,
         phone_confirm: true,
         user_metadata: {
           full_name: member.full_name,
@@ -163,7 +163,7 @@ export default async function handler(
       
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         authUserId,
-        { phone: phone, phone_confirm: true }
+        { phone: cleanPhone, phone_confirm: true }
       );
 
       if (updateError) {
