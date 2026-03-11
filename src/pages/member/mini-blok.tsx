@@ -66,7 +66,6 @@ import {
   calculatePlayerStats,
   type MiniBlokWithPlayers,
 } from "@/services/miniBlokService";
-import { getMembersByIds } from "@/services/memberService";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PlayerForm {
@@ -497,7 +496,7 @@ export default function MiniBlokPage() {
       if (members) {
         const filtered = members.filter(
           m => m.id !== entry.owner_id && 
-          !entry.shared_with.some(s => s.user_id === m.id)
+          !entry.shared_with.some(s => s.member_id === m.id)
         );
         setAvailableMembers(filtered);
       }
@@ -959,12 +958,12 @@ export default function MiniBlokPage() {
                         >
                           <div className="flex items-center gap-2">
                             <Lock className="h-4 w-4 text-muted-foreground" />
-                            <span>Member ID: {access.user_id.substring(0, 8)}...</span>
+                            <span>Member ID: {access.member_id.substring(0, 8)}...</span>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleRevokeAccess(selectedEntry.id, access.user_id)}
+                            onClick={() => handleRevokeAccess(selectedEntry.id, access.member_id)}
                           >
                             <X className="h-4 w-4" />
                           </Button>

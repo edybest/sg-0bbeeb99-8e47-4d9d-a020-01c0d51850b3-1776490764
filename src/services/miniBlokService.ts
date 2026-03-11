@@ -74,7 +74,7 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     shared_with: Array.isArray(entry.shared_with) ? entry.shared_with : [],
     can_edit: memberId ? (
       entry.owner_id === memberId || 
-      (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokCollaborator) => access.user_id === memberId))
+      (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId))
     ) : false
   }));
 }
@@ -105,7 +105,7 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
     shared_with: Array.isArray(data.shared_with) ? data.shared_with : [],
     can_edit: memberId ? (
       data.owner_id === memberId || 
-      (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokCollaborator) => access.user_id === memberId))
+      (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId))
     ) : false
   };
 }
@@ -213,12 +213,12 @@ export async function deletePlayer(id: string): Promise<void> {
 export async function shareAccess(miniBlokId: string, userIds: string[]): Promise<void> {
   const inserts = userIds.map(userId => ({
     mini_blok_id: miniBlokId,
-    user_id: userId
+    member_id: userId
   }));
 
   const { error } = await supabase
     .from("mini_blok_collaborators")
-    .insert(inserts);
+    .insert(inserts as any);
 
   console.log("shareAccess:", { error });
 
@@ -233,7 +233,7 @@ export async function revokeAccess(miniBlokId: string, userId: string): Promise<
     .from("mini_blok_collaborators")
     .delete()
     .eq("mini_blok_id", miniBlokId)
-    .eq("user_id", userId);
+    .eq("member_id", userId);
 
   console.log("revokeAccess:", { error });
 
