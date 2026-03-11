@@ -26,7 +26,7 @@ type ScoreData = {
 // Initialize Google Vision client with API key
 const visionClient = new vision.ImageAnnotatorClient({
   keyFilename: undefined, // We'll use API key instead
-  apiKey: process.env.GOOGLE_VISION_API_KEY || "AIzaSyAb8RN6IhIEABaNnrgodRvetK9S6mbGnoxP1rlyxvl4CP42pfig",
+  apiKey: process.env.GOOGLE_VISION_API_KEY,
 });
 
 function cleanOCRNumber(text: string): number | undefined {
