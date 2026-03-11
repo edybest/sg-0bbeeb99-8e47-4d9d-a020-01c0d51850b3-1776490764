@@ -23,17 +23,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Plus,
   Edit2,
   Trash2,
   Share2,
   Calendar,
   MapPin,
-  User,
+  Users,
   Trophy,
   TrendingUp,
   Copy,
   Check,
+  UserPlus,
+  X,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,20 +52,24 @@ import { MobileNav } from "@/components/member/MobileNav";
 import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
-  getMiniBlokEntryById,
-  createMiniBlokEntry,
-  updateMiniBlokEntry,
-  deleteMiniBlokEntry,
+  getMiniBlokById,
+  createMiniBlok,
+  updateMiniBlok,
+  deleteMiniBlok,
+  addPlayer,
+  updatePlayer,
+  deletePlayer,
+  shareAccess,
+  revokeAccess,
   generateShareUrl,
   generateShareText,
-  type MiniBlokWithStats,
+  calculatePlayerStats,
+  type MiniBlokWithPlayers,
 } from "@/services/miniBlokService";
+import { getMembersByIds } from "@/services/memberService";
 
-interface FormData {
-  title: string;
+interface PlayerForm {
   player_name: string;
-  location: string;
-  date: string;
   handicap: number;
   game_1: number | null;
   game_2: number | null;
@@ -66,13 +81,20 @@ interface FormData {
   game_8: number | null;
   game_9: number | null;
   game_10: number | null;
+  game_11: number | null;
+  game_12: number | null;
+  game_13: number | null;
+  game_14: number | null;
+  game_15: number | null;
+  game_16: number | null;
+  game_17: number | null;
+  game_18: number | null;
+  game_19: number | null;
+  game_20: number | null;
 }
 
-const INITIAL_FORM: FormData = {
-  title: "",
+const INITIAL_PLAYER_FORM: PlayerForm = {
   player_name: "",
-  location: "Daiman Bowl",
-  date: new Date().toISOString().split("T")[0],
   handicap: 0,
   game_1: null,
   game_2: null,
@@ -84,6 +106,16 @@ const INITIAL_FORM: FormData = {
   game_8: null,
   game_9: null,
   game_10: null,
+  game_11: null,
+  game_12: null,
+  game_13: null,
+  game_14: null,
+  game_15: null,
+  game_16: null,
+  game_17: null,
+  game_18: null,
+  game_19: null,
+  game_20: null,
 };
 
 const GAME_COLORS = [
@@ -97,6 +129,16 @@ const GAME_COLORS = [
   "bg-red-500",
   "bg-indigo-500",
   "bg-teal-500",
+  "bg-lime-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-violet-500",
+  "bg-fuchsia-500",
+  "bg-sky-500",
+  "bg-emerald-500",
+  "bg-blue-600",
+  "bg-green-600",
+  "bg-purple-600",
 ];
 
 export default function MiniBlokPage() {
@@ -104,17 +146,30 @@ export default function MiniBlokPage() {
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth();
   
-  const [entries, setEntries] = useState<MiniBlokWithStats[]>([]);
+  const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<MiniBlokWithStats | null>(null);
-  const [formData, setFormData] = useState<FormData>(INITIAL_FORM);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<any | null>(null);
+  const [playerForm, setPlayerForm] = useState<PlayerForm>(INITIAL_PLAYER_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [shareEntry, setShareEntry] = useState<MiniBlokWithStats | null>(null);
+  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<string | null>(null);
+  const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
+  const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
+  const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [availableMembers, setAvailableMembers] = useState<any[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
-  const canEdit = !authLoading && (member !== null);
+  // Create tournament form
+  const [tournamentForm, setTournamentForm] = useState({
+    title: "",
+    location: "Daiman Bowl",
+    date: new Date().toISOString().split("T")[0],
+    total_games: 5,
+  });
 
   useEffect(() => {
     loadEntries();
@@ -129,7 +184,7 @@ export default function MiniBlokPage() {
   async function loadEntries() {
     try {
       setLoading(true);
-      const data = await getMiniBlokEntries();
+      const data = await getMiniBlokEntries(member?.id);
       setEntries(data);
     } catch (error) {
       console.error("Error loading mini blok entries:", error);
@@ -145,7 +200,7 @@ export default function MiniBlokPage() {
 
   async function loadSharedEntry(entryId: string) {
     try {
-      const entry = await getMiniBlokEntryById(entryId);
+      const entry = await getMiniBlokById(entryId, member?.id);
       if (entry) {
         setTimeout(() => {
           const element = document.getElementById(`entry-${entryId}`);
@@ -161,36 +216,177 @@ export default function MiniBlokPage() {
     }
   }
 
-  function openAddDialog() {
-    setEditingEntry(null);
-    setFormData(INITIAL_FORM);
-    setShowDialog(true);
+  async function handleCreateTournament() {
+    if (!member) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login to create tournaments",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!tournamentForm.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Tournament title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (tournamentForm.total_games < 1 || tournamentForm.total_games > 20) {
+      toast({
+        title: "Validation Error",
+        description: "Total games must be between 1 and 20",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const entry = await createMiniBlok({
+        ...tournamentForm,
+        created_by: member.id,
+      });
+
+      toast({
+        title: "Success",
+        description: "Tournament created successfully",
+      });
+
+      setShowCreateDialog(false);
+      setTournamentForm({
+        title: "",
+        location: "Daiman Bowl",
+        date: new Date().toISOString().split("T")[0],
+        total_games: 5,
+      });
+      loadEntries();
+    } catch (error) {
+      console.error("Error creating tournament:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create tournament",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function openEditDialog(entry: MiniBlokWithStats) {
-    setEditingEntry(entry);
-    setFormData({
+  async function handleUpdateTournament() {
+    if (!selectedEntry) return;
+
+    try {
+      setSubmitting(true);
+      await updateMiniBlok(selectedEntry.id, {
+        title: tournamentForm.title,
+        location: tournamentForm.location,
+        date: tournamentForm.date,
+        total_games: tournamentForm.total_games,
+      });
+
+      toast({
+        title: "Success",
+        description: "Tournament updated successfully",
+      });
+
+      loadEntries();
+      const updated = await getMiniBlokById(selectedEntry.id, member?.id);
+      if (updated) setSelectedEntry(updated);
+    } catch (error) {
+      console.error("Error updating tournament:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update tournament",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteTournament(id: string) {
+    try {
+      await deleteMiniBlok(id);
+      toast({
+        title: "Success",
+        description: "Tournament deleted successfully",
+      });
+      setDeleteConfirmEntry(null);
+      setShowManageDialog(false);
+      setSelectedEntry(null);
+      loadEntries();
+    } catch (error) {
+      console.error("Error deleting tournament:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tournament",
+        variant: "destructive",
+      });
+    }
+  }
+
+  function openManageDialog(entry: MiniBlokWithPlayers) {
+    setSelectedEntry(entry);
+    setTournamentForm({
       title: entry.title || "",
-      player_name: entry.player_name,
       location: entry.location,
       date: entry.date,
-      handicap: entry.handicap,
-      game_1: entry.game_1,
-      game_2: entry.game_2,
-      game_3: entry.game_3,
-      game_4: entry.game_4,
-      game_5: entry.game_5,
-      game_6: entry.game_6,
-      game_7: entry.game_7,
-      game_8: entry.game_8,
-      game_9: entry.game_9,
-      game_10: entry.game_10,
+      total_games: entry.total_games,
     });
-    setShowDialog(true);
+    setShowManageDialog(true);
   }
 
-  async function handleSubmit() {
-    if (!formData.player_name.trim()) {
+  function openAddPlayerDialog() {
+    if (!selectedEntry) return;
+    if (selectedEntry.players.length >= 48) {
+      toast({
+        title: "Player Limit Reached",
+        description: "Maximum 48 players per tournament",
+        variant: "destructive",
+      });
+      return;
+    }
+    setEditingPlayer(null);
+    setPlayerForm(INITIAL_PLAYER_FORM);
+  }
+
+  function openEditPlayerDialog(player: any) {
+    setEditingPlayer(player);
+    const formData: PlayerForm = {
+      player_name: player.player_name,
+      handicap: player.handicap,
+      game_1: player.game_1,
+      game_2: player.game_2,
+      game_3: player.game_3,
+      game_4: player.game_4,
+      game_5: player.game_5,
+      game_6: player.game_6,
+      game_7: player.game_7,
+      game_8: player.game_8,
+      game_9: player.game_9,
+      game_10: player.game_10,
+      game_11: player.game_11,
+      game_12: player.game_12,
+      game_13: player.game_13,
+      game_14: player.game_14,
+      game_15: player.game_15,
+      game_16: player.game_16,
+      game_17: player.game_17,
+      game_18: player.game_18,
+      game_19: player.game_19,
+      game_20: player.game_20,
+    };
+    setPlayerForm(formData);
+  }
+
+  async function handleSavePlayer() {
+    if (!selectedEntry) return;
+
+    if (!playerForm.player_name.trim()) {
       toast({
         title: "Validation Error",
         description: "Player name is required",
@@ -199,18 +395,10 @@ export default function MiniBlokPage() {
       return;
     }
 
-    const games = [
-      formData.game_1,
-      formData.game_2,
-      formData.game_3,
-      formData.game_4,
-      formData.game_5,
-      formData.game_6,
-      formData.game_7,
-      formData.game_8,
-      formData.game_9,
-      formData.game_10,
-    ].filter(g => g !== null && g > 0);
+    const games = Array.from({ length: selectedEntry.total_games }, (_, i) => {
+      const key = `game_${i + 1}` as keyof PlayerForm;
+      return playerForm[key];
+    }).filter(g => g !== null && g > 0);
 
     if (games.length === 0) {
       toast({
@@ -224,29 +412,33 @@ export default function MiniBlokPage() {
     try {
       setSubmitting(true);
 
-      if (editingEntry) {
-        await updateMiniBlokEntry(editingEntry.id, formData);
+      if (editingPlayer) {
+        await updatePlayer(editingPlayer.id, playerForm);
         toast({
           title: "Success",
-          description: "Entry updated successfully",
+          description: "Player updated successfully",
         });
       } else {
-        await createMiniBlokEntry(formData);
+        await addPlayer({
+          ...playerForm,
+          mini_blok_id: selectedEntry.id,
+        });
         toast({
           title: "Success",
-          description: "Entry created successfully",
+          description: "Player added successfully",
         });
       }
 
-      setShowDialog(false);
-      setFormData(INITIAL_FORM);
-      setEditingEntry(null);
+      setPlayerForm(INITIAL_PLAYER_FORM);
+      setEditingPlayer(null);
+      const updated = await getMiniBlokById(selectedEntry.id, member?.id);
+      if (updated) setSelectedEntry(updated);
       loadEntries();
     } catch (error) {
-      console.error("Error saving entry:", error);
+      console.error("Error saving player:", error);
       toast({
         title: "Error",
-        description: "Failed to save entry",
+        description: "Failed to save player",
         variant: "destructive",
       });
     } finally {
@@ -254,26 +446,108 @@ export default function MiniBlokPage() {
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDeletePlayer(playerId: string) {
     try {
-      await deleteMiniBlokEntry(id);
+      await deletePlayer(playerId);
       toast({
         title: "Success",
-        description: "Entry deleted successfully",
+        description: "Player deleted successfully",
       });
-      setDeleteConfirm(null);
+      setDeleteConfirmPlayer(null);
+      if (selectedEntry) {
+        const updated = await getMiniBlokById(selectedEntry.id, member?.id);
+        if (updated) setSelectedEntry(updated);
+      }
       loadEntries();
     } catch (error) {
-      console.error("Error deleting entry:", error);
+      console.error("Error deleting player:", error);
       toast({
         title: "Error",
-        description: "Failed to delete entry",
+        description: "Failed to delete player",
         variant: "destructive",
       });
     }
   }
 
-  function handleShare(entry: MiniBlokWithStats) {
+  async function openShareAccessDialog(entry: MiniBlokWithPlayers) {
+    setShareAccessEntry(entry);
+    setShowShareAccessDialog(true);
+    
+    // Load all members except owner and already shared
+    try {
+      const { data: members } = await supabase
+        .from("members")
+        .select("id, full_name")
+        .order("full_name");
+
+      if (members) {
+        const filtered = members.filter(
+          m => m.id !== entry.created_by && 
+          !entry.shared_with.some(s => s.member_id === m.id)
+        );
+        setAvailableMembers(filtered);
+      }
+    } catch (error) {
+      console.error("Error loading members:", error);
+    }
+  }
+
+  async function handleShareAccess() {
+    if (!shareAccessEntry || selectedMemberIds.length === 0) return;
+
+    try {
+      setSubmitting(true);
+      await shareAccess(shareAccessEntry.id, selectedMemberIds);
+      
+      toast({
+        title: "Success",
+        description: `Shared with ${selectedMemberIds.length} member(s)`,
+      });
+
+      setShowShareAccessDialog(false);
+      setSelectedMemberIds([]);
+      loadEntries();
+      
+      if (selectedEntry?.id === shareAccessEntry.id) {
+        const updated = await getMiniBlokById(shareAccessEntry.id, member?.id);
+        if (updated) setSelectedEntry(updated);
+      }
+    } catch (error) {
+      console.error("Error sharing access:", error);
+      toast({
+        title: "Error",
+        description: "Failed to share access",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRevokeAccess(entryId: string, memberId: string) {
+    try {
+      await revokeAccess(entryId, memberId);
+      toast({
+        title: "Success",
+        description: "Access revoked successfully",
+      });
+      loadEntries();
+      
+      if (selectedEntry?.id === entryId) {
+        const updated = await getMiniBlokById(entryId, member?.id);
+        if (updated) setSelectedEntry(updated);
+      }
+    } catch (error) {
+      console.error("Error revoking access:", error);
+      toast({
+        title: "Error",
+        description: "Failed to revoke access",
+        variant: "destructive",
+      });
+    }
+  }
+
+  function handleShare(entry: MiniBlokWithPlayers) {
     setShareEntry(entry);
     setCopiedUrl(false);
   }
@@ -323,21 +597,6 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
-  function getGameScores(entry: MiniBlokWithStats): number[] {
-    return [
-      entry.game_1,
-      entry.game_2,
-      entry.game_3,
-      entry.game_4,
-      entry.game_5,
-      entry.game_6,
-      entry.game_7,
-      entry.game_8,
-      entry.game_9,
-      entry.game_10,
-    ].filter((g): g is number => g !== null && g > 0);
-  }
-
   if (loading) {
     return <BowlingBallLoader />;
   }
@@ -359,14 +618,14 @@ export default function MiniBlokPage() {
                 🎳 Mini Blok
               </h1>
               <p className="text-muted-foreground mt-1">
-                Casual bowling scores tracker
+                Multi-player tournament tracker
               </p>
             </div>
 
-            {canEdit && (
-              <Button onClick={openAddDialog} size="lg" className="w-full sm:w-auto">
+            {member && (
+              <Button onClick={() => setShowCreateDialog(true)} size="lg" className="w-full sm:w-auto">
                 <Plus className="h-5 w-5 mr-2" />
-                Add Entry
+                Create Tournament
               </Button>
             )}
           </div>
@@ -376,16 +635,16 @@ export default function MiniBlokPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No entries yet</h3>
+                <h3 className="text-xl font-semibold mb-2">No tournaments yet</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  {canEdit
-                    ? "Start by adding your first mini blok entry"
-                    : "Be the first to add an entry!"}
+                  {member
+                    ? "Start by creating your first mini blok tournament"
+                    : "Login to create tournaments"}
                 </p>
-                {canEdit && (
-                  <Button onClick={openAddDialog}>
+                {member && (
+                  <Button onClick={() => setShowCreateDialog(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Entry
+                    Create Tournament
                   </Button>
                 )}
               </CardContent>
@@ -393,7 +652,12 @@ export default function MiniBlokPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {entries.map((entry) => {
-                const games = getGameScores(entry);
+                const sortedPlayers = [...entry.players].sort((a, b) => {
+                  const statsA = calculatePlayerStats(a, entry.total_games);
+                  const statsB = calculatePlayerStats(b, entry.total_games);
+                  return statsB.overall_score - statsA.overall_score;
+                });
+
                 return (
                   <Card
                     key={entry.id}
@@ -404,19 +668,19 @@ export default function MiniBlokPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg mb-2 truncate">
-                            {entry.title || "Mini Blok"}
+                            {entry.title}
                           </CardTitle>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <User className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">{entry.player_name}</span>
-                          </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <MapPin className="h-4 w-4 flex-shrink-0" />
                             <span className="truncate">{entry.location}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <Calendar className="h-4 w-4 flex-shrink-0" />
                             <span>{new Date(entry.date).toLocaleDateString("en-MY")}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 flex-shrink-0" />
+                            <span>{entry.players.length} players · {entry.total_games} games</span>
                           </div>
                         </div>
 
@@ -428,71 +692,57 @@ export default function MiniBlokPage() {
                           >
                             <Share2 className="h-4 w-4" />
                           </Button>
-                          {canEdit && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => openEditDialog(entry)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setDeleteConfirm(entry.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
+                          {entry.can_edit && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openManageDialog(entry)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </div>
                     </CardHeader>
 
                     <CardContent>
-                      {/* Game Scores */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {games.map((score, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="secondary"
-                            className={`${GAME_COLORS[idx]} text-white font-semibold px-3 py-1`}
-                          >
-                            G{idx + 1}: {score}
-                          </Badge>
-                        ))}
-                      </div>
-
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <div className="text-muted-foreground mb-1">Average</div>
-                          <div className="text-2xl font-bold">{entry.average}</div>
+                      {entry.players.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">
+                          No players yet
                         </div>
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <div className="text-muted-foreground mb-1">Total</div>
-                          <div className="text-2xl font-bold">{entry.total_score}</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {sortedPlayers.slice(0, 3).map((player, idx) => {
+                            const stats = calculatePlayerStats(player, entry.total_games);
+                            return (
+                              <div
+                                key={player.id}
+                                className="flex items-center justify-between bg-muted/50 rounded-lg p-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                    {idx + 1}
+                                  </Badge>
+                                  <span className="font-semibold truncate">{player.player_name}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm font-bold text-primary">
+                                    {stats.overall_score}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Avg: {stats.average}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {entry.players.length > 3 && (
+                            <div className="text-center text-sm text-muted-foreground">
+                              +{entry.players.length - 3} more players
+                            </div>
+                          )}
                         </div>
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <div className="text-muted-foreground mb-1">Handicap</div>
-                          <div className="text-2xl font-bold">{entry.handicap}</div>
-                        </div>
-                        <div className="bg-primary/10 rounded-lg p-3">
-                          <div className="text-muted-foreground mb-1">Overall</div>
-                          <div className="text-2xl font-bold text-primary">
-                            {entry.overall_score}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Differential */}
-                      <div className="mt-3 flex items-center justify-center gap-2 bg-accent/50 rounded-lg p-2">
-                        <TrendingUp className={`h-4 w-4 ${entry.differential > 0 ? "text-green-500" : "text-red-500"}`} />
-                        <span className={`font-semibold ${entry.differential > 0 ? "text-green-600" : "text-red-600"}`}>
-                          Diff: {entry.differential > 0 ? "+" : ""}{entry.differential}
-                        </span>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
@@ -502,145 +752,526 @@ export default function MiniBlokPage() {
         </div>
       </div>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      {/* Create Tournament Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingEntry ? "Edit Entry" : "Add New Entry"}
-            </DialogTitle>
+            <DialogTitle>Create New Tournament</DialogTitle>
             <DialogDescription>
-              Enter the bowling scores and details
+              Set up a new mini blok tournament
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Basic Info */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="player_name">Player Name *</Label>
-                <Input
-                  id="player_name"
-                  value={formData.player_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, player_name: e.target.value })
-                  }
-                  placeholder="Enter player name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Title (Optional)</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder="e.g., Blok Suka Suki"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) =>
-                    setFormData({ ...formData, location: e.target.value })
-                  }
-                  placeholder="Daiman Bowl"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="handicap">Handicap</Label>
-                <Input
-                  id="handicap"
-                  type="number"
-                  min="0"
-                  value={formData.handicap}
-                  onChange={(e) =>
-                    setFormData({ ...formData, handicap: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Tournament Title *</Label>
+              <Input
+                id="title"
+                value={tournamentForm.title}
+                onChange={(e) =>
+                  setTournamentForm({ ...tournamentForm, title: e.target.value })
+                }
+                placeholder="e.g., Blok Suka Suki"
+              />
             </div>
 
-            {/* Game Scores */}
-            <div>
-              <Label className="mb-3 block">Game Scores (1-10 games)</Label>
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((gameNum) => (
-                  <div key={gameNum} className="space-y-2">
-                    <Label htmlFor={`game_${gameNum}`} className="text-xs">
-                      Game {gameNum}
-                    </Label>
-                    <Input
-                      id={`game_${gameNum}`}
-                      type="number"
-                      min="0"
-                      max="300"
-                      value={formData[`game_${gameNum}` as keyof FormData] as number || ""}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
-                        })
-                      }
-                      placeholder="0"
-                    />
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={tournamentForm.location}
+                onChange={(e) =>
+                  setTournamentForm({ ...tournamentForm, location: e.target.value })
+                }
+                placeholder="Daiman Bowl"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={tournamentForm.date}
+                onChange={(e) =>
+                  setTournamentForm({ ...tournamentForm, date: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="total_games">Total Games (1-20)</Label>
+              <Input
+                id="total_games"
+                type="number"
+                min="1"
+                max="20"
+                value={tournamentForm.total_games}
+                onChange={(e) =>
+                  setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
+                }
+              />
             </div>
           </div>
 
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowDialog(false)}
+              onClick={() => setShowCreateDialog(false)}
               disabled={submitting}
             >
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Saving..." : editingEntry ? "Update" : "Create"}
+            <Button onClick={handleCreateTournament} disabled={submitting}>
+              {submitting ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+      {/* Manage Tournament Dialog */}
+      <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Manage Tournament</span>
+              <div className="flex gap-2">
+                {selectedEntry?.created_by === member?.id && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => selectedEntry && openShareAccessDialog(selectedEntry)}
+                    >
+                      <Unlock className="h-4 w-4 mr-2" />
+                      Share Access
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => selectedEntry && setDeleteConfirmEntry(selectedEntry.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedEntry && (
+            <div className="space-y-6">
+              {/* Tournament Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Tournament Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_title">Title *</Label>
+                      <Input
+                        id="edit_title"
+                        value={tournamentForm.title}
+                        onChange={(e) =>
+                          setTournamentForm({ ...tournamentForm, title: e.target.value })
+                        }
+                        disabled={!selectedEntry.can_edit}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_location">Location</Label>
+                      <Input
+                        id="edit_location"
+                        value={tournamentForm.location}
+                        onChange={(e) =>
+                          setTournamentForm({ ...tournamentForm, location: e.target.value })
+                        }
+                        disabled={!selectedEntry.can_edit}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_date">Date</Label>
+                      <Input
+                        id="edit_date"
+                        type="date"
+                        value={tournamentForm.date}
+                        onChange={(e) =>
+                          setTournamentForm({ ...tournamentForm, date: e.target.value })
+                        }
+                        disabled={!selectedEntry.can_edit}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_total_games">Total Games (1-20)</Label>
+                      <Input
+                        id="edit_total_games"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={tournamentForm.total_games}
+                        onChange={(e) =>
+                          setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
+                        }
+                        disabled={!selectedEntry.can_edit}
+                      />
+                    </div>
+                  </div>
+
+                  {selectedEntry.can_edit && (
+                    <Button onClick={handleUpdateTournament} disabled={submitting}>
+                      {submitting ? "Saving..." : "Save Changes"}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Shared Access */}
+              {selectedEntry.created_by === member?.id && selectedEntry.shared_with.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Shared With</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {selectedEntry.shared_with.map((access) => (
+                        <div
+                          key={access.id}
+                          className="flex items-center justify-between bg-muted/50 rounded-lg p-3"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                            <span>Member ID: {access.member_id.substring(0, 8)}...</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleRevokeAccess(selectedEntry.id, access.member_id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Players Section */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">
+                      Players ({selectedEntry.players.length}/48)
+                    </CardTitle>
+                    {selectedEntry.can_edit && selectedEntry.players.length < 48 && (
+                      <Button size="sm" onClick={openAddPlayerDialog}>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Player
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Player Form */}
+                  {(editingPlayer || playerForm.player_name !== "") && (
+                    <Card className="mb-4 border-primary">
+                      <CardContent className="pt-6 space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="player_name">Player Name *</Label>
+                            <Input
+                              id="player_name"
+                              value={playerForm.player_name}
+                              onChange={(e) =>
+                                setPlayerForm({ ...playerForm, player_name: e.target.value })
+                              }
+                              placeholder="Enter player name"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="handicap">Handicap</Label>
+                            <Input
+                              id="handicap"
+                              type="number"
+                              min="0"
+                              value={playerForm.handicap}
+                              onChange={(e) =>
+                                setPlayerForm({ ...playerForm, handicap: parseInt(e.target.value) || 0 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="mb-3 block">Game Scores (up to {selectedEntry.total_games} games)</Label>
+                          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+                            {Array.from({ length: selectedEntry.total_games }, (_, i) => i + 1).map((gameNum) => (
+                              <div key={gameNum} className="space-y-2">
+                                <Label htmlFor={`game_${gameNum}`} className="text-xs">
+                                  Game {gameNum}
+                                </Label>
+                                <Input
+                                  id={`game_${gameNum}`}
+                                  type="number"
+                                  min="0"
+                                  max="300"
+                                  value={playerForm[`game_${gameNum}` as keyof PlayerForm] as number || ""}
+                                  onChange={(e) =>
+                                    setPlayerForm({
+                                      ...playerForm,
+                                      [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
+                                    })
+                                  }
+                                  placeholder="0"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button onClick={handleSavePlayer} disabled={submitting}>
+                            {submitting ? "Saving..." : editingPlayer ? "Update Player" : "Add Player"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setPlayerForm(INITIAL_PLAYER_FORM);
+                              setEditingPlayer(null);
+                            }}
+                            disabled={submitting}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Players Table */}
+                  {selectedEntry.players.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No players yet. Add your first player to get started.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">#</TableHead>
+                            <TableHead>Player</TableHead>
+                            {Array.from({ length: selectedEntry.total_games }, (_, i) => (
+                              <TableHead key={i} className="text-center">G{i + 1}</TableHead>
+                            ))}
+                            <TableHead className="text-center">HCP</TableHead>
+                            <TableHead className="text-center">Avg</TableHead>
+                            <TableHead className="text-center">Total</TableHead>
+                            <TableHead className="text-center">Overall</TableHead>
+                            <TableHead className="text-center">Diff</TableHead>
+                            {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedEntry.players
+                            .sort((a, b) => {
+                              const statsA = calculatePlayerStats(a, selectedEntry.total_games);
+                              const statsB = calculatePlayerStats(b, selectedEntry.total_games);
+                              return statsB.overall_score - statsA.overall_score;
+                            })
+                            .map((player, idx) => {
+                              const stats = calculatePlayerStats(player, selectedEntry.total_games);
+                              return (
+                                <TableRow key={player.id}>
+                                  <TableCell>
+                                    <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                      {idx + 1}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="font-semibold">{player.player_name}</TableCell>
+                                  {Array.from({ length: selectedEntry.total_games }, (_, i) => {
+                                    const score = player[`game_${i + 1}` as keyof typeof player] as number | null;
+                                    return (
+                                      <TableCell key={i} className="text-center">
+                                        {score !== null && score > 0 ? (
+                                          <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
+                                            {score}
+                                          </Badge>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </TableCell>
+                                    );
+                                  })}
+                                  <TableCell className="text-center">{player.handicap}</TableCell>
+                                  <TableCell className="text-center font-semibold">{stats.average}</TableCell>
+                                  <TableCell className="text-center">{stats.total_score}</TableCell>
+                                  <TableCell className="text-center font-bold text-primary">
+                                    {stats.overall_score}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                                      {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                    </span>
+                                  </TableCell>
+                                  {selectedEntry.can_edit && (
+                                    <TableCell>
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => openEditPlayerDialog(player)}
+                                        >
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setDeleteConfirmPlayer(player.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              );
+                            })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Access Dialog */}
+      <Dialog open={showShareAccessDialog} onOpenChange={setShowShareAccessDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Tournament Access</DialogTitle>
+            <DialogDescription>
+              Allow other members to edit this tournament
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Select Members</Label>
+              <Select
+                value={selectedMemberIds.join(",")}
+                onValueChange={(value) => {
+                  if (value && !selectedMemberIds.includes(value)) {
+                    setSelectedMemberIds([...selectedMemberIds, value]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose members..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableMembers.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedMemberIds.length > 0 && (
+              <div className="space-y-2">
+                <Label>Selected Members ({selectedMemberIds.length})</Label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedMemberIds.map((id) => {
+                    const member = availableMembers.find(m => m.id === id);
+                    return (
+                      <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                        {member?.full_name}
+                        <button
+                          onClick={() => setSelectedMemberIds(selectedMemberIds.filter(m => m !== id))}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowShareAccessDialog(false);
+                setSelectedMemberIds([]);
+              }}
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleShareAccess}
+              disabled={submitting || selectedMemberIds.length === 0}
+            >
+              {submitting ? "Sharing..." : `Share with ${selectedMemberIds.length} member(s)`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Tournament Confirmation */}
+      <Dialog open={deleteConfirmEntry !== null} onOpenChange={() => setDeleteConfirmEntry(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Entry</DialogTitle>
+            <DialogTitle>Delete Tournament</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this entry? This action cannot be undone.
+              Are you sure you want to delete this tournament? This will also delete all players and scores. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+            <Button variant="outline" onClick={() => setDeleteConfirmEntry(null)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
+              onClick={() => deleteConfirmEntry && handleDeleteTournament(deleteConfirmEntry)}
             >
-              Delete
+              Delete Tournament
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Player Confirmation */}
+      <Dialog open={deleteConfirmPlayer !== null} onOpenChange={() => setDeleteConfirmPlayer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Player</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this player? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmPlayer(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmPlayer && handleDeletePlayer(deleteConfirmPlayer)}
+            >
+              Delete Player
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -650,9 +1281,9 @@ export default function MiniBlokPage() {
       <Dialog open={shareEntry !== null} onOpenChange={() => setShareEntry(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share Entry</DialogTitle>
+            <DialogTitle>Share Tournament</DialogTitle>
             <DialogDescription>
-              Share this mini blok entry with others
+              Share this mini blok tournament with others
             </DialogDescription>
           </DialogHeader>
 

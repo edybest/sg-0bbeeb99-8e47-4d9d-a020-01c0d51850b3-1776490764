@@ -48,7 +48,7 @@ function calculatePlayerStats(player: MiniBlokPlayer, totalGames: number): Playe
 }
 
 export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWithPlayers[]> {
-  let query = supabase
+  const query = supabase
     .from("mini_blok")
     .select(`
       *,
