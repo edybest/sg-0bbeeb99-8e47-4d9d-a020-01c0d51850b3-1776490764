@@ -18,6 +18,7 @@ type ScoreData = {
     game4?: number;
     game5?: number;
   };
+  handicap?: number;
   confidence: number;
 };
 
@@ -65,38 +66,179 @@ function levenshteinDistance(str1: string, str2: string): number {
   return matrix[str2.length][str1.length];
 }
 
-function extractScoresFromText(text: string): ScoreData[] {
-  const lines = text.split("\n").filter(line => line.trim().length > 0);
+function extractStructuredScores(text: string): ScoreData[] {
+  const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
   const scores: ScoreData[] = [];
   
+  let currentPlayer: Partial<ScoreData> | null = null;
+  
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i].toLowerCase();
     
-    const nameMatch = line.match(/^([A-Za-z\s]+)/);
-    if (!nameMatch) continue;
+    if (line.includes("name") || line.includes("player")) {
+      if (currentPlayer && currentPlayer.name) {
+        scores.push(currentPlayer as ScoreData);
+      }
+      
+      const nameMatch = lines[i].match(/(?:name|player)[:\s]+([a-zA-Z\s]+)/i);
+      if (nameMatch && nameMatch[1]) {
+        currentPlayer = {
+          name: nameMatch[1].trim(),
+          scores: {},
+          confidence: 75,
+        };
+      }
+    }
     
-    const name = nameMatch[1].trim();
-    if (name.length < 2) continue;
+    if (currentPlayer) {
+      const g1Match = line.match(/g1[:\s]+(\d+)/i) || line.match(/game\s*1[:\s]+(\d+)/i);
+      if (g1Match) {
+        const score = parseInt(g1Match[1]);
+        if (score >= 0 && score <= 300) {
+          currentPlayer.scores = currentPlayer.scores || {};
+          currentPlayer.scores.game1 = score;
+        }
+      }
+      
+      const g2Match = line.match(/g2[:\s]+(\d+)/i) || line.match(/game\s*2[:\s]+(\d+)/i);
+      if (g2Match) {
+        const score = parseInt(g2Match[1]);
+        if (score >= 0 && score <= 300) {
+          currentPlayer.scores = currentPlayer.scores || {};
+          currentPlayer.scores.game2 = score;
+        }
+      }
+      
+      const g3Match = line.match(/g3[:\s]+(\d+)/i) || line.match(/game\s*3[:\s]+(\d+)/i);
+      if (g3Match) {
+        const score = parseInt(g3Match[1]);
+        if (score >= 0 && score <= 300) {
+          currentPlayer.scores = currentPlayer.scores || {};
+          currentPlayer.scores.game3 = score;
+        }
+      }
+      
+      const g4Match = line.match(/g4[:\s]+(\d+)/i) || line.match(/game\s*4[:\s]+(\d+)/i);
+      if (g4Match) {
+        const score = parseInt(g4Match[1]);
+        if (score >= 0 && score <= 300) {
+          currentPlayer.scores = currentPlayer.scores || {};
+          currentPlayer.scores.game4 = score;
+        }
+      }
+      
+      const g5Match = line.match(/g5[:\s]+(\d+)/i) || line.match(/game\s*5[:\s]+(\d+)/i);
+      if (g5Match) {
+        const score = parseInt(g5Match[1]);
+        if (score >= 0 && score <= 300) {
+          currentPlayer.scores = currentPlayer.scores || {};
+          currentPlayer.scores.game5 = score;
+        }
+      }
+      
+      const hcpMatch = line.match(/hcp[:\s]+(\d+)/i) || line.match(/handicap[:\s]+(\d+)/i);
+      if (hcpMatch) {
+        currentPlayer.handicap = parseInt(hcpMatch[1]);
+      }
+    }
+  }
+  
+  if (currentPlayer && currentPlayer.name) {
+    scores.push(currentPlayer as ScoreData);
+  }
+  
+  return scores.filter(s => Object.keys(s.scores || {}).length > 0);
+}
+
+function extractTableScores(text: string): ScoreData[] {
+  const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+  const scores: ScoreData[] = [];
+  
+  let headerFound = false;
+  let nameIndex = -1;
+  let g1Index = -1;
+  let g2Index = -1;
+  let g3Index = -1;
+  let g4Index = -1;
+  let g5Index = -1;
+  let hcpIndex = -1;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].toLowerCase();
+    const parts = line.split(/\s+/);
     
-    const numbers = line.match(/\d+/g);
-    if (!numbers || numbers.length === 0) continue;
+    if (!headerFound && (line.includes("name") || line.includes("player"))) {
+      headerFound = true;
+      
+      parts.forEach((part, idx) => {
+        if (part.includes("name") || part.includes("player")) nameIndex = idx;
+        if (part === "g1" || part.includes("game") && part.includes("1")) g1Index = idx;
+        if (part === "g2" || part.includes("game") && part.includes("2")) g2Index = idx;
+        if (part === "g3" || part.includes("game") && part.includes("3")) g3Index = idx;
+        if (part === "g4" || part.includes("game") && part.includes("4")) g4Index = idx;
+        if (part === "g5" || part.includes("game") && part.includes("5")) g5Index = idx;
+        if (part === "hcp" || part.includes("handicap")) hcpIndex = idx;
+      });
+      
+      continue;
+    }
     
-    const scoreNums = numbers.map(n => parseInt(n)).filter(n => n >= 0 && n <= 300);
-    
-    const scoreData: ScoreData = {
-      name,
-      scores: {},
-      confidence: 75,
-    };
-    
-    if (scoreNums.length >= 1) scoreData.scores.game1 = scoreNums[0];
-    if (scoreNums.length >= 2) scoreData.scores.game2 = scoreNums[1];
-    if (scoreNums.length >= 3) scoreData.scores.game3 = scoreNums[2];
-    if (scoreNums.length >= 4) scoreData.scores.game4 = scoreNums[3];
-    if (scoreNums.length >= 5) scoreData.scores.game5 = scoreNums[4];
-    
-    if (Object.keys(scoreData.scores).length > 0) {
-      scores.push(scoreData);
+    if (headerFound && parts.length > 1) {
+      const rowParts = lines[i].split(/\s+/);
+      
+      if (rowParts.length > Math.max(nameIndex, g1Index, g2Index, g3Index, g4Index, g5Index, hcpIndex)) {
+        const scoreData: ScoreData = {
+          name: nameIndex >= 0 ? rowParts[nameIndex] : "",
+          scores: {},
+          confidence: 70,
+        };
+        
+        if (g1Index >= 0) {
+          const score = parseInt(rowParts[g1Index]);
+          if (!isNaN(score) && score >= 0 && score <= 300) {
+            scoreData.scores.game1 = score;
+          }
+        }
+        
+        if (g2Index >= 0) {
+          const score = parseInt(rowParts[g2Index]);
+          if (!isNaN(score) && score >= 0 && score <= 300) {
+            scoreData.scores.game2 = score;
+          }
+        }
+        
+        if (g3Index >= 0) {
+          const score = parseInt(rowParts[g3Index]);
+          if (!isNaN(score) && score >= 0 && score <= 300) {
+            scoreData.scores.game3 = score;
+          }
+        }
+        
+        if (g4Index >= 0) {
+          const score = parseInt(rowParts[g4Index]);
+          if (!isNaN(score) && score >= 0 && score <= 300) {
+            scoreData.scores.game4 = score;
+          }
+        }
+        
+        if (g5Index >= 0) {
+          const score = parseInt(rowParts[g5Index]);
+          if (!isNaN(score) && score >= 0 && score <= 300) {
+            scoreData.scores.game5 = score;
+          }
+        }
+        
+        if (hcpIndex >= 0) {
+          const hcp = parseInt(rowParts[hcpIndex]);
+          if (!isNaN(hcp)) {
+            scoreData.handicap = hcp;
+          }
+        }
+        
+        if (scoreData.name && Object.keys(scoreData.scores).length > 0) {
+          scores.push(scoreData);
+        }
+      }
     }
   }
   
@@ -134,7 +276,11 @@ export default async function handler(
     
     fs.unlinkSync(imagePath);
     
-    const extractedScores = extractScoresFromText(text);
+    let extractedScores = extractStructuredScores(text);
+    
+    if (extractedScores.length === 0) {
+      extractedScores = extractTableScores(text);
+    }
     
     return res.status(200).json({
       success: true,
