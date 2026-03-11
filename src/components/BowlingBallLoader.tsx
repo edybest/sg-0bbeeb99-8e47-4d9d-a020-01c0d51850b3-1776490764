@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
-interface BowlingPinLoaderProps {
+interface BowlingBallLoaderProps {
   className?: string;
   size?: "sm" | "md" | "lg";
 }
 
-export function BowlingPinLoader({ className, size = "md" }: BowlingPinLoaderProps) {
+export function BowlingBallLoader({ className, size = "md" }: BowlingBallLoaderProps) {
   const sizeClasses = {
     sm: "w-32 h-20",
     md: "w-40 h-24",
@@ -140,11 +140,11 @@ export function BowlingPinLoader({ className, size = "md" }: BowlingPinLoaderPro
 }
 
 // Full-screen loading overlay version
-export function BowlingPinLoaderOverlay() {
+export function BowlingBallLoaderOverlay() {
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="flex flex-col items-center gap-4">
-        <BowlingPinLoader size="lg" />
+        <BowlingBallLoader size="lg" />
         <p className="text-lg font-medium text-muted-foreground animate-pulse">
           Loading...
         </p>
