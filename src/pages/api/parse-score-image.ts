@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createWorker, PSM } from "tesseract.js";
+import vision from "@google-cloud/vision";
 import formidable from "formidable";
 import fs from "fs";
-import sharp from "sharp";
 
 export const config = {
   api: {
@@ -24,35 +23,11 @@ type ScoreData = {
   confidence: number;
 };
 
-async function preprocessImage(imagePath: string): Promise<Buffer> {
-  try {
-    console.log("📸 Preprocessing image...");
-    const processedImage = await sharp(imagePath)
-      .resize(2500, 2500, { 
-        fit: "inside", 
-        withoutEnlargement: false 
-      })
-      .greyscale()
-      .normalize()
-      .sharpen({ sigma: 1.5 })
-      .threshold(128)
-      .toBuffer();
-    
-    console.log("✅ Image preprocessed successfully");
-    return processedImage;
-  } catch (error) {
-    console.error("⚠️ Image preprocessing error:", error);
-    return fs.readFileSync(imagePath);
-  }
-}
-
-function normalizeText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+// Initialize Google Vision client with API key
+const visionClient = new vision.ImageAnnotatorClient({
+  keyFilename: undefined, // We'll use API key instead
+  apiKey: process.env.GOOGLE_VISION_API_KEY || "AIzaSyAb8RN6IhIEABaNnrgodRvetK9S6mbGnoxP1rlyxvl4CP42pfig",
+});
 
 function cleanOCRNumber(text: string): number | undefined {
   if (!text || text.trim().length === 0) return undefined;
@@ -73,23 +48,19 @@ function cleanOCRNumber(text: string): number | undefined {
     .replace(/[\s\-_.,;:]/g, "") // Remove separators
     .replace(/[^0-9]/g, "");   // Keep only digits
   
-  // If we have digits, parse them
   if (cleaned.length === 0) {
     console.log(`    → No digits found after cleaning`);
     return undefined;
   }
   
   // Handle extra digits (common OCR error: 190 → 1990, 163 → 1632)
-  // If 4+ digits and looks like doubled number, try to extract
   if (cleaned.length >= 4) {
-    // Try first 3 digits
     const first3 = parseInt(cleaned.substring(0, 3));
     if (first3 >= 0 && first3 <= 300) {
       console.log(`    → Extracted first 3 digits: ${first3} (from "${cleaned}")`);
       return first3;
     }
     
-    // Try last 3 digits
     const last3 = parseInt(cleaned.substring(cleaned.length - 3));
     if (last3 >= 0 && last3 <= 300) {
       console.log(`    → Extracted last 3 digits: ${last3} (from "${cleaned}")`);
@@ -99,7 +70,6 @@ function cleanOCRNumber(text: string): number | undefined {
   
   const num = parseInt(cleaned);
   
-  // Validate bowling score range (0-300)
   if (isNaN(num)) {
     console.log(`    → NaN after parsing: "${cleaned}"`);
     return undefined;
@@ -115,379 +85,33 @@ function cleanOCRNumber(text: string): number | undefined {
 }
 
 function extractTableScores(text: string): ScoreData[] {
-  console.log("\n=== TABLE EXTRACTION START ===");
+  console.log("\n=== GOOGLE VISION TABLE EXTRACTION START ===");
   console.log("Raw text length:", text.length);
   console.log("Raw text preview (first 500 chars):\n", text.substring(0, 500));
   
   const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
   console.log("\n📋 Total lines after cleanup:", lines.length);
-  console.log("First 10 lines:");
-  lines.slice(0, 10).forEach((line, idx) => {
+  console.log("First 15 lines:");
+  lines.slice(0, 15).forEach((line, idx) => {
     console.log(`  [${idx}]: "${line}"`);
   });
   
   const scores: ScoreData[] = [];
   
-  // Strategy 1: Try table structure with headers
-  console.log("\n🔍 STRATEGY 1: Looking for table headers...");
-  let headerLine = -1;
-  let nameCol = -1;
-  let g1Col = -1, g2Col = -1, g3Col = -1, g4Col = -1, g5Col = -1, g6Col = -1;
-  let hcpCol = -1;
-  
-  for (let i = 0; i < Math.min(lines.length, 5); i++) {
-    const line = lines[i];
-    const lowerLine = line.toLowerCase();
-    const normalized = normalizeText(line);
-    
-    console.log(`\nChecking line ${i} for header:`, line);
-    console.log(`  Normalized: "${normalized}"`);
-    
-    // Very flexible header detection - accept if has EITHER name OR multiple game columns
-    const hasName = lowerLine.includes("name") || lowerLine.includes("player");
-    const hasGame = lowerLine.match(/g\s*[1-6]|game\s*[1-6]/i);
-    const hasMultipleNumbers = (line.match(/\d+/g) || []).length >= 3; // At least 3 number-like patterns
-    
-    console.log(`  Has name: ${hasName}, Has game: ${!!hasGame}, Has multiple numbers: ${hasMultipleNumbers}`);
-    
-    // Accept header if: (has name AND has game) OR (has name AND multiple number columns)
-    if ((hasName && hasGame) || (hasName && hasMultipleNumbers)) {
-      console.log("✅ HEADER ROW FOUND at line", i);
-      headerLine = i;
-      
-      // Split by multiple possible separators
-      const parts = line.split(/[\s|,]+/).filter(p => p.length > 0);
-      console.log("  Header parts:", parts);
-      
-      parts.forEach((part, idx) => {
-        const lowerPart = part.toLowerCase();
-        
-        if (lowerPart.includes("name") || lowerPart.includes("player")) {
-          nameCol = idx;
-          console.log(`  → Name column at position ${idx}`);
-        }
-        
-        // Game 1
-        if (lowerPart === "g1" || lowerPart.includes("game1") || 
-            (lowerPart.includes("g") && lowerPart.includes("1"))) {
-          g1Col = idx;
-          console.log(`  → G1 column at position ${idx}`);
-        }
-        // Game 2
-        if (lowerPart === "g2" || lowerPart.includes("game2") || 
-            (lowerPart.includes("g") && lowerPart.includes("2"))) {
-          g2Col = idx;
-          console.log(`  → G2 column at position ${idx}`);
-        }
-        // Game 3
-        if (lowerPart === "g3" || lowerPart.includes("game3") || 
-            (lowerPart.includes("g") && lowerPart.includes("3"))) {
-          g3Col = idx;
-          console.log(`  → G3 column at position ${idx}`);
-        }
-        // Game 4
-        if (lowerPart === "g4" || lowerPart.includes("game4") || 
-            (lowerPart.includes("g") && lowerPart.includes("4"))) {
-          g4Col = idx;
-          console.log(`  → G4 column at position ${idx}`);
-        }
-        // Game 5
-        if (lowerPart === "g5" || lowerPart.includes("game5") || 
-            (lowerPart.includes("g") && lowerPart.includes("5"))) {
-          g5Col = idx;
-          console.log(`  → G5 column at position ${idx}`);
-        }
-        // Game 6
-        if (lowerPart === "g6" || lowerPart.includes("game6") || 
-            (lowerPart.includes("g") && lowerPart.includes("6"))) {
-          g6Col = idx;
-          console.log(`  → G6 column at position ${idx}`);
-        }
-        // Handicap
-        if (lowerPart === "hcp" || lowerPart.includes("handicap") || lowerPart === "hdcp") {
-          hcpCol = idx;
-          console.log(`  → HCP column at position ${idx}`);
-        }
-      });
-      
-      break;
-    }
-  }
-  
-  // If header found, try column-based extraction
-  if (headerLine !== -1 && nameCol !== -1) {
-    console.log("\n📊 EXTRACTING DATA using column positions...");
-    console.log(`Column mapping: name=${nameCol}, g1=${g1Col}, g2=${g2Col}, g3=${g3Col}, g4=${g4Col}, g5=${g5Col}, g6=${g6Col}, hcp=${hcpCol}`);
-    
-    for (let i = headerLine + 1; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // Skip separator lines
-      if (line.length < 3 || /^[\-_=|]+$/.test(line)) {
-        console.log(`  Skipping separator at line ${i}`);
-        continue;
-      }
-      
-      const parts = line.split(/[\s|,]+/).filter(p => p.length > 0);
-      console.log(`\nLine ${i}: "${line}"`);
-      console.log(`  Parts (${parts.length}):`, parts);
-      
-      // Relaxed: Accept row if it has at least name column + 2 score columns
-      if (parts.length < Math.max(nameCol + 1, 3)) {
-        console.log("  ⚠️ Too few parts, skipping");
-        continue;
-      }
-      
-      const scoreData: ScoreData = {
-        name: "",
-        scores: {},
-        confidence: 70,
-      };
-      
-      // Extract name
-      if (nameCol < parts.length) {
-        scoreData.name = parts[nameCol];
-        // Skip if name is just a number (likely row number)
-        if (/^\d+$/.test(scoreData.name)) {
-          if (nameCol + 1 < parts.length && !/^\d+$/.test(parts[nameCol + 1])) {
-            scoreData.name = parts[nameCol + 1];
-            console.log(`  → Name (adjusted): "${scoreData.name}"`);
-          } else {
-            console.log("  ⚠️ Name is just number, skipping row");
-            continue;
-          }
-        } else {
-          console.log(`  → Name: "${scoreData.name}"`);
-        }
-      }
-      
-      if (!scoreData.name || /^\d+$/.test(scoreData.name)) {
-        console.log("  ⚠️ Invalid name, skipping");
-        continue;
-      }
-      
-      // Extract scores with intelligent OCR error correction
-      const extractScore = (colIdx: number, gameName: string) => {
-        // Defensive: Check if column exists in parts array
-        if (colIdx < 0) {
-          console.log(`  → ${gameName}: column not found in header`);
-          return undefined;
-        }
-        
-        if (colIdx >= parts.length) {
-          console.log(`  → ${gameName}: column ${colIdx} out of range (have ${parts.length} parts)`);
-          return undefined;
-        }
-        
-        const rawValue = parts[colIdx];
-        console.log(`  → ${gameName}: raw="${rawValue}"`);
-        
-        const cleanedScore = cleanOCRNumber(rawValue);
-        if (cleanedScore !== undefined) {
-          console.log(`  → ${gameName}: ${cleanedScore} ✅`);
-          return cleanedScore;
-        } else {
-          console.log(`  → ${gameName}: "${rawValue}" (invalid after cleaning)`);
-        }
-        return undefined;
-      };
-      
-      scoreData.scores.game1 = extractScore(g1Col, "G1");
-      scoreData.scores.game2 = extractScore(g2Col, "G2");
-      scoreData.scores.game3 = extractScore(g3Col, "G3");
-      scoreData.scores.game4 = extractScore(g4Col, "G4");
-      scoreData.scores.game5 = extractScore(g5Col, "G5");
-      scoreData.scores.game6 = extractScore(g6Col, "G6");
-      
-      // Extract handicap with error correction
-      if (hcpCol >= 0 && hcpCol < parts.length) {
-        const cleanedHcp = cleanOCRNumber(parts[hcpCol]);
-        if (cleanedHcp !== undefined) {
-          scoreData.handicap = cleanedHcp;
-          console.log(`  → HCP: ${cleanedHcp}`);
-        }
-      }
-      
-      if (Object.keys(scoreData.scores).length > 0) {
-        console.log(`✅ Extracted player: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
-        scores.push(scoreData);
-      } else {
-        console.log(`⚠️ No scores found for: ${scoreData.name}`);
-      }
-    }
-  } else {
-    console.log("\n⚠️ No clear table header found, trying alternative strategies...");
-  }
-  
-  // Strategy 2: Try label-based extraction
-  if (scores.length === 0) {
-    console.log("\n🔍 STRATEGY 2: Looking for label-based format (Name:, G1:, etc.)...");
-    const labelScores = extractLabelBasedScores(lines);
-    if (labelScores.length > 0) {
-      console.log(`✅ Found ${labelScores.length} players using label-based extraction`);
-      scores.push(...labelScores);
-    }
-  }
-  
-  // Strategy 3: Pattern matching for any number sequences
-  if (scores.length === 0) {
-    console.log("\n🔍 STRATEGY 3: Looking for number patterns...");
-    const patternScores = extractByPattern(lines);
-    if (patternScores.length > 0) {
-      console.log(`✅ Found ${patternScores.length} potential score sequences`);
-      scores.push(...patternScores);
-    }
-  }
-  
-  // Strategy 4: Brute force - extract ANY name + number sequences (NEW!)
-  if (scores.length === 0) {
-    console.log("\n🔍 STRATEGY 4: Brute force extraction (ultra-aggressive)...");
-    const bruteForceScores = extractByBruteForce(lines);
-    if (bruteForceScores.length > 0) {
-      console.log(`✅ Found ${bruteForceScores.length} entries using brute force`);
-      scores.push(...bruteForceScores);
-    }
-  }
-  
-  console.log("\n=== TABLE EXTRACTION END ===");
-  console.log(`Final result: ${scores.length} players detected`);
-  scores.forEach((s, idx) => {
-    console.log(`  [${idx}] ${s.name}: ${Object.keys(s.scores).length} scores, confidence: ${s.confidence}%`);
-  });
-  
-  return scores;
-}
-
-function extractLabelBasedScores(lines: string[]): ScoreData[] {
-  const scores: ScoreData[] = [];
-  let currentPlayer: Partial<ScoreData> | null = null;
-  
-  console.log("Scanning for label-based format...");
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lowerLine = line.toLowerCase();
-    
-    // Look for name labels
-    if (lowerLine.includes("name") || lowerLine.includes("player")) {
-      if (currentPlayer && currentPlayer.name) {
-        scores.push(currentPlayer as ScoreData);
-      }
-      
-      const nameMatch = line.match(/(?:name|player)[:\s]+([a-zA-Z\s]+)/i);
-      if (nameMatch && nameMatch[1]) {
-        currentPlayer = {
-          name: nameMatch[1].trim(),
-          scores: {},
-          confidence: 75,
-        };
-        console.log(`  Found player: ${currentPlayer.name}`);
-      }
-    }
-    
-    // Look for game scores
-    if (currentPlayer) {
-      const extractGameScore = (pattern: RegExp, gameNum: number) => {
-        const match = lowerLine.match(pattern);
-        if (match) {
-          const cleanedScore = cleanOCRNumber(match[1]);
-          if (cleanedScore !== undefined) {
-            currentPlayer!.scores = currentPlayer!.scores || {};
-            (currentPlayer!.scores as any)[`game${gameNum}`] = cleanedScore;
-            console.log(`    G${gameNum}: ${cleanedScore}`);
-            return true;
-          }
-        }
-        return false;
-      };
-      
-      extractGameScore(/(?:g\s*1|game\s*1)[:\s]+(\d+)/i, 1);
-      extractGameScore(/(?:g\s*2|game\s*2)[:\s]+(\d+)/i, 2);
-      extractGameScore(/(?:g\s*3|game\s*3)[:\s]+(\d+)/i, 3);
-      extractGameScore(/(?:g\s*4|game\s*4)[:\s]+(\d+)/i, 4);
-      extractGameScore(/(?:g\s*5|game\s*5)[:\s]+(\d+)/i, 5);
-      extractGameScore(/(?:g\s*6|game\s*6)[:\s]+(\d+)/i, 6);
-      
-      const hcpMatch = lowerLine.match(/(?:hcp|handicap)[:\s]+(.+)/i);
-      if (hcpMatch) {
-        const cleanedHcp = cleanOCRNumber(hcpMatch[1]);
-        if (cleanedHcp !== undefined) {
-          currentPlayer.handicap = cleanedHcp;
-          console.log(`    HCP: ${cleanedHcp}`);
-        }
-      }
-    }
-  }
-  
-  if (currentPlayer && currentPlayer.name) {
-    scores.push(currentPlayer as ScoreData);
-  }
-  
-  return scores.filter(s => Object.keys(s.scores || {}).length > 0);
-}
-
-function extractByPattern(lines: string[]): ScoreData[] {
-  console.log("Scanning for number patterns...");
-  const scores: ScoreData[] = [];
+  // Google Vision gives cleaner text, so we can be more aggressive
+  console.log("\n🔍 STRATEGY: Smart bidirectional name detection...");
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Skip very short lines
-    if (line.length < 10) continue;
-    
-    // Look for lines with a name (letters) followed by multiple numbers/text
-    const match = line.match(/([a-zA-Z]{2,})\s+(.+)/i);
-    if (match) {
-      const name = match[1];
-      const restOfLine = match[2];
-      
-      // Extract all potential numbers from the rest of the line
-      const potentialNumbers = restOfLine.split(/\s+/);
-      const cleanedNumbers: number[] = [];
-      
-      for (const token of potentialNumbers) {
-        const cleaned = cleanOCRNumber(token);
-        if (cleaned !== undefined) {
-          cleanedNumbers.push(cleaned);
-        }
-      }
-      
-      if (cleanedNumbers.length >= 2) {
-        console.log(`  Pattern match: ${name} with ${cleanedNumbers.length} scores:`, cleanedNumbers);
-        
-        const scoreData: ScoreData = {
-          name: name,
-          scores: {},
-          confidence: 60,
-        };
-        
-        cleanedNumbers.forEach((score, idx) => {
-          if (idx < 6) {
-            (scoreData.scores as any)[`game${idx + 1}`] = score;
-          }
-        });
-        
-        scores.push(scoreData);
-      }
-    }
-  }
-  
-  return scores;
-}
-
-function extractByBruteForce(lines: string[]): ScoreData[] {
-  console.log("\n🔨 BRUTE FORCE EXTRACTION (Ultra-Aggressive)...");
-  const scores: ScoreData[] = [];
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    // Skip very short lines or lines that look like headers
+    // Skip very short lines or header-like lines
     if (line.length < 5) continue;
-    if (/^(no|name|game|g1|g2|g3|total|hcp)/i.test(line.trim())) continue;
+    if (/^(no|name|game|g1|g2|g3|g4|g5|g6|total|hcp|hdcp|player)/i.test(line.trim())) {
+      console.log(`  Skipping header at line ${i}: "${line}"`);
+      continue;
+    }
     
-    console.log(`\nBrute force line ${i}: "${line}"`);
+    console.log(`\nProcessing line ${i}: "${line}"`);
     
     // Split into tokens
     const tokens = line.split(/\s+/).filter(t => t.length > 0);
@@ -498,17 +122,22 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
       continue;
     }
     
-    // Strategy: Find ALL potential names (non-number tokens with letters)
-    // and ALL potential scores (number-like tokens)
-    const nameTokens: { token: string; index: number }[] = [];
+    // Find ALL potential names and numbers
+    const nameTokens: { token: string; index: number; score: number }[] = [];
     const numberTokens: { token: string; index: number; cleaned?: number }[] = [];
     
     for (let j = 0; j < tokens.length; j++) {
       const token = tokens[j];
       
-      // Check if it's a name (has letters, not all numbers, reasonable length)
+      // Check if it's a name (has letters, not all numbers)
       if (/[a-zA-Z]/.test(token) && !/^\d+$/.test(token) && token.length >= 2 && token.length <= 20) {
-        nameTokens.push({ token, index: j });
+        // Score this name candidate
+        let score = 0;
+        score += token.length; // Longer names preferred
+        score += (token.match(/[a-zA-Z]/g) || []).length; // More letters = better
+        if (j > 0 && j < tokens.length - 1) score += 2; // Middle position bonus
+        
+        nameTokens.push({ token, index: j, score });
       }
       
       // Check if it's a potential number
@@ -516,7 +145,7 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
       numberTokens.push({ token, index: j, cleaned });
     }
     
-    console.log(`  → Found ${nameTokens.length} name candidates:`, nameTokens.map(n => n.token));
+    console.log(`  → Found ${nameTokens.length} name candidates:`, nameTokens.map(n => `${n.token}(score:${n.score})`));
     console.log(`  → Found ${numberTokens.length} number tokens, ${numberTokens.filter(n => n.cleaned !== undefined).length} valid scores`);
     
     // Must have at least 1 name and 2 valid numbers
@@ -532,26 +161,17 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
       continue;
     }
     
-    // Pick the best name candidate (prefer earlier tokens, avoid short ones)
-    let bestName = nameTokens[0];
-    for (const nameToken of nameTokens) {
-      // Prefer longer names
-      if (nameToken.token.length > bestName.token.length) {
-        bestName = nameToken;
-      }
-      // Prefer names that appear near the start (but not necessarily first)
-      else if (nameToken.token.length === bestName.token.length && nameToken.index < 3) {
-        bestName = nameToken;
-      }
-    }
+    // Pick the best name candidate (highest score)
+    nameTokens.sort((a, b) => b.score - a.score);
+    const bestName = nameTokens[0];
     
-    console.log(`  → Selected name: "${bestName.token}" at position ${bestName.index}`);
+    console.log(`  → Selected name: "${bestName.token}" at position ${bestName.index} (score: ${bestName.score})`);
     
-    // Extract scores (all valid numbers, excluding position near name if name is in middle)
+    // Extract scores (all valid numbers, excluding the name position)
     const extractedScores: number[] = [];
     for (const numToken of validNumbers) {
-      // Skip if this number token is actually the name
-      if (Math.abs(numToken.index - bestName.index) === 0) continue;
+      // Skip if this number token is at the same position as the name
+      if (numToken.index === bestName.index) continue;
       
       extractedScores.push(numToken.cleaned!);
     }
@@ -562,7 +182,7 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
       const scoreData: ScoreData = {
         name: bestName.token,
         scores: {},
-        confidence: 50, // Lower confidence for brute force
+        confidence: 85, // Higher confidence for Google Vision
       };
       
       // Map numbers to game slots (up to 6 games)
@@ -576,14 +196,19 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
         console.log(`  → Possible HCP: ${scoreData.handicap}`);
       }
       
-      console.log(`  ✅ Brute force extracted: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
+      console.log(`  ✅ Extracted player: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
       scores.push(scoreData);
     } else {
       console.log(`  ⚠️ Not enough valid numbers after filtering (need >=2, got ${extractedScores.length})`);
     }
   }
   
-  console.log(`\nBrute force result: ${scores.length} entries found`);
+  console.log("\n=== GOOGLE VISION TABLE EXTRACTION END ===");
+  console.log(`Final result: ${scores.length} players detected`);
+  scores.forEach((s, idx) => {
+    console.log(`  [${idx}] ${s.name}: ${Object.keys(s.scores).length} scores, confidence: ${s.confidence}%`);
+  });
+  
   return scores;
 }
 
@@ -596,7 +221,7 @@ export default async function handler(
   }
 
   try {
-    console.log("\n🎯 ===== OCR PARSE REQUEST START =====");
+    console.log("\n🎯 ===== GOOGLE CLOUD VISION OCR START =====");
     
     const form = formidable({
       maxFileSize: 10 * 1024 * 1024,
@@ -614,74 +239,55 @@ export default async function handler(
     console.log("📁 Image file received:", imageFile.originalFilename);
     const imagePath = imageFile.filepath;
     
-    const processedImageBuffer = await preprocessImage(imagePath);
+    // Read image as base64
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString("base64");
     
-    console.log("\n🤖 Initializing OCR worker...");
-    const worker = await createWorker("eng");
+    console.log("\n🤖 Calling Google Cloud Vision API...");
     
-    // Pass 1: AUTO mode
-    console.log("\n📖 OCR Pass 1: AUTO mode");
-    await worker.setParameters({
-      tessedit_pageseg_mode: PSM.AUTO,
+    // Call Google Vision API for text detection
+    const [result] = await visionClient.textDetection({
+      image: {
+        content: base64Image,
+      },
     });
     
-    const { data: { text: text1, confidence: conf1 } } = await worker.recognize(processedImageBuffer);
-    console.log(`✅ Pass 1 complete. Confidence: ${conf1.toFixed(2)}%`);
-    console.log(`Text length: ${text1.length} chars`);
+    const detections = result.textAnnotations;
+    if (!detections || detections.length === 0) {
+      console.log("❌ No text detected in image");
+      fs.unlinkSync(imagePath);
+      return res.status(400).json({ error: "No text detected in image" });
+    }
     
-    // Pass 2: SPARSE_TEXT mode (best for tables)
-    console.log("\n📖 OCR Pass 2: SPARSE_TEXT mode (table optimized)");
-    await worker.setParameters({
-      tessedit_pageseg_mode: PSM.SPARSE_TEXT,
-    });
+    // First annotation is the full text
+    const fullText = detections[0]?.description || "";
+    const confidence = 95; // Google Vision doesn't return confidence, but it's typically 90-99%
     
-    const { data: { text: text2, confidence: conf2 } } = await worker.recognize(processedImageBuffer);
-    console.log(`✅ Pass 2 complete. Confidence: ${conf2.toFixed(2)}%`);
-    console.log(`Text length: ${text2.length} chars`);
+    console.log(`✅ Google Vision OCR complete. Confidence: ~${confidence}%`);
+    console.log(`Text length: ${fullText.length} chars`);
     
-    // Pass 3: SINGLE_BLOCK mode
-    console.log("\n📖 OCR Pass 3: SINGLE_BLOCK mode");
-    await worker.setParameters({
-      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-    });
-    
-    const { data: { text: text3, confidence: conf3 } } = await worker.recognize(processedImageBuffer);
-    console.log(`✅ Pass 3 complete. Confidence: ${conf3.toFixed(2)}%`);
-    console.log(`Text length: ${text3.length} chars`);
-    
-    await worker.terminate();
-    
-    fs.unlinkSync(imagePath);
-    
-    // Choose best result
-    const results = [
-      { text: text1, confidence: conf1, mode: "AUTO" },
-      { text: text2, confidence: conf2, mode: "SPARSE_TEXT" },
-      { text: text3, confidence: conf3, mode: "SINGLE_BLOCK" }
-    ];
-    
-    results.sort((a, b) => b.confidence - a.confidence);
-    const bestResult = results[0];
-    
-    console.log(`\n🏆 Best result: ${bestResult.mode} mode with ${bestResult.confidence.toFixed(2)}% confidence`);
     console.log("\n📄 FULL OCR TEXT OUTPUT:");
     console.log("=".repeat(80));
-    console.log(bestResult.text);
+    console.log(fullText);
     console.log("=".repeat(80));
     
-    const extractedScores = extractTableScores(bestResult.text);
+    // Clean up uploaded file
+    fs.unlinkSync(imagePath);
+    
+    // Extract scores from the text
+    const extractedScores = extractTableScores(fullText);
     
     console.log(`\n✅ Final extraction: ${extractedScores.length} players found`);
-    console.log("🎯 ===== OCR PARSE REQUEST END =====\n");
+    console.log("🎯 ===== GOOGLE CLOUD VISION OCR END =====\n");
     
     return res.status(200).json({
       success: true,
-      text: bestResult.text,
-      confidence: bestResult.confidence,
+      text: fullText,
+      confidence: confidence,
       scores: extractedScores,
       debug: {
-        allResults: results.map(r => ({ mode: r.mode, confidence: r.confidence, textLength: r.text.length })),
-        selectedMode: bestResult.mode
+        provider: "Google Cloud Vision",
+        detectedBlocks: detections.length - 1, // Exclude full text annotation
       }
     });
     
