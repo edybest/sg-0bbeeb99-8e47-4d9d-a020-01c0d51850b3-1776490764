@@ -160,6 +160,14 @@ export default function MiniBlokPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [ownershipFilter, setOwnershipFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date-desc");
+
+  // Available members state
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [showPlayerForm, setShowPlayerForm] = useState(false);
@@ -706,6 +714,57 @@ export default function MiniBlokPage() {
                 Create Tournament
               </Button>
             )}
+          </div>
+
+          {/* Filters */}
+          <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="search" className="sr-only">Search</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by title or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                    <SelectItem value="month">Past Month</SelectItem>
+                    <SelectItem value="year">Past Year</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ownership" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tournaments</SelectItem>
+                    <SelectItem value="mine">My Tournaments</SelectItem>
+                    <SelectItem value="shared">Shared With Me</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-desc">Newest First</SelectItem>
+                    <SelectItem value="date-asc">Oldest First</SelectItem>
+                    <SelectItem value="title">Title (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Entries Grid */}
