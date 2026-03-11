@@ -226,6 +226,8 @@ export default function MiniBlokPage() {
       return;
     }
 
+    console.log("Creating tournament with member:", member.id);
+
     if (!tournamentForm.title.trim()) {
       toast({
         title: "Validation Error",
@@ -254,6 +256,8 @@ export default function MiniBlokPage() {
         owner_id: member.id,
       });
 
+      console.log("Tournament created successfully:", entry);
+
       toast({
         title: "Success",
         description: "Tournament created successfully",
@@ -269,9 +273,10 @@ export default function MiniBlokPage() {
       loadEntries();
     } catch (error) {
       console.error("Error creating tournament:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
       toast({
         title: "Error",
-        description: "Failed to create tournament",
+        description: error instanceof Error ? error.message : "Failed to create tournament",
         variant: "destructive",
       });
     } finally {

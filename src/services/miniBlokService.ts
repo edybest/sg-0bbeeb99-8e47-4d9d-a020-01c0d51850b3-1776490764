@@ -111,16 +111,22 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
 }
 
 export async function createMiniBlok(entry: MiniBlokInsert): Promise<MiniBlok> {
+  console.log("createMiniBlok called with:", entry);
+  
   const { data, error } = await supabase
     .from("mini_blok")
     .insert(entry)
     .select()
     .single();
 
-  console.log("createMiniBlok:", { data, error });
+  console.log("createMiniBlok result:", { data, error });
 
   if (error) {
     console.error("Error creating mini blok:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    console.error("Error details:", error.details);
+    console.error("Error hint:", error.hint);
     throw error;
   }
 
