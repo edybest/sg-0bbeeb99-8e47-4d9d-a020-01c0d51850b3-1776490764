@@ -38,7 +38,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { MobileNav } from "@/components/member/MobileNav";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
@@ -344,7 +343,7 @@ export default function MiniBlokPage() {
   }
 
   return (
-    <PageAccessGuard requireLogin={false}>
+    <>
       <Head>
         <title>Mini Blok - AMBC CLUB</title>
       </Head>
@@ -695,6 +694,6 @@ export default function MiniBlokPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </PageAccessGuard>
+    </>
   );
 }
