@@ -65,8 +65,8 @@ export default function AverageScorePage() {
       if (membersError) throw membersError;
 
       const statsPromises = members?.map(async (member) => {
-        // Get last 3 official Blok games
-        const { data: recentGames } = await supabase
+        // Get all official Blok games for this member
+        const { data: allGames } = await supabase
           .from("game_players")
           .select(`
             average_score,
@@ -77,15 +77,22 @@ export default function AverageScorePage() {
             )
           `)
           .eq("member_id", member.id)
-          .eq("games.game_type", "Blok Rasmi 10 PIN")
-          .order("games.game_date", { ascending: false })
-          .limit(3);
+          .eq("games.game_type", "Blok Rasmi 10 PIN");
 
-        const games = recentGames?.map((g: any) => ({
+        // Sort by date in JavaScript and take last 3
+        const sortedGames = (allGames || [])
+          .sort((a: any, b: any) => {
+            const dateA = new Date(a.games.game_date).getTime();
+            const dateB = new Date(b.games.game_date).getTime();
+            return dateB - dateA; // Descending order (newest first)
+          })
+          .slice(0, 3);
+
+        const games = sortedGames.map((g: any) => ({
           game_name: g.games.game_name,
           game_date: g.games.game_date,
           average_score: g.average_score
-        })) || [];
+        }));
 
         // Calculate average of 3 recent games
         const avgOf3 = games.length > 0
