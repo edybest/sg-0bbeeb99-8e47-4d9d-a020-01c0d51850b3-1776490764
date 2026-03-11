@@ -67,6 +67,7 @@ import {
   type MiniBlokWithPlayers,
 } from "@/services/miniBlokService";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface PlayerForm {
   player_name: string;
@@ -161,6 +162,19 @@ export default function MiniBlokPage() {
   const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
+
+  // Player Profile State
+  const [showPlayerProfile, setShowPlayerProfile] = useState(false);
+  const [loadingPlayerProfile, setLoadingPlayerProfile] = useState(false);
+  const [playerProfileData, setPlayerProfileData] = useState<{
+    playerName: string;
+    totalScore: number;
+    averageScore: string;
+    gamesPlayed: number;
+    highestScore: number;
+    lowestScore: number;
+    tournaments: any[];
+  } | null>(null);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -695,8 +709,81 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
+  async function openPlayerProfile(playerName: string) {
+    setLoadingPlayerProfile(true);
+    setShowPlayerProfile(true);
+    
+    try {
+      const playerTournaments = entries.filter(entry => 
+        entry.players.some(p => p.player_name === playerName)
+      );
+
+      let totalScore = 0;
+      let totalGames = 0;
+      let highestScore = 0;
+      let lowestScore = 999;
+      const tournamentsData = [];
+
+      for (const entry of playerTournaments) {
+        const player = entry.players.find(p => p.player_name === playerName);
+        if (!player) continue;
+
+        const scores = (player.scores as Record<string, number>) || {};
+        const gameScores = [];
+        let tTotal = 0;
+        let tGames = 0;
+
+        for (let i = 1; i <= (entry.num_games || 5); i++) {
+          const score = scores[`game_${i}`];
+          if (score && typeof score === 'number' && score > 0) {
+            gameScores.push(score);
+            tTotal += score;
+            tGames++;
+            if (score > highestScore) highestScore = score;
+            if (score < lowestScore) lowestScore = score;
+          } else {
+            gameScores.push(null);
+          }
+        }
+
+        totalScore += tTotal;
+        totalGames += tGames;
+
+        tournamentsData.push({
+          title: entry.title,
+          date: entry.date,
+          location: entry.location,
+          scores: gameScores,
+          total: tTotal,
+          average: tGames > 0 ? (tTotal / tGames).toFixed(2) : "0",
+          num_games: entry.num_games || 5
+        });
+      }
+
+      if (lowestScore === 999) lowestScore = 0;
+
+      setPlayerProfileData({
+        playerName,
+        totalScore,
+        averageScore: totalGames > 0 ? (totalScore / totalGames).toFixed(2) : "0.00",
+        gamesPlayed: totalGames,
+        highestScore,
+        lowestScore,
+        tournaments: tournamentsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      });
+    } catch (error) {
+      console.error("Error loading player profile:", error);
+    } finally {
+      setLoadingPlayerProfile(false);
+    }
+  }
+
   if (loading) {
-    return <BowlingBallLoader />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <BowlingBallLoader />
+      </div>
+    );
   }
 
   return (
@@ -904,7 +991,12 @@ export default function MiniBlokPage() {
                                   <Badge variant={idx === 0 ? "default" : "secondary"}>
                                     {idx + 1}
                                   </Badge>
-                                  <span className="font-semibold truncate">{player.player_name}</span>
+                                  <span 
+                                    className="font-semibold truncate text-primary hover:underline cursor-pointer"
+                                    onClick={() => openPlayerProfile(player.player_name)}
+                                  >
+                                    {player.player_name}
+                                  </span>
                                 </div>
                                 <div className="text-right">
                                   <div className="text-sm font-bold text-primary">
@@ -1395,7 +1487,14 @@ export default function MiniBlokPage() {
                                         {idx + 1}
                                       </Badge>
                                     </TableCell>
-                                    <TableCell className="font-semibold">{player.player_name}</TableCell>
+                                    <TableCell className="font-semibold">
+                                      <span 
+                                        className="font-semibold truncate text-primary hover:underline cursor-pointer"
+                                        onClick={() => openPlayerProfile(player.player_name)}
+                                      >
+                                        {player.player_name}
+                                      </span>
+                                    </TableCell>
                                     {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
                                       const score = scores[`game_${i + 1}`] as number | null;
                                       return (
@@ -1626,6 +1725,125 @@ export default function MiniBlokPage() {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Player Profile Dialog */}
+      <Dialog open={showPlayerProfile} onOpenChange={setShowPlayerProfile}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-primary" />
+              {playerProfileData?.playerName}&apos;s Profile
+            </DialogTitle>
+          </DialogHeader>
+
+          {loadingPlayerProfile ? (
+            <div className="flex justify-center py-12">
+              <BowlingBallLoader />
+            </div>
+          ) : playerProfileData ? (
+            <div className="space-y-6 mt-4">
+              {/* Overall Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-muted-foreground font-medium uppercase">Total Score</div>
+                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.totalScore}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-muted-foreground font-medium uppercase">Average</div>
+                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.averageScore}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-muted-foreground font-medium uppercase">Games</div>
+                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.gamesPlayed}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-green-500/10 border-green-500/20">
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-muted-foreground font-medium uppercase">High Score</div>
+                    <div className="text-xl font-bold text-green-600 mt-1">{playerProfileData.highestScore}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-red-500/10 border-red-500/20">
+                  <CardContent className="p-3 flex flex-col items-center justify-center">
+                    <div className="text-xs text-muted-foreground font-medium uppercase">Low Score</div>
+                    <div className="text-xl font-bold text-red-600 mt-1">{playerProfileData.lowestScore}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Tournaments History */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  Tournament History
+                </h3>
+                
+                <div className="space-y-4">
+                  {playerProfileData.tournaments.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8 bg-muted/20 rounded-lg">
+                      No tournament records found.
+                    </div>
+                  ) : (
+                    playerProfileData.tournaments.map((t, i) => (
+                      <Card key={i} className="overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-muted/40 border-b">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <CardTitle className="text-base font-semibold">{t.title}</CardTitle>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{new Date(t.date).toLocaleDateString("en-MY", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <span>•</span>
+                                <MapPin className="h-3 w-3 ml-1" />
+                                <span className="truncate">{t.location}</span>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 sm:text-right">
+                              <div>
+                                <div className="text-xs text-muted-foreground">Total</div>
+                                <div className="font-bold text-primary">{t.total}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground">Avg</div>
+                                <div className="font-semibold">{t.average}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <div className="flex flex-wrap gap-2">
+                            {t.scores.map((score: number | null, j: number) => (
+                              <div key={j} className="flex flex-col items-center">
+                                <span className="text-[10px] text-muted-foreground mb-1">G{j + 1}</span>
+                                <Badge 
+                                  variant="secondary"
+                                  className={cn(
+                                    "w-12 h-8 flex items-center justify-center text-sm font-semibold",
+                                    score !== null 
+                                      ? `${GAME_COLORS[j % GAME_COLORS.length]} text-white border-transparent` 
+                                      : "bg-muted text-muted-foreground"
+                                  )}
+                                >
+                                  {score !== null ? score : "-"}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>
