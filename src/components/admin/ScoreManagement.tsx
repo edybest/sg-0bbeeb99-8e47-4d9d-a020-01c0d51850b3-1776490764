@@ -4,7 +4,7 @@ import { memberService } from "@/services/memberService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Save, Search, Upload, X, Check, AlertCircle } from "lucide-react";
+import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText } from "lucide-react";
 import Image from "next/image";
 
 type GamePlayer = {
@@ -49,9 +49,18 @@ type ParsedScore = {
     game4?: number;
     game5?: number;
   };
+  handicap?: number;
   confidence: number;
   matchedMember?: Member;
   matchConfidence?: number;
+};
+
+type OCRResult = {
+  success: boolean;
+  text?: string;
+  confidence?: number;
+  scores?: ParsedScore[];
+  error?: string;
 };
 
 export function ScoreManagement() {
@@ -70,9 +79,11 @@ export function ScoreManagement() {
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
+  const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
   const [parsedScores, setParsedScores] = useState<ParsedScore[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [showRawText, setShowRawText] = useState(false);
 
   useEffect(() => {
     loadGames();
@@ -254,6 +265,11 @@ export function ScoreManagement() {
       setImagePreview(reader.result as string);
     };
     reader.readAsDataURL(file);
+    
+    // Reset previous results
+    setOcrResult(null);
+    setParsedScores([]);
+    setShowRawText(false);
   }
 
   function fuzzyMatch(str1: string, str2: string): number {
@@ -301,6 +317,9 @@ export function ScoreManagement() {
     if (!uploadedImage) return;
 
     setParsing(true);
+    setOcrResult(null);
+    setParsedScores([]);
+    
     try {
       const formData = new FormData();
       formData.append("image", uploadedImage);
@@ -310,14 +329,20 @@ export function ScoreManagement() {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to parse image");
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setOcrResult({
+          success: false,
+          error: data.error || "Failed to parse image"
+        });
+        return;
       }
 
-      const data = await response.json();
+      setOcrResult(data);
       
       // Match parsed names with members
-      const matchedScores: ParsedScore[] = data.scores.map((score: ParsedScore) => {
+      const matchedScores: ParsedScore[] = (data.scores || []).map((score: ParsedScore) => {
         const match = findBestMemberMatch(score.name);
         return {
           ...score,
@@ -327,9 +352,18 @@ export function ScoreManagement() {
       });
 
       setParsedScores(matchedScores);
+      
+      // Auto-show raw text if no scores detected or low confidence
+      if (matchedScores.length === 0 || (data.confidence && data.confidence < 70)) {
+        setShowRawText(true);
+      }
+      
     } catch (error) {
       console.error("Error parsing image:", error);
-      alert("Gagal memproses gambar. Sila cuba lagi.");
+      setOcrResult({
+        success: false,
+        error: "Gagal memproses gambar. Sila cuba lagi."
+      });
     } finally {
       setParsing(false);
     }
@@ -346,11 +380,12 @@ export function ScoreManagement() {
 
     setEditingScores(prev => {
       const updated = { ...player };
-      if (parsedScore.scores.game1) updated.game1_score = parsedScore.scores.game1;
-      if (parsedScore.scores.game2) updated.game2_score = parsedScore.scores.game2;
-      if (parsedScore.scores.game3) updated.game3_score = parsedScore.scores.game3;
-      if (parsedScore.scores.game4) updated.game4_score = parsedScore.scores.game4;
-      if (parsedScore.scores.game5) updated.game5_score = parsedScore.scores.game5;
+      if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
+      if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
+      if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
+      if (parsedScore.scores.game4 !== undefined) updated.game4_score = parsedScore.scores.game4;
+      if (parsedScore.scores.game5 !== undefined) updated.game5_score = parsedScore.scores.game5;
+      if (parsedScore.handicap !== undefined) updated.handicap = parsedScore.handicap;
 
       const total = updated.game1_score + updated.game2_score + updated.game3_score + 
                     updated.game4_score + updated.game5_score;
@@ -372,20 +407,78 @@ export function ScoreManagement() {
   }
 
   function handleApplyAllScores() {
-    parsedScores.forEach(score => {
-      if (score.matchedMember && score.matchConfidence && score.matchConfidence >= 80) {
-        handleApplyParsedScore(score);
-      }
+    const highConfidenceScores = parsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
+    
+    if (highConfidenceScores.length === 0) {
+      alert("Tiada score dengan confidence tinggi (≥80%) untuk apply automatically.");
+      return;
+    }
+    
+    highConfidenceScores.forEach(score => {
+      handleApplyParsedScore(score);
     });
+    
     setShowUploadModal(false);
-    alert(`${parsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80).length} skor telah diisi. Sila semak dan simpan.`);
+    alert(`${highConfidenceScores.length} skor telah diisi. Sila semak dan simpan.`);
   }
 
   function resetUpload() {
     setUploadedImage(null);
     setImagePreview(null);
     setParsedScores([]);
+    setOcrResult(null);
+    setShowRawText(false);
     setShowUploadModal(false);
+  }
+
+  function retryWithNewImage() {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setParsedScores([]);
+    setOcrResult(null);
+    setShowRawText(false);
+  }
+
+  function getConfidenceColor(confidence?: number): string {
+    if (!confidence) return "text-gray-500";
+    if (confidence >= 80) return "text-green-600";
+    if (confidence >= 60) return "text-yellow-600";
+    return "text-red-600";
+  }
+
+  function getConfidenceBadge(confidence?: number): JSX.Element {
+    if (!confidence) {
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-600">
+          Unknown
+        </span>
+      );
+    }
+    
+    if (confidence >= 80) {
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700 flex items-center gap-1">
+          <Check className="h-3 w-3" />
+          High ({confidence.toFixed(0)}%)
+        </span>
+      );
+    }
+    
+    if (confidence >= 60) {
+      return (
+        <span className="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-700 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />
+          Medium ({confidence.toFixed(0)}%)
+        </span>
+      );
+    }
+    
+    return (
+      <span className="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-700 flex items-center gap-1">
+        <AlertCircle className="h-3 w-3" />
+        Low ({confidence.toFixed(0)}%)
+      </span>
+    );
   }
 
   if (loading && !selectedGameId) {
@@ -435,7 +528,9 @@ export function ScoreManagement() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
                   <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                   <p className="text-gray-600 mb-2">Upload gambar score sheet</p>
-                  <p className="text-sm text-gray-500 mb-4">Pastikan gambar jelas dan nama pemain kelihatan</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Pastikan gambar jelas dengan labels: Name/Player, G1-G5, HCP
+                  </p>
                   <label className="cursor-pointer">
                     <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block">
                       Pilih Gambar
@@ -451,7 +546,7 @@ export function ScoreManagement() {
               )}
 
               {/* Image Preview & Parse */}
-              {imagePreview && !parsedScores.length && (
+              {imagePreview && !ocrResult && (
                 <div className="space-y-4">
                   <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
                     <Image
@@ -470,138 +565,311 @@ export function ScoreManagement() {
                       {parsing ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
+                          Processing OCR...
                         </>
                       ) : (
                         <>
                           <Search className="h-4 w-4 mr-2" />
-                          Parse Score
+                          Parse Score (AI)
                         </>
                       )}
                     </Button>
                     <Button
-                      onClick={resetUpload}
+                      onClick={retryWithNewImage}
                       variant="outline"
                       className="border-gray-300"
                     >
-                      Cancel
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Change Image
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Parsed Results */}
-              {parsedScores.length > 0 && (
+              {/* OCR Results */}
+              {ocrResult && (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold text-gray-900">Detected Scores ({parsedScores.length})</h4>
-                    <Button
-                      onClick={handleApplyAllScores}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Apply All (≥80%)
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {parsedScores.map((score, idx) => (
-                      <Card key={idx} className={`border-2 ${
-                        score.matchConfidence && score.matchConfidence >= 80
-                          ? "border-green-200 bg-green-50"
-                          : score.matchConfidence && score.matchConfidence >= 60
-                          ? "border-yellow-200 bg-yellow-50"
-                          : "border-red-200 bg-red-50"
+                  {/* OCR Success/Failure Banner */}
+                  {!ocrResult.success ? (
+                    <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-6 w-6 text-red-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-red-900 mb-1">OCR Detection Failed</h4>
+                          <p className="text-sm text-red-700 mb-3">
+                            {ocrResult.error || "Gagal mengesan text dari gambar"}
+                          </p>
+                          <div className="space-y-2 text-sm text-red-800">
+                            <p className="font-medium">Sila cuba:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>Upload gambar dengan kualiti lebih tinggi</li>
+                              <li>Pastikan text jelas dan tidak kabur</li>
+                              <li>Gunakan lighting yang baik (no shadows)</li>
+                              <li>Crop gambar untuk show score table sahaja</li>
+                              <li>Gunakan format: Name:, G1:, G2:, etc.</li>
+                            </ul>
+                          </div>
+                          <div className="flex gap-2 mt-4">
+                            <Button
+                              onClick={retryWithNewImage}
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                              Try Another Image
+                            </Button>
+                            <Button
+                              onClick={resetUpload}
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* OCR Confidence Summary */}
+                      <div className={`border-2 rounded-lg p-4 ${
+                        (ocrResult.confidence || 0) >= 80 ? "bg-green-50 border-green-200" :
+                        (ocrResult.confidence || 0) >= 60 ? "bg-yellow-50 border-yellow-200" :
+                        "bg-red-50 border-red-200"
                       }`}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">
-                                Detected: {score.name}
-                              </p>
-                              {score.matchedMember && (
-                                <p className="text-sm text-gray-600">
-                                  → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
-                                  <span className={`ml-2 font-semibold ${
-                                    score.matchConfidence! >= 80 ? "text-green-600" :
-                                    score.matchConfidence! >= 60 ? "text-yellow-600" :
-                                    "text-red-600"
-                                  }`}>
-                                    {score.matchConfidence?.toFixed(0)}% match
-                                  </span>
-                                </p>
-                              )}
-                              {!score.matchedMember && (
-                                <p className="text-sm text-red-600 flex items-center gap-1">
-                                  <AlertCircle className="h-3 w-3" />
-                                  No match found
-                                </p>
-                              )}
-                            </div>
-                            {score.matchedMember && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApplyParsedScore(score)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                Apply
-                              </Button>
-                            )}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Info className={`h-5 w-5 ${getConfidenceColor(ocrResult.confidence)}`} />
+                            <h4 className="font-semibold text-gray-900">OCR Detection Results</h4>
                           </div>
-                          <div className="grid grid-cols-5 gap-2 text-sm">
-                            {score.scores.game1 && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
-                                <div className="text-xs text-gray-500">G1</div>
-                                <div className="font-semibold text-blue-600">{score.scores.game1}</div>
-                              </div>
-                            )}
-                            {score.scores.game2 && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
-                                <div className="text-xs text-gray-500">G2</div>
-                                <div className="font-semibold text-green-600">{score.scores.game2}</div>
-                              </div>
-                            )}
-                            {score.scores.game3 && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
-                                <div className="text-xs text-gray-500">G3</div>
-                                <div className="font-semibold text-purple-600">{score.scores.game3}</div>
-                              </div>
-                            )}
-                            {score.scores.game4 && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
-                                <div className="text-xs text-gray-500">G4</div>
-                                <div className="font-semibold text-orange-600">{score.scores.game4}</div>
-                              </div>
-                            )}
-                            {score.scores.game5 && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
-                                <div className="text-xs text-gray-500">G5</div>
-                                <div className="font-semibold text-pink-600">{score.scores.game5}</div>
-                              </div>
-                            )}
+                          {getConfidenceBadge(ocrResult.confidence)}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                          <div>
+                            <span className="text-gray-600">Overall Confidence:</span>
+                            <span className={`ml-2 font-bold ${getConfidenceColor(ocrResult.confidence)}`}>
+                              {ocrResult.confidence?.toFixed(0)}%
+                            </span>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          <div>
+                            <span className="text-gray-600">Scores Detected:</span>
+                            <span className="ml-2 font-bold text-gray-900">
+                              {parsedScores.length} player{parsedScores.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </div>
 
-                  <div className="flex gap-2 pt-4 border-t">
-                    <Button
-                      onClick={resetUpload}
-                      variant="outline"
-                      className="flex-1 border-gray-300"
-                    >
-                      Upload New Image
-                    </Button>
-                    <Button
-                      onClick={() => setShowUploadModal(false)}
-                      variant="outline"
-                      className="flex-1 border-gray-300"
-                    >
-                      Close
-                    </Button>
-                  </div>
+                        {/* Low Confidence Warning */}
+                        {ocrResult.confidence && ocrResult.confidence < 70 && (
+                          <div className="mt-3 pt-3 border-t border-yellow-300">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="h-4 w-4 text-yellow-700 mt-0.5 flex-shrink-0" />
+                              <p className="text-xs text-yellow-800">
+                                <strong>Low confidence detection.</strong> Sila semak raw text di bawah dan verify semua scores before applying.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Raw OCR Text Toggle */}
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-semibold text-gray-900">
+                          Detected Players ({parsedScores.length})
+                        </h4>
+                        <Button
+                          onClick={() => setShowRawText(!showRawText)}
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-300"
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          {showRawText ? "Hide" : "Show"} Raw Text
+                        </Button>
+                      </div>
+
+                      {/* Raw OCR Text Display */}
+                      {showRawText && ocrResult.text && (
+                        <Card className="bg-gray-50 border-2 border-gray-300">
+                          <CardContent className="p-4">
+                            <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Raw OCR Text (What AI Detected)
+                            </h5>
+                            <pre className="text-xs text-gray-800 whitespace-pre-wrap font-mono bg-white p-3 rounded border border-gray-200 max-h-48 overflow-y-auto">
+                              {ocrResult.text}
+                            </pre>
+                            <p className="text-xs text-gray-600 mt-2">
+                              💡 Use this to debug if scores are not detected correctly. Check for labels like "Name:", "G1:", "G2:", etc.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* No Scores Detected */}
+                      {parsedScores.length === 0 && (
+                        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-yellow-900 mb-1">No Scores Detected</h4>
+                              <p className="text-sm text-yellow-700 mb-3">
+                                OCR detected text tetapi tidak dapat extract structured scores.
+                              </p>
+                              <div className="space-y-2 text-sm text-yellow-800">
+                                <p className="font-medium">Pastikan gambar ada labels:</p>
+                                <ul className="list-disc list-inside space-y-1 ml-2">
+                                  <li><code className="bg-yellow-100 px-1 rounded">Name:</code> atau <code className="bg-yellow-100 px-1 rounded">Player:</code></li>
+                                  <li><code className="bg-yellow-100 px-1 rounded">G1:</code>, <code className="bg-yellow-100 px-1 rounded">G2:</code>, <code className="bg-yellow-100 px-1 rounded">G3:</code>, etc.</li>
+                                  <li><code className="bg-yellow-100 px-1 rounded">HCP:</code> atau <code className="bg-yellow-100 px-1 rounded">Handicap:</code></li>
+                                </ul>
+                              </div>
+                              <div className="flex gap-2 mt-4">
+                                <Button
+                                  onClick={() => setShowRawText(true)}
+                                  size="sm"
+                                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  Show What Was Detected
+                                </Button>
+                                <Button
+                                  onClick={retryWithNewImage}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-yellow-300"
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                  Try Another Image
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Parsed Scores List */}
+                      {parsedScores.length > 0 && (
+                        <>
+                          <div className="flex justify-end">
+                            <Button
+                              onClick={handleApplyAllScores}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              disabled={!parsedScores.some(s => s.matchConfidence && s.matchConfidence >= 80)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Apply All High Confidence (≥80%)
+                            </Button>
+                          </div>
+
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {parsedScores.map((score, idx) => (
+                              <Card key={idx} className={`border-2 ${
+                                score.matchConfidence && score.matchConfidence >= 80
+                                  ? "border-green-200 bg-green-50"
+                                  : score.matchConfidence && score.matchConfidence >= 60
+                                  ? "border-yellow-200 bg-yellow-50"
+                                  : "border-red-200 bg-red-50"
+                              }`}>
+                                <CardContent className="p-4">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-gray-900">
+                                        Detected: {score.name}
+                                      </p>
+                                      {score.matchedMember ? (
+                                        <div className="mt-1">
+                                          <p className="text-sm text-gray-600">
+                                            → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
+                                          </p>
+                                          <div className="mt-1">
+                                            {getConfidenceBadge(score.matchConfidence)}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
+                                          <AlertCircle className="h-3 w-3" />
+                                          No match found - Please enter manually
+                                        </p>
+                                      )}
+                                    </div>
+                                    {score.matchedMember && (
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleApplyParsedScore(score)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      >
+                                        Apply
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-5 gap-2 text-sm mt-3">
+                                    {score.scores.game1 !== undefined && (
+                                      <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
+                                        <div className="text-xs text-gray-500">G1</div>
+                                        <div className="font-semibold text-blue-600">{score.scores.game1}</div>
+                                      </div>
+                                    )}
+                                    {score.scores.game2 !== undefined && (
+                                      <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
+                                        <div className="text-xs text-gray-500">G2</div>
+                                        <div className="font-semibold text-green-600">{score.scores.game2}</div>
+                                      </div>
+                                    )}
+                                    {score.scores.game3 !== undefined && (
+                                      <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
+                                        <div className="text-xs text-gray-500">G3</div>
+                                        <div className="font-semibold text-purple-600">{score.scores.game3}</div>
+                                      </div>
+                                    )}
+                                    {score.scores.game4 !== undefined && (
+                                      <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
+                                        <div className="text-xs text-gray-500">G4</div>
+                                        <div className="font-semibold text-orange-600">{score.scores.game4}</div>
+                                      </div>
+                                    )}
+                                    {score.scores.game5 !== undefined && (
+                                      <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
+                                        <div className="text-xs text-gray-500">G5</div>
+                                        <div className="font-semibold text-pink-600">{score.scores.game5}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {score.handicap !== undefined && (
+                                    <div className="mt-2 text-sm">
+                                      <span className="text-gray-600">Handicap:</span>
+                                      <span className="ml-2 font-semibold text-yellow-600">{score.handicap}</span>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex gap-2 pt-4 border-t">
+                        <Button
+                          onClick={retryWithNewImage}
+                          variant="outline"
+                          className="flex-1 border-gray-300"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Upload New Image
+                        </Button>
+                        <Button
+                          onClick={() => setShowUploadModal(false)}
+                          variant="outline"
+                          className="flex-1 border-gray-300"
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
