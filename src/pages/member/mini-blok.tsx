@@ -67,6 +67,7 @@ import {
   type MiniBlokWithPlayers,
 } from "@/services/miniBlokService";
 import { getMembersByIds } from "@/services/memberService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlayerForm {
   player_name: string;
@@ -247,8 +248,11 @@ export default function MiniBlokPage() {
     try {
       setSubmitting(true);
       const entry = await createMiniBlok({
-        ...tournamentForm,
-        created_by: member.id,
+        title: tournamentForm.title,
+        location: tournamentForm.location,
+        date: tournamentForm.date,
+        num_games: tournamentForm.total_games,
+        owner_id: member.id,
       });
 
       toast({
@@ -285,7 +289,7 @@ export default function MiniBlokPage() {
         title: tournamentForm.title,
         location: tournamentForm.location,
         date: tournamentForm.date,
-        total_games: tournamentForm.total_games,
+        num_games: tournamentForm.total_games,
       });
 
       toast({
@@ -333,9 +337,9 @@ export default function MiniBlokPage() {
     setSelectedEntry(entry);
     setTournamentForm({
       title: entry.title || "",
-      location: entry.location,
-      date: entry.date,
-      total_games: entry.total_games,
+      location: entry.location || "",
+      date: entry.date || new Date().toISOString().split("T")[0],
+      total_games: entry.num_games || 5,
     });
     setShowManageDialog(true);
   }
@@ -356,29 +360,30 @@ export default function MiniBlokPage() {
 
   function openEditPlayerDialog(player: any) {
     setEditingPlayer(player);
+    const scores = (player.scores as Record<string, number>) || {};
     const formData: PlayerForm = {
       player_name: player.player_name,
-      handicap: player.handicap,
-      game_1: player.game_1,
-      game_2: player.game_2,
-      game_3: player.game_3,
-      game_4: player.game_4,
-      game_5: player.game_5,
-      game_6: player.game_6,
-      game_7: player.game_7,
-      game_8: player.game_8,
-      game_9: player.game_9,
-      game_10: player.game_10,
-      game_11: player.game_11,
-      game_12: player.game_12,
-      game_13: player.game_13,
-      game_14: player.game_14,
-      game_15: player.game_15,
-      game_16: player.game_16,
-      game_17: player.game_17,
-      game_18: player.game_18,
-      game_19: player.game_19,
-      game_20: player.game_20,
+      handicap: player.handicap || 0,
+      game_1: scores.game_1 || null,
+      game_2: scores.game_2 || null,
+      game_3: scores.game_3 || null,
+      game_4: scores.game_4 || null,
+      game_5: scores.game_5 || null,
+      game_6: scores.game_6 || null,
+      game_7: scores.game_7 || null,
+      game_8: scores.game_8 || null,
+      game_9: scores.game_9 || null,
+      game_10: scores.game_10 || null,
+      game_11: scores.game_11 || null,
+      game_12: scores.game_12 || null,
+      game_13: scores.game_13 || null,
+      game_14: scores.game_14 || null,
+      game_15: scores.game_15 || null,
+      game_16: scores.game_16 || null,
+      game_17: scores.game_17 || null,
+      game_18: scores.game_18 || null,
+      game_19: scores.game_19 || null,
+      game_20: scores.game_20 || null,
     };
     setPlayerForm(formData);
   }
@@ -395,12 +400,15 @@ export default function MiniBlokPage() {
       return;
     }
 
-    const games = Array.from({ length: selectedEntry.total_games }, (_, i) => {
-      const key = `game_${i + 1}` as keyof PlayerForm;
-      return playerForm[key];
-    }).filter(g => g !== null && g > 0);
+    const scoresObj: Record<string, number> = {};
+    for (let i = 1; i <= selectedEntry.num_games; i++) {
+      const val = playerForm[`game_${i}` as keyof PlayerForm];
+      if (typeof val === 'number' && val > 0) {
+        scoresObj[`game_${i}`] = val;
+      }
+    }
 
-    if (games.length === 0) {
+    if (Object.keys(scoresObj).length === 0) {
       toast({
         title: "Validation Error",
         description: "At least one game score is required",
@@ -413,14 +421,20 @@ export default function MiniBlokPage() {
       setSubmitting(true);
 
       if (editingPlayer) {
-        await updatePlayer(editingPlayer.id, playerForm);
+        await updatePlayer(editingPlayer.id, {
+          player_name: playerForm.player_name,
+          handicap: playerForm.handicap,
+          scores: scoresObj
+        });
         toast({
           title: "Success",
           description: "Player updated successfully",
         });
       } else {
         await addPlayer({
-          ...playerForm,
+          player_name: playerForm.player_name,
+          handicap: playerForm.handicap,
+          scores: scoresObj,
           mini_blok_id: selectedEntry.id,
         });
         toast({
@@ -482,8 +496,8 @@ export default function MiniBlokPage() {
 
       if (members) {
         const filtered = members.filter(
-          m => m.id !== entry.created_by && 
-          !entry.shared_with.some(s => s.member_id === m.id)
+          m => m.id !== entry.owner_id && 
+          !entry.shared_with.some(s => s.user_id === m.id)
         );
         setAvailableMembers(filtered);
       }
@@ -653,8 +667,8 @@ export default function MiniBlokPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {entries.map((entry) => {
                 const sortedPlayers = [...entry.players].sort((a, b) => {
-                  const statsA = calculatePlayerStats(a, entry.total_games);
-                  const statsB = calculatePlayerStats(b, entry.total_games);
+                  const statsA = calculatePlayerStats(a, entry.num_games || 5);
+                  const statsB = calculatePlayerStats(b, entry.num_games || 5);
                   return statsB.overall_score - statsA.overall_score;
                 });
 
@@ -680,7 +694,7 @@ export default function MiniBlokPage() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Users className="h-4 w-4 flex-shrink-0" />
-                            <span>{entry.players.length} players · {entry.total_games} games</span>
+                            <span>{entry.players.length} players · {entry.num_games} games</span>
                           </div>
                         </div>
 
@@ -713,7 +727,7 @@ export default function MiniBlokPage() {
                       ) : (
                         <div className="space-y-2">
                           {sortedPlayers.slice(0, 3).map((player, idx) => {
-                            const stats = calculatePlayerStats(player, entry.total_games);
+                            const stats = calculatePlayerStats(player, entry.num_games || 5);
                             return (
                               <div
                                 key={player.id}
@@ -836,7 +850,7 @@ export default function MiniBlokPage() {
             <DialogTitle className="flex items-center justify-between">
               <span>Manage Tournament</span>
               <div className="flex gap-2">
-                {selectedEntry?.created_by === member?.id && (
+                {selectedEntry?.owner_id === member?.id && (
                   <>
                     <Button
                       size="sm"
@@ -931,7 +945,7 @@ export default function MiniBlokPage() {
               </Card>
 
               {/* Shared Access */}
-              {selectedEntry.created_by === member?.id && selectedEntry.shared_with.length > 0 && (
+              {selectedEntry.owner_id === member?.id && selectedEntry.shared_with.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Shared With</CardTitle>
@@ -945,12 +959,12 @@ export default function MiniBlokPage() {
                         >
                           <div className="flex items-center gap-2">
                             <Lock className="h-4 w-4 text-muted-foreground" />
-                            <span>Member ID: {access.member_id.substring(0, 8)}...</span>
+                            <span>Member ID: {access.user_id.substring(0, 8)}...</span>
                           </div>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleRevokeAccess(selectedEntry.id, access.member_id)}
+                            onClick={() => handleRevokeAccess(selectedEntry.id, access.user_id)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -1009,9 +1023,9 @@ export default function MiniBlokPage() {
                         </div>
 
                         <div>
-                          <Label className="mb-3 block">Game Scores (up to {selectedEntry.total_games} games)</Label>
+                          <Label className="mb-3 block">Game Scores (up to {selectedEntry.num_games} games)</Label>
                           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
-                            {Array.from({ length: selectedEntry.total_games }, (_, i) => i + 1).map((gameNum) => (
+                            {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => i + 1).map((gameNum) => (
                               <div key={gameNum} className="space-y-2">
                                 <Label htmlFor={`game_${gameNum}`} className="text-xs">
                                   Game {gameNum}
@@ -1066,7 +1080,7 @@ export default function MiniBlokPage() {
                           <TableRow>
                             <TableHead className="w-12">#</TableHead>
                             <TableHead>Player</TableHead>
-                            {Array.from({ length: selectedEntry.total_games }, (_, i) => (
+                            {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
                               <TableHead key={i} className="text-center">G{i + 1}</TableHead>
                             ))}
                             <TableHead className="text-center">HCP</TableHead>
@@ -1080,12 +1094,13 @@ export default function MiniBlokPage() {
                         <TableBody>
                           {selectedEntry.players
                             .sort((a, b) => {
-                              const statsA = calculatePlayerStats(a, selectedEntry.total_games);
-                              const statsB = calculatePlayerStats(b, selectedEntry.total_games);
+                              const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                              const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
                               return statsB.overall_score - statsA.overall_score;
                             })
                             .map((player, idx) => {
-                              const stats = calculatePlayerStats(player, selectedEntry.total_games);
+                              const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                              const scores = (player.scores as Record<string, number>) || {};
                               return (
                                 <TableRow key={player.id}>
                                   <TableCell>
@@ -1094,8 +1109,8 @@ export default function MiniBlokPage() {
                                     </Badge>
                                   </TableCell>
                                   <TableCell className="font-semibold">{player.player_name}</TableCell>
-                                  {Array.from({ length: selectedEntry.total_games }, (_, i) => {
-                                    const score = player[`game_${i + 1}` as keyof typeof player] as number | null;
+                                  {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                    const score = scores[`game_${i + 1}`] as number | null;
                                     return (
                                       <TableCell key={i} className="text-center">
                                         {score !== null && score > 0 ? (

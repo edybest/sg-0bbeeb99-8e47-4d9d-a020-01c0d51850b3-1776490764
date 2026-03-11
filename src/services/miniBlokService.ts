@@ -7,11 +7,11 @@ type MiniBlokUpdate = Database["public"]["Tables"]["mini_blok"]["Update"];
 type MiniBlokPlayer = Database["public"]["Tables"]["mini_blok_players"]["Row"];
 type MiniBlokPlayerInsert = Database["public"]["Tables"]["mini_blok_players"]["Insert"];
 type MiniBlokPlayerUpdate = Database["public"]["Tables"]["mini_blok_players"]["Update"];
-type MiniBlokAccess = Database["public"]["Tables"]["mini_blok_access"]["Row"];
+type MiniBlokCollaborator = Database["public"]["Tables"]["mini_blok_collaborators"]["Row"];
 
 export interface MiniBlokWithPlayers extends MiniBlok {
   players: MiniBlokPlayer[];
-  shared_with: MiniBlokAccess[];
+  shared_with: MiniBlokCollaborator[];
   can_edit: boolean;
 }
 
@@ -23,12 +23,13 @@ export interface PlayerStats {
   games_played: number;
 }
 
-function calculatePlayerStats(player: MiniBlokPlayer, totalGames: number): PlayerStats {
+function calculatePlayerStats(player: MiniBlokPlayer, numGames: number): PlayerStats {
+  const scoresObj = (player.scores as Record<string, number>) || {};
   const scores: number[] = [];
   
-  for (let i = 1; i <= totalGames; i++) {
-    const score = player[`game_${i}` as keyof MiniBlokPlayer] as number | null;
-    if (score !== null && score > 0) {
+  for (let i = 1; i <= numGames; i++) {
+    const score = scoresObj[`game_${i}`];
+    if (score !== undefined && score !== null && score > 0) {
       scores.push(score);
     }
   }
@@ -41,7 +42,7 @@ function calculatePlayerStats(player: MiniBlokPlayer, totalGames: number): Playe
 
   const total_score = scores.reduce((sum, score) => sum + score, 0);
   const average = Math.round(total_score / games_played);
-  const overall_score = total_score + (player.handicap * games_played);
+  const overall_score = total_score + ((player.handicap || 0) * games_played);
   const differential = overall_score - total_score;
 
   return { average, total_score, overall_score, differential, games_played };
@@ -53,7 +54,7 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     .select(`
       *,
       players:mini_blok_players(*),
-      shared_with:mini_blok_access(*)
+      shared_with:mini_blok_collaborators(*)
     `)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -72,8 +73,8 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     players: Array.isArray(entry.players) ? entry.players : [],
     shared_with: Array.isArray(entry.shared_with) ? entry.shared_with : [],
     can_edit: memberId ? (
-      entry.created_by === memberId || 
-      (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokAccess) => access.member_id === memberId))
+      entry.owner_id === memberId || 
+      (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokCollaborator) => access.user_id === memberId))
     ) : false
   }));
 }
@@ -84,7 +85,7 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
     .select(`
       *,
       players:mini_blok_players(*),
-      shared_with:mini_blok_access(*)
+      shared_with:mini_blok_collaborators(*)
     `)
     .eq("id", id)
     .single();
@@ -103,8 +104,8 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
     players: Array.isArray(data.players) ? data.players : [],
     shared_with: Array.isArray(data.shared_with) ? data.shared_with : [],
     can_edit: memberId ? (
-      data.created_by === memberId || 
-      (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokAccess) => access.member_id === memberId))
+      data.owner_id === memberId || 
+      (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokCollaborator) => access.user_id === memberId))
     ) : false
   };
 }
@@ -209,14 +210,14 @@ export async function deletePlayer(id: string): Promise<void> {
 }
 
 // Access management
-export async function shareAccess(miniBlokId: string, memberIds: string[]): Promise<void> {
-  const inserts = memberIds.map(memberId => ({
+export async function shareAccess(miniBlokId: string, userIds: string[]): Promise<void> {
+  const inserts = userIds.map(userId => ({
     mini_blok_id: miniBlokId,
-    member_id: memberId
+    user_id: userId
   }));
 
   const { error } = await supabase
-    .from("mini_blok_access")
+    .from("mini_blok_collaborators")
     .insert(inserts);
 
   console.log("shareAccess:", { error });
@@ -227,12 +228,12 @@ export async function shareAccess(miniBlokId: string, memberIds: string[]): Prom
   }
 }
 
-export async function revokeAccess(miniBlokId: string, memberId: string): Promise<void> {
+export async function revokeAccess(miniBlokId: string, userId: string): Promise<void> {
   const { error } = await supabase
-    .from("mini_blok_access")
+    .from("mini_blok_collaborators")
     .delete()
     .eq("mini_blok_id", miniBlokId)
-    .eq("member_id", memberId);
+    .eq("user_id", userId);
 
   console.log("revokeAccess:", { error });
 
@@ -249,17 +250,18 @@ export function generateShareUrl(entryId: string): string {
 
 export function generateShareText(entry: MiniBlokWithPlayers): string {
   const playerCount = entry.players.length;
-  const stats = entry.players.map(p => calculatePlayerStats(p, entry.total_games));
-  const topScore = Math.max(...stats.map(s => s.overall_score));
-  const topPlayer = entry.players[stats.findIndex(s => s.overall_score === topScore)];
+  const stats = entry.players.map(p => calculatePlayerStats(p, entry.num_games));
+  const topScore = Math.max(...stats.map(s => s.overall_score), 0);
+  const topPlayerIndex = stats.findIndex(s => s.overall_score === topScore);
+  const topPlayer = topPlayerIndex >= 0 ? entry.players[topPlayerIndex] : null;
 
   return `🎳 ${entry.title || "Mini Blok Tournament"}
 
 📍 ${entry.location}
 📅 ${new Date(entry.date).toLocaleDateString("en-MY")}
-🎮 ${entry.total_games} games | 👥 ${playerCount} players
+🎮 ${entry.num_games} games | 👥 ${playerCount} players
 
-🏆 Top Score: ${topPlayer?.player_name} - ${topScore}
+${topPlayer ? `🏆 Top Score: ${topPlayer.player_name} - ${topScore}` : ""}
 
 View full results: ${generateShareUrl(entry.id)}`;
 }
