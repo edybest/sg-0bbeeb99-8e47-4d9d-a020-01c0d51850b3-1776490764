@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
 import formidable from "formidable";
 import fs from "fs";
+import sharp from "sharp";
 
 export const config = {
   api: {
@@ -22,12 +23,59 @@ type ScoreData = {
   confidence: number;
 };
 
+async function preprocessImage(imagePath: string): Promise<Buffer> {
+  try {
+    const processedImage = await sharp(imagePath)
+      .resize(2000, 2000, { 
+        fit: "inside", 
+        withoutEnlargement: false 
+      })
+      .greyscale()
+      .normalize()
+      .sharpen()
+      .threshold(128)
+      .toBuffer();
+    
+    return processedImage;
+  } catch (error) {
+    console.error("Image preprocessing error:", error);
+    return fs.readFileSync(imagePath);
+  }
+}
+
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function fuzzyMatch(str1: string, str2: string): number {
-  const s1 = str1.toLowerCase().trim();
-  const s2 = str2.toLowerCase().trim();
+  const s1 = normalizeText(str1);
+  const s2 = normalizeText(str2);
   
   if (s1 === s2) return 100;
-  if (s1.includes(s2) || s2.includes(s1)) return 80;
+  if (s1.includes(s2) || s2.includes(s1)) return 85;
+  
+  const words1 = s1.split(" ");
+  const words2 = s2.split(" ");
+  let matchCount = 0;
+  
+  for (const w1 of words1) {
+    for (const w2 of words2) {
+      if (w1 === w2 || w1.includes(w2) || w2.includes(w1)) {
+        matchCount++;
+        break;
+      }
+    }
+  }
+  
+  if (matchCount > 0) {
+    const maxWords = Math.max(words1.length, words2.length);
+    const wordMatchScore = (matchCount / maxWords) * 100;
+    if (wordMatchScore >= 50) return Math.round(wordMatchScore);
+  }
   
   const longer = s1.length > s2.length ? s1 : s2;
   const shorter = s1.length > s2.length ? s2 : s1;
@@ -73,25 +121,26 @@ function extractStructuredScores(text: string): ScoreData[] {
   let currentPlayer: Partial<ScoreData> | null = null;
   
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toLowerCase();
+    const line = lines[i];
+    const lowerLine = line.toLowerCase();
     
-    if (line.includes("name") || line.includes("player")) {
+    if (lowerLine.includes("name") || lowerLine.includes("player")) {
       if (currentPlayer && currentPlayer.name) {
         scores.push(currentPlayer as ScoreData);
       }
       
-      const nameMatch = lines[i].match(/(?:name|player)[:\s]+([a-zA-Z\s]+)/i);
+      const nameMatch = line.match(/(?:name|player)[:\s]+([a-zA-Z\s]+)/i);
       if (nameMatch && nameMatch[1]) {
         currentPlayer = {
           name: nameMatch[1].trim(),
           scores: {},
-          confidence: 75,
+          confidence: 80,
         };
       }
     }
     
     if (currentPlayer) {
-      const g1Match = line.match(/g1[:\s]+(\d+)/i) || line.match(/game\s*1[:\s]+(\d+)/i);
+      const g1Match = lowerLine.match(/g\s*1[:\s]+(\d+)/i) || lowerLine.match(/game\s*1[:\s]+(\d+)/i);
       if (g1Match) {
         const score = parseInt(g1Match[1]);
         if (score >= 0 && score <= 300) {
@@ -100,7 +149,7 @@ function extractStructuredScores(text: string): ScoreData[] {
         }
       }
       
-      const g2Match = line.match(/g2[:\s]+(\d+)/i) || line.match(/game\s*2[:\s]+(\d+)/i);
+      const g2Match = lowerLine.match(/g\s*2[:\s]+(\d+)/i) || lowerLine.match(/game\s*2[:\s]+(\d+)/i);
       if (g2Match) {
         const score = parseInt(g2Match[1]);
         if (score >= 0 && score <= 300) {
@@ -109,7 +158,7 @@ function extractStructuredScores(text: string): ScoreData[] {
         }
       }
       
-      const g3Match = line.match(/g3[:\s]+(\d+)/i) || line.match(/game\s*3[:\s]+(\d+)/i);
+      const g3Match = lowerLine.match(/g\s*3[:\s]+(\d+)/i) || lowerLine.match(/game\s*3[:\s]+(\d+)/i);
       if (g3Match) {
         const score = parseInt(g3Match[1]);
         if (score >= 0 && score <= 300) {
@@ -118,7 +167,7 @@ function extractStructuredScores(text: string): ScoreData[] {
         }
       }
       
-      const g4Match = line.match(/g4[:\s]+(\d+)/i) || line.match(/game\s*4[:\s]+(\d+)/i);
+      const g4Match = lowerLine.match(/g\s*4[:\s]+(\d+)/i) || lowerLine.match(/game\s*4[:\s]+(\d+)/i);
       if (g4Match) {
         const score = parseInt(g4Match[1]);
         if (score >= 0 && score <= 300) {
@@ -127,7 +176,7 @@ function extractStructuredScores(text: string): ScoreData[] {
         }
       }
       
-      const g5Match = line.match(/g5[:\s]+(\d+)/i) || line.match(/game\s*5[:\s]+(\d+)/i);
+      const g5Match = lowerLine.match(/g\s*5[:\s]+(\d+)/i) || lowerLine.match(/game\s*5[:\s]+(\d+)/i);
       if (g5Match) {
         const score = parseInt(g5Match[1]);
         if (score >= 0 && score <= 300) {
@@ -136,7 +185,7 @@ function extractStructuredScores(text: string): ScoreData[] {
         }
       }
       
-      const hcpMatch = line.match(/hcp[:\s]+(\d+)/i) || line.match(/handicap[:\s]+(\d+)/i);
+      const hcpMatch = lowerLine.match(/hcp[:\s]+(\d+)/i) || lowerLine.match(/handicap[:\s]+(\d+)/i);
       if (hcpMatch) {
         currentPlayer.handicap = parseInt(hcpMatch[1]);
       }
@@ -164,33 +213,35 @@ function extractTableScores(text: string): ScoreData[] {
   let hcpIndex = -1;
   
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].toLowerCase();
+    const line = lines[i];
+    const lowerLine = line.toLowerCase();
     const parts = line.split(/\s+/);
     
-    if (!headerFound && (line.includes("name") || line.includes("player"))) {
+    if (!headerFound && (lowerLine.includes("name") || lowerLine.includes("player"))) {
       headerFound = true;
       
       parts.forEach((part, idx) => {
-        if (part.includes("name") || part.includes("player")) nameIndex = idx;
-        if (part === "g1" || part.includes("game") && part.includes("1")) g1Index = idx;
-        if (part === "g2" || part.includes("game") && part.includes("2")) g2Index = idx;
-        if (part === "g3" || part.includes("game") && part.includes("3")) g3Index = idx;
-        if (part === "g4" || part.includes("game") && part.includes("4")) g4Index = idx;
-        if (part === "g5" || part.includes("game") && part.includes("5")) g5Index = idx;
-        if (part === "hcp" || part.includes("handicap")) hcpIndex = idx;
+        const lowerPart = part.toLowerCase();
+        if (lowerPart.includes("name") || lowerPart.includes("player")) nameIndex = idx;
+        if (lowerPart.match(/^g\s*1/) || lowerPart.includes("game") && lowerPart.includes("1")) g1Index = idx;
+        if (lowerPart.match(/^g\s*2/) || lowerPart.includes("game") && lowerPart.includes("2")) g2Index = idx;
+        if (lowerPart.match(/^g\s*3/) || lowerPart.includes("game") && lowerPart.includes("3")) g3Index = idx;
+        if (lowerPart.match(/^g\s*4/) || lowerPart.includes("game") && lowerPart.includes("4")) g4Index = idx;
+        if (lowerPart.match(/^g\s*5/) || lowerPart.includes("game") && lowerPart.includes("5")) g5Index = idx;
+        if (lowerPart === "hcp" || lowerPart.includes("handicap")) hcpIndex = idx;
       });
       
       continue;
     }
     
     if (headerFound && parts.length > 1) {
-      const rowParts = lines[i].split(/\s+/);
+      const rowParts = line.split(/\s+/);
       
       if (rowParts.length > Math.max(nameIndex, g1Index, g2Index, g3Index, g4Index, g5Index, hcpIndex)) {
         const scoreData: ScoreData = {
           name: nameIndex >= 0 ? rowParts[nameIndex] : "",
           scores: {},
-          confidence: 70,
+          confidence: 75,
         };
         
         if (g1Index >= 0) {
@@ -268,24 +319,49 @@ export default async function handler(
 
     const imagePath = imageFile.filepath;
     
+    console.log("Preprocessing image...");
+    const processedImageBuffer = await preprocessImage(imagePath);
+    
+    console.log("Initializing OCR worker...");
     const worker = await createWorker("eng");
     
-    const { data: { text, confidence } } = await worker.recognize(imagePath);
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.AUTO,
+    });
+    
+    console.log("Performing OCR recognition (Pass 1 - Auto mode)...");
+    const { data: { text: text1, confidence: conf1 } } = await worker.recognize(processedImageBuffer);
+    
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+    });
+    
+    console.log("Performing OCR recognition (Pass 2 - Single block mode)...");
+    const { data: { text: text2, confidence: conf2 } } = await worker.recognize(processedImageBuffer);
     
     await worker.terminate();
     
     fs.unlinkSync(imagePath);
     
-    let extractedScores = extractStructuredScores(text);
+    const bestText = conf1 >= conf2 ? text1 : text2;
+    const bestConfidence = Math.max(conf1, conf2);
+    
+    console.log("OCR completed. Best confidence:", bestConfidence);
+    console.log("Extracted text:", bestText);
+    
+    let extractedScores = extractStructuredScores(bestText);
     
     if (extractedScores.length === 0) {
-      extractedScores = extractTableScores(text);
+      console.log("Structured format not found, trying table format...");
+      extractedScores = extractTableScores(bestText);
     }
+    
+    console.log("Extracted scores:", extractedScores);
     
     return res.status(200).json({
       success: true,
-      text,
-      confidence,
+      text: bestText,
+      confidence: bestConfidence,
       scores: extractedScores,
     });
     
