@@ -1230,92 +1230,212 @@ export default function MiniBlokPage() {
                       No players yet. Add your first player to get started.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-12">#</TableHead>
-                            <TableHead>Player</TableHead>
-                            {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
-                              <TableHead key={i} className="text-center">G{i + 1}</TableHead>
-                            ))}
-                            <TableHead className="text-center">HCP</TableHead>
-                            <TableHead className="text-center">Avg</TableHead>
-                            <TableHead className="text-center">Total</TableHead>
-                            <TableHead className="text-center">Overall</TableHead>
-                            <TableHead className="text-center">Diff</TableHead>
-                            {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedEntry.players
-                            .sort((a, b) => {
-                              const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
-                              const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
-                              return statsB.overall_score - statsA.overall_score;
-                            })
-                            .map((player, idx) => {
-                              const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
-                              const scores = (player.scores as Record<string, number>) || {};
-                              return (
-                                <TableRow key={player.id}>
-                                  <TableCell>
-                                    <Badge variant={idx === 0 ? "default" : "secondary"}>
-                                      {idx + 1}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="font-semibold">{player.player_name}</TableCell>
-                                  {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
-                                    const score = scores[`game_${i + 1}`] as number | null;
-                                    return (
-                                      <TableCell key={i} className="text-center">
-                                        {score !== null && score > 0 ? (
-                                          <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
-                                            {score}
-                                          </Badge>
-                                        ) : (
-                                          <span className="text-muted-foreground">-</span>
-                                        )}
-                                      </TableCell>
-                                    );
-                                  })}
-                                  <TableCell className="text-center">{player.handicap}</TableCell>
-                                  <TableCell className="text-center font-semibold">{stats.average}</TableCell>
-                                  <TableCell className="text-center">{stats.total_score}</TableCell>
-                                  <TableCell className="text-center font-bold text-primary">
-                                    {stats.overall_score}
-                                  </TableCell>
-                                  <TableCell className="text-center">
-                                    <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
-                                      {stats.differential > 0 ? "+" : ""}{stats.differential}
-                                    </span>
-                                  </TableCell>
-                                  {selectedEntry.can_edit && (
-                                    <TableCell>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => openEditPlayerDialog(player)}
-                                        >
-                                          <Edit2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => setDeleteConfirmPlayer(player.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                    <>
+                      {/* Mobile View - Expandable Cards */}
+                      <div className="md:hidden space-y-3">
+                        {selectedEntry.players
+                          .sort((a, b) => {
+                            const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                            const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
+                            return statsB.overall_score - statsA.overall_score;
+                          })
+                          .map((player, idx) => {
+                            const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                            const scores = (player.scores as Record<string, number>) || {};
+                            const isExpanded = expandedScores[player.id];
+                            
+                            return (
+                              <Card key={player.id} className="overflow-hidden">
+                                <div 
+                                  className="p-4 cursor-pointer"
+                                  onClick={() => setExpandedScores(prev => ({
+                                    ...prev,
+                                    [player.id]: !prev[player.id]
+                                  }))}
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                        #{idx + 1}
+                                      </Badge>
+                                      <span className="font-semibold">{player.player_name}</span>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-lg font-bold text-primary">
+                                        {stats.overall_score}
                                       </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        Avg: {stats.average}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                    <span>Tap to {isExpanded ? "hide" : "view"} details</span>
+                                    <div className="flex gap-2">
+                                      {selectedEntry.can_edit && (
+                                        <>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openEditPlayerDialog(player);
+                                            }}
+                                          >
+                                            <Edit2 className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setDeleteConfirmPlayer(player.id);
+                                            }}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {isExpanded && (
+                                  <div className="border-t bg-muted/30 p-4 space-y-3">
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      <div>
+                                        <span className="text-muted-foreground">Handicap:</span>
+                                        <span className="ml-2 font-semibold">{player.handicap}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground">Total:</span>
+                                        <span className="ml-2 font-semibold">{stats.total_score}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground">Average:</span>
+                                        <span className="ml-2 font-semibold">{stats.average}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-muted-foreground">Diff:</span>
+                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
+                                          {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    <div>
+                                      <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
+                                      <div className="flex flex-wrap gap-2">
+                                        {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                          const score = scores[`game_${i + 1}`] as number | null;
+                                          return (
+                                            <Badge 
+                                              key={i} 
+                                              variant="secondary" 
+                                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
+                                            >
+                                              G{i + 1}: {score !== null && score > 0 ? score : "-"}
+                                            </Badge>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </Card>
+                            );
+                          })}
+                      </div>
+
+                      {/* Desktop View - Full Table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-12">#</TableHead>
+                              <TableHead>Player</TableHead>
+                              {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
+                                <TableHead key={i} className="text-center">G{i + 1}</TableHead>
+                              ))}
+                              <TableHead className="text-center">HCP</TableHead>
+                              <TableHead className="text-center">Avg</TableHead>
+                              <TableHead className="text-center">Total</TableHead>
+                              <TableHead className="text-center">Overall</TableHead>
+                              <TableHead className="text-center">Diff</TableHead>
+                              {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedEntry.players
+                              .sort((a, b) => {
+                                const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                                const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
+                                return statsB.overall_score - statsA.overall_score;
+                              })
+                              .map((player, idx) => {
+                                const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                                const scores = (player.scores as Record<string, number>) || {};
+                                return (
+                                  <TableRow key={player.id}>
+                                    <TableCell>
+                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                        {idx + 1}
+                                      </Badge>
                                     </TableCell>
-                                  )}
-                                </TableRow>
-                              );
-                            })}
-                        </TableBody>
-                      </Table>
-                    </div>
+                                    <TableCell className="font-semibold">{player.player_name}</TableCell>
+                                    {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                      const score = scores[`game_${i + 1}`] as number | null;
+                                      return (
+                                        <TableCell key={i} className="text-center">
+                                          {score !== null && score > 0 ? (
+                                            <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
+                                              {score}
+                                            </Badge>
+                                          ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                          )}
+                                        </TableCell>
+                                      );
+                                    })}
+                                    <TableCell className="text-center">{player.handicap}</TableCell>
+                                    <TableCell className="text-center font-semibold">{stats.average}</TableCell>
+                                    <TableCell className="text-center">{stats.total_score}</TableCell>
+                                    <TableCell className="text-center font-bold text-primary">
+                                      {stats.overall_score}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                      <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                                        {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                      </span>
+                                    </TableCell>
+                                    {selectedEntry.can_edit && (
+                                      <TableCell>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => openEditPlayerDialog(player)}
+                                          >
+                                            <Edit2 className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => setDeleteConfirmPlayer(player.id)}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    )}
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
