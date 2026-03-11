@@ -497,13 +497,22 @@ export function ScoreManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Score Management</h2>
           <p className="text-gray-600 mt-1">Edit player scores for games</p>
         </div>
-        <Button
-          onClick={() => setShowUploadModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Upload Score Image
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Score Image
+          </Button>
+          <Button
+            onClick={() => setShowCsvModal(true)}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Upload CSV
+          </Button>
+        </div>
       </div>
 
       {/* Upload Modal */}
@@ -1054,7 +1063,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "game1_score")}
                             onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                            className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center mx-auto font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
@@ -1063,7 +1072,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "game2_score")}
                             onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                            className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center mx-auto font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                            className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
@@ -1072,7 +1081,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "game3_score")}
                             onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                            className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center mx-auto font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                            className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
@@ -1081,7 +1090,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "game4_score")}
                             onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                            className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center mx-auto font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                            className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
@@ -1090,7 +1099,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "game5_score")}
                             onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                            className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center mx-auto font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+                            className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
@@ -1099,7 +1108,7 @@ export function ScoreManagement() {
                             type="number"
                             value={getPlayerScore(player, "handicap")}
                             onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                            className="w-20 h-9 bg-yellow-50 border border-yellow-300 text-yellow-900 text-center mx-auto font-semibold focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+                            className="w-20 h-9 bg-yellow-50 border border-yellow-300 text-yellow-900 text-center font-semibold focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
                             onFocus={(e) => e.target.select()}
                           />
                         </td>
