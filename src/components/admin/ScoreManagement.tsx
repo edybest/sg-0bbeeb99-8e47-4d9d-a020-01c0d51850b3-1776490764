@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { gameService } from "@/services/gameService";
+import { memberService } from "@/services/memberService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Save, Search } from "lucide-react";
+import { Loader2, Save, Search, Upload, X, Check, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
 type GamePlayer = {
@@ -33,6 +34,26 @@ type Game = {
   year: number;
 };
 
+type Member = {
+  id: string;
+  username: string;
+  full_name: string;
+};
+
+type ParsedScore = {
+  name: string;
+  scores: {
+    game1?: number;
+    game2?: number;
+    game3?: number;
+    game4?: number;
+    game5?: number;
+  };
+  confidence: number;
+  matchedMember?: Member;
+  matchConfidence?: number;
+};
+
 export function ScoreManagement() {
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
@@ -45,8 +66,17 @@ export function ScoreManagement() {
   const [sortField, setSortField] = useState<string>("rank");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
+  // Image upload states
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const [parsedScores, setParsedScores] = useState<ParsedScore[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+
   useEffect(() => {
     loadGames();
+    loadAllMembers();
   }, []);
 
   useEffect(() => {
@@ -70,6 +100,19 @@ export function ScoreManagement() {
       console.error("Error loading games:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadAllMembers() {
+    try {
+      const data = await memberService.getAllMembers();
+      setAllMembers(data.map((m: any) => ({
+        id: m.id,
+        username: m.username,
+        full_name: m.full_name
+      })));
+    } catch (error) {
+      console.error("Error loading members:", error);
     }
   }
 
@@ -195,10 +238,154 @@ export function ScoreManagement() {
     return player[field] as number;
   }
 
-  function calculateDifference(player: GamePlayer): number {
-    if (filteredPlayers.length === 0) return 0;
-    const topScore = filteredPlayers.reduce((max, p) => Math.max(max, p.overall_score), 0);
-    return topScore - player.overall_score;
+  // Image upload handlers
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    setUploadedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function fuzzyMatch(str1: string, str2: string): number {
+    const s1 = str1.toLowerCase().trim();
+    const s2 = str2.toLowerCase().trim();
+    
+    if (s1 === s2) return 100;
+    if (s1.includes(s2) || s2.includes(s1)) return 80;
+    
+    const words1 = s1.split(/\s+/);
+    const words2 = s2.split(/\s+/);
+    
+    let matchCount = 0;
+    for (const w1 of words1) {
+      for (const w2 of words2) {
+        if (w1 === w2 || w1.includes(w2) || w2.includes(w1)) {
+          matchCount++;
+          break;
+        }
+      }
+    }
+    
+    return (matchCount / Math.max(words1.length, words2.length)) * 100;
+  }
+
+  function findBestMemberMatch(name: string): { member: Member; confidence: number } | null {
+    let bestMatch: Member | null = null;
+    let bestScore = 0;
+
+    for (const member of allMembers) {
+      const usernameScore = fuzzyMatch(name, member.username);
+      const fullNameScore = fuzzyMatch(name, member.full_name);
+      const score = Math.max(usernameScore, fullNameScore);
+
+      if (score > bestScore && score >= 60) {
+        bestScore = score;
+        bestMatch = member;
+      }
+    }
+
+    return bestMatch ? { member: bestMatch, confidence: bestScore } : null;
+  }
+
+  async function handleParseImage() {
+    if (!uploadedImage) return;
+
+    setParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", uploadedImage);
+
+      const response = await fetch("/api/parse-score-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to parse image");
+      }
+
+      const data = await response.json();
+      
+      // Match parsed names with members
+      const matchedScores: ParsedScore[] = data.scores.map((score: ParsedScore) => {
+        const match = findBestMemberMatch(score.name);
+        return {
+          ...score,
+          matchedMember: match?.member,
+          matchConfidence: match?.confidence,
+        };
+      });
+
+      setParsedScores(matchedScores);
+    } catch (error) {
+      console.error("Error parsing image:", error);
+      alert("Gagal memproses gambar. Sila cuba lagi.");
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  function handleApplyParsedScore(parsedScore: ParsedScore) {
+    if (!parsedScore.matchedMember) return;
+
+    const player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    if (!player) {
+      alert("Player tidak dijumpai dalam game ini");
+      return;
+    }
+
+    setEditingScores(prev => {
+      const updated = { ...player };
+      if (parsedScore.scores.game1) updated.game1_score = parsedScore.scores.game1;
+      if (parsedScore.scores.game2) updated.game2_score = parsedScore.scores.game2;
+      if (parsedScore.scores.game3) updated.game3_score = parsedScore.scores.game3;
+      if (parsedScore.scores.game4) updated.game4_score = parsedScore.scores.game4;
+      if (parsedScore.scores.game5) updated.game5_score = parsedScore.scores.game5;
+
+      const total = updated.game1_score + updated.game2_score + updated.game3_score + 
+                    updated.game4_score + updated.game5_score;
+      updated.total_score = total;
+      updated.overall_score = total + updated.handicap;
+
+      return { ...prev, [player.id]: updated };
+    });
+
+    // Scroll to player
+    const playerElement = document.getElementById(`player-${player.id}`);
+    if (playerElement) {
+      playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
+      setTimeout(() => {
+        playerElement.classList.remove("ring-4", "ring-green-500", "ring-opacity-50");
+      }, 2000);
+    }
+  }
+
+  function handleApplyAllScores() {
+    parsedScores.forEach(score => {
+      if (score.matchedMember && score.matchConfidence && score.matchConfidence >= 80) {
+        handleApplyParsedScore(score);
+      }
+    });
+    setShowUploadModal(false);
+    alert(`${parsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80).length} skor telah diisi. Sila semak dan simpan.`);
+  }
+
+  function resetUpload() {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setParsedScores([]);
+    setShowUploadModal(false);
   }
 
   if (loading && !selectedGameId) {
@@ -217,7 +404,210 @@ export function ScoreManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Score Management</h2>
           <p className="text-gray-600 mt-1">Edit player scores for games</p>
         </div>
+        <Button
+          onClick={() => setShowUploadModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload Score Image
+        </Button>
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Upload & Parse Score Image</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetUpload}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Image Upload */}
+              {!imagePreview && (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600 mb-2">Upload gambar score sheet</p>
+                  <p className="text-sm text-gray-500 mb-4">Pastikan gambar jelas dan nama pemain kelihatan</p>
+                  <label className="cursor-pointer">
+                    <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block">
+                      Pilih Gambar
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* Image Preview & Parse */}
+              {imagePreview && !parsedScores.length && (
+                <div className="space-y-4">
+                  <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
+                    <Image
+                      src={imagePreview}
+                      alt="Score preview"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleParseImage}
+                      disabled={parsing}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {parsing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Parse Score
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={resetUpload}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Parsed Results */}
+              {parsedScores.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-semibold text-gray-900">Detected Scores ({parsedScores.length})</h4>
+                    <Button
+                      onClick={handleApplyAllScores}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Apply All (≥80%)
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {parsedScores.map((score, idx) => (
+                      <Card key={idx} className={`border-2 ${
+                        score.matchConfidence && score.matchConfidence >= 80
+                          ? "border-green-200 bg-green-50"
+                          : score.matchConfidence && score.matchConfidence >= 60
+                          ? "border-yellow-200 bg-yellow-50"
+                          : "border-red-200 bg-red-50"
+                      }`}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">
+                                Detected: {score.name}
+                              </p>
+                              {score.matchedMember && (
+                                <p className="text-sm text-gray-600">
+                                  → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
+                                  <span className={`ml-2 font-semibold ${
+                                    score.matchConfidence! >= 80 ? "text-green-600" :
+                                    score.matchConfidence! >= 60 ? "text-yellow-600" :
+                                    "text-red-600"
+                                  }`}>
+                                    {score.matchConfidence?.toFixed(0)}% match
+                                  </span>
+                                </p>
+                              )}
+                              {!score.matchedMember && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  No match found
+                                </p>
+                              )}
+                            </div>
+                            {score.matchedMember && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApplyParsedScore(score)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-5 gap-2 text-sm">
+                            {score.scores.game1 && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
+                                <div className="text-xs text-gray-500">G1</div>
+                                <div className="font-semibold text-blue-600">{score.scores.game1}</div>
+                              </div>
+                            )}
+                            {score.scores.game2 && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
+                                <div className="text-xs text-gray-500">G2</div>
+                                <div className="font-semibold text-green-600">{score.scores.game2}</div>
+                              </div>
+                            )}
+                            {score.scores.game3 && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
+                                <div className="text-xs text-gray-500">G3</div>
+                                <div className="font-semibold text-purple-600">{score.scores.game3}</div>
+                              </div>
+                            )}
+                            {score.scores.game4 && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
+                                <div className="text-xs text-gray-500">G4</div>
+                                <div className="font-semibold text-orange-600">{score.scores.game4}</div>
+                              </div>
+                            )}
+                            {score.scores.game5 && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
+                                <div className="text-xs text-gray-500">G5</div>
+                                <div className="font-semibold text-pink-600">{score.scores.game5}</div>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button
+                      onClick={resetUpload}
+                      variant="outline"
+                      className="flex-1 border-gray-300"
+                    >
+                      Upload New Image
+                    </Button>
+                    <Button
+                      onClick={() => setShowUploadModal(false)}
+                      variant="outline"
+                      className="flex-1 border-gray-300"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Game Selection */}
       <Card className="bg-white border-gray-200">
@@ -352,8 +742,9 @@ export function ScoreManagement() {
                     const hasChanges = !!editingScores[player.id];
                     return (
                       <tr 
-                        key={player.id} 
-                        className={`transition-colors ${
+                        key={player.id}
+                        id={`player-${player.id}`}
+                        className={`transition-all duration-200 ${
                           hasChanges 
                             ? 'bg-yellow-50' 
                             : 'hover:bg-gray-50'
