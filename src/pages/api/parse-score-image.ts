@@ -489,8 +489,7 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
     
     console.log(`\nBrute force line ${i}: "${line}"`);
     
-    // Try to extract: [optional row number] NAME [multiple numbers]
-    // Very flexible regex that captures any word followed by numbers
+    // Split into tokens
     const tokens = line.split(/\s+/).filter(t => t.length > 0);
     console.log(`  Tokens (${tokens.length}):`, tokens);
     
@@ -499,68 +498,88 @@ function extractByBruteForce(lines: string[]): ScoreData[] {
       continue;
     }
     
-    // Find the first token that looks like a name (not a number, not too long)
-    let nameToken = "";
-    let nameIndex = -1;
+    // Strategy: Find ALL potential names (non-number tokens with letters)
+    // and ALL potential scores (number-like tokens)
+    const nameTokens: { token: string; index: number }[] = [];
+    const numberTokens: { token: string; index: number; cleaned?: number }[] = [];
     
-    for (let j = 0; j < Math.min(tokens.length, 3); j++) {
+    for (let j = 0; j < tokens.length; j++) {
       const token = tokens[j];
-      // Name should be mostly letters, not all numbers, reasonable length
-      if (!/^\d+$/.test(token) && token.length >= 2 && token.length <= 20) {
-        // Check if it has at least one letter
-        if (/[a-zA-Z]/.test(token)) {
-          nameToken = token;
-          nameIndex = j;
-          console.log(`  → Found name candidate at position ${j}: "${nameToken}"`);
-          break;
-        }
+      
+      // Check if it's a name (has letters, not all numbers, reasonable length)
+      if (/[a-zA-Z]/.test(token) && !/^\d+$/.test(token) && token.length >= 2 && token.length <= 20) {
+        nameTokens.push({ token, index: j });
       }
+      
+      // Check if it's a potential number
+      const cleaned = cleanOCRNumber(token);
+      numberTokens.push({ token, index: j, cleaned });
     }
     
-    if (!nameToken) {
-      console.log(`  ⚠️ No name candidate found`);
+    console.log(`  → Found ${nameTokens.length} name candidates:`, nameTokens.map(n => n.token));
+    console.log(`  → Found ${numberTokens.length} number tokens, ${numberTokens.filter(n => n.cleaned !== undefined).length} valid scores`);
+    
+    // Must have at least 1 name and 2 valid numbers
+    const validNumbers = numberTokens.filter(n => n.cleaned !== undefined && n.cleaned >= 0 && n.cleaned <= 300);
+    
+    if (nameTokens.length === 0) {
+      console.log(`  ⚠️ No name candidates found`);
       continue;
     }
     
-    // Extract all numbers after the name
-    const numberTokens = tokens.slice(nameIndex + 1);
-    console.log(`  → Number tokens after name:`, numberTokens);
+    if (validNumbers.length < 2) {
+      console.log(`  ⚠️ Not enough valid numbers (need >=2, got ${validNumbers.length})`);
+      continue;
+    }
     
-    const cleanedNumbers: number[] = [];
-    for (const token of numberTokens) {
-      const cleaned = cleanOCRNumber(token);
-      if (cleaned !== undefined) {
-        cleanedNumbers.push(cleaned);
+    // Pick the best name candidate (prefer earlier tokens, avoid short ones)
+    let bestName = nameTokens[0];
+    for (const nameToken of nameTokens) {
+      // Prefer longer names
+      if (nameToken.token.length > bestName.token.length) {
+        bestName = nameToken;
+      }
+      // Prefer names that appear near the start (but not necessarily first)
+      else if (nameToken.token.length === bestName.token.length && nameToken.index < 3) {
+        bestName = nameToken;
       }
     }
     
-    console.log(`  → Cleaned numbers:`, cleanedNumbers);
+    console.log(`  → Selected name: "${bestName.token}" at position ${bestName.index}`);
     
-    // Need at least 2 numbers to consider it a score entry
-    if (cleanedNumbers.length >= 2) {
+    // Extract scores (all valid numbers, excluding position near name if name is in middle)
+    const extractedScores: number[] = [];
+    for (const numToken of validNumbers) {
+      // Skip if this number token is actually the name
+      if (Math.abs(numToken.index - bestName.index) === 0) continue;
+      
+      extractedScores.push(numToken.cleaned!);
+    }
+    
+    console.log(`  → Extracted ${extractedScores.length} scores:`, extractedScores);
+    
+    if (extractedScores.length >= 2) {
       const scoreData: ScoreData = {
-        name: nameToken,
+        name: bestName.token,
         scores: {},
         confidence: 50, // Lower confidence for brute force
       };
       
       // Map numbers to game slots (up to 6 games)
-      cleanedNumbers.slice(0, 6).forEach((score, idx) => {
-        if (idx < 6) {
-          (scoreData.scores as any)[`game${idx + 1}`] = score;
-        }
+      extractedScores.slice(0, 6).forEach((score, idx) => {
+        (scoreData.scores as any)[`game${idx + 1}`] = score;
       });
       
       // If there's one more number and it's small (<=50), might be handicap
-      if (cleanedNumbers.length > 6 && cleanedNumbers[cleanedNumbers.length - 1] <= 50) {
-        scoreData.handicap = cleanedNumbers[cleanedNumbers.length - 1];
+      if (extractedScores.length > 6 && extractedScores[extractedScores.length - 1] <= 50) {
+        scoreData.handicap = extractedScores[extractedScores.length - 1];
         console.log(`  → Possible HCP: ${scoreData.handicap}`);
       }
       
       console.log(`  ✅ Brute force extracted: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
       scores.push(scoreData);
     } else {
-      console.log(`  ⚠️ Not enough valid numbers (need >=2, got ${cleanedNumbers.length})`);
+      console.log(`  ⚠️ Not enough valid numbers after filtering (need >=2, got ${extractedScores.length})`);
     }
   }
   
