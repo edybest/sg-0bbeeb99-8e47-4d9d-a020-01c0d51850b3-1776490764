@@ -22,7 +22,16 @@ type Game = Tables<"games">;
 interface FiveFiveParticipant {
   member_id: string;
   member_name: string;
-  rank: number;
+  game1_score: number;
+  game2_score: number;
+  game3_score: number;
+  game4_score: number;
+  game5_score: number;
+  game1_rank: number;
+  game2_rank: number;
+  game3_rank: number;
+  game4_rank: number;
+  game5_rank: number;
   game1_prize: number;
   game2_prize: number;
   game3_prize: number;
@@ -81,7 +90,7 @@ export default function FiveFivePage() {
     }
   };
 
-  const loadFiveFiveData = async (gameId: string) => {
+  const calculateRankingsAndPrizes = async (gameId: string) => {
     setLoading(true);
     try {
       const game = games.find((g) => g.id === gameId);
@@ -89,12 +98,17 @@ export default function FiveFivePage() {
         setSelectedGame(game);
       }
 
+      // Get all players with FiveFive flag
       const { data: playersData, error: playersError } = await supabase
         .from("game_players")
         .select(`
           member_id,
           is_fivefive,
-          overall_score,
+          game1_score,
+          game2_score,
+          game3_score,
+          game4_score,
+          game5_score,
           members!inner(full_name)
         `)
         .eq("game_id", gameId)
@@ -108,18 +122,12 @@ export default function FiveFivePage() {
         return;
       }
 
-      const sortedPlayers = playersData
-        .map((p) => ({
-          member_id: p.member_id,
-          member_name: p.members?.full_name || "Unknown",
-          score: p.overall_score || 0,
-        }))
-        .sort((a, b) => b.score - a.score);
-
+      // Get prize configuration for this player count
+      const playerCount = playersData.length;
       const { data: prizeConfig, error: prizeError } = await supabase
         .from("fivefive_prizes")
         .select("*")
-        .eq("player_count", sortedPlayers.length)
+        .eq("player_count", playerCount)
         .maybeSingle();
 
       if (prizeError) throw prizeError;
@@ -128,31 +136,87 @@ export default function FiveFivePage() {
         ? prizeConfig.prizes.map(Number)
         : [];
 
-      const participantsWithPrizes: FiveFiveParticipant[] = sortedPlayers.map((player, index) => {
-        const rank = index + 1;
-        const game1_prize = rank <= prizes.length ? prizes[index] || 0 : 0;
-        const game2_prize = rank <= prizes.length ? prizes[index] || 0 : 0;
-        const game3_prize = rank <= prizes.length ? prizes[index] || 0 : 0;
-        const game4_prize = rank <= prizes.length ? prizes[index] || 0 : 0;
-        const game5_prize = rank <= prizes.length ? prizes[index] || 0 : 0;
-        const total_prize = game1_prize + game2_prize + game3_prize + game4_prize + game5_prize;
+      // Calculate rankings and prizes for each game
+      const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => ({
+        member_id: player.member_id,
+        member_name: player.members?.full_name || "Unknown",
+        game1_score: player.game1_score || 0,
+        game2_score: player.game2_score || 0,
+        game3_score: player.game3_score || 0,
+        game4_score: player.game4_score || 0,
+        game5_score: player.game5_score || 0,
+        game1_rank: 0,
+        game2_rank: 0,
+        game3_rank: 0,
+        game4_rank: 0,
+        game5_rank: 0,
+        game1_prize: 0,
+        game2_prize: 0,
+        game3_prize: 0,
+        game4_prize: 0,
+        game5_prize: 0,
+        total_prize: 0,
+      }));
 
-        return {
-          member_id: player.member_id,
-          member_name: player.member_name,
-          rank,
-          game1_prize,
-          game2_prize,
-          game3_prize,
-          game4_prize,
-          game5_prize,
-          total_prize,
-        };
+      // Calculate rankings and prizes for each game (1-5)
+      for (let gameNum = 1; gameNum <= 5; gameNum++) {
+        const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
+        const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
+        const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
+
+        // Sort by score for this specific game (highest first)
+        const sortedByGame = [...participantsWithRankings].sort(
+          (a, b) => (b[scoreKey] as number) - (a[scoreKey] as number)
+        );
+
+        // Assign ranks based on score (handle ties)
+        let currentRank = 1;
+        let previousScore = -1;
+        let playersAtSameRank = 0;
+
+        sortedByGame.forEach((player, index) => {
+          const score = player[scoreKey] as number;
+
+          if (score === previousScore) {
+            // Same score = same rank
+            playersAtSameRank++;
+          } else {
+            // New score = new rank (skip ranks for tied players)
+            currentRank = index + 1;
+            playersAtSameRank = 0;
+          }
+
+          // Find original player in array and update rank
+          const originalPlayer = participantsWithRankings.find((p) => p.member_id === player.member_id);
+          if (originalPlayer) {
+            (originalPlayer[rankKey] as number) = currentRank;
+
+            // Assign prize based on rank
+            if (currentRank <= prizes.length) {
+              (originalPlayer[prizeKey] as number) = prizes[currentRank - 1] || 0;
+            }
+          }
+
+          previousScore = score;
+        });
+      }
+
+      // Calculate total prizes
+      participantsWithRankings.forEach((participant) => {
+        participant.total_prize =
+          participant.game1_prize +
+          participant.game2_prize +
+          participant.game3_prize +
+          participant.game4_prize +
+          participant.game5_prize;
       });
 
-      setParticipants(participantsWithPrizes);
+      // Sort by total prize (highest first) for display
+      participantsWithRankings.sort((a, b) => b.total_prize - a.total_prize);
+
+      setParticipants(participantsWithRankings);
     } catch (err) {
-      console.error("Error loading FiveFive data:", err);
+      console.error("Error calculating FiveFive data:", err);
       setParticipants([]);
     } finally {
       setLoading(false);
@@ -165,7 +229,7 @@ export default function FiveFivePage() {
 
   useEffect(() => {
     if (selectedGameId) {
-      loadFiveFiveData(selectedGameId);
+      calculateRankingsAndPrizes(selectedGameId);
     }
   }, [selectedGameId]);
 
@@ -190,6 +254,13 @@ export default function FiveFivePage() {
     return `RM ${amount.toFixed(2)}`;
   };
 
+  const getRankDisplay = (rank: number) => {
+    if (rank === 1) return "🥇";
+    if (rank === 2) return "🥈";
+    if (rank === 3) return "🥉";
+    return `#${rank}`;
+  };
+
   return (
     <PageAccessGuard pagePath="/member/five-five" requireAuth={true}>
       <>
@@ -212,7 +283,7 @@ export default function FiveFivePage() {
                     <Trophy className="w-8 h-8 text-yellow-500" />
                     FiveFive
                   </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Prize Distribution System</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Prize Per Game - Juara Setiap Game</p>
                 </div>
               </div>
             </div>
@@ -276,7 +347,7 @@ export default function FiveFivePage() {
                         <CardTitle className="flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-green-600" />
-                            Agihan Hadiah FiveFive
+                            Agihan Hadiah FiveFive Per Game
                           </span>
                           {selectedGame && (
                             <Badge variant="outline" className="text-sm">
@@ -290,12 +361,21 @@ export default function FiveFivePage() {
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-gray-50 dark:bg-gray-800">
-                                <TableHead className="font-semibold text-center w-16">Rank</TableHead>
                                 <TableHead className="font-semibold">Nama Pemain</TableHead>
+                                <TableHead className="font-semibold text-center">G1 Rank</TableHead>
+                                <TableHead className="font-semibold text-right">G1 Score</TableHead>
                                 <TableHead className="font-semibold text-right">G1 Prize</TableHead>
+                                <TableHead className="font-semibold text-center">G2 Rank</TableHead>
+                                <TableHead className="font-semibold text-right">G2 Score</TableHead>
                                 <TableHead className="font-semibold text-right">G2 Prize</TableHead>
+                                <TableHead className="font-semibold text-center">G3 Rank</TableHead>
+                                <TableHead className="font-semibold text-right">G3 Score</TableHead>
                                 <TableHead className="font-semibold text-right">G3 Prize</TableHead>
+                                <TableHead className="font-semibold text-center">G4 Rank</TableHead>
+                                <TableHead className="font-semibold text-right">G4 Score</TableHead>
                                 <TableHead className="font-semibold text-right">G4 Prize</TableHead>
+                                <TableHead className="font-semibold text-center">G5 Rank</TableHead>
+                                <TableHead className="font-semibold text-right">G5 Score</TableHead>
                                 <TableHead className="font-semibold text-right">G5 Prize</TableHead>
                                 <TableHead className="font-semibold text-right bg-yellow-50 dark:bg-yellow-900/20">
                                   Total Prize
@@ -309,21 +389,18 @@ export default function FiveFivePage() {
                                   className={`
                                     ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50 dark:bg-gray-800/50"}
                                     hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors
-                                    ${participant.rank === 1 ? "border-l-4 border-yellow-500" : ""}
-                                    ${participant.rank === 2 ? "border-l-4 border-gray-400" : ""}
-                                    ${participant.rank === 3 ? "border-l-4 border-orange-600" : ""}
                                   `}
                                 >
-                                  <TableCell className="text-center font-semibold">
-                                    {participant.rank === 1 && <span className="text-2xl">🥇</span>}
-                                    {participant.rank === 2 && <span className="text-2xl">🥈</span>}
-                                    {participant.rank === 3 && <span className="text-2xl">🥉</span>}
-                                    {participant.rank > 3 && (
-                                      <span className="text-gray-600 dark:text-gray-400">#{participant.rank}</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="font-medium">
+                                  <TableCell className="font-medium sticky left-0 bg-inherit">
                                     {participant.member_name}
+                                  </TableCell>
+
+                                  {/* Game 1 */}
+                                  <TableCell className="text-center text-lg">
+                                    {getRankDisplay(participant.game1_rank)}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-gray-600 dark:text-gray-400">
+                                    {participant.game1_score}
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums">
                                     {participant.game1_prize > 0 ? (
@@ -334,6 +411,14 @@ export default function FiveFivePage() {
                                       <span className="text-gray-400">-</span>
                                     )}
                                   </TableCell>
+
+                                  {/* Game 2 */}
+                                  <TableCell className="text-center text-lg">
+                                    {getRankDisplay(participant.game2_rank)}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-gray-600 dark:text-gray-400">
+                                    {participant.game2_score}
+                                  </TableCell>
                                   <TableCell className="text-right tabular-nums">
                                     {participant.game2_prize > 0 ? (
                                       <span className="text-green-600 dark:text-green-400 font-medium">
@@ -342,6 +427,14 @@ export default function FiveFivePage() {
                                     ) : (
                                       <span className="text-gray-400">-</span>
                                     )}
+                                  </TableCell>
+
+                                  {/* Game 3 */}
+                                  <TableCell className="text-center text-lg">
+                                    {getRankDisplay(participant.game3_rank)}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-gray-600 dark:text-gray-400">
+                                    {participant.game3_score}
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums">
                                     {participant.game3_prize > 0 ? (
@@ -352,6 +445,14 @@ export default function FiveFivePage() {
                                       <span className="text-gray-400">-</span>
                                     )}
                                   </TableCell>
+
+                                  {/* Game 4 */}
+                                  <TableCell className="text-center text-lg">
+                                    {getRankDisplay(participant.game4_rank)}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-gray-600 dark:text-gray-400">
+                                    {participant.game4_score}
+                                  </TableCell>
                                   <TableCell className="text-right tabular-nums">
                                     {participant.game4_prize > 0 ? (
                                       <span className="text-green-600 dark:text-green-400 font-medium">
@@ -360,6 +461,14 @@ export default function FiveFivePage() {
                                     ) : (
                                       <span className="text-gray-400">-</span>
                                     )}
+                                  </TableCell>
+
+                                  {/* Game 5 */}
+                                  <TableCell className="text-center text-lg">
+                                    {getRankDisplay(participant.game5_rank)}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-gray-600 dark:text-gray-400">
+                                    {participant.game5_score}
                                   </TableCell>
                                   <TableCell className="text-right tabular-nums">
                                     {participant.game5_prize > 0 ? (
@@ -370,7 +479,9 @@ export default function FiveFivePage() {
                                       <span className="text-gray-400">-</span>
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-right font-bold tabular-nums bg-yellow-50 dark:bg-yellow-900/20">
+
+                                  {/* Total Prize */}
+                                  <TableCell className="text-right font-bold tabular-nums bg-yellow-50 dark:bg-yellow-900/20 sticky right-0">
                                     {participant.total_prize > 0 ? (
                                       <span className="text-yellow-700 dark:text-yellow-400 text-lg">
                                         {formatCurrency(participant.total_prize)}
@@ -402,9 +513,9 @@ export default function FiveFivePage() {
                             </div>
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Pemenang</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Jumlah Peserta</p>
                                 <p className="text-3xl font-bold text-red-600">
-                                  {participants.filter((p) => p.total_prize > 0).length}
+                                  {participants.length}
                                 </p>
                               </div>
                             </div>
