@@ -182,6 +182,54 @@ export default function MiniBlokPage() {
     }
   }, [router.query.entry]);
 
+  // Filter and sort logic
+  const filteredAndSortedEntries = entries
+    .filter((entry) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchTitle = entry.title?.toLowerCase().includes(query);
+        const matchLocation = entry.location?.toLowerCase().includes(query);
+        if (!matchTitle && !matchLocation) return false;
+      }
+
+      // Date filter
+      if (dateFilter !== "all") {
+        const entryDate = new Date(entry.date);
+        const now = new Date();
+        
+        if (dateFilter === "week") {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          if (entryDate < weekAgo) return false;
+        } else if (dateFilter === "month") {
+          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          if (entryDate < monthAgo) return false;
+        } else if (dateFilter === "year") {
+          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          if (entryDate < yearAgo) return false;
+        }
+      }
+
+      // Ownership filter
+      if (ownershipFilter === "mine") {
+        if (entry.owner_id !== member?.id) return false;
+      } else if (ownershipFilter === "shared") {
+        if (entry.owner_id === member?.id) return false;
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "date-desc") {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortBy === "date-asc") {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === "title") {
+        return (a.title || "").localeCompare(b.title || "");
+      }
+      return 0;
+    });
+
   async function loadEntries() {
     try {
       setLoading(true);
@@ -679,9 +727,30 @@ export default function MiniBlokPage() {
                 )}
               </CardContent>
             </Card>
+          ) : filteredAndSortedEntries.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No tournaments found</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Try adjusting your filters
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setDateFilter("all");
+                    setOwnershipFilter("all");
+                    setSortBy("date-desc");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {entries.map((entry) => {
+              {filteredAndSortedEntries.map((entry) => {
                 const sortedPlayers = [...entry.players].sort((a, b) => {
                   const statsA = calculatePlayerStats(a, entry.num_games || 5);
                   const statsB = calculatePlayerStats(b, entry.num_games || 5);
