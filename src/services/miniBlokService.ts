@@ -4,41 +4,61 @@ import type { Database } from "@/integrations/supabase/types";
 type MiniBlok = Database["public"]["Tables"]["mini_blok"]["Row"];
 type MiniBlokInsert = Database["public"]["Tables"]["mini_blok"]["Insert"];
 type MiniBlokUpdate = Database["public"]["Tables"]["mini_blok"]["Update"];
+type MiniBlokPlayer = Database["public"]["Tables"]["mini_blok_players"]["Row"];
+type MiniBlokPlayerInsert = Database["public"]["Tables"]["mini_blok_players"]["Insert"];
+type MiniBlokPlayerUpdate = Database["public"]["Tables"]["mini_blok_players"]["Update"];
+type MiniBlokAccess = Database["public"]["Tables"]["mini_blok_access"]["Row"];
 
-export interface MiniBlokWithStats extends MiniBlok {
-  average: number;
-  differential: number;
-  total_score: number;
-  overall_score: number;
+export interface MiniBlokWithPlayers extends MiniBlok {
+  players: MiniBlokPlayer[];
+  shared_with: MiniBlokAccess[];
+  can_edit: boolean;
 }
 
-function calculateStats(games: number[], handicap: number): {
+export interface PlayerStats {
   average: number;
-  differential: number;
   total_score: number;
   overall_score: number;
-} {
-  const validGames = games.filter(g => g > 0);
-  const gameCount = validGames.length;
+  differential: number;
+  games_played: number;
+}
+
+function calculatePlayerStats(player: MiniBlokPlayer, totalGames: number): PlayerStats {
+  const scores: number[] = [];
   
-  if (gameCount === 0) {
-    return { average: 0, differential: 0, total_score: 0, overall_score: 0 };
+  for (let i = 1; i <= totalGames; i++) {
+    const score = player[`game_${i}` as keyof MiniBlokPlayer] as number | null;
+    if (score !== null && score > 0) {
+      scores.push(score);
+    }
   }
 
-  const total_score = validGames.reduce((sum, score) => sum + score, 0);
-  const average = Math.round(total_score / gameCount);
-  const overall_score = total_score + (handicap * gameCount);
+  const games_played = scores.length;
+  
+  if (games_played === 0) {
+    return { average: 0, total_score: 0, overall_score: 0, differential: 0, games_played: 0 };
+  }
+
+  const total_score = scores.reduce((sum, score) => sum + score, 0);
+  const average = Math.round(total_score / games_played);
+  const overall_score = total_score + (player.handicap * games_played);
   const differential = overall_score - total_score;
 
-  return { average, differential, total_score, overall_score };
+  return { average, total_score, overall_score, differential, games_played };
 }
 
-export async function getMiniBlokEntries(): Promise<MiniBlokWithStats[]> {
-  const { data, error } = await supabase
+export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWithPlayers[]> {
+  let query = supabase
     .from("mini_blok")
-    .select("*")
+    .select(`
+      *,
+      players:mini_blok_players(*),
+      shared_with:mini_blok_access(*)
+    `)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
+
+  const { data, error } = await query;
 
   console.log("getMiniBlokEntries:", { data, error });
 
@@ -47,84 +67,66 @@ export async function getMiniBlokEntries(): Promise<MiniBlokWithStats[]> {
     throw error;
   }
 
-  return (data || []).map(entry => {
-    const games = [
-      entry.game_1,
-      entry.game_2,
-      entry.game_3,
-      entry.game_4,
-      entry.game_5,
-      entry.game_6,
-      entry.game_7,
-      entry.game_8,
-      entry.game_9,
-      entry.game_10
-    ].filter((g): g is number => g !== null);
-
-    const stats = calculateStats(games, entry.handicap);
-
-    return {
-      ...entry,
-      ...stats
-    };
-  });
+  return (data || []).map(entry => ({
+    ...entry,
+    players: Array.isArray(entry.players) ? entry.players : [],
+    shared_with: Array.isArray(entry.shared_with) ? entry.shared_with : [],
+    can_edit: memberId ? (
+      entry.created_by === memberId || 
+      (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokAccess) => access.member_id === memberId))
+    ) : false
+  }));
 }
 
-export async function getMiniBlokEntryById(id: string): Promise<MiniBlokWithStats | null> {
+export async function getMiniBlokById(id: string, memberId?: string): Promise<MiniBlokWithPlayers | null> {
   const { data, error } = await supabase
     .from("mini_blok")
-    .select("*")
+    .select(`
+      *,
+      players:mini_blok_players(*),
+      shared_with:mini_blok_access(*)
+    `)
     .eq("id", id)
     .single();
 
-  console.log("getMiniBlokEntryById:", { data, error });
+  console.log("getMiniBlokById:", { data, error });
 
   if (error) {
-    console.error("Error fetching mini blok entry:", error);
+    console.error("Error fetching mini blok:", error);
     throw error;
   }
 
   if (!data) return null;
 
-  const games = [
-    data.game_1,
-    data.game_2,
-    data.game_3,
-    data.game_4,
-    data.game_5,
-    data.game_6,
-    data.game_7,
-    data.game_8,
-    data.game_9,
-    data.game_10
-  ].filter((g): g is number => g !== null);
-
-  const stats = calculateStats(games, data.handicap);
-
   return {
     ...data,
-    ...stats
+    players: Array.isArray(data.players) ? data.players : [],
+    shared_with: Array.isArray(data.shared_with) ? data.shared_with : [],
+    can_edit: memberId ? (
+      data.created_by === memberId || 
+      (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokAccess) => access.member_id === memberId))
+    ) : false
   };
 }
 
-export async function createMiniBlokEntry(entry: MiniBlokInsert): Promise<MiniBlok> {
+export async function createMiniBlok(entry: MiniBlokInsert): Promise<MiniBlok> {
   const { data, error } = await supabase
     .from("mini_blok")
     .insert(entry)
     .select()
     .single();
 
-  console.log("createMiniBlokEntry:", { data, error });
+  console.log("createMiniBlok:", { data, error });
 
   if (error) {
-    console.error("Error creating mini blok entry:", error);
+    console.error("Error creating mini blok:", error);
     throw error;
   }
 
   return data;
 }
 
-export async function updateMiniBlokEntry(id: string, updates: MiniBlokUpdate): Promise<MiniBlok> {
+export async function updateMiniBlok(id: string, updates: MiniBlokUpdate): Promise<MiniBlok> {
   const { data, error } = await supabase
     .from("mini_blok")
     .update(updates)
@@ -132,26 +134,110 @@ export async function updateMiniBlokEntry(id: string, updates: MiniBlokUpdate): 
     .select()
     .single();
 
-  console.log("updateMiniBlokEntry:", { data, error });
+  console.log("updateMiniBlok:", { data, error });
 
   if (error) {
-    console.error("Error updating mini blok entry:", error);
+    console.error("Error updating mini blok:", error);
     throw error;
   }
 
   return data;
 }
 
-export async function deleteMiniBlokEntry(id: string): Promise<void> {
+export async function deleteMiniBlok(id: string): Promise<void> {
   const { error } = await supabase
     .from("mini_blok")
     .delete()
     .eq("id", id);
 
-  console.log("deleteMiniBlokEntry:", { error });
+  console.log("deleteMiniBlok:", { error });
 
   if (error) {
-    console.error("Error deleting mini blok entry:", error);
+    console.error("Error deleting mini blok:", error);
+    throw error;
+  }
+}
+
+// Player management
+export async function addPlayer(player: MiniBlokPlayerInsert): Promise<MiniBlokPlayer> {
+  const { data, error } = await supabase
+    .from("mini_blok_players")
+    .insert(player)
+    .select()
+    .single();
+
+  console.log("addPlayer:", { data, error });
+
+  if (error) {
+    console.error("Error adding player:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updatePlayer(id: string, updates: MiniBlokPlayerUpdate): Promise<MiniBlokPlayer> {
+  const { data, error } = await supabase
+    .from("mini_blok_players")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  console.log("updatePlayer:", { data, error });
+
+  if (error) {
+    console.error("Error updating player:", error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deletePlayer(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("mini_blok_players")
+    .delete()
+    .eq("id", id);
+
+  console.log("deletePlayer:", { error });
+
+  if (error) {
+    console.error("Error deleting player:", error);
+    throw error;
+  }
+}
+
+// Access management
+export async function shareAccess(miniBlokId: string, memberIds: string[]): Promise<void> {
+  const inserts = memberIds.map(memberId => ({
+    mini_blok_id: miniBlokId,
+    member_id: memberId
+  }));
+
+  const { error } = await supabase
+    .from("mini_blok_access")
+    .insert(inserts);
+
+  console.log("shareAccess:", { error });
+
+  if (error) {
+    console.error("Error sharing access:", error);
+    throw error;
+  }
+}
+
+export async function revokeAccess(miniBlokId: string, memberId: string): Promise<void> {
+  const { error } = await supabase
+    .from("mini_blok_access")
+    .delete()
+    .eq("mini_blok_id", miniBlokId)
+    .eq("member_id", memberId);
+
+  console.log("revokeAccess:", { error });
+
+  if (error) {
+    console.error("Error revoking access:", error);
     throw error;
   }
 }
@@ -161,33 +247,21 @@ export function generateShareUrl(entryId: string): string {
   return `${baseUrl}/member/mini-blok?entry=${entryId}`;
 }
 
-export function generateShareText(entry: MiniBlokWithStats): string {
-  const games = [
-    entry.game_1,
-    entry.game_2,
-    entry.game_3,
-    entry.game_4,
-    entry.game_5,
-    entry.game_6,
-    entry.game_7,
-    entry.game_8,
-    entry.game_9,
-    entry.game_10
-  ].filter((g): g is number => g !== null);
+export function generateShareText(entry: MiniBlokWithPlayers): string {
+  const playerCount = entry.players.length;
+  const stats = entry.players.map(p => calculatePlayerStats(p, entry.total_games));
+  const topScore = Math.max(...stats.map(s => s.overall_score));
+  const topPlayer = entry.players[stats.findIndex(s => s.overall_score === topScore)];
 
-  const gamesText = games.map((score, idx) => `G${idx + 1}: ${score}`).join(" | ");
-
-  return `🎳 ${entry.title || "Mini Blok"}
+  return `🎳 ${entry.title || "Mini Blok Tournament"}
 
 📍 ${entry.location}
-👤 ${entry.player_name}
 📅 ${new Date(entry.date).toLocaleDateString("en-MY")}
+🎮 ${entry.total_games} games | 👥 ${playerCount} players
 
-${gamesText}
+🏆 Top Score: ${topPlayer?.player_name} - ${topScore}
 
-🎯 Average: ${entry.average}
-📊 Total: ${entry.total_score}
-🎁 Handicap: ${entry.handicap}
-✨ Overall: ${entry.overall_score}
-📈 Diff: ${entry.differential > 0 ? "+" : ""}${entry.differential}`;
+View full results: ${generateShareUrl(entry.id)}`;
 }
+
+export { calculatePlayerStats };
