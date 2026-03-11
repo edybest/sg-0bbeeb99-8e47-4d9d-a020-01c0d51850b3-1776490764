@@ -1000,6 +1000,270 @@ export function ScoreManagement() {
         </div>
       )}
 
+      {/* CSV Upload Modal */}
+      {showCsvModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Upload CSV Score File</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetCsvUpload}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* CSV Upload Instructions */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  CSV Format Requirements
+                </h4>
+                <div className="text-sm text-blue-800 space-y-2">
+                  <p><strong>Required columns (case-insensitive):</strong></p>
+                  <ul className="list-disc list-inside ml-2 space-y-1">
+                    <li><code className="bg-blue-100 px-1 rounded">name</code> or <code className="bg-blue-100 px-1 rounded">player</code> - Player name</li>
+                    <li><code className="bg-blue-100 px-1 rounded">g1</code> / <code className="bg-blue-100 px-1 rounded">game1</code> - Game 1 score</li>
+                    <li><code className="bg-blue-100 px-1 rounded">g2</code> / <code className="bg-blue-100 px-1 rounded">game2</code> - Game 2 score</li>
+                    <li><code className="bg-blue-100 px-1 rounded">g3</code> / <code className="bg-blue-100 px-1 rounded">game3</code> - Game 3 score</li>
+                    <li><code className="bg-blue-100 px-1 rounded">g4</code> / <code className="bg-blue-100 px-1 rounded">game4</code> - Game 4 score</li>
+                    <li><code className="bg-blue-100 px-1 rounded">g5</code> / <code className="bg-blue-100 px-1 rounded">game5</code> - Game 5 score</li>
+                    <li><code className="bg-blue-100 px-1 rounded">hcp</code> / <code className="bg-blue-100 px-1 rounded">handicap</code> - Handicap (optional)</li>
+                  </ul>
+                  <p className="mt-2"><strong>Example CSV:</strong></p>
+                  <pre className="bg-blue-100 p-2 rounded text-xs overflow-x-auto">
+name,g1,g2,g3,g4,g5,hcp
+HL,190,159,199,215,166,24
+Eby,168,116,153,152,176,18</pre>
+                </div>
+              </div>
+
+              {/* CSV File Upload */}
+              {!uploadedCsv && (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-600 mb-2">Upload CSV file</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    File must be in CSV format with proper column headers
+                  </p>
+                  <label className="cursor-pointer">
+                    <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block">
+                      Select CSV File
+                    </span>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCsvSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* CSV File Selected */}
+              {uploadedCsv && csvParsedScores.length === 0 && (
+                <div className="space-y-4">
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-8 w-8 text-green-600" />
+                        <div>
+                          <p className="font-semibold text-green-900">{uploadedCsv.name}</p>
+                          <p className="text-sm text-green-700">
+                            {(uploadedCsv.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => setUploadedCsv(null)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-700 hover:text-green-900"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleParseCsv}
+                      disabled={csvParsing}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {csvParsing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing CSV...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4 mr-2" />
+                          Parse & Match Players
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => setUploadedCsv(null)}
+                      variant="outline"
+                      className="border-gray-300"
+                    >
+                      Change File
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* CSV Parsed Results */}
+              {csvParsedScores.length > 0 && (
+                <>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-5 w-5 text-green-600" />
+                        <h4 className="font-semibold text-green-900">CSV Parsed Successfully</h4>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                      <div>
+                        <span className="text-green-700">Total Rows:</span>
+                        <span className="ml-2 font-bold text-green-900">{csvParsedScores.length}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700">High Confidence Matches:</span>
+                        <span className="ml-2 font-bold text-green-900">
+                          {csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80).length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mb-4">
+                    <Button
+                      onClick={handleApplyAllCsvScores}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      disabled={!csvParsedScores.some(s => s.matchConfidence && s.matchConfidence >= 80)}
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Apply All High Confidence (≥80%)
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {csvParsedScores.map((score, idx) => (
+                      <Card key={idx} className={`border-2 ${
+                        score.matchConfidence && score.matchConfidence >= 80
+                          ? "border-green-200 bg-green-50"
+                          : score.matchConfidence && score.matchConfidence >= 60
+                          ? "border-yellow-200 bg-yellow-50"
+                          : "border-red-200 bg-red-50"
+                      }`}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">
+                                CSV: {score.name}
+                              </p>
+                              {score.matchedMember ? (
+                                <div className="mt-1">
+                                  <p className="text-sm text-gray-600">
+                                    → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
+                                  </p>
+                                  <div className="mt-1">
+                                    {getConfidenceBadge(score.matchConfidence)}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  No match found - Please enter manually
+                                </p>
+                              )}
+                            </div>
+                            {score.matchedMember && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApplyCsvScore(score)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-5 gap-2 text-sm mt-3">
+                            {score.scores.game1 !== undefined && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
+                                <div className="text-xs text-gray-500">G1</div>
+                                <div className="font-semibold text-blue-600">{score.scores.game1}</div>
+                              </div>
+                            )}
+                            {score.scores.game2 !== undefined && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
+                                <div className="text-xs text-gray-500">G2</div>
+                                <div className="font-semibold text-green-600">{score.scores.game2}</div>
+                              </div>
+                            )}
+                            {score.scores.game3 !== undefined && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
+                                <div className="text-xs text-gray-500">G3</div>
+                                <div className="font-semibold text-purple-600">{score.scores.game3}</div>
+                              </div>
+                            )}
+                            {score.scores.game4 !== undefined && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
+                                <div className="text-xs text-gray-500">G4</div>
+                                <div className="font-semibold text-orange-600">{score.scores.game4}</div>
+                              </div>
+                            )}
+                            {score.scores.game5 !== undefined && (
+                              <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
+                                <div className="text-xs text-gray-500">G5</div>
+                                <div className="font-semibold text-pink-600">{score.scores.game5}</div>
+                              </div>
+                            )}
+                          </div>
+                          {score.handicap !== undefined && (
+                            <div className="mt-2 text-sm">
+                              <span className="text-gray-600">Handicap:</span>
+                              <span className="ml-2 font-semibold text-yellow-600">{score.handicap}</span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t mt-4">
+                    <Button
+                      onClick={() => {
+                        setUploadedCsv(null);
+                        setCsvParsedScores([]);
+                      }}
+                      variant="outline"
+                      className="flex-1 border-gray-300"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Upload New CSV
+                    </Button>
+                    <Button
+                      onClick={() => setShowCsvModal(false)}
+                      variant="outline"
+                      className="flex-1 border-gray-300"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Game Selection */}
       <Card className="bg-white border-gray-200">
         <CardContent className="p-4">
