@@ -85,6 +85,12 @@ export function ScoreManagement() {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [showRawText, setShowRawText] = useState(false);
 
+  // CSV upload states
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [uploadedCsv, setUploadedCsv] = useState<File | null>(null);
+  const [csvParsing, setCsvParsing] = useState(false);
+  const [csvParsedScores, setCsvParsedScores] = useState<ParsedScore[]>([]);
+
   useEffect(() => {
     loadGames();
     loadAllMembers();
@@ -479,6 +485,114 @@ export function ScoreManagement() {
         Low ({confidence.toFixed(0)}%)
       </span>
     );
+  }
+
+  // CSV upload handlers
+  function handleCsvSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".csv")) {
+      alert("Please select a CSV file");
+      return;
+    }
+
+    setUploadedCsv(file);
+    setCsvParsedScores([]);
+  }
+
+  async function handleParseCsv() {
+    if (!uploadedCsv) return;
+
+    setCsvParsing(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("csv", uploadedCsv);
+      formData.append("members", JSON.stringify(allMembers));
+
+      const response = await fetch("/api/parse-score-csv", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        alert(data.error || "Failed to parse CSV");
+        return;
+      }
+
+      setCsvParsedScores(data.scores || []);
+      
+      if (data.scores.length === 0) {
+        alert("No scores detected in CSV. Check column names: name/player, g1/game1, g2/game2, etc.");
+      }
+      
+    } catch (error) {
+      console.error("Error parsing CSV:", error);
+      alert("Failed to parse CSV file");
+    } finally {
+      setCsvParsing(false);
+    }
+  }
+
+  function handleApplyCsvScore(parsedScore: ParsedScore) {
+    if (!parsedScore.matchedMember) return;
+
+    const player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    if (!player) {
+      alert("Player not found in this game");
+      return;
+    }
+
+    setEditingScores(prev => {
+      const updated = { ...player };
+      if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
+      if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
+      if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
+      if (parsedScore.scores.game4 !== undefined) updated.game4_score = parsedScore.scores.game4;
+      if (parsedScore.scores.game5 !== undefined) updated.game5_score = parsedScore.scores.game5;
+      if (parsedScore.handicap !== undefined) updated.handicap = parsedScore.handicap;
+
+      const total = updated.game1_score + updated.game2_score + updated.game3_score + 
+                    updated.game4_score + updated.game5_score;
+      updated.total_score = total;
+      updated.overall_score = total + updated.handicap;
+
+      return { ...prev, [player.id]: updated };
+    });
+
+    const playerElement = document.getElementById(`player-${player.id}`);
+    if (playerElement) {
+      playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
+      setTimeout(() => {
+        playerElement.classList.remove("ring-4", "ring-green-500", "ring-opacity-50");
+      }, 2000);
+    }
+  }
+
+  function handleApplyAllCsvScores() {
+    const highConfidenceScores = csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
+    
+    if (highConfidenceScores.length === 0) {
+      alert("No scores with high confidence (≥80%) to apply automatically.");
+      return;
+    }
+    
+    highConfidenceScores.forEach(score => {
+      handleApplyCsvScore(score);
+    });
+    
+    setShowCsvModal(false);
+    alert(`${highConfidenceScores.length} scores have been filled. Please review and save.`);
+  }
+
+  function resetCsvUpload() {
+    setUploadedCsv(null);
+    setCsvParsedScores([]);
+    setShowCsvModal(false);
   }
 
   if (loading && !selectedGameId) {
