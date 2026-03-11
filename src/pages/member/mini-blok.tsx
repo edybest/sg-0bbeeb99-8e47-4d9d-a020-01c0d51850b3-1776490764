@@ -723,13 +723,24 @@ export default function MiniBlokPage() {
                             <Share2 className="h-4 w-4" />
                           </Button>
                           {entry.can_edit && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => openManageDialog(entry)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openManageDialog(entry)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              {entry.owner_id === member?.id && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setDeleteConfirmEntry(entry.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
