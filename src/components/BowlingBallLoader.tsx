@@ -1,117 +1,150 @@
 import { cn } from "@/lib/utils";
 
-interface BowlingBallLoaderProps {
+interface BowlingPinLoaderProps {
   className?: string;
   size?: "sm" | "md" | "lg";
 }
 
-export function BowlingBallLoader({ className, size = "md" }: BowlingBallLoaderProps) {
+export function BowlingPinLoader({ className, size = "md" }: BowlingPinLoaderProps) {
   const sizeClasses = {
-    sm: "w-12 h-12",
-    md: "w-16 h-16",
-    lg: "w-24 h-24"
+    sm: "w-32 h-20",
+    md: "w-40 h-24",
+    lg: "w-48 h-32"
   };
-
-  const holeSizes = {
-    sm: { outer: 8, inner: 3 },
-    md: { outer: 12, inner: 4 },
-    lg: { outer: 16, inner: 6 }
-  };
-
-  const holes = holeSizes[size];
 
   return (
     <div className={cn("relative inline-flex items-center justify-center", className)}>
-      <div className={cn(
-        "relative rounded-full bg-gradient-to-br from-red-500 via-red-600 to-red-800 shadow-2xl",
-        sizeClasses[size],
-        "animate-spin"
-      )}>
-        {/* Shine effect */}
-        <div className="absolute top-2 left-2 w-1/3 h-1/3 bg-gradient-to-br from-white/40 to-transparent rounded-full blur-sm" />
-        
-        {/* Finger holes */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          {/* Top hole */}
-          <div 
-            className="absolute rounded-full bg-black shadow-inner"
-            style={{
-              width: `${holes.outer}px`,
-              height: `${holes.outer}px`,
-              top: "25%",
-              left: "50%",
-              transform: "translateX(-50%)"
-            }}
-          >
-            <div 
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900"
-              style={{
-                width: `${holes.inner}px`,
-                height: `${holes.inner}px`
-              }}
+      <div className={cn("relative flex items-end gap-2 justify-center", sizeClasses[size])}>
+        {/* Pin 1 - Falls first */}
+        <div className="pin-container" style={{ animationDelay: "0s" }}>
+          <svg viewBox="0 0 40 100" className="w-8 h-20 pin-svg">
+            {/* Pin body */}
+            <defs>
+              <linearGradient id="pinGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#f0f0f0" />
+                <stop offset="100%" stopColor="#e0e0e0" />
+              </linearGradient>
+            </defs>
+            
+            {/* Base */}
+            <ellipse cx="20" cy="95" rx="12" ry="4" fill="#d0d0d0" />
+            
+            {/* Main body */}
+            <path
+              d="M 12 95 Q 10 85 10 75 L 10 40 Q 10 25 15 15 Q 18 8 20 5 Q 22 8 25 15 Q 30 25 30 40 L 30 75 Q 30 85 28 95 Z"
+              fill="url(#pinGradient1)"
+              stroke="#c0c0c0"
+              strokeWidth="0.5"
             />
-          </div>
-          
-          {/* Bottom left hole */}
-          <div 
-            className="absolute rounded-full bg-black shadow-inner"
-            style={{
-              width: `${holes.outer}px`,
-              height: `${holes.outer}px`,
-              bottom: "30%",
-              left: "35%"
-            }}
-          >
-            <div 
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900"
-              style={{
-                width: `${holes.inner}px`,
-                height: `${holes.inner}px`
-              }}
-            />
-          </div>
-          
-          {/* Bottom right hole */}
-          <div 
-            className="absolute rounded-full bg-black shadow-inner"
-            style={{
-              width: `${holes.outer}px`,
-              height: `${holes.outer}px`,
-              bottom: "30%",
-              right: "35%"
-            }}
-          >
-            <div 
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-900"
-              style={{
-                width: `${holes.inner}px`,
-                height: `${holes.inner}px`
-              }}
-            />
-          </div>
+            
+            {/* Red stripes */}
+            <ellipse cx="20" cy="30" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            <ellipse cx="20" cy="35" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            
+            {/* Shine highlight */}
+            <ellipse cx="15" cy="20" rx="4" ry="8" fill="white" opacity="0.4" />
+          </svg>
         </div>
 
-        {/* Shadow effect on bottom */}
-        <div className="absolute -bottom-1 left-0 right-0 h-1/4 bg-gradient-to-t from-black/30 to-transparent rounded-full blur-sm" />
+        {/* Pin 2 - Falls second */}
+        <div className="pin-container" style={{ animationDelay: "0.3s" }}>
+          <svg viewBox="0 0 40 100" className="w-8 h-20 pin-svg">
+            <defs>
+              <linearGradient id="pinGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#f0f0f0" />
+                <stop offset="100%" stopColor="#e0e0e0" />
+              </linearGradient>
+            </defs>
+            <ellipse cx="20" cy="95" rx="12" ry="4" fill="#d0d0d0" />
+            <path
+              d="M 12 95 Q 10 85 10 75 L 10 40 Q 10 25 15 15 Q 18 8 20 5 Q 22 8 25 15 Q 30 25 30 40 L 30 75 Q 30 85 28 95 Z"
+              fill="url(#pinGradient2)"
+              stroke="#c0c0c0"
+              strokeWidth="0.5"
+            />
+            <ellipse cx="20" cy="30" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            <ellipse cx="20" cy="35" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            <ellipse cx="15" cy="20" rx="4" ry="8" fill="white" opacity="0.4" />
+          </svg>
+        </div>
+
+        {/* Pin 3 - Falls third */}
+        <div className="pin-container" style={{ animationDelay: "0.6s" }}>
+          <svg viewBox="0 0 40 100" className="w-8 h-20 pin-svg">
+            <defs>
+              <linearGradient id="pinGradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="50%" stopColor="#f0f0f0" />
+                <stop offset="100%" stopColor="#e0e0e0" />
+              </linearGradient>
+            </defs>
+            <ellipse cx="20" cy="95" rx="12" ry="4" fill="#d0d0d0" />
+            <path
+              d="M 12 95 Q 10 85 10 75 L 10 40 Q 10 25 15 15 Q 18 8 20 5 Q 22 8 25 15 Q 30 25 30 40 L 30 75 Q 30 85 28 95 Z"
+              fill="url(#pinGradient3)"
+              stroke="#c0c0c0"
+              strokeWidth="0.5"
+            />
+            <ellipse cx="20" cy="30" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            <ellipse cx="20" cy="35" rx="11" ry="3" fill="#dc2626" opacity="0.8" />
+            <ellipse cx="15" cy="20" rx="4" ry="8" fill="white" opacity="0.4" />
+          </svg>
+        </div>
       </div>
 
-      {/* Spinning shadow underneath */}
-      <div className={cn(
-        "absolute -bottom-2 rounded-full bg-black/20 blur-md animate-pulse",
-        size === "sm" && "w-10 h-3",
-        size === "md" && "w-14 h-4",
-        size === "lg" && "w-20 h-6"
-      )} />
+      <style jsx>{`
+        .pin-container {
+          animation: pinFall 1.8s ease-in-out infinite;
+          transform-origin: center bottom;
+        }
+
+        .pin-svg {
+          filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+        }
+
+        @keyframes pinFall {
+          0%, 100% {
+            transform: rotate(0deg) translateY(0);
+            opacity: 1;
+          }
+          15% {
+            transform: rotate(0deg) translateY(-4px);
+            opacity: 1;
+          }
+          30% {
+            transform: rotate(15deg) translateY(0);
+            opacity: 1;
+          }
+          45% {
+            transform: rotate(75deg) translateY(8px);
+            opacity: 0.7;
+          }
+          60% {
+            transform: rotate(90deg) translateY(12px);
+            opacity: 0.3;
+          }
+          75% {
+            transform: rotate(90deg) translateY(12px);
+            opacity: 0;
+          }
+          90% {
+            transform: rotate(0deg) translateY(0);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
 // Full-screen loading overlay version
-export function BowlingBallLoaderOverlay() {
+export function BowlingPinLoaderOverlay() {
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="flex flex-col items-center gap-4">
-        <BowlingBallLoader size="lg" />
+        <BowlingPinLoader size="lg" />
         <p className="text-lg font-medium text-muted-foreground animate-pulse">
           Loading...
         </p>
