@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import vision from "@google-cloud/vision";
+import Tesseract from "tesseract.js";
 import formidable from "formidable";
 import fs from "fs";
 
@@ -22,12 +22,6 @@ type ScoreData = {
   handicap?: number;
   confidence: number;
 };
-
-// Initialize Google Vision client with API key
-const visionClient = new vision.ImageAnnotatorClient({
-  keyFilename: undefined, // We'll use API key instead
-  apiKey: process.env.GOOGLE_VISION_API_KEY,
-});
 
 function cleanOCRNumber(text: string): number | undefined {
   if (!text || text.trim().length === 0) return undefined;
@@ -85,40 +79,39 @@ function cleanOCRNumber(text: string): number | undefined {
 }
 
 function extractTableScores(text: string): ScoreData[] {
-  console.log("\n=== GOOGLE VISION TABLE EXTRACTION START ===");
+  console.log("\n=== ULTRA-AGGRESSIVE TABLE EXTRACTION START ===");
   console.log("Raw text length:", text.length);
   console.log("Raw text preview (first 500 chars):\n", text.substring(0, 500));
   
   const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
   console.log("\n📋 Total lines after cleanup:", lines.length);
-  console.log("First 15 lines:");
-  lines.slice(0, 15).forEach((line, idx) => {
+  console.log("First 20 lines:");
+  lines.slice(0, 20).forEach((line, idx) => {
     console.log(`  [${idx}]: "${line}"`);
   });
   
   const scores: ScoreData[] = [];
   
-  // Google Vision gives cleaner text, so we can be more aggressive
-  console.log("\n🔍 STRATEGY: Smart bidirectional name detection...");
+  console.log("\n🔍 STRATEGY: Ultra-aggressive bidirectional name detection...");
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
     // Skip very short lines or header-like lines
-    if (line.length < 5) continue;
-    if (/^(no|name|game|g1|g2|g3|g4|g5|g6|total|hcp|hdcp|player)/i.test(line.trim())) {
+    if (line.length < 3) continue;
+    if (/^(no|name|game|g1|g2|g3|g4|g5|g6|total|hcp|hdcp|player|lane|block|date)/i.test(line.trim())) {
       console.log(`  Skipping header at line ${i}: "${line}"`);
       continue;
     }
     
-    console.log(`\nProcessing line ${i}: "${line}"`);
+    console.log(`\n📝 Processing line ${i}: "${line}"`);
     
     // Split into tokens
     const tokens = line.split(/\s+/).filter(t => t.length > 0);
     console.log(`  Tokens (${tokens.length}):`, tokens);
     
     if (tokens.length < 3) {
-      console.log(`  ⚠️ Too few tokens, skipping`);
+      console.log(`  ⚠️ Too few tokens (need ≥3), skipping`);
       continue;
     }
     
@@ -132,12 +125,13 @@ function extractTableScores(text: string): ScoreData[] {
       // Check if it's a name (has letters, not all numbers)
       if (/[a-zA-Z]/.test(token) && !/^\d+$/.test(token) && token.length >= 2 && token.length <= 20) {
         // Score this name candidate
-        let score = 0;
-        score += token.length; // Longer names preferred
-        score += (token.match(/[a-zA-Z]/g) || []).length; // More letters = better
-        if (j > 0 && j < tokens.length - 1) score += 2; // Middle position bonus
+        let candidateScore = 0;
+        candidateScore += token.length; // Longer names preferred
+        candidateScore += (token.match(/[a-zA-Z]/g) || []).length; // More letters = better
+        if (j > 0 && j < tokens.length - 1) candidateScore += 2; // Middle position bonus
+        if (j === 0 || j === 1) candidateScore += 3; // Early position bonus (names usually first)
         
-        nameTokens.push({ token, index: j, score });
+        nameTokens.push({ token, index: j, score: candidateScore });
       }
       
       // Check if it's a potential number
@@ -157,7 +151,7 @@ function extractTableScores(text: string): ScoreData[] {
     }
     
     if (validNumbers.length < 2) {
-      console.log(`  ⚠️ Not enough valid numbers (need >=2, got ${validNumbers.length})`);
+      console.log(`  ⚠️ Not enough valid numbers (need ≥2, got ${validNumbers.length})`);
       continue;
     }
     
@@ -182,7 +176,7 @@ function extractTableScores(text: string): ScoreData[] {
       const scoreData: ScoreData = {
         name: bestName.token,
         scores: {},
-        confidence: 85, // Higher confidence for Google Vision
+        confidence: 75,
       };
       
       // Map numbers to game slots (up to 6 games)
@@ -199,11 +193,11 @@ function extractTableScores(text: string): ScoreData[] {
       console.log(`  ✅ Extracted player: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
       scores.push(scoreData);
     } else {
-      console.log(`  ⚠️ Not enough valid numbers after filtering (need >=2, got ${extractedScores.length})`);
+      console.log(`  ⚠️ Not enough valid numbers after filtering (need ≥2, got ${extractedScores.length})`);
     }
   }
   
-  console.log("\n=== GOOGLE VISION TABLE EXTRACTION END ===");
+  console.log("\n=== ULTRA-AGGRESSIVE TABLE EXTRACTION END ===");
   console.log(`Final result: ${scores.length} players detected`);
   scores.forEach((s, idx) => {
     console.log(`  [${idx}] ${s.name}: ${Object.keys(s.scores).length} scores, confidence: ${s.confidence}%`);
@@ -221,7 +215,7 @@ export default async function handler(
   }
 
   try {
-    console.log("\n🎯 ===== GOOGLE CLOUD VISION OCR START =====");
+    console.log("\n🎯 ===== TESSERACT OCR START =====");
     
     const form = formidable({
       maxFileSize: 10 * 1024 * 1024,
@@ -239,55 +233,46 @@ export default async function handler(
     console.log("📁 Image file received:", imageFile.originalFilename);
     const imagePath = imageFile.filepath;
     
-    // Read image as base64
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString("base64");
+    console.log("\n🤖 Starting Tesseract OCR (optimized config)...");
     
-    console.log("\n🤖 Calling Google Cloud Vision API...");
+    const { data: { text, confidence } } = await Tesseract.recognize(
+      imagePath,
+      "eng",
+      {
+        logger: (m) => {
+          if (m.status === "recognizing text") {
+            console.log(`  Progress: ${Math.round(m.progress * 100)}%`);
+          }
+        },
+        errorHandler: (err) => console.error("Tesseract error:", err),
+      }
+    );
     
-    // Call Google Vision API for text detection
-    const [result] = await visionClient.textDetection({
-      image: {
-        content: base64Image,
-      },
-    });
-    
-    const detections = result.textAnnotations;
-    if (!detections || detections.length === 0) {
-      console.log("❌ No text detected in image");
-      fs.unlinkSync(imagePath);
-      return res.status(400).json({ error: "No text detected in image" });
-    }
-    
-    // First annotation is the full text
-    const fullText = detections[0]?.description || "";
-    const confidence = 95; // Google Vision doesn't return confidence, but it's typically 90-99%
-    
-    console.log(`✅ Google Vision OCR complete. Confidence: ~${confidence}%`);
-    console.log(`Text length: ${fullText.length} chars`);
+    console.log(`✅ Tesseract OCR complete. Confidence: ${confidence.toFixed(1)}%`);
+    console.log(`Text length: ${text.length} chars`);
     
     console.log("\n📄 FULL OCR TEXT OUTPUT:");
     console.log("=".repeat(80));
-    console.log(fullText);
+    console.log(text);
     console.log("=".repeat(80));
     
     // Clean up uploaded file
     fs.unlinkSync(imagePath);
     
     // Extract scores from the text
-    const extractedScores = extractTableScores(fullText);
+    const extractedScores = extractTableScores(text);
     
     console.log(`\n✅ Final extraction: ${extractedScores.length} players found`);
-    console.log("🎯 ===== GOOGLE CLOUD VISION OCR END =====\n");
+    console.log("🎯 ===== TESSERACT OCR END =====\n");
     
     return res.status(200).json({
       success: true,
-      text: fullText,
-      confidence: confidence,
+      text: text,
+      confidence: Math.round(confidence),
       scores: extractedScores,
       debug: {
-        provider: "Google Cloud Vision",
-        detectedBlocks: detections.length - 1, // Exclude full text annotation
+        provider: "Tesseract.js",
+        rawConfidence: confidence,
       }
     });
     
