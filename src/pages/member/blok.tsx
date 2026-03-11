@@ -938,7 +938,7 @@ export default function BlokPage() {
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`}>
+                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`} style={{ color: "#16a34a" }}>
                               
                                                                         {entry.overall_score || "-"}
                                                                     </td>
