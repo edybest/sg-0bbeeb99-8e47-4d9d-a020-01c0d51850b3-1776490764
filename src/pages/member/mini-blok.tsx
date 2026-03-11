@@ -182,8 +182,10 @@ export default function MiniBlokPage() {
   });
 
   useEffect(() => {
-    loadEntries();
-  }, []);
+    if (member) {
+      loadEntries();
+    }
+  }, [member]);
 
   useEffect(() => {
     if (router.query.entry && typeof router.query.entry === "string") {
@@ -240,15 +242,23 @@ export default function MiniBlokPage() {
     });
 
   async function loadEntries() {
+    if (!member?.id) {
+      console.log("Member not loaded yet, skipping loadEntries");
+      return;
+    }
+
+    console.log("Loading entries for member:", member.id);
+    
     try {
       setLoading(true);
-      const data = await getMiniBlokEntries(member?.id);
+      const data = await getMiniBlokEntries(member.id);
+      console.log("Entries loaded successfully:", data);
       setEntries(data);
     } catch (error) {
-      console.error("Error loading mini blok entries:", error);
+      console.error("Error loading entries:", error);
       toast({
         title: "Error",
-        description: "Failed to load entries",
+        description: "Failed to load tournaments",
         variant: "destructive",
       });
     } finally {
@@ -458,6 +468,7 @@ export default function MiniBlokPage() {
       game_20: scores.game_20 || null,
     };
     setPlayerForm(formData);
+    setShowPlayerForm(true);
   }
 
   async function handleSavePlayer() {

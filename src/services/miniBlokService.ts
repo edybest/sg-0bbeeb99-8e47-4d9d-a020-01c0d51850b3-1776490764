@@ -61,7 +61,7 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
 
   const { data, error } = await query;
 
-  console.log("getMiniBlokEntries:", { data, error });
+  console.log("getMiniBlokEntries:", { data, error, memberId });
 
   if (error) {
     console.error("Error fetching mini blok entries:", error);
@@ -79,7 +79,16 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
   }));
 
   // Only return entries where the user has access (owner or collaborator)
-  return mappedData.filter(entry => entry.can_edit);
+  const filteredData = mappedData.filter(entry => 
+    memberId && (
+      entry.owner_id === memberId || 
+      entry.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId)
+    )
+  );
+
+  console.log("Filtered tournaments:", { total: mappedData.length, accessible: filteredData.length, memberId });
+
+  return filteredData;
 }
 
 export async function getMiniBlokById(id: string, memberId?: string): Promise<MiniBlokWithPlayers | null> {
