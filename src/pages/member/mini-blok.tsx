@@ -162,6 +162,7 @@ export default function MiniBlokPage() {
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [showPlayerForm, setShowPlayerForm] = useState(false);
 
   // Create tournament form
   const [tournamentForm, setTournamentForm] = useState({
@@ -287,6 +288,14 @@ export default function MiniBlokPage() {
   async function handleUpdateTournament() {
     if (!selectedEntry) return;
 
+    console.log("Updating tournament:", {
+      id: selectedEntry.id,
+      owner_id: selectedEntry.owner_id,
+      current_member: member?.id,
+      can_edit: selectedEntry.can_edit,
+      form: tournamentForm
+    });
+
     try {
       setSubmitting(true);
       await updateMiniBlok(selectedEntry.id, {
@@ -306,9 +315,10 @@ export default function MiniBlokPage() {
       if (updated) setSelectedEntry(updated);
     } catch (error) {
       console.error("Error updating tournament:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
       toast({
         title: "Error",
-        description: "Failed to update tournament",
+        description: error instanceof Error ? error.message : "Failed to update tournament",
         variant: "destructive",
       });
     } finally {
@@ -360,6 +370,7 @@ export default function MiniBlokPage() {
     }
     setEditingPlayer(null);
     setPlayerForm(INITIAL_PLAYER_FORM);
+    setShowPlayerForm(true);
   }
 
   function openEditPlayerDialog(player: any) {
@@ -449,6 +460,7 @@ export default function MiniBlokPage() {
 
       setPlayerForm(INITIAL_PLAYER_FORM);
       setEditingPlayer(null);
+      setShowPlayerForm(false);
       const updated = await getMiniBlokById(selectedEntry.id, member?.id);
       if (updated) setSelectedEntry(updated);
       loadEntries();
@@ -996,7 +1008,7 @@ export default function MiniBlokPage() {
                 </CardHeader>
                 <CardContent>
                   {/* Player Form */}
-                  {(editingPlayer || playerForm.player_name !== "") && (
+                  {showPlayerForm && (
                     <Card className="mb-4 border-primary">
                       <CardContent className="pt-6 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
@@ -1062,6 +1074,7 @@ export default function MiniBlokPage() {
                             onClick={() => {
                               setPlayerForm(INITIAL_PLAYER_FORM);
                               setEditingPlayer(null);
+                              setShowPlayerForm(false);
                             }}
                             disabled={submitting}
                           >
