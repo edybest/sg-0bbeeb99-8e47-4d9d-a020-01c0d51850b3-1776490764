@@ -160,6 +160,7 @@ export default function MiniBlokPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");

@@ -68,7 +68,7 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     throw error;
   }
 
-  return (data || []).map(entry => ({
+  const mappedData = (data || []).map(entry => ({
     ...entry,
     players: Array.isArray(entry.players) ? entry.players : [],
     shared_with: Array.isArray(entry.shared_with) ? entry.shared_with : [],
@@ -77,6 +77,9 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
       (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId))
     ) : false
   }));
+
+  // Only return entries where the user has access (owner or collaborator)
+  return mappedData.filter(entry => entry.can_edit);
 }
 
 export async function getMiniBlokById(id: string, memberId?: string): Promise<MiniBlokWithPlayers | null> {
