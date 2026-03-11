@@ -26,20 +26,22 @@ type ScoreData = {
 
 async function preprocessImage(imagePath: string): Promise<Buffer> {
   try {
+    console.log("📸 Preprocessing image...");
     const processedImage = await sharp(imagePath)
-      .resize(3000, 3000, { 
+      .resize(2500, 2500, { 
         fit: "inside", 
         withoutEnlargement: false 
       })
       .greyscale()
       .normalize()
-      .sharpen()
+      .sharpen({ sigma: 1.5 })
       .threshold(128)
       .toBuffer();
     
+    console.log("✅ Image preprocessed successfully");
     return processedImage;
   } catch (error) {
-    console.error("Image preprocessing error:", error);
+    console.error("⚠️ Image preprocessing error:", error);
     return fs.readFileSync(imagePath);
   }
 }
@@ -53,65 +55,96 @@ function normalizeText(text: string): string {
 }
 
 function extractTableScores(text: string): ScoreData[] {
+  console.log("\n=== TABLE EXTRACTION START ===");
+  console.log("Raw text length:", text.length);
+  console.log("Raw text preview (first 500 chars):\n", text.substring(0, 500));
+  
   const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+  console.log("\n📋 Total lines after cleanup:", lines.length);
+  console.log("First 10 lines:");
+  lines.slice(0, 10).forEach((line, idx) => {
+    console.log(`  [${idx}]: "${line}"`);
+  });
+  
   const scores: ScoreData[] = [];
   
-  console.log("Analyzing table structure...");
-  
+  // Strategy 1: Try table structure with headers
+  console.log("\n🔍 STRATEGY 1: Looking for table headers...");
   let headerLine = -1;
   let nameCol = -1;
-  let g1Col = -1;
-  let g2Col = -1;
-  let g3Col = -1;
-  let g4Col = -1;
-  let g5Col = -1;
-  let g6Col = -1;
+  let g1Col = -1, g2Col = -1, g3Col = -1, g4Col = -1, g5Col = -1, g6Col = -1;
   let hcpCol = -1;
   
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 0; i < Math.min(lines.length, 5); i++) {
     const line = lines[i];
     const lowerLine = line.toLowerCase();
+    const normalized = normalizeText(line);
     
-    if (lowerLine.includes("name") || lowerLine.includes("player")) {
-      console.log("Header row found at line", i, ":", line);
+    console.log(`\nChecking line ${i} for header:`, line);
+    console.log(`  Normalized: "${normalized}"`);
+    
+    // Very flexible header detection
+    const hasName = lowerLine.includes("name") || lowerLine.includes("player");
+    const hasGame = lowerLine.match(/g\s*[1-6]|game\s*[1-6]/i);
+    
+    console.log(`  Has name: ${hasName}, Has game: ${!!hasGame}`);
+    
+    if (hasName && hasGame) {
+      console.log("✅ HEADER ROW FOUND at line", i);
       headerLine = i;
       
-      const parts = line.split(/\s+/);
+      // Split by multiple possible separators
+      const parts = line.split(/[\s|,]+/).filter(p => p.length > 0);
+      console.log("  Header parts:", parts);
       
       parts.forEach((part, idx) => {
         const lowerPart = part.toLowerCase();
         
         if (lowerPart.includes("name") || lowerPart.includes("player")) {
           nameCol = idx;
-          console.log("Name column at position", idx);
+          console.log(`  → Name column at position ${idx}`);
         }
-        if (lowerPart === "g1" || lowerPart === "game1" || (lowerPart.includes("game") && lowerPart.includes("1"))) {
+        
+        // Game 1
+        if (lowerPart === "g1" || lowerPart.includes("game1") || 
+            (lowerPart.includes("g") && lowerPart.includes("1"))) {
           g1Col = idx;
-          console.log("G1 column at position", idx);
+          console.log(`  → G1 column at position ${idx}`);
         }
-        if (lowerPart === "g2" || lowerPart === "game2" || (lowerPart.includes("game") && lowerPart.includes("2"))) {
+        // Game 2
+        if (lowerPart === "g2" || lowerPart.includes("game2") || 
+            (lowerPart.includes("g") && lowerPart.includes("2"))) {
           g2Col = idx;
-          console.log("G2 column at position", idx);
+          console.log(`  → G2 column at position ${idx}`);
         }
-        if (lowerPart === "g3" || lowerPart === "game3" || (lowerPart.includes("game") && lowerPart.includes("3"))) {
+        // Game 3
+        if (lowerPart === "g3" || lowerPart.includes("game3") || 
+            (lowerPart.includes("g") && lowerPart.includes("3"))) {
           g3Col = idx;
-          console.log("G3 column at position", idx);
+          console.log(`  → G3 column at position ${idx}`);
         }
-        if (lowerPart === "g4" || lowerPart === "game4" || (lowerPart.includes("game") && lowerPart.includes("4"))) {
+        // Game 4
+        if (lowerPart === "g4" || lowerPart.includes("game4") || 
+            (lowerPart.includes("g") && lowerPart.includes("4"))) {
           g4Col = idx;
-          console.log("G4 column at position", idx);
+          console.log(`  → G4 column at position ${idx}`);
         }
-        if (lowerPart === "g5" || lowerPart === "game5" || (lowerPart.includes("game") && lowerPart.includes("5"))) {
+        // Game 5
+        if (lowerPart === "g5" || lowerPart.includes("game5") || 
+            (lowerPart.includes("g") && lowerPart.includes("5"))) {
           g5Col = idx;
-          console.log("G5 column at position", idx);
+          console.log(`  → G5 column at position ${idx}`);
         }
-        if (lowerPart === "g6" || lowerPart === "game6" || (lowerPart.includes("game") && lowerPart.includes("6"))) {
+        // Game 6
+        if (lowerPart === "g6" || lowerPart.includes("game6") || 
+            (lowerPart.includes("g") && lowerPart.includes("6"))) {
           g6Col = idx;
-          console.log("G6 column at position", idx);
+          console.log(`  → G6 column at position ${idx}`);
         }
-        if (lowerPart === "hcp" || lowerPart.includes("handicap")) {
+        // Handicap
+        if (lowerPart === "hcp" || lowerPart.includes("handicap") || lowerPart === "hdcp") {
           hcpCol = idx;
-          console.log("HCP column at position", idx);
+          console.log(`  → HCP column at position ${idx}`);
         }
       });
       
@@ -119,115 +152,138 @@ function extractTableScores(text: string): ScoreData[] {
     }
   }
   
-  if (headerLine === -1 || nameCol === -1) {
-    console.log("No table header found, trying alternative parsing...");
-    return extractAlternativeFormat(text);
-  }
-  
-  console.log("Processing data rows...");
-  for (let i = headerLine + 1; i < lines.length; i++) {
-    const line = lines[i];
+  // If header found, try column-based extraction
+  if (headerLine !== -1 && nameCol !== -1) {
+    console.log("\n📊 EXTRACTING DATA using column positions...");
+    console.log(`Column mapping: name=${nameCol}, g1=${g1Col}, g2=${g2Col}, g3=${g3Col}, g4=${g4Col}, g5=${g5Col}, g6=${g6Col}, hcp=${hcpCol}`);
     
-    if (line.length < 3 || /^[\-_=]+$/.test(line)) {
-      continue;
-    }
-    
-    const parts = line.split(/\s+/);
-    
-    if (parts.length < 2) {
-      continue;
-    }
-    
-    const scoreData: ScoreData = {
-      name: "",
-      scores: {},
-      confidence: 70,
-    };
-    
-    if (nameCol >= 0 && nameCol < parts.length) {
-      scoreData.name = parts[nameCol];
+    for (let i = headerLine + 1; i < lines.length; i++) {
+      const line = lines[i];
       
-      if (scoreData.name.match(/^\d+$/)) {
-        if (nameCol + 1 < parts.length) {
-          scoreData.name = parts[nameCol + 1];
+      // Skip separator lines
+      if (line.length < 3 || /^[\-_=|]+$/.test(line)) {
+        console.log(`  Skipping separator at line ${i}`);
+        continue;
+      }
+      
+      const parts = line.split(/[\s|,]+/).filter(p => p.length > 0);
+      console.log(`\nLine ${i}: "${line}"`);
+      console.log(`  Parts (${parts.length}):`, parts);
+      
+      if (parts.length < 2) {
+        console.log("  ⚠️ Too few parts, skipping");
+        continue;
+      }
+      
+      const scoreData: ScoreData = {
+        name: "",
+        scores: {},
+        confidence: 70,
+      };
+      
+      // Extract name
+      if (nameCol < parts.length) {
+        scoreData.name = parts[nameCol];
+        // Skip if name is just a number (likely row number)
+        if (/^\d+$/.test(scoreData.name)) {
+          if (nameCol + 1 < parts.length && !/^\d+$/.test(parts[nameCol + 1])) {
+            scoreData.name = parts[nameCol + 1];
+            console.log(`  → Name (adjusted): "${scoreData.name}"`);
+          } else {
+            console.log("  ⚠️ Name is just number, skipping row");
+            continue;
+          }
+        } else {
+          console.log(`  → Name: "${scoreData.name}"`);
         }
       }
-    }
-    
-    if (!scoreData.name || scoreData.name.match(/^\d+$/)) {
-      continue;
-    }
-    
-    if (g1Col >= 0 && g1Col < parts.length) {
-      const val = parseInt(parts[g1Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game1 = val;
+      
+      if (!scoreData.name || /^\d+$/.test(scoreData.name)) {
+        console.log("  ⚠️ Invalid name, skipping");
+        continue;
+      }
+      
+      // Extract scores
+      const extractScore = (colIdx: number, gameName: string) => {
+        if (colIdx >= 0 && colIdx < parts.length) {
+          const val = parseInt(parts[colIdx]);
+          if (!isNaN(val) && val >= 0 && val <= 300) {
+            console.log(`  → ${gameName}: ${val} ✅`);
+            return val;
+          } else {
+            console.log(`  → ${gameName}: "${parts[colIdx]}" (invalid)`);
+          }
+        }
+        return undefined;
+      };
+      
+      scoreData.scores.game1 = extractScore(g1Col, "G1");
+      scoreData.scores.game2 = extractScore(g2Col, "G2");
+      scoreData.scores.game3 = extractScore(g3Col, "G3");
+      scoreData.scores.game4 = extractScore(g4Col, "G4");
+      scoreData.scores.game5 = extractScore(g5Col, "G5");
+      scoreData.scores.game6 = extractScore(g6Col, "G6");
+      
+      // Extract handicap
+      if (hcpCol >= 0 && hcpCol < parts.length) {
+        const hcp = parseInt(parts[hcpCol]);
+        if (!isNaN(hcp)) {
+          scoreData.handicap = hcp;
+          console.log(`  → HCP: ${hcp}`);
+        }
+      }
+      
+      if (Object.keys(scoreData.scores).length > 0) {
+        console.log(`✅ Extracted player: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
+        scores.push(scoreData);
+      } else {
+        console.log(`⚠️ No scores found for: ${scoreData.name}`);
       }
     }
-    
-    if (g2Col >= 0 && g2Col < parts.length) {
-      const val = parseInt(parts[g2Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game2 = val;
-      }
-    }
-    
-    if (g3Col >= 0 && g3Col < parts.length) {
-      const val = parseInt(parts[g3Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game3 = val;
-      }
-    }
-    
-    if (g4Col >= 0 && g4Col < parts.length) {
-      const val = parseInt(parts[g4Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game4 = val;
-      }
-    }
-    
-    if (g5Col >= 0 && g5Col < parts.length) {
-      const val = parseInt(parts[g5Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game5 = val;
-      }
-    }
-    
-    if (g6Col >= 0 && g6Col < parts.length) {
-      const val = parseInt(parts[g6Col]);
-      if (!isNaN(val) && val >= 0 && val <= 300) {
-        scoreData.scores.game6 = val;
-      }
-    }
-    
-    if (hcpCol >= 0 && hcpCol < parts.length) {
-      const val = parseInt(parts[hcpCol]);
-      if (!isNaN(val)) {
-        scoreData.handicap = val;
-      }
-    }
-    
-    if (Object.keys(scoreData.scores).length > 0) {
-      console.log("Extracted player:", scoreData.name, "with", Object.keys(scoreData.scores).length, "scores");
-      scores.push(scoreData);
+  } else {
+    console.log("\n⚠️ No clear table header found, trying alternative strategies...");
+  }
+  
+  // Strategy 2: Try label-based extraction
+  if (scores.length === 0) {
+    console.log("\n🔍 STRATEGY 2: Looking for label-based format (Name:, G1:, etc.)...");
+    const labelScores = extractLabelBasedScores(lines);
+    if (labelScores.length > 0) {
+      console.log(`✅ Found ${labelScores.length} players using label-based extraction`);
+      scores.push(...labelScores);
     }
   }
+  
+  // Strategy 3: Pattern matching for any number sequences
+  if (scores.length === 0) {
+    console.log("\n🔍 STRATEGY 3: Looking for number patterns...");
+    const patternScores = extractByPattern(lines);
+    if (patternScores.length > 0) {
+      console.log(`✅ Found ${patternScores.length} potential score sequences`);
+      scores.push(...patternScores);
+    }
+  }
+  
+  console.log("\n=== TABLE EXTRACTION END ===");
+  console.log(`Final result: ${scores.length} players detected`);
+  scores.forEach((s, idx) => {
+    console.log(`  [${idx}] ${s.name}: ${Object.keys(s.scores).length} scores, confidence: ${s.confidence}%`);
+  });
   
   return scores;
 }
 
-function extractAlternativeFormat(text: string): ScoreData[] {
-  const lines = text.split("\n").map(line => line.trim()).filter(line => line.length > 0);
+function extractLabelBasedScores(lines: string[]): ScoreData[] {
   const scores: ScoreData[] = [];
-  
-  console.log("Trying alternative format detection...");
-  
   let currentPlayer: Partial<ScoreData> | null = null;
+  
+  console.log("Scanning for label-based format...");
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const lowerLine = line.toLowerCase();
     
+    // Look for name labels
     if (lowerLine.includes("name") || lowerLine.includes("player")) {
       if (currentPlayer && currentPlayer.name) {
         scores.push(currentPlayer as ScoreData);
@@ -240,67 +296,37 @@ function extractAlternativeFormat(text: string): ScoreData[] {
           scores: {},
           confidence: 75,
         };
+        console.log(`  Found player: ${currentPlayer.name}`);
       }
     }
     
+    // Look for game scores
     if (currentPlayer) {
-      const g1Match = lowerLine.match(/(?:g\s*1|game\s*1)[:\s]+(\d+)/i);
-      if (g1Match) {
-        const score = parseInt(g1Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game1 = score;
+      const extractGameScore = (pattern: RegExp, gameNum: number) => {
+        const match = lowerLine.match(pattern);
+        if (match) {
+          const score = parseInt(match[1]);
+          if (score >= 0 && score <= 300) {
+            currentPlayer!.scores = currentPlayer!.scores || {};
+            (currentPlayer!.scores as any)[`game${gameNum}`] = score;
+            console.log(`    G${gameNum}: ${score}`);
+            return true;
+          }
         }
-      }
+        return false;
+      };
       
-      const g2Match = lowerLine.match(/(?:g\s*2|game\s*2)[:\s]+(\d+)/i);
-      if (g2Match) {
-        const score = parseInt(g2Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game2 = score;
-        }
-      }
-      
-      const g3Match = lowerLine.match(/(?:g\s*3|game\s*3)[:\s]+(\d+)/i);
-      if (g3Match) {
-        const score = parseInt(g3Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game3 = score;
-        }
-      }
-      
-      const g4Match = lowerLine.match(/(?:g\s*4|game\s*4)[:\s]+(\d+)/i);
-      if (g4Match) {
-        const score = parseInt(g4Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game4 = score;
-        }
-      }
-      
-      const g5Match = lowerLine.match(/(?:g\s*5|game\s*5)[:\s]+(\d+)/i);
-      if (g5Match) {
-        const score = parseInt(g5Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game5 = score;
-        }
-      }
-      
-      const g6Match = lowerLine.match(/(?:g\s*6|game\s*6)[:\s]+(\d+)/i);
-      if (g6Match) {
-        const score = parseInt(g6Match[1]);
-        if (score >= 0 && score <= 300) {
-          currentPlayer.scores = currentPlayer.scores || {};
-          currentPlayer.scores.game6 = score;
-        }
-      }
+      extractGameScore(/(?:g\s*1|game\s*1)[:\s]+(\d+)/i, 1);
+      extractGameScore(/(?:g\s*2|game\s*2)[:\s]+(\d+)/i, 2);
+      extractGameScore(/(?:g\s*3|game\s*3)[:\s]+(\d+)/i, 3);
+      extractGameScore(/(?:g\s*4|game\s*4)[:\s]+(\d+)/i, 4);
+      extractGameScore(/(?:g\s*5|game\s*5)[:\s]+(\d+)/i, 5);
+      extractGameScore(/(?:g\s*6|game\s*6)[:\s]+(\d+)/i, 6);
       
       const hcpMatch = lowerLine.match(/(?:hcp|handicap)[:\s]+(\d+)/i);
       if (hcpMatch) {
         currentPlayer.handicap = parseInt(hcpMatch[1]);
+        console.log(`    HCP: ${currentPlayer.handicap}`);
       }
     }
   }
@@ -312,6 +338,45 @@ function extractAlternativeFormat(text: string): ScoreData[] {
   return scores.filter(s => Object.keys(s.scores || {}).length > 0);
 }
 
+function extractByPattern(lines: string[]): ScoreData[] {
+  console.log("Scanning for number patterns...");
+  const scores: ScoreData[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip very short lines
+    if (line.length < 10) continue;
+    
+    // Look for lines with a name (letters) followed by multiple numbers
+    const match = line.match(/([a-zA-Z]{2,})\s+((?:\d{2,3}\s+){2,})/i);
+    if (match) {
+      const name = match[1];
+      const numbers = match[2].trim().split(/\s+/).map(n => parseInt(n)).filter(n => n >= 0 && n <= 300);
+      
+      if (numbers.length >= 2) {
+        console.log(`  Pattern match: ${name} with ${numbers.length} scores:`, numbers);
+        
+        const scoreData: ScoreData = {
+          name: name,
+          scores: {},
+          confidence: 60, // Lower confidence for pattern matching
+        };
+        
+        numbers.forEach((score, idx) => {
+          if (idx < 6) {
+            (scoreData.scores as any)[`game${idx + 1}`] = score;
+          }
+        });
+        
+        scores.push(scoreData);
+      }
+    }
+  }
+  
+  return scores;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -321,6 +386,8 @@ export default async function handler(
   }
 
   try {
+    console.log("\n🎯 ===== OCR PARSE REQUEST START =====");
+    
     const form = formidable({
       maxFileSize: 10 * 1024 * 1024,
       keepExtensions: true,
@@ -330,54 +397,86 @@ export default async function handler(
     
     const imageFile = files.image?.[0];
     if (!imageFile) {
+      console.log("❌ No image file provided");
       return res.status(400).json({ error: "No image file provided" });
     }
 
+    console.log("📁 Image file received:", imageFile.originalFilename);
     const imagePath = imageFile.filepath;
     
-    console.log("Preprocessing image for table detection...");
     const processedImageBuffer = await preprocessImage(imagePath);
     
-    console.log("Initializing OCR worker...");
+    console.log("\n🤖 Initializing OCR worker...");
     const worker = await createWorker("eng");
     
+    // Pass 1: AUTO mode
+    console.log("\n📖 OCR Pass 1: AUTO mode");
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.AUTO,
     });
     
-    console.log("Performing OCR recognition (Pass 1 - Auto mode)...");
     const { data: { text: text1, confidence: conf1 } } = await worker.recognize(processedImageBuffer);
+    console.log(`✅ Pass 1 complete. Confidence: ${conf1.toFixed(2)}%`);
+    console.log(`Text length: ${text1.length} chars`);
     
+    // Pass 2: SPARSE_TEXT mode (best for tables)
+    console.log("\n📖 OCR Pass 2: SPARSE_TEXT mode (table optimized)");
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.SPARSE_TEXT,
     });
     
-    console.log("Performing OCR recognition (Pass 2 - Sparse text mode for tables)...");
     const { data: { text: text2, confidence: conf2 } } = await worker.recognize(processedImageBuffer);
+    console.log(`✅ Pass 2 complete. Confidence: ${conf2.toFixed(2)}%`);
+    console.log(`Text length: ${text2.length} chars`);
+    
+    // Pass 3: SINGLE_BLOCK mode
+    console.log("\n📖 OCR Pass 3: SINGLE_BLOCK mode");
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+    });
+    
+    const { data: { text: text3, confidence: conf3 } } = await worker.recognize(processedImageBuffer);
+    console.log(`✅ Pass 3 complete. Confidence: ${conf3.toFixed(2)}%`);
+    console.log(`Text length: ${text3.length} chars`);
     
     await worker.terminate();
     
     fs.unlinkSync(imagePath);
     
-    const bestText = conf1 >= conf2 ? text1 : text2;
-    const bestConfidence = Math.max(conf1, conf2);
+    // Choose best result
+    const results = [
+      { text: text1, confidence: conf1, mode: "AUTO" },
+      { text: text2, confidence: conf2, mode: "SPARSE_TEXT" },
+      { text: text3, confidence: conf3, mode: "SINGLE_BLOCK" }
+    ];
     
-    console.log("OCR completed. Best confidence:", bestConfidence);
-    console.log("Extracted text:", bestText);
+    results.sort((a, b) => b.confidence - a.confidence);
+    const bestResult = results[0];
     
-    const extractedScores = extractTableScores(bestText);
+    console.log(`\n🏆 Best result: ${bestResult.mode} mode with ${bestResult.confidence.toFixed(2)}% confidence`);
+    console.log("\n📄 FULL OCR TEXT OUTPUT:");
+    console.log("=".repeat(80));
+    console.log(bestResult.text);
+    console.log("=".repeat(80));
     
-    console.log("Final extracted scores:", extractedScores);
+    const extractedScores = extractTableScores(bestResult.text);
+    
+    console.log(`\n✅ Final extraction: ${extractedScores.length} players found`);
+    console.log("🎯 ===== OCR PARSE REQUEST END =====\n");
     
     return res.status(200).json({
       success: true,
-      text: bestText,
-      confidence: bestConfidence,
+      text: bestResult.text,
+      confidence: bestResult.confidence,
       scores: extractedScores,
+      debug: {
+        allResults: results.map(r => ({ mode: r.mode, confidence: r.confidence, textLength: r.text.length })),
+        selectedMode: bestResult.mode
+      }
     });
     
   } catch (error) {
-    console.error("Error parsing image:", error);
+    console.error("❌ Error parsing image:", error);
     return res.status(500).json({ 
       error: "Failed to parse image", 
       details: error instanceof Error ? error.message : "Unknown error" 
