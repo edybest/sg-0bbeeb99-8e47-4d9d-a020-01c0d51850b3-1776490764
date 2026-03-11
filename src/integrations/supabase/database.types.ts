@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -476,6 +476,87 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      mini_blok: {
+        Row: {
+          average: number | null
+          created_at: string | null
+          created_by: string | null
+          date: string
+          differential: number | null
+          game_1: number | null
+          game_10: number | null
+          game_2: number | null
+          game_3: number | null
+          game_4: number | null
+          game_5: number | null
+          game_6: number | null
+          game_7: number | null
+          game_8: number | null
+          game_9: number | null
+          games_played: number
+          handicap: number
+          id: string
+          location: string
+          overall_score: number | null
+          player_name: string
+          title: string
+          total_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          average?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          differential?: number | null
+          game_1?: number | null
+          game_10?: number | null
+          game_2?: number | null
+          game_3?: number | null
+          game_4?: number | null
+          game_5?: number | null
+          game_6?: number | null
+          game_7?: number | null
+          game_8?: number | null
+          game_9?: number | null
+          games_played?: number
+          handicap?: number
+          id?: string
+          location?: string
+          overall_score?: number | null
+          player_name: string
+          title?: string
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          average?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          differential?: number | null
+          game_1?: number | null
+          game_10?: number | null
+          game_2?: number | null
+          game_3?: number | null
+          game_4?: number | null
+          game_5?: number | null
+          game_6?: number | null
+          game_7?: number | null
+          game_8?: number | null
+          game_9?: number | null
+          games_played?: number
+          handicap?: number
+          id?: string
+          location?: string
+          overall_score?: number | null
+          player_name?: string
+          title?: string
+          total_score?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
