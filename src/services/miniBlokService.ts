@@ -49,16 +49,16 @@ export async function getMiniBlokEntries(): Promise<MiniBlokWithStats[]> {
 
   return (data || []).map(entry => {
     const games = [
-      entry.game1,
-      entry.game2,
-      entry.game3,
-      entry.game4,
-      entry.game5,
-      entry.game6,
-      entry.game7,
-      entry.game8,
-      entry.game9,
-      entry.game10
+      entry.game_1,
+      entry.game_2,
+      entry.game_3,
+      entry.game_4,
+      entry.game_5,
+      entry.game_6,
+      entry.game_7,
+      entry.game_8,
+      entry.game_9,
+      entry.game_10
     ].filter((g): g is number => g !== null);
 
     const stats = calculateStats(games, entry.handicap);
@@ -87,16 +87,16 @@ export async function getMiniBlokEntryById(id: string): Promise<MiniBlokWithStat
   if (!data) return null;
 
   const games = [
-    data.game1,
-    data.game2,
-    data.game3,
-    data.game4,
-    data.game5,
-    data.game6,
-    data.game7,
-    data.game8,
-    data.game9,
-    data.game10
+    data.game_1,
+    data.game_2,
+    data.game_3,
+    data.game_4,
+    data.game_5,
+    data.game_6,
+    data.game_7,
+    data.game_8,
+    data.game_9,
+    data.game_10
   ].filter((g): g is number => g !== null);
 
   const stats = calculateStats(games, data.handicap);
@@ -163,16 +163,16 @@ export function generateShareUrl(entryId: string): string {
 
 export function generateShareText(entry: MiniBlokWithStats): string {
   const games = [
-    entry.game1,
-    entry.game2,
-    entry.game3,
-    entry.game4,
-    entry.game5,
-    entry.game6,
-    entry.game7,
-    entry.game8,
-    entry.game9,
-    entry.game10
+    entry.game_1,
+    entry.game_2,
+    entry.game_3,
+    entry.game_4,
+    entry.game_5,
+    entry.game_6,
+    entry.game_7,
+    entry.game_8,
+    entry.game_9,
+    entry.game_10
   ].filter((g): g is number => g !== null);
 
   const gamesText = games.map((score, idx) => `G${idx + 1}: ${score}`).join(" | ");

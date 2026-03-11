@@ -37,9 +37,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import MobileNav from "@/components/member/MobileNav";
-import PageAccessGuard from "@/components/PageAccessGuard";
-import BowlingBallLoader from "@/components/BowlingBallLoader";
+import { MobileNav } from "@/components/member/MobileNav";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
   getMiniBlokEntryById,
@@ -57,16 +57,16 @@ interface FormData {
   location: string;
   date: string;
   handicap: number;
-  game1: number | null;
-  game2: number | null;
-  game3: number | null;
-  game4: number | null;
-  game5: number | null;
-  game6: number | null;
-  game7: number | null;
-  game8: number | null;
-  game9: number | null;
-  game10: number | null;
+  game_1: number | null;
+  game_2: number | null;
+  game_3: number | null;
+  game_4: number | null;
+  game_5: number | null;
+  game_6: number | null;
+  game_7: number | null;
+  game_8: number | null;
+  game_9: number | null;
+  game_10: number | null;
 }
 
 const INITIAL_FORM: FormData = {
@@ -75,16 +75,16 @@ const INITIAL_FORM: FormData = {
   location: "Daiman Bowl",
   date: new Date().toISOString().split("T")[0],
   handicap: 0,
-  game1: null,
-  game2: null,
-  game3: null,
-  game4: null,
-  game5: null,
-  game6: null,
-  game7: null,
-  game8: null,
-  game9: null,
-  game10: null,
+  game_1: null,
+  game_2: null,
+  game_3: null,
+  game_4: null,
+  game_5: null,
+  game_6: null,
+  game_7: null,
+  game_8: null,
+  game_9: null,
+  game_10: null,
 };
 
 const GAME_COLORS = [
@@ -103,7 +103,7 @@ const GAME_COLORS = [
 export default function MiniBlokPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { member, loading: authLoading } = useAuth();
   
   const [entries, setEntries] = useState<MiniBlokWithStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +115,7 @@ export default function MiniBlokPage() {
   const [shareEntry, setShareEntry] = useState<MiniBlokWithStats | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const canEdit = !authLoading && (user !== null);
+  const canEdit = !authLoading && (member !== null);
 
   useEffect(() => {
     loadEntries();
@@ -176,16 +176,16 @@ export default function MiniBlokPage() {
       location: entry.location,
       date: entry.date,
       handicap: entry.handicap,
-      game1: entry.game1,
-      game2: entry.game2,
-      game3: entry.game3,
-      game4: entry.game4,
-      game5: entry.game5,
-      game6: entry.game6,
-      game7: entry.game7,
-      game8: entry.game8,
-      game9: entry.game9,
-      game10: entry.game10,
+      game_1: entry.game_1,
+      game_2: entry.game_2,
+      game_3: entry.game_3,
+      game_4: entry.game_4,
+      game_5: entry.game_5,
+      game_6: entry.game_6,
+      game_7: entry.game_7,
+      game_8: entry.game_8,
+      game_9: entry.game_9,
+      game_10: entry.game_10,
     });
     setShowDialog(true);
   }
@@ -201,16 +201,16 @@ export default function MiniBlokPage() {
     }
 
     const games = [
-      formData.game1,
-      formData.game2,
-      formData.game3,
-      formData.game4,
-      formData.game5,
-      formData.game6,
-      formData.game7,
-      formData.game8,
-      formData.game9,
-      formData.game10,
+      formData.game_1,
+      formData.game_2,
+      formData.game_3,
+      formData.game_4,
+      formData.game_5,
+      formData.game_6,
+      formData.game_7,
+      formData.game_8,
+      formData.game_9,
+      formData.game_10,
     ].filter(g => g !== null && g > 0);
 
     if (games.length === 0) {
@@ -326,16 +326,16 @@ export default function MiniBlokPage() {
 
   function getGameScores(entry: MiniBlokWithStats): number[] {
     return [
-      entry.game1,
-      entry.game2,
-      entry.game3,
-      entry.game4,
-      entry.game5,
-      entry.game6,
-      entry.game7,
-      entry.game8,
-      entry.game9,
-      entry.game10,
+      entry.game_1,
+      entry.game_2,
+      entry.game_3,
+      entry.game_4,
+      entry.game_5,
+      entry.game_6,
+      entry.game_7,
+      entry.game_8,
+      entry.game_9,
+      entry.game_10,
     ].filter((g): g is number => g !== null && g > 0);
   }
 
@@ -586,19 +586,19 @@ export default function MiniBlokPage() {
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((gameNum) => (
                   <div key={gameNum} className="space-y-2">
-                    <Label htmlFor={`game${gameNum}`} className="text-xs">
+                    <Label htmlFor={`game_${gameNum}`} className="text-xs">
                       Game {gameNum}
                     </Label>
                     <Input
-                      id={`game${gameNum}`}
+                      id={`game_${gameNum}`}
                       type="number"
                       min="0"
                       max="300"
-                      value={formData[`game${gameNum}` as keyof FormData] as number || ""}
+                      value={formData[`game_${gameNum}` as keyof FormData] as number || ""}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          [`game${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
+                          [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
                         })
                       }
                       placeholder="0"
