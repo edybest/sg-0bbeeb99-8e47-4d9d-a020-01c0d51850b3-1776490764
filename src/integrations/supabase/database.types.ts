@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -481,84 +481,118 @@ export type Database = {
       }
       mini_blok: {
         Row: {
-          average: number | null
           created_at: string | null
-          created_by: string | null
           date: string
-          differential: number | null
-          game_1: number | null
-          game_10: number | null
-          game_2: number | null
-          game_3: number | null
-          game_4: number | null
-          game_5: number | null
-          game_6: number | null
-          game_7: number | null
-          game_8: number | null
-          game_9: number | null
-          games_played: number
-          handicap: number
           id: string
-          location: string
-          overall_score: number | null
-          player_name: string
+          location: string | null
+          num_games: number
+          owner_id: string
           title: string
-          total_score: number | null
           updated_at: string | null
         }
         Insert: {
-          average?: number | null
           created_at?: string | null
-          created_by?: string | null
           date?: string
-          differential?: number | null
-          game_1?: number | null
-          game_10?: number | null
-          game_2?: number | null
-          game_3?: number | null
-          game_4?: number | null
-          game_5?: number | null
-          game_6?: number | null
-          game_7?: number | null
-          game_8?: number | null
-          game_9?: number | null
-          games_played?: number
-          handicap?: number
           id?: string
-          location?: string
-          overall_score?: number | null
-          player_name: string
-          title?: string
-          total_score?: number | null
+          location?: string | null
+          num_games?: number
+          owner_id: string
+          title: string
           updated_at?: string | null
         }
         Update: {
-          average?: number | null
           created_at?: string | null
-          created_by?: string | null
           date?: string
-          differential?: number | null
-          game_1?: number | null
-          game_10?: number | null
-          game_2?: number | null
-          game_3?: number | null
-          game_4?: number | null
-          game_5?: number | null
-          game_6?: number | null
-          game_7?: number | null
-          game_8?: number | null
-          game_9?: number | null
-          games_played?: number
-          handicap?: number
           id?: string
-          location?: string
-          overall_score?: number | null
-          player_name?: string
+          location?: string | null
+          num_games?: number
+          owner_id?: string
           title?: string
-          total_score?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mini_blok_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mini_blok_collaborators: {
+        Row: {
+          created_at: string | null
+          id: string
+          member_id: string
+          mini_blok_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          member_id: string
+          mini_blok_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          mini_blok_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_blok_collaborators_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mini_blok_collaborators_mini_blok_id_fkey"
+            columns: ["mini_blok_id"]
+            isOneToOne: false
+            referencedRelation: "mini_blok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mini_blok_players: {
+        Row: {
+          created_at: string | null
+          handicap: number | null
+          id: string
+          mini_blok_id: string
+          player_name: string
+          scores: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          handicap?: number | null
+          id?: string
+          mini_blok_id: string
+          player_name: string
+          scores?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          handicap?: number | null
+          id?: string
+          mini_blok_id?: string
+          player_name?: string
+          scores?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_blok_players_mini_blok_id_fkey"
+            columns: ["mini_blok_id"]
+            isOneToOne: false
+            referencedRelation: "mini_blok"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       page_access_control: {
         Row: {
