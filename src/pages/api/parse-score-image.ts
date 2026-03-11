@@ -143,13 +143,15 @@ function extractTableScores(text: string): ScoreData[] {
     console.log(`\nChecking line ${i} for header:`, line);
     console.log(`  Normalized: "${normalized}"`);
     
-    // Very flexible header detection
+    // Very flexible header detection - accept if has EITHER name OR multiple game columns
     const hasName = lowerLine.includes("name") || lowerLine.includes("player");
     const hasGame = lowerLine.match(/g\s*[1-6]|game\s*[1-6]/i);
+    const hasMultipleNumbers = (line.match(/\d+/g) || []).length >= 3; // At least 3 number-like patterns
     
-    console.log(`  Has name: ${hasName}, Has game: ${!!hasGame}`);
+    console.log(`  Has name: ${hasName}, Has game: ${!!hasGame}, Has multiple numbers: ${hasMultipleNumbers}`);
     
-    if (hasName && hasGame) {
+    // Accept header if: (has name AND has game) OR (has name AND multiple number columns)
+    if ((hasName && hasGame) || (hasName && hasMultipleNumbers)) {
       console.log("✅ HEADER ROW FOUND at line", i);
       headerLine = i;
       
@@ -230,7 +232,8 @@ function extractTableScores(text: string): ScoreData[] {
       console.log(`\nLine ${i}: "${line}"`);
       console.log(`  Parts (${parts.length}):`, parts);
       
-      if (parts.length < 2) {
+      // Relaxed: Accept row if it has at least name column + 2 score columns
+      if (parts.length < Math.max(nameCol + 1, 3)) {
         console.log("  ⚠️ Too few parts, skipping");
         continue;
       }
@@ -265,17 +268,26 @@ function extractTableScores(text: string): ScoreData[] {
       
       // Extract scores with intelligent OCR error correction
       const extractScore = (colIdx: number, gameName: string) => {
-        if (colIdx >= 0 && colIdx < parts.length) {
-          const rawValue = parts[colIdx];
-          console.log(`  → ${gameName}: raw="${rawValue}"`);
-          
-          const cleanedScore = cleanOCRNumber(rawValue);
-          if (cleanedScore !== undefined) {
-            console.log(`  → ${gameName}: ${cleanedScore} ✅`);
-            return cleanedScore;
-          } else {
-            console.log(`  → ${gameName}: "${rawValue}" (invalid after cleaning)`);
-          }
+        // Defensive: Check if column exists in parts array
+        if (colIdx < 0) {
+          console.log(`  → ${gameName}: column not found in header`);
+          return undefined;
+        }
+        
+        if (colIdx >= parts.length) {
+          console.log(`  → ${gameName}: column ${colIdx} out of range (have ${parts.length} parts)`);
+          return undefined;
+        }
+        
+        const rawValue = parts[colIdx];
+        console.log(`  → ${gameName}: raw="${rawValue}"`);
+        
+        const cleanedScore = cleanOCRNumber(rawValue);
+        if (cleanedScore !== undefined) {
+          console.log(`  → ${gameName}: ${cleanedScore} ✅`);
+          return cleanedScore;
+        } else {
+          console.log(`  → ${gameName}: "${rawValue}" (invalid after cleaning)`);
         }
         return undefined;
       };
@@ -324,6 +336,16 @@ function extractTableScores(text: string): ScoreData[] {
     if (patternScores.length > 0) {
       console.log(`✅ Found ${patternScores.length} potential score sequences`);
       scores.push(...patternScores);
+    }
+  }
+  
+  // Strategy 4: Brute force - extract ANY name + number sequences (NEW!)
+  if (scores.length === 0) {
+    console.log("\n🔍 STRATEGY 4: Brute force extraction (ultra-aggressive)...");
+    const bruteForceScores = extractByBruteForce(lines);
+    if (bruteForceScores.length > 0) {
+      console.log(`✅ Found ${bruteForceScores.length} entries using brute force`);
+      scores.push(...bruteForceScores);
     }
   }
   
@@ -451,6 +473,98 @@ function extractByPattern(lines: string[]): ScoreData[] {
     }
   }
   
+  return scores;
+}
+
+function extractByBruteForce(lines: string[]): ScoreData[] {
+  console.log("\n🔨 BRUTE FORCE EXTRACTION (Ultra-Aggressive)...");
+  const scores: ScoreData[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip very short lines or lines that look like headers
+    if (line.length < 5) continue;
+    if (/^(no|name|game|g1|g2|g3|total|hcp)/i.test(line.trim())) continue;
+    
+    console.log(`\nBrute force line ${i}: "${line}"`);
+    
+    // Try to extract: [optional row number] NAME [multiple numbers]
+    // Very flexible regex that captures any word followed by numbers
+    const tokens = line.split(/\s+/).filter(t => t.length > 0);
+    console.log(`  Tokens (${tokens.length}):`, tokens);
+    
+    if (tokens.length < 3) {
+      console.log(`  ⚠️ Too few tokens, skipping`);
+      continue;
+    }
+    
+    // Find the first token that looks like a name (not a number, not too long)
+    let nameToken = "";
+    let nameIndex = -1;
+    
+    for (let j = 0; j < Math.min(tokens.length, 3); j++) {
+      const token = tokens[j];
+      // Name should be mostly letters, not all numbers, reasonable length
+      if (!/^\d+$/.test(token) && token.length >= 2 && token.length <= 20) {
+        // Check if it has at least one letter
+        if (/[a-zA-Z]/.test(token)) {
+          nameToken = token;
+          nameIndex = j;
+          console.log(`  → Found name candidate at position ${j}: "${nameToken}"`);
+          break;
+        }
+      }
+    }
+    
+    if (!nameToken) {
+      console.log(`  ⚠️ No name candidate found`);
+      continue;
+    }
+    
+    // Extract all numbers after the name
+    const numberTokens = tokens.slice(nameIndex + 1);
+    console.log(`  → Number tokens after name:`, numberTokens);
+    
+    const cleanedNumbers: number[] = [];
+    for (const token of numberTokens) {
+      const cleaned = cleanOCRNumber(token);
+      if (cleaned !== undefined) {
+        cleanedNumbers.push(cleaned);
+      }
+    }
+    
+    console.log(`  → Cleaned numbers:`, cleanedNumbers);
+    
+    // Need at least 2 numbers to consider it a score entry
+    if (cleanedNumbers.length >= 2) {
+      const scoreData: ScoreData = {
+        name: nameToken,
+        scores: {},
+        confidence: 50, // Lower confidence for brute force
+      };
+      
+      // Map numbers to game slots (up to 6 games)
+      cleanedNumbers.slice(0, 6).forEach((score, idx) => {
+        if (idx < 6) {
+          (scoreData.scores as any)[`game${idx + 1}`] = score;
+        }
+      });
+      
+      // If there's one more number and it's small (<=50), might be handicap
+      if (cleanedNumbers.length > 6 && cleanedNumbers[cleanedNumbers.length - 1] <= 50) {
+        scoreData.handicap = cleanedNumbers[cleanedNumbers.length - 1];
+        console.log(`  → Possible HCP: ${scoreData.handicap}`);
+      }
+      
+      console.log(`  ✅ Brute force extracted: ${scoreData.name} with ${Object.keys(scoreData.scores).length} scores`);
+      scores.push(scoreData);
+    } else {
+      console.log(`  ⚠️ Not enough valid numbers (need >=2, got ${cleanedNumbers.length})`);
+    }
+  }
+  
+  console.log(`\nBrute force result: ${scores.length} entries found`);
   return scores;
 }
 
