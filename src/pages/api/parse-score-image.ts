@@ -54,6 +54,66 @@ function normalizeText(text: string): string {
     .trim();
 }
 
+function cleanOCRNumber(text: string): number | undefined {
+  if (!text || text.trim().length === 0) return undefined;
+  
+  console.log(`  Cleaning OCR number: "${text}"`);
+  
+  // Common OCR character mistakes
+  const cleaned = text
+    .replace(/[oO]/g, "0")     // O → 0
+    .replace(/[lI|]/g, "1")    // l,I,| → 1
+    .replace(/[zZ]/g, "2")     // Z → 2
+    .replace(/[S\$§]/g, "5")   // S,$,§ → 5
+    .replace(/[G]/g, "6")      // G → 6
+    .replace(/[B]/g, "8")      // B → 8
+    .replace(/[g]/g, "9")      // g → 9
+    .replace(/[Q]/g, "9")      // Q → 9
+    .replace(/[D]/g, "0")      // D → 0
+    .replace(/[\s\-_.,;:]/g, "") // Remove separators
+    .replace(/[^0-9]/g, "");   // Keep only digits
+  
+  // If we have digits, parse them
+  if (cleaned.length === 0) {
+    console.log(`    → No digits found after cleaning`);
+    return undefined;
+  }
+  
+  // Handle extra digits (common OCR error: 190 → 1990, 163 → 1632)
+  // If 4+ digits and looks like doubled number, try to extract
+  if (cleaned.length >= 4) {
+    // Try first 3 digits
+    const first3 = parseInt(cleaned.substring(0, 3));
+    if (first3 >= 0 && first3 <= 300) {
+      console.log(`    → Extracted first 3 digits: ${first3} (from "${cleaned}")`);
+      return first3;
+    }
+    
+    // Try last 3 digits
+    const last3 = parseInt(cleaned.substring(cleaned.length - 3));
+    if (last3 >= 0 && last3 <= 300) {
+      console.log(`    → Extracted last 3 digits: ${last3} (from "${cleaned}")`);
+      return last3;
+    }
+  }
+  
+  const num = parseInt(cleaned);
+  
+  // Validate bowling score range (0-300)
+  if (isNaN(num)) {
+    console.log(`    → NaN after parsing: "${cleaned}"`);
+    return undefined;
+  }
+  
+  if (num < 0 || num > 300) {
+    console.log(`    → Out of range: ${num} (valid: 0-300)`);
+    return undefined;
+  }
+  
+  console.log(`    → Valid score: ${num} ✅`);
+  return num;
+}
+
 function extractTableScores(text: string): ScoreData[] {
   console.log("\n=== TABLE EXTRACTION START ===");
   console.log("Raw text length:", text.length);
@@ -203,15 +263,18 @@ function extractTableScores(text: string): ScoreData[] {
         continue;
       }
       
-      // Extract scores
+      // Extract scores with intelligent OCR error correction
       const extractScore = (colIdx: number, gameName: string) => {
         if (colIdx >= 0 && colIdx < parts.length) {
-          const val = parseInt(parts[colIdx]);
-          if (!isNaN(val) && val >= 0 && val <= 300) {
-            console.log(`  → ${gameName}: ${val} ✅`);
-            return val;
+          const rawValue = parts[colIdx];
+          console.log(`  → ${gameName}: raw="${rawValue}"`);
+          
+          const cleanedScore = cleanOCRNumber(rawValue);
+          if (cleanedScore !== undefined) {
+            console.log(`  → ${gameName}: ${cleanedScore} ✅`);
+            return cleanedScore;
           } else {
-            console.log(`  → ${gameName}: "${parts[colIdx]}" (invalid)`);
+            console.log(`  → ${gameName}: "${rawValue}" (invalid after cleaning)`);
           }
         }
         return undefined;
@@ -224,12 +287,12 @@ function extractTableScores(text: string): ScoreData[] {
       scoreData.scores.game5 = extractScore(g5Col, "G5");
       scoreData.scores.game6 = extractScore(g6Col, "G6");
       
-      // Extract handicap
+      // Extract handicap with error correction
       if (hcpCol >= 0 && hcpCol < parts.length) {
-        const hcp = parseInt(parts[hcpCol]);
-        if (!isNaN(hcp)) {
-          scoreData.handicap = hcp;
-          console.log(`  → HCP: ${hcp}`);
+        const cleanedHcp = cleanOCRNumber(parts[hcpCol]);
+        if (cleanedHcp !== undefined) {
+          scoreData.handicap = cleanedHcp;
+          console.log(`  → HCP: ${cleanedHcp}`);
         }
       }
       
@@ -305,11 +368,11 @@ function extractLabelBasedScores(lines: string[]): ScoreData[] {
       const extractGameScore = (pattern: RegExp, gameNum: number) => {
         const match = lowerLine.match(pattern);
         if (match) {
-          const score = parseInt(match[1]);
-          if (score >= 0 && score <= 300) {
+          const cleanedScore = cleanOCRNumber(match[1]);
+          if (cleanedScore !== undefined) {
             currentPlayer!.scores = currentPlayer!.scores || {};
-            (currentPlayer!.scores as any)[`game${gameNum}`] = score;
-            console.log(`    G${gameNum}: ${score}`);
+            (currentPlayer!.scores as any)[`game${gameNum}`] = cleanedScore;
+            console.log(`    G${gameNum}: ${cleanedScore}`);
             return true;
           }
         }
@@ -323,10 +386,13 @@ function extractLabelBasedScores(lines: string[]): ScoreData[] {
       extractGameScore(/(?:g\s*5|game\s*5)[:\s]+(\d+)/i, 5);
       extractGameScore(/(?:g\s*6|game\s*6)[:\s]+(\d+)/i, 6);
       
-      const hcpMatch = lowerLine.match(/(?:hcp|handicap)[:\s]+(\d+)/i);
+      const hcpMatch = lowerLine.match(/(?:hcp|handicap)[:\s]+(.+)/i);
       if (hcpMatch) {
-        currentPlayer.handicap = parseInt(hcpMatch[1]);
-        console.log(`    HCP: ${currentPlayer.handicap}`);
+        const cleanedHcp = cleanOCRNumber(hcpMatch[1]);
+        if (cleanedHcp !== undefined) {
+          currentPlayer.handicap = cleanedHcp;
+          console.log(`    HCP: ${cleanedHcp}`);
+        }
       }
     }
   }
@@ -348,22 +414,33 @@ function extractByPattern(lines: string[]): ScoreData[] {
     // Skip very short lines
     if (line.length < 10) continue;
     
-    // Look for lines with a name (letters) followed by multiple numbers
-    const match = line.match(/([a-zA-Z]{2,})\s+((?:\d{2,3}\s+){2,})/i);
+    // Look for lines with a name (letters) followed by multiple numbers/text
+    const match = line.match(/([a-zA-Z]{2,})\s+(.+)/i);
     if (match) {
       const name = match[1];
-      const numbers = match[2].trim().split(/\s+/).map(n => parseInt(n)).filter(n => n >= 0 && n <= 300);
+      const restOfLine = match[2];
       
-      if (numbers.length >= 2) {
-        console.log(`  Pattern match: ${name} with ${numbers.length} scores:`, numbers);
+      // Extract all potential numbers from the rest of the line
+      const potentialNumbers = restOfLine.split(/\s+/);
+      const cleanedNumbers: number[] = [];
+      
+      for (const token of potentialNumbers) {
+        const cleaned = cleanOCRNumber(token);
+        if (cleaned !== undefined) {
+          cleanedNumbers.push(cleaned);
+        }
+      }
+      
+      if (cleanedNumbers.length >= 2) {
+        console.log(`  Pattern match: ${name} with ${cleanedNumbers.length} scores:`, cleanedNumbers);
         
         const scoreData: ScoreData = {
           name: name,
           scores: {},
-          confidence: 60, // Lower confidence for pattern matching
+          confidence: 60,
         };
         
-        numbers.forEach((score, idx) => {
+        cleanedNumbers.forEach((score, idx) => {
           if (idx < 6) {
             (scoreData.scores as any)[`game${idx + 1}`] = score;
           }
