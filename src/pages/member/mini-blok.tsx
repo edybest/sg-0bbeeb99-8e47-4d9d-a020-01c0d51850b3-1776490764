@@ -64,6 +64,7 @@ import {
   revokeAccess,
   revokeShareToken,
   getMiniBlokSharedByToken,
+  generateShareTokenUrl,
   generateShareUrl,
   generateShareText,
   calculatePlayerStats,
@@ -273,6 +274,8 @@ function PublicSharedView({
               {players.map((player, idx) => {
                 const stats = calculatePlayerStats(player, entry.num_games || 5);
                 const scores = (player.scores as Record<string, number>) || {};
+                const isExpanded = expandedScores[player.id];
+
                 return (
                   <Card key={player.id} className="overflow-hidden">
                     <div className="p-4">
@@ -363,11 +366,12 @@ export default function MiniBlokPage() {
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<string | null>(null);
   const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
   const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedEditUrl, setCopiedEditUrl] = useState(false);
   const [shareMode, setShareMode] = useState<"public" | "editable">("public");
-
-  const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
+  const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
+  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
@@ -1203,15 +1207,15 @@ export default function MiniBlokPage() {
                             {entry.title}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <MapPin className="h-4 w-4 flex-shrink-0" />
+                            <MapPin className="h-4 w-4" />
                             <span className="truncate">{entry.location}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Calendar className="h-4 w-4 flex-shrink-0" />
+                            <Calendar className="h-4 w-4" />
                             <span>{new Date(entry.date).toLocaleDateString("en-MY")}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4 flex-shrink-0" />
+                            <Users className="h-4 w-4" />
                             <span>{entry.players.length} players · {entry.num_games} games</span>
                           </div>
                         </div>
