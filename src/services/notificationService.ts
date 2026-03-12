@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Tables } from "@/integrations/supabase/types";
 
 export type Notification = Tables<"notifications">;
 export type NotificationRecipient = Tables<"notification_recipients">;
@@ -11,7 +11,7 @@ export type NotificationAudience =
 
 type CreateNotificationInput = {
   title: string;
-  body: string;
+  message: string;
   audience: NotificationAudience;
 };
 
@@ -24,16 +24,18 @@ function assertNonEmpty(value: string, label: string) {
 export const notificationService = {
   async createNotification(input: CreateNotificationInput) {
     assertNonEmpty(input.title, "Title");
-    assertNonEmpty(input.body, "Message");
+    assertNonEmpty(input.message, "Message");
 
-    const payload = {
-      audience: input.audience,
-    };
-
-    const insertData: TablesInsert<"notifications"> = {
+    const insertData: Tables<"notifications">["Insert"] = {
       title: input.title.trim(),
-      body: input.body.trim(),
-      payload,
+      message: input.message.trim(),
+      target_type:
+        input.audience.type === "all_members"
+          ? "all"
+          : input.audience.type === "selected_members"
+            ? "members"
+            : "blok_players_by_date",
+      target_date: input.audience.type === "blok_players_by_date" ? input.audience.date : null,
     };
 
     const { data: notification, error } = await supabase
@@ -55,7 +57,7 @@ export const notificationService = {
       const recipients = (memberRows ?? []).map((m) => ({
         notification_id: notification.id,
         member_id: m.id,
-      })) satisfies Array<TablesInsert<"notification_recipients">>;
+      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -68,7 +70,7 @@ export const notificationService = {
       const recipients = unique.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
-      })) satisfies Array<TablesInsert<"notification_recipients">>;
+      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -77,18 +79,20 @@ export const notificationService = {
     }
 
     if (input.audience.type === "blok_players_by_date") {
-      const { data: rows, error: rpcError } = await supabase.rpc("get_blok_player_member_ids_by_date", {
-        target_date: input.audience.date,
-      });
+      const { data: rows, error: playersError } = await supabase
+        .from("game_players")
+        .select("member_id, games!game_players_game_id_fkey(game_date, game_type)")
+        .eq("games.game_date", input.audience.date)
+        .eq("games.game_type", "BLOK");
 
-      if (rpcError) throw rpcError;
+      if (playersError) throw playersError;
 
       const memberIds = Array.isArray(rows) ? rows.map((r) => r.member_id).filter(Boolean) : [];
 
       const recipients = memberIds.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
-      })) satisfies Array<TablesInsert<"notification_recipients">>;
+      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -104,22 +108,19 @@ export const notificationService = {
       .from("notification_recipients")
       .select(
         `
-        id,
         notification_id,
         member_id,
-        is_read,
+        delivered_at,
         read_at,
-        created_at,
         notifications (
           id,
           title,
-          body,
-          payload,
+          message,
           created_at
         )
       `
       )
-      .order("created_at", { ascending: false })
+      .order("delivered_at", { ascending: false, nullsFirst: false })
       .limit(limit);
 
     if (error) throw error;
@@ -130,11 +131,12 @@ export const notificationService = {
     }));
   },
 
-  async markRead(recipientId: string) {
+  async markRead(notificationId: string, memberId: string) {
     const { error } = await supabase
       .from("notification_recipients")
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("id", recipientId);
+      .update({ read_at: new Date().toISOString() })
+      .eq("notification_id", notificationId)
+      .eq("member_id", memberId);
 
     if (error) throw error;
   },

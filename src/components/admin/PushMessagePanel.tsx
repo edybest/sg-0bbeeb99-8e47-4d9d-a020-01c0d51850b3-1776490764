@@ -23,7 +23,7 @@ export function PushMessagePanel() {
   const { toast } = useToast();
 
   const [title, setTitle] = useState("Pengumuman AMBC");
-  const [body, setBody] = useState("");
+  const [message, setMessage] = useState("");
   const [mode, setMode] = useState<AudienceMode>("all");
   const [sending, setSending] = useState(false);
 
@@ -57,7 +57,7 @@ export function PushMessagePanel() {
   async function handleSend() {
     setSending(true);
     try {
-      if (!body.trim()) {
+      if (!message.trim()) {
         toast({ title: "Ralat", description: "Message tidak boleh kosong", variant: "destructive" });
         return;
       }
@@ -73,10 +73,10 @@ export function PushMessagePanel() {
       }
 
       const audience = buildAudience();
-      await notificationService.createNotification({ title, body, audience });
+      await notificationService.createNotification({ title, message, audience });
 
       toast({ title: "✅ Berjaya", description: "Message telah dihantar (in-app)" });
-      setBody("");
+      setMessage("");
       setSelected([]);
       setBlokDate("");
     } catch (e: unknown) {
@@ -107,7 +107,7 @@ export function PushMessagePanel() {
 
         <div className="space-y-2">
           <Label htmlFor="push-body">Message</Label>
-          <Textarea id="push-body" value={body} onChange={(e) => setBody(e.target.value)} rows={5} />
+          <Textarea id="push-body" value={message} onChange={(e) => setMessage(e.target.value)} rows={5} />
         </div>
 
         <div className="space-y-2">
