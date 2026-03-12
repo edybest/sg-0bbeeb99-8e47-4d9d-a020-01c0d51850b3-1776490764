@@ -12,6 +12,7 @@ import {
   User,
   LayoutGrid,
   Shuffle,
+  Image,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,6 +62,14 @@ const navigationCards = [
     icon: Target,
     iconColor: "text-green-600",
     hoverBorder: "hover:border-green-600",
+  },
+  {
+    title: "Gallery",
+    description: "Photo Albums",
+    href: "/member/gallery",
+    icon: Image,
+    iconColor: "text-pink-600",
+    hoverBorder: "hover:border-pink-600",
   },
   {
     title: "Hall of Fame",
