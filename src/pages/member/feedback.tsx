@@ -189,9 +189,9 @@ export default function FeedbackPage() {
   }
 
   return (
-    <PageAccessGuard requiredAccess="member">
+    <PageAccessGuard>
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
-        <MemberTopBarNav currentPage="feedback" />
+        <MemberTopBarNav />
 
         <div className="container mx-auto px-4 py-6 pb-24 max-w-4xl">
           {/* Header */}

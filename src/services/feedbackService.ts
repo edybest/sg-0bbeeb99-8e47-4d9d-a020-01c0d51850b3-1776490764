@@ -11,7 +11,19 @@ export interface FeedbackSubmission {
   screenshot_url?: string;
 }
 
-export interface FeedbackWithMember extends Tables<"member_feedback"> {
+export interface FeedbackWithMember {
+  id: string;
+  member_id: string;
+  category: string;
+  subject: string;
+  message: string;
+  screenshot_url: string | null;
+  status: string;
+  admin_reply: string | null;
+  replied_at: string | null;
+  replied_by: string | null;
+  created_at: string;
+  updated_at: string;
   members: {
     id: string;
     full_name: string;
@@ -93,7 +105,7 @@ export async function updateFeedbackStatus(
   status: FeedbackStatus
 ) {
   const { data, error } = await supabase
-    .from("member_feedback")
+    .from("member_feedback" as any)
     .update({ status })
     .eq("id", feedbackId)
     .select()
@@ -113,7 +125,7 @@ export async function replyToFeedback(
   adminUserId: string
 ) {
   const { data, error } = await supabase
-    .from("member_feedback")
+    .from("member_feedback" as any)
     .update({
       admin_reply: reply,
       replied_at: new Date().toISOString(),
@@ -134,7 +146,7 @@ export async function replyToFeedback(
  */
 export async function getFeedbackStats() {
   const { data, error } = await supabase
-    .from("member_feedback")
+    .from("member_feedback" as any)
     .select("status, category");
 
   console.log("Get feedback stats:", { data, error });
@@ -142,13 +154,13 @@ export async function getFeedbackStats() {
 
   const stats = {
     total: data?.length || 0,
-    pending: data?.filter((f) => f.status === "pending").length || 0,
-    read: data?.filter((f) => f.status === "read").length || 0,
-    resolved: data?.filter((f) => f.status === "resolved").length || 0,
+    pending: data?.filter((f: any) => f.status === "pending").length || 0,
+    read: data?.filter((f: any) => f.status === "read").length || 0,
+    resolved: data?.filter((f: any) => f.status === "resolved").length || 0,
     by_category: {
-      cadangan: data?.filter((f) => f.category === "cadangan").length || 0,
-      ralat_sistem: data?.filter((f) => f.category === "ralat_sistem").length || 0,
-      pertanyaan_lain: data?.filter((f) => f.category === "pertanyaan_lain").length || 0,
+      cadangan: data?.filter((f: any) => f.category === "cadangan").length || 0,
+      ralat_sistem: data?.filter((f: any) => f.category === "ralat_sistem").length || 0,
+      pertanyaan_lain: data?.filter((f: any) => f.category === "pertanyaan_lain").length || 0,
     },
   };
 

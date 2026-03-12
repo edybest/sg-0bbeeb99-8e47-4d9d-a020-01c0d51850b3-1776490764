@@ -378,6 +378,66 @@ export type Database = {
           },
         ]
       }
+      member_feedback: {
+        Row: {
+          admin_reply: string | null
+          category: string
+          created_at: string | null
+          id: string
+          member_id: string
+          message: string
+          replied_at: string | null
+          replied_by: string | null
+          screenshot_url: string | null
+          status: string
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_reply?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          member_id: string
+          message: string
+          replied_at?: string | null
+          replied_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_reply?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          member_id?: string
+          message?: string
+          replied_at?: string | null
+          replied_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_feedback_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_feedback_replied_by_fkey"
+            columns: ["replied_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_sessions: {
         Row: {
           created_at: string | null
