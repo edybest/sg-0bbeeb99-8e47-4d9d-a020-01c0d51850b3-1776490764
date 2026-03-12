@@ -271,12 +271,12 @@ export default function AverageScorePage() {
                             <Image
                               src={player.avatar_url}
                               alt={player.username}
-                              width={50}
-                              height={50}
+                              width={48}
+                              height={48}
                               className="rounded-full border-2 border-blue-600"
                             />
                           ) : (
-                            <div className="w-[50px] h-[50px] rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
                               {player.username[0].toUpperCase()}
                             </div>
                           )}

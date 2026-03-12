@@ -665,19 +665,19 @@ export default function BlokPage() {
                                                                 <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
 
                                                                 <div className="flex-shrink-0">
-                                                                    {entry.member.avatar_url ?
-                            <Image
-                              src={entry.member.avatar_url}
-                              alt={entry.member.username}
-                              width={40}
-                              height={40}
-                              className="rounded-full border-2 border-gray-200" /> :
-
-
-                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
+                                                                    {entry.member.avatar_url ? (
+                                                                        <Image
+                                                                            src={entry.member.avatar_url}
+                                                                            alt={entry.member.username}
+                                                                            width={48}
+                                                                            height={48}
+                                                                            className="rounded-full border-2 border-gray-200"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg">
                                                                             {entry.member.username[0].toUpperCase()}
                                                                         </div>
-                            }
+                                                                    )}
                                                                 </div>
 
                                                                 <div className="flex-1 min-w-0">
@@ -913,22 +913,20 @@ export default function BlokPage() {
                                                                         </div>
                                                                     </td>
 
-                                                                    <td
-                              className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
-                              
-                                                                        {entry.member.avatar_url ?
-                              <Image
-                                src={entry.member.avatar_url}
-                                alt={entry.member.username}
-                                width={40}
-                                height={40}
-                                className="rounded-full border-2 border-gray-200 mx-auto" /> :
-
-
-                              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 mx-auto">
+                                                                    <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
+                                                                        {entry.member.avatar_url ? (
+                                                                            <Image
+                                                                                src={entry.member.avatar_url}
+                                                                                alt={entry.member.username}
+                                                                                width={40}
+                                                                                height={40}
+                                                                                className="rounded-full border-2 border-gray-200 mx-auto"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 mx-auto">
                                                                                 {entry.member.username[0].toUpperCase()}
                                                                             </div>
-                              }
+                                                                        )}
                                                                     </td>
 
                                                                     <td
