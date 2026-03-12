@@ -13,18 +13,12 @@
       "src": "/ambc-logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     },
     {
       "src": "/ambc-logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/ambc-logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -32,6 +26,12 @@
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/ambc-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [

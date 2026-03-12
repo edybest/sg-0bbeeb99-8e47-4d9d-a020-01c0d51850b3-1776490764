@@ -19,6 +19,13 @@ export default function Document() {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AMBC Club" />
         <link rel="apple-touch-icon" href="/ambc-logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/ambc-logo.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/ambc-logo.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/ambc-logo.png" />
+
+        {/* Windows tiles (harmless on others) */}
+        <meta name="msapplication-TileColor" content="#DC2626" />
+        <meta name="msapplication-TileImage" content="/ambc-logo.png" />
         
         {/* Android PWA Support */}
         <meta name="mobile-web-app-capable" content="yes" />
