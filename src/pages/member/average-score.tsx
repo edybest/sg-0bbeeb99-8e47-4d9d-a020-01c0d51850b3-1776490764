@@ -20,6 +20,7 @@ type PlayerStats = {
   avatar_url: string | null;
   sex: string | null;
   birthday: string | null;
+  is_admin: boolean | null;
   recent_games: {
     game_name: string;
     game_date: string;
@@ -61,7 +62,9 @@ export default function AverageScorePage() {
       const { data: members, error: membersError } = await supabase
         .from("members")
         .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
-        .neq("is_admin", true);
+        .or("is_admin.is.null,is_admin.eq.false");
+
+      console.log("AverageScore members fetched:", members?.map((m: any) => ({ id: m.id, username: m.username, is_admin: m.is_admin })) ?? []);
 
       if (membersError) throw membersError;
 
@@ -112,6 +115,7 @@ export default function AverageScorePage() {
           avatar_url: member.avatar_url,
           sex: member.sex,
           birthday: member.birthday,
+          is_admin: member.is_admin ?? null,
           recent_games: games,
           average_of_3: avgOf3,
           calculated_handicap: handicap
@@ -119,12 +123,14 @@ export default function AverageScorePage() {
       });
 
       const stats = await Promise.all(statsPromises);
+
+      const nonAdminStats = stats.filter((s) => s.is_admin !== true);
       
       // Sort by average score (highest first)
-      stats.sort((a, b) => b.average_of_3 - a.average_of_3);
+      nonAdminStats.sort((a, b) => b.average_of_3 - a.average_of_3);
       
-      setPlayers(stats);
-      setFilteredPlayers(stats);
+      setPlayers(nonAdminStats);
+      setFilteredPlayers(nonAdminStats);
     } catch (error) {
       console.error("Load stats error:", error);
     } finally {
