@@ -95,6 +95,15 @@ export const laneService = {
     }
   },
 
+  // Upsert lane assignment derived from a spin result (member flow)
+  async upsertLaneAssignmentFromSpin(
+    gameId: string,
+    memberId: string,
+    lanePosition: string
+  ): Promise<void> {
+    await this.assignMemberToLane(gameId, memberId, lanePosition);
+  },
+
   // Remove member from lane
   async removeMemberFromLane(gameId: string, memberId: string): Promise<void> {
     const { error } = await supabase

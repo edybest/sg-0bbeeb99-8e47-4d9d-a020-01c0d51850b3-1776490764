@@ -24,6 +24,7 @@ import {
   resetAllSpinResults,
 } from "@/services/laneSpinService";
 import { gameService } from "@/services/gameService";
+import { laneService } from "@/services/laneService";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
@@ -177,6 +178,11 @@ export default function UndiLanePage() {
         await withLoading("member:undi-lane:spin-save", async () => {
           await saveSpinResult(activeGameId, member.id, winningLane);
         });
+
+        await withLoading("member:undi-lane:lane-assignment-upsert", async () => {
+          await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane);
+        });
+
         console.log("Spin result saved successfully");
         
         await withLoading("member:undi-lane:spin-reload", async () => {
