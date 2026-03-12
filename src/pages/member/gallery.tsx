@@ -56,6 +56,7 @@ import {
   checkMemberPermissions,
   type AlbumWithImages,
   type ImageWithAlbum,
+  type GalleryImageWithThumbnail,
 } from "@/services/galleryService";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -90,7 +91,7 @@ export default function GalleryPage() {
   
   // Edit image
   const [showEditImageDialog, setShowEditImageDialog] = useState(false);
-  const [editingImage, setEditingImage] = useState<GalleryImage | null>(null);
+  const [editingImage, setEditingImage] = useState<GalleryImageWithThumbnail | null>(null);
   const [editImageCaption, setEditImageCaption] = useState("");
   
   // Delete confirmation
@@ -225,7 +226,7 @@ export default function GalleryPage() {
     }
   }
 
-  function openEditImageDialog(image: GalleryImage) {
+  function openEditImageDialog(image: GalleryImageWithThumbnail) {
     setEditingImage(image);
     setEditImageCaption(image.description || image.title || "");
     setShowEditImageDialog(true);

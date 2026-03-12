@@ -5,8 +5,12 @@ type GalleryAlbum = Tables<"gallery_albums">;
 type GalleryImage = Tables<"gallery_images">;
 type GalleryPermission = Tables<"gallery_permissions">;
 
+export type GalleryImageWithThumbnail = GalleryImage & {
+  thumbnail_url?: string;
+};
+
 export type AlbumWithImages = GalleryAlbum & {
-  images: GalleryImage[];
+  images: GalleryImageWithThumbnail[];
   image_count: number;
   cover_image_thumbnail?: string;
 };
