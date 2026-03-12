@@ -1,8 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/types";
 
-export type Notification = Tables<"notifications">;
-export type NotificationRecipient = Tables<"notification_recipients">;
+type TableName = keyof Database["public"]["Tables"];
+type Row<T extends TableName> = Database["public"]["Tables"][T]["Row"];
+type Insert<T extends TableName> = Database["public"]["Tables"][T]["Insert"];
+
+export type Notification = Row<"notifications">;
+export type NotificationRecipient = Row<"notification_recipients">;
 
 export type NotificationAudience =
   | { type: "all_members" }
@@ -26,7 +30,7 @@ export const notificationService = {
     assertNonEmpty(input.title, "Title");
     assertNonEmpty(input.message, "Message");
 
-    const insertData: Tables<"notifications">["Insert"] = {
+    const insertData: Insert<"notifications"> = {
       title: input.title.trim(),
       message: input.message.trim(),
       target_type:
@@ -57,7 +61,7 @@ export const notificationService = {
       const recipients = (memberRows ?? []).map((m) => ({
         notification_id: notification.id,
         member_id: m.id,
-      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
+      })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -70,7 +74,7 @@ export const notificationService = {
       const recipients = unique.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
-      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
+      })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -92,7 +96,7 @@ export const notificationService = {
       const recipients = memberIds.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
-      })) satisfies Array<Tables<"notification_recipients">["Insert"]>;
+      })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
         const { error: recError } = await supabase.from("notification_recipients").insert(recipients);
@@ -100,7 +104,7 @@ export const notificationService = {
       }
     }
 
-    return notification;
+    return notification as Row<"notifications">;
   },
 
   async listMyNotifications(limit = 30) {
@@ -126,8 +130,8 @@ export const notificationService = {
     if (error) throw error;
 
     return (data ?? []).map((row) => ({
-      recipient: row,
-      notification: Array.isArray(row.notifications) ? row.notifications[0] : row.notifications,
+      recipient: row as Row<"notification_recipients">,
+      notification: Array.isArray((row as any).notifications) ? (row as any).notifications[0] : (row as any).notifications,
     }));
   },
 
