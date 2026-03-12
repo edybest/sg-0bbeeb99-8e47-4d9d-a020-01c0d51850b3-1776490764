@@ -11,6 +11,7 @@ import Image from "next/image";
 
 const TAC_COOLDOWN_KEY = "tac_cooldown_timestamp";
 const COOLDOWN_DURATION = 90; // 90 seconds
+const TAC_PHONE_KEY = "tac_phone_last";
 
 function normalizePhone(phone: string) {
   let value = phone.replace(/\s+/g, "").replace(/-/g, "");
@@ -32,7 +33,7 @@ function isValidMalaysiaPhone(phone: string) {
 
 function getCooldownRemaining(): number {
   if (typeof window === "undefined") return 0;
-  
+
   const storedTimestamp = localStorage.getItem(TAC_COOLDOWN_KEY);
   if (!storedTimestamp) return 0;
 
@@ -49,6 +50,21 @@ function setCooldownTimestamp() {
 function clearCooldownTimestamp() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TAC_COOLDOWN_KEY);
+}
+
+function setLastTacPhone(phone: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(TAC_PHONE_KEY, phone);
+}
+
+function getLastTacPhone(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(TAC_PHONE_KEY) || "";
+}
+
+function clearLastTacPhone() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TAC_PHONE_KEY);
 }
 
 export function WhatsAppLoginForm() {
@@ -69,9 +85,15 @@ export function WhatsAppLoginForm() {
   useEffect(() => {
     const remaining = getCooldownRemaining();
     setCooldownRemaining(remaining);
-    
+
     if (remaining > 0) {
       setTacSent(true);
+
+      // Restore last phone used to request TAC (prevents empty phone on submit)
+      const lastPhone = getLastTacPhone();
+      if (lastPhone) {
+        setFormData((prev) => ({ ...prev, phone: lastPhone }));
+      }
     }
   }, []);
 
@@ -142,9 +164,11 @@ export function WhatsAppLoginForm() {
         phone: normalizedPhone,
         tac: ""
       }));
-      
-      // Set cooldown in localStorage
+
+      // Set cooldown + persist phone in localStorage
       setCooldownTimestamp();
+      setLastTacPhone(normalizedPhone);
+
       setCooldownRemaining(COOLDOWN_DURATION);
       setTacSent(true);
 
@@ -189,8 +213,9 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    // Validate phone number exists and is properly formatted
-    if (!formData.phone || !formData.phone.trim()) {
+    const phoneToUse = formData.phone?.trim() ? formData.phone : getLastTacPhone();
+
+    if (!phoneToUse || !phoneToUse.trim()) {
       toast({
         title: "Ralat",
         description: "Nombor telefon tidak dijumpai. Sila hantar kod TAC semula.",
@@ -204,9 +229,9 @@ export function WhatsAppLoginForm() {
 
     try {
       console.log("🔐 Submitting login with:", {
-        phone: formData.phone,
+        phone: phoneToUse,
         code: formData.tac,
-        phoneLength: formData.phone.length,
+        phoneLength: phoneToUse.length,
         codeLength: formData.tac.length
       });
 
@@ -214,7 +239,7 @@ export function WhatsAppLoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: formData.phone,
+          phone: phoneToUse,
           code: formData.tac
         })
       });
@@ -272,6 +297,7 @@ export function WhatsAppLoginForm() {
 
       // Clear cooldown on successful login
       clearCooldownTimestamp();
+      clearLastTacPhone();
 
       // Clear any cached role/page access decisions to avoid stale redirects
       pageAccessService.clearCache();
