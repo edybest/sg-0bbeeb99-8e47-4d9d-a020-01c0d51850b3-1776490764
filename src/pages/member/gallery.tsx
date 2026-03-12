@@ -378,10 +378,14 @@ export default function GalleryPage() {
                       <Card key={image.id} className="overflow-hidden group relative">
                         <div className="aspect-square relative cursor-pointer" onClick={() => openLightbox(index)}>
                           <Image
-                            src={image.image_url}
+                            src={image.thumbnail_url || image.image_url}
                             alt={image.description || image.title || "Gallery image"}
                             fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             className="object-cover transition-transform group-hover:scale-105"
+                            loading="lazy"
+                            placeholder="blur"
+                            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                           />
                           {(image.description || image.title) && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
@@ -439,12 +443,16 @@ export default function GalleryPage() {
                         onClick={() => loadAlbumImages(album.id)}
                       >
                         <div className="aspect-video relative bg-gray-100">
-                          {album.cover_image_url ? (
+                          {album.cover_image_thumbnail ? (
                             <Image
-                              src={album.cover_image_url}
+                              src={album.cover_image_thumbnail}
                               alt={album.name}
                               fill
+                              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               className="object-cover"
+                              loading="lazy"
+                              placeholder="blur"
+                              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                             />
                           ) : (
                             <div className="h-full flex items-center justify-center">
@@ -499,6 +507,8 @@ export default function GalleryPage() {
                   width={1200}
                   height={900}
                   className="max-h-[90vh] w-auto object-contain"
+                  priority
+                  quality={90}
                 />
                 {(selectedAlbum.images[lightboxIndex].description || selectedAlbum.images[lightboxIndex].title) && (
                   <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4 text-center">
