@@ -7,12 +7,22 @@ export default function Document() {
     <Html lang="ms">
       <Head>
         <SEOElements />
+        
+        {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
+        
+        {/* Theme Color */}
         <meta name="theme-color" content="#DC2626" />
+        
+        {/* iOS PWA Support */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="AMBC Club" />
         <link rel="apple-touch-icon" href="/ambc-logo.png" />
+        
+        {/* Android PWA Support */}
         <meta name="mobile-web-app-capable" content="yes" />
+        
         {/*
           CRITICAL: DO NOT REMOVE THIS SCRIPT
           The Softgen AI monitoring script is essential for core app functionality.
