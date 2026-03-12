@@ -20,7 +20,6 @@ type PlayerStats = {
   avatar_url: string | null;
   sex: string | null;
   birthday: string | null;
-  is_admin: boolean | null;
   recent_games: {
     game_name: string;
     game_date: string;
@@ -58,19 +57,30 @@ export default function AverageScorePage() {
     try {
       setLoading(true);
 
-      // Get all members (exclude admins - admins are not players)
+      // CRITICAL: Get only NON-ADMIN members (players only)
+      // Use eq(false) to explicitly exclude is_admin = true
       const { data: members, error: membersError } = await supabase
         .from("members")
         .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
-        .or("is_admin.is.null,is_admin.eq.false");
+        .eq("is_admin", false);
 
-      console.log("AverageScore members fetched:", members?.map((m: any) => ({ id: m.id, username: m.username, is_admin: m.is_admin })) ?? []);
+      if (membersError) {
+        console.error("Members fetch error:", membersError);
+        throw membersError;
+      }
 
-      if (membersError) throw membersError;
+      console.log("AverageScore - Members fetched:", members?.length || 0);
+      console.log("AverageScore - Sample members:", members?.slice(0, 3).map((m: any) => ({ 
+        username: m.username, 
+        is_admin: m.is_admin 
+      })));
 
-      const eligibleMembers = (members || []).filter((m: any) => m?.is_admin !== true);
+      // DEFENSIVE: Double-check filter on client side (in case of data inconsistency)
+      const playersOnly = (members || []).filter((m: any) => m.is_admin !== true);
 
-      const statsPromises = eligibleMembers.map(async (member) => {
+      console.log("AverageScore - After defensive filter:", playersOnly.length);
+
+      const statsPromises = playersOnly.map(async (member) => {
         // Get all official Blok games for this member
         const { data: allGames } = await supabase
           .from("game_players")
@@ -115,7 +125,6 @@ export default function AverageScorePage() {
           avatar_url: member.avatar_url,
           sex: member.sex,
           birthday: member.birthday,
-          is_admin: member.is_admin ?? null,
           recent_games: games,
           average_of_3: avgOf3,
           calculated_handicap: handicap
@@ -123,14 +132,12 @@ export default function AverageScorePage() {
       });
 
       const stats = await Promise.all(statsPromises);
-
-      const nonAdminStats = stats.filter((s) => s.is_admin !== true);
       
       // Sort by average score (highest first)
-      nonAdminStats.sort((a, b) => b.average_of_3 - a.average_of_3);
+      stats.sort((a, b) => b.average_of_3 - a.average_of_3);
       
-      setPlayers(nonAdminStats);
-      setFilteredPlayers(nonAdminStats);
+      setPlayers(stats);
+      setFilteredPlayers(stats);
     } catch (error) {
       console.error("Load stats error:", error);
     } finally {
