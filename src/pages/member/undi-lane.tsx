@@ -76,6 +76,9 @@ export default function UndiLanePage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isRegisteredForGame, setIsRegisteredForGame] = useState<boolean>(true);
 
+  const [spinAnimKey, setSpinAnimKey] = useState(0);
+  const [spinFromRotation, setSpinFromRotation] = useState(0);
+
   const audioRef = useRef<AudioGraph | null>(null);
   const [audioReady, setAudioReady] = useState(false);
 
@@ -241,22 +244,32 @@ export default function UndiLanePage() {
     osc.stop(when + 0.03);
   }, []);
 
-  const scheduleTicks = useCallback((durationMs: number, segments: number) => {
-    const graph = audioRef.current;
-    if (!graph) return;
-    const t0 = graph.ctx.currentTime;
-    const durationSec = durationMs / 1000;
+  const scheduleTicks = useCallback(
+    (durationMs: number, segments: number) => {
+      const graph = audioRef.current;
+      if (!graph) return;
 
-    const safeSegments = Math.max(1, segments);
-    const tickCount = Math.min(80, safeSegments * 3);
-    for (let i = 0; i < tickCount; i++) {
-      const x = i / tickCount;
-      const eased = x * x * (3 - 2 * x);
-      const when = t0 + eased * durationSec;
-      const strength = 0.08 + 0.14 * (1 - x);
-      playTick(when, strength);
-    }
-  }, [playTick]);
+      const t0 = graph.ctx.currentTime;
+      const durationSec = durationMs / 1000;
+
+      const seg = Math.max(1, segments);
+
+      const ticksPerRevolution = Math.min(36, Math.max(12, Math.round(seg * 0.9)));
+      const revolutions = 5;
+      const tickCount = Math.min(90, Math.round(ticksPerRevolution * revolutions));
+
+      for (let i = 0; i < tickCount; i++) {
+        const x = i / Math.max(1, tickCount - 1);
+
+        const easeOutCubic = 1 - Math.pow(1 - x, 3);
+        const when = t0 + easeOutCubic * durationSec;
+
+        const strength = 0.05 + 0.12 * (1 - x);
+        playTick(when, strength);
+      }
+    },
+    [playTick]
+  );
 
   useEffect(() => {
     return () => {
@@ -396,7 +409,7 @@ export default function UndiLanePage() {
 
     setSpinning(true);
     const startedSound = await playSpinSound();
-    scheduleTicks(5000, availableLanes.length);
+    scheduleTicks(5200, availableLanes.length);
     if (!startedSound && audioReady) {
       toast({
         title: "Sound",
@@ -427,10 +440,12 @@ export default function UndiLanePage() {
     const winningIndex = Math.max(0, availableLanes.indexOf(winningLane));
     const segmentAngle = 360 / availableLanes.length;
     const winningAngle = winningIndex * segmentAngle;
-    const spins = 5;
+    const spins = 6;
     const finalRotation = spins * 360 + (360 - winningAngle) - segmentAngle / 2;
 
+    setSpinFromRotation(rotation);
     setRotation(finalRotation);
+    setSpinAnimKey((k) => k + 1);
 
     setTimeout(async () => {
       stopSpinSound();
@@ -471,7 +486,7 @@ export default function UndiLanePage() {
       } finally {
         setSpinning(false);
       }
-    }, 5000);
+    }, 5200);
   }
 
   async function handleResetSpins() {
@@ -595,11 +610,14 @@ export default function UndiLanePage() {
 
                         <div className="relative w-full aspect-square">
                           <svg
+                            key={spinAnimKey}
                             viewBox="0 0 400 400"
                             className="w-full h-full drop-shadow-2xl"
                             style={{
-                              transform: `rotate(${rotation}deg)`,
-                              transition: spinning ? "transform 5s cubic-bezier(0.12, 0.75, 0.06, 0.98)" : "none",
+                              transform: `rotate(${spinFromRotation}deg)`,
+                              animation: spinning ? "wheel-spin-realistic 5.2s forwards" : undefined,
+                              ["--spin-to" as any]: `${rotation}deg`,
+                              willChange: "transform",
                             }}
                           >
                             <defs>
@@ -678,8 +696,8 @@ export default function UndiLanePage() {
                           </svg>
 
                           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                            <div className="h-24 w-24 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
-                              <div className="relative h-20 w-20 rounded-full overflow-hidden ring-2 ring-red-600/30">
+                            <div className="h-20 w-20 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
+                              <div className="relative h-16 w-16 rounded-full overflow-hidden ring-2 ring-red-600/30">
                                 <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-cover" priority />
                               </div>
                             </div>
@@ -692,14 +710,7 @@ export default function UndiLanePage() {
                         disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame}
                         className="mt-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-xl px-10 py-6 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-transform hover:scale-105"
                       >
-                        {spinning ? (
-                          <>
-                            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                            Spinning...
-                          </>
-                        ) : (
-                          "SPIN!"
-                        )}
+                        {spinning ? "Spinning..." : "SPIN!"}
                       </Button>
 
                       {!isRegisteredForGame ? (
@@ -780,6 +791,21 @@ export default function UndiLanePage() {
           </div>
 
           <style jsx>{`
+            @keyframes wheel-spin-realistic {
+              0% {
+                transform: rotate(0deg);
+              }
+              70% {
+                transform: rotate(calc(var(--spin-to) - 18deg));
+              }
+              88% {
+                transform: rotate(calc(var(--spin-to) + 4deg));
+              }
+              100% {
+                transform: rotate(var(--spin-to));
+              }
+            }
+
             @keyframes confetti {
               0% {
                 transform: translateY(0) rotate(0deg);

@@ -26,7 +26,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <ThemeProvider>
         <Component {...pageProps} />
         <Toaster />
-        <GlobalLoadingOverlay />
+        {Component?.noGlobalLoadingOverlay ? null : <GlobalLoadingOverlay />}
       </ThemeProvider>
     </GlobalLoadingProvider>
   );
