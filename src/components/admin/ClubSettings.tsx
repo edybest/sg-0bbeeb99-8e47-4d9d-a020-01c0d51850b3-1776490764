@@ -375,8 +375,7 @@ export function ClubSettings() {
       return;
     }
 
-    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
-    if (!validTypes.includes(file.type)) {
+    if (!["image/jpeg", "image/jpg", "image/png", "image/gif"].includes(file.type)) {
       toast({
         title: "❌ Ralat",
         description: "Format fail tidak disokong. Gunakan JPG, PNG atau GIF.",
@@ -688,13 +687,22 @@ export function ClubSettings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="w-full">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="handicap">Handicap</TabsTrigger>
-          <TabsTrigger value="statistics">Statistics</TabsTrigger>
-          <TabsTrigger value="push">Push Message</TabsTrigger>
+          <TabsTrigger value="handicap">
+            <span className="sm:hidden">HC</span>
+            <span className="hidden sm:inline">Handicap</span>
+          </TabsTrigger>
+          <TabsTrigger value="statistics">
+            <span className="sm:hidden">Stats</span>
+            <span className="hidden sm:inline">Statistics</span>
+          </TabsTrigger>
+          <TabsTrigger value="push">
+            <span className="sm:hidden">Push</span>
+            <span className="hidden sm:inline">Push Message</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* General Settings Tab */}
