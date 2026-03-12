@@ -196,4 +196,15 @@ export const laneService = {
     if (error) throw error;
     return (data || []).map((r) => r.member_id);
   },
+
+  // Get assigned lane positions for a game (based on lane_assignments)
+  async getAssignedLanePositionsForGame(gameId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("lane_assignments")
+      .select("lane_position")
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+    return (data || []).map((r) => r.lane_position);
+  },
 };

@@ -3,13 +3,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
@@ -40,18 +34,17 @@ interface SpinResultWithMember {
   };
 }
 
-// Beautiful alternating colors like wheelofnames.com
 const WHEEL_COLORS = [
-  "#E74C3C", // Red
-  "#3498DB", // Blue
-  "#F39C12", // Orange
-  "#2ECC71", // Green
-  "#9B59B6", // Purple
-  "#E67E22", // Dark Orange
-  "#1ABC9C", // Turquoise
-  "#E91E63", // Pink
-  "#F1C40F", // Yellow
-  "#34495E", // Dark Blue
+  "#E74C3C",
+  "#3498DB",
+  "#F39C12",
+  "#2ECC71",
+  "#9B59B6",
+  "#E67E22",
+  "#1ABC9C",
+  "#E91E63",
+  "#F1C40F",
+  "#34495E",
 ];
 
 type AudioGraph = {
@@ -62,6 +55,7 @@ type AudioGraph = {
   spinLfoGain: GainNode;
   spinGain: GainNode;
   isSpinning: boolean;
+  tickGain: GainNode;
 };
 
 export default function UndiLanePage() {
@@ -69,6 +63,7 @@ export default function UndiLanePage() {
   const { toast } = useToast();
   const { member, isAuthenticated, loading: authLoading } = useAuth();
   const { withLoading } = useGlobalLoading();
+
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [activeGameId, setActiveGameId] = useState<string>("");
@@ -124,6 +119,10 @@ export default function UndiLanePage() {
       const spinLfoGain = ctx.createGain();
       spinLfoGain.gain.value = 45;
 
+      const tickGain = ctx.createGain();
+      tickGain.gain.value = 0.0001;
+      tickGain.connect(master);
+
       spinLfo.connect(spinLfoGain);
       spinLfoGain.connect(spinOsc.frequency);
 
@@ -141,6 +140,7 @@ export default function UndiLanePage() {
         spinLfo,
         spinLfoGain,
         spinGain,
+        tickGain,
         isSpinning: false,
       };
     }
@@ -222,6 +222,42 @@ export default function UndiLanePage() {
     return true;
   }, [ensureAudio]);
 
+  const playTick = useCallback((when: number, strength = 0.18) => {
+    const graph = audioRef.current;
+    if (!graph) return;
+    const osc = graph.ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.value = 1800;
+
+    const g = graph.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, strength), when + 0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.025);
+
+    osc.connect(g);
+    g.connect(graph.tickGain);
+
+    osc.start(when);
+    osc.stop(when + 0.03);
+  }, []);
+
+  const scheduleTicks = useCallback((durationMs: number, segments: number) => {
+    const graph = audioRef.current;
+    if (!graph) return;
+    const t0 = graph.ctx.currentTime;
+    const durationSec = durationMs / 1000;
+
+    const safeSegments = Math.max(1, segments);
+    const tickCount = Math.min(80, safeSegments * 3);
+    for (let i = 0; i < tickCount; i++) {
+      const x = i / tickCount;
+      const eased = x * x * (3 - 2 * x);
+      const when = t0 + eased * durationSec;
+      const strength = 0.08 + 0.14 * (1 - x);
+      playTick(when, strength);
+    }
+  }, [playTick]);
+
   useEffect(() => {
     return () => {
       try {
@@ -258,7 +294,7 @@ export default function UndiLanePage() {
         if (data.length > 0 && member) {
           const firstGameId = data[0].id;
           setActiveGameId(firstGameId);
-          await loadLaneData(member.id, firstGameId);
+          await loadLaneData(member.id, firstGameId, data);
         }
       });
     } catch (error) {
@@ -272,9 +308,9 @@ export default function UndiLanePage() {
     setLoading(false);
   }
 
-  async function loadLaneData(currentMemberId: string, gameId: string) {
+  async function loadLaneData(currentMemberId: string, gameId: string, gamesSnapshot?: any[]) {
     try {
-      const [mySpinResult, gameResults, spunLanes, registeredOk] = await withLoading(
+      const [mySpinResult, gameResults, spunLanes, registeredOk, assignedLanePositions] = await withLoading(
         "member:undi-lane:load-lane-data",
         async () =>
           Promise.all([
@@ -282,6 +318,7 @@ export default function UndiLanePage() {
             getGameSpinResults(gameId),
             getSpunLanePositions(gameId),
             laneService.isMemberRegisteredForGame(gameId, currentMemberId),
+            laneService.getAssignedLanePositionsForGame(gameId),
           ])
       );
 
@@ -289,8 +326,12 @@ export default function UndiLanePage() {
       setAllResults(gameResults);
       setIsRegisteredForGame(registeredOk);
 
-      const selectedGame = games.find(g => g.id === gameId) || games[0];
-      const totalLanes = selectedGame?.lanes || 20;
+      const list = gamesSnapshot ?? games;
+      const selectedGame = list.find((g) => g.id === gameId) || list[0];
+      const assignedCount = Array.isArray(assignedLanePositions) ? assignedLanePositions.length : 0;
+      const baseTotalLanes = selectedGame?.lanes || 20;
+      const totalLanes = assignedCount > 0 ? Math.min(baseTotalLanes, assignedCount) : baseTotalLanes;
+
       const allLanes = Array.from({ length: totalLanes }, (_, i) => {
         const laneNum = i + 1;
         const side = laneNum % 2 === 0 ? "B" : "A";
@@ -298,7 +339,7 @@ export default function UndiLanePage() {
         return `${pair}${side}`;
       });
 
-      const available = allLanes.filter(lane => !spunLanes.includes(lane));
+      const available = allLanes.filter((lane) => !spunLanes.includes(lane));
       setAvailableLanes(available);
     } catch (error) {
       console.error("Error loading lane data:", error);
@@ -323,7 +364,6 @@ export default function UndiLanePage() {
 
   async function spinWheel() {
     if (!member) return;
-
     if (!activeGameId) return;
 
     if (!isRegisteredForGame) {
@@ -356,6 +396,7 @@ export default function UndiLanePage() {
 
     setSpinning(true);
     const startedSound = await playSpinSound();
+    scheduleTicks(5000, availableLanes.length);
     if (!startedSound && audioReady) {
       toast({
         title: "Sound",
@@ -387,7 +428,7 @@ export default function UndiLanePage() {
     const segmentAngle = 360 / availableLanes.length;
     const winningAngle = winningIndex * segmentAngle;
     const spins = 5;
-    const finalRotation = spins * 360 + (360 - winningAngle) - (segmentAngle / 2);
+    const finalRotation = spins * 360 + (360 - winningAngle) - segmentAngle / 2;
 
     setRotation(finalRotation);
 
@@ -398,8 +439,6 @@ export default function UndiLanePage() {
       setShowConfetti(true);
 
       try {
-        console.log("Saving spin result:", { gameId: activeGameId, memberId: member.id, lane: winningLane });
-
         await withLoading("member:undi-lane:spin-save", async () => {
           await saveSpinResult(activeGameId, member.id, winningLane as string);
         });
@@ -408,12 +447,10 @@ export default function UndiLanePage() {
           await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane as string);
         });
 
-        console.log("Spin result saved successfully");
-        
         await withLoading("member:undi-lane:spin-reload", async () => {
           await loadLaneData(member.id, activeGameId);
         });
-        
+
         toast({
           title: "🎉 Lane Assigned!",
           description: `You got Lane ${winningLane}!`,
@@ -460,20 +497,16 @@ export default function UndiLanePage() {
     }
   }
 
-  if (authLoading) {
-    return null;
-  }
+  if (authLoading) return null;
+  if (loading) return null;
 
   return (
     <PageAccessGuard pagePath="/member/undi-lane" requireAuth={true}>
       <>
-        <SEO
-          title="Undi Lane - AMBC Club"
-          description="Spin the wheel to get your lane assignment"
-        />
+        <SEO title="Undi Lane - AMBC Club" description="Spin the wheel to get your lane assignment" />
+
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 pb-20 md:pb-8">
-          {/* Confetti Effect */}
-          {showConfetti && (
+          {showConfetti ? (
             <div className="fixed inset-0 pointer-events-none z-50">
               {[...Array(50)].map((_, i) => (
                 <div
@@ -496,9 +529,8 @@ export default function UndiLanePage() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
-          {/* Header */}
           <header className="bg-gray-800 shadow-lg border-b border-gray-700 sticky top-0 z-10">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
@@ -520,7 +552,6 @@ export default function UndiLanePage() {
           </header>
 
           <div className="container mx-auto px-4 py-6 max-w-6xl">
-            {/* Game Selector */}
             <Card className="mb-6 bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white">Select Game</CardTitle>
@@ -541,33 +572,27 @@ export default function UndiLanePage() {
               </CardContent>
             </Card>
 
-            {/* Main Content */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Spinning Wheel */}
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
                   <CardTitle className="text-center text-white text-2xl">
                     {myResult ? "Your Lane" : "Click to Spin!"}
                   </CardTitle>
                 </CardHeader>
+
                 <CardContent className="flex flex-col items-center justify-center p-4 md:p-8">
                   {myResult ? (
                     <div className="text-center">
-                      <div className="text-8xl font-black text-red-500 mb-4 animate-bounce">
-                        {myResult.lane_position}
-                      </div>
+                      <div className="text-8xl font-black text-red-500 mb-4 animate-bounce">{myResult.lane_position}</div>
                       <p className="text-gray-400 text-lg">Your assigned lane</p>
                     </div>
                   ) : (
                     <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
-                      {/* Wheel Container with Pointer */}
                       <div className="relative w-full">
-                        {/* Pointer Arrow at Top */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20">
                           <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-yellow-400 drop-shadow-2xl" />
                         </div>
 
-                        {/* Spinning Wheel */}
                         <div className="relative w-full aspect-square">
                           <svg
                             viewBox="0 0 400 400"
@@ -601,25 +626,25 @@ export default function UndiLanePage() {
                               const segmentAngle = 360 / availableLanes.length;
                               const startAngle = index * segmentAngle - 90;
                               const endAngle = startAngle + segmentAngle;
-                              
+
                               const startRad = (startAngle * Math.PI) / 180;
                               const endRad = (endAngle * Math.PI) / 180;
-                              
+
                               const x1 = 200 + 190 * Math.cos(startRad);
                               const y1 = 200 + 190 * Math.sin(startRad);
                               const x2 = 200 + 190 * Math.cos(endRad);
                               const y2 = 200 + 190 * Math.sin(endRad);
-                              
+
                               const largeArc = segmentAngle > 180 ? 1 : 0;
                               const pathData = `M 200 200 L ${x1} ${y1} A 190 190 0 ${largeArc} 1 ${x2} ${y2} Z`;
-                              
+
                               const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
-                              
+
                               const midAngle = startAngle + segmentAngle / 2;
                               const textRadius = 130;
                               const textX = 200 + textRadius * Math.cos((midAngle * Math.PI) / 180);
                               const textY = 200 + textRadius * Math.sin((midAngle * Math.PI) / 180);
-                              
+
                               return (
                                 <g key={lane}>
                                   <path d={pathData} fill={color} stroke="#fff" strokeWidth="3" />
@@ -632,12 +657,12 @@ export default function UndiLanePage() {
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
-                                    style={{ 
+                                    style={{
                                       paintOrder: "stroke",
                                       stroke: "rgba(0,0,0,0.45)",
                                       strokeWidth: 3,
                                       textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
-                                      fontFamily: "Arial, sans-serif"
+                                      fontFamily: "Arial, sans-serif",
                                     }}
                                   >
                                     {lane}
@@ -645,28 +670,23 @@ export default function UndiLanePage() {
                                 </g>
                               );
                             })}
-                            
+
                             <circle cx="200" cy="200" r="82" fill="rgba(255,255,255,0.9)" />
                             <circle cx="200" cy="200" r="78" fill="white" stroke="#111827" strokeOpacity="0.35" strokeWidth="3" />
                             <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
                             <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
                           </svg>
 
-                      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                        <div className="h-36 w-36 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
-                          <div className="relative h-28 w-28 rounded-full overflow-hidden ring-2 ring-red-600/30">
-                            <Image
-                              src="/ambc-logo.png"
-                              alt="AMBC Logo"
-                              fill
-                              className="object-cover"
-                              priority
-                            />
+                          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                            <div className="h-36 w-36 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
+                              <div className="relative h-28 w-28 rounded-full overflow-hidden ring-2 ring-red-600/30">
+                                <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-cover" priority />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Spin Button */}
                       <Button
                         onClick={spinWheel}
                         disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame}
@@ -687,16 +707,17 @@ export default function UndiLanePage() {
                           Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda dalam senarai pemain.
                         </p>
                       ) : null}
+
+                      {selectedLane ? <p className="mt-3 text-xs text-gray-400">Target: {selectedLane}</p> : null}
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Results */}
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-white">All Results ({allResults.length})</CardTitle>
-                  {member?.is_admin && (
+                  {member?.is_admin ? (
                     <Button
                       onClick={handleResetSpins}
                       variant="outline"
@@ -706,7 +727,7 @@ export default function UndiLanePage() {
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Reset All
                     </Button>
-                  )}
+                  ) : null}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
@@ -728,9 +749,7 @@ export default function UndiLanePage() {
                               <p className="font-semibold text-white">
                                 {result.members?.full_name || result.members?.username || "Unknown"}
                               </p>
-                              <p className="text-xs text-gray-400">
-                                {new Date(result.spun_at).toLocaleString()}
-                              </p>
+                              <p className="text-xs text-gray-400">{new Date(result.spun_at).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -741,7 +760,6 @@ export default function UndiLanePage() {
               </Card>
             </div>
 
-            {/* Available Lanes */}
             <Card className="mt-6 bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-white">Available Lanes ({availableLanes.length})</CardTitle>
