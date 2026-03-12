@@ -120,11 +120,15 @@ export function GalleryPermissionsPanel() {
           description: `${member.full_name} tidak lagi boleh urus galeri`
         });
       } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Sesi tamat");
+
         // Grant permission
         const { error } = await supabase
           .from("gallery_permissions")
           .insert({
-            member_id: member.id
+            member_id: member.id,
+            granted_by: session.user.id
           });
 
         if (error) throw error;
@@ -165,10 +169,16 @@ export function GalleryPermissionsPanel() {
         return;
       }
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sesi tamat");
+
       const { error } = await supabase
         .from("gallery_permissions")
         .insert(
-          membersWithoutPermission.map(m => ({ member_id: m.id }))
+          membersWithoutPermission.map(m => ({ 
+            member_id: m.id,
+            granted_by: session.user.id
+          }))
         );
 
       if (error) throw error;
