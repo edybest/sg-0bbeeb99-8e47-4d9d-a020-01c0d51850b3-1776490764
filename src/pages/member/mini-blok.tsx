@@ -364,9 +364,8 @@ export default function MiniBlokPage() {
   const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
   const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
-  const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
-  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
+  const [copiedEditUrl, setCopiedEditUrl] = useState(false);
+  const [shareMode, setShareMode] = useState<"public" | "editable">("public");
 
   const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
 
@@ -927,7 +926,10 @@ export default function MiniBlokPage() {
   async function copyShareUrl() {
     if (!shareEntry) return;
 
-    const url = generateShareUrl(shareEntry.id);
+    const url =
+      shareMode === "editable"
+        ? generateShareUrl(shareEntry.id)
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
     try {
       await navigator.clipboard.writeText(url);
       setCopiedUrl(true);
@@ -946,17 +948,44 @@ export default function MiniBlokPage() {
     }
   }
 
+  async function copyEditableLink() {
+    if (!shareEntry) return;
+    const url = generateShareUrl(shareEntry.id);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedEditUrl(true);
+      setTimeout(() => setCopiedEditUrl(false), 2000);
+      toast({
+        title: "Copied!",
+        description: "Editable link copied",
+      });
+    } catch (error) {
+      console.error("Error copying editable URL:", error);
+      toast({
+        title: "Error",
+        description: "Failed to copy editable link",
+        variant: "destructive",
+      });
+    }
+  }
+
   function shareToWhatsApp() {
     if (!shareEntry) return;
     const text = generateShareText(shareEntry);
-    const url = generateShareUrl(shareEntry.id);
+    const url =
+      shareMode === "editable"
+        ? generateShareUrl(shareEntry.id)
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n\n" + url)}`;
     window.open(whatsappUrl, "_blank");
   }
 
   function shareToFacebook() {
     if (!shareEntry) return;
-    const url = generateShareUrl(shareEntry.id);
+    const url =
+      shareMode === "editable"
+        ? generateShareUrl(shareEntry.id)
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
     const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
     window.open(fbUrl, "_blank");
   }
@@ -964,7 +993,10 @@ export default function MiniBlokPage() {
   function shareToTwitter() {
     if (!shareEntry) return;
     const text = generateShareText(shareEntry);
-    const url = generateShareUrl(shareEntry.id);
+    const url =
+      shareMode === "editable"
+        ? generateShareUrl(shareEntry.id)
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(twitterUrl, "_blank");
   }
@@ -1011,7 +1043,7 @@ export default function MiniBlokPage() {
             <div className="container mx-auto px-4 py-10 max-w-3xl">
               <Card>
                 <CardContent className="py-10 text-center">
-                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <Trophy className="h-12 w-12 text-muted-foreground mb-3" />
                   <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
                   <p className="text-muted-foreground mb-4">
                     Link ini mungkin telah direvoke, tamat tempoh, atau tidak sah.
@@ -1921,20 +1953,56 @@ export default function MiniBlokPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Share Link</Label>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <Label className="block">Public view link (guest boleh view)</Label>
+              <Select value={shareMode} onValueChange={(v) => setShareMode(v as "public" | "editable")}>
+                <SelectTrigger className="w-[190px]">
+                  <SelectValue placeholder="Share mode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public view</SelectItem>
+                  <SelectItem value="editable">Editable (login)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={
+                  shareEntry
+                    ? (shareMode === "editable"
+                        ? generateShareUrl(shareEntry.id)
+                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id)))
+                    : ""
+                }
+                className="flex-1"
+              />
+              <Button onClick={copyShareUrl} variant="outline">
+                {copiedUrl ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            {shareMode === "public" && shareEntry && !shareEntry.share_token && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Token public belum ada untuk tournament ini. Link akan fallback ke editable link.
+              </p>
+            )}
+
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <Label className="block">Editable link (collaborator)</Label>
+                <Badge variant="secondary">Login required</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Nota: Collaborator mesti sudah diberi akses melalui “Share Access”.
+              </p>
               <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={shareEntry ? generateShareUrl(shareEntry.id) : ""}
-                  className="flex-1"
-                />
-                <Button onClick={copyShareUrl} variant="outline">
-                  {copiedUrl ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
+                <Input readOnly value={shareEntry ? generateShareUrl(shareEntry.id) : ""} className="flex-1" />
+                <Button onClick={copyEditableLink} variant="outline">
+                  {copiedEditUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
