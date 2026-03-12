@@ -27,6 +27,7 @@ import { gameService } from "@/services/gameService";
 import { laneService } from "@/services/laneService";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
+import Image from "next/image";
 
 interface SpinResultWithMember {
   id: string;
@@ -78,6 +79,7 @@ export default function UndiLanePage() {
   const [rotation, setRotation] = useState(0);
   const [selectedLane, setSelectedLane] = useState<string>("");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isRegisteredForGame, setIsRegisteredForGame] = useState<boolean>(true);
 
   const audioRef = useRef<AudioGraph | null>(null);
   const [audioReady, setAudioReady] = useState(false);
@@ -272,18 +274,20 @@ export default function UndiLanePage() {
 
   async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
-      const [mySpinResult, gameResults, spunLanes] = await withLoading(
+      const [mySpinResult, gameResults, spunLanes, registeredOk] = await withLoading(
         "member:undi-lane:load-lane-data",
         async () =>
           Promise.all([
             getMemberSpinResult(gameId, currentMemberId),
             getGameSpinResults(gameId),
             getSpunLanePositions(gameId),
+            laneService.isMemberRegisteredForGame(gameId, currentMemberId),
           ])
       );
 
       setMyResult(mySpinResult);
       setAllResults(gameResults);
+      setIsRegisteredForGame(registeredOk);
 
       const selectedGame = games.find(g => g.id === gameId) || games[0];
       const totalLanes = selectedGame?.lanes || 20;
@@ -319,6 +323,17 @@ export default function UndiLanePage() {
 
   async function spinWheel() {
     if (!member) return;
+
+    if (!activeGameId) return;
+
+    if (!isRegisteredForGame) {
+      toast({
+        title: "Tidak tersenarai",
+        description: "Anda tidak tersenarai untuk game ini. Sila hubungi admin.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!audioReady) {
       const unlocked = await ensureAudio();
@@ -559,13 +574,29 @@ export default function UndiLanePage() {
                             className="w-full h-full drop-shadow-2xl"
                             style={{
                               transform: `rotate(${rotation}deg)`,
-                              transition: spinning ? "transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
+                              transition: spinning ? "transform 5s cubic-bezier(0.12, 0.75, 0.06, 0.98)" : "none",
                             }}
                           >
-                            {/* Outer circle border */}
-                            <circle cx="200" cy="200" r="195" fill="none" stroke="#fff" strokeWidth="10" />
-                            
-                            {/* Wheel segments */}
+                            <defs>
+                              <radialGradient id="rimGrad" cx="50%" cy="50%" r="60%">
+                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
+                                <stop offset="55%" stopColor="#d1d5db" stopOpacity="0.9" />
+                                <stop offset="100%" stopColor="#9ca3af" stopOpacity="0.95" />
+                              </radialGradient>
+                              <radialGradient id="innerShadow" cx="50%" cy="45%" r="60%">
+                                <stop offset="0%" stopColor="#000000" stopOpacity="0" />
+                                <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
+                              </radialGradient>
+                              <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+                                <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
+                                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+
+                            <circle cx="200" cy="200" r="197" fill="none" stroke="url(#rimGrad)" strokeWidth="12" />
+                            <circle cx="200" cy="200" r="191" fill="none" stroke="#111827" strokeOpacity="0.55" strokeWidth="2" />
+
                             {availableLanes.map((lane, index) => {
                               const segmentAngle = 360 / availableLanes.length;
                               const startAngle = index * segmentAngle - 90;
@@ -597,11 +628,14 @@ export default function UndiLanePage() {
                                     y={textY}
                                     fill="white"
                                     fontSize="28"
-                                    fontWeight="bold"
+                                    fontWeight="800"
                                     textAnchor="middle"
                                     dominantBaseline="middle"
                                     transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
                                     style={{ 
+                                      paintOrder: "stroke",
+                                      stroke: "rgba(0,0,0,0.45)",
+                                      strokeWidth: 3,
                                       textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
                                       fontFamily: "Arial, sans-serif"
                                     }}
@@ -612,25 +646,30 @@ export default function UndiLanePage() {
                               );
                             })}
                             
-                            {/* Center circle with bowling pin */}
-                            <circle cx="200" cy="200" r="50" fill="white" stroke="#333" strokeWidth="3" />
-                            <text
-                              x="200"
-                              y="210"
-                              fontSize="40"
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              🎳
-                            </text>
+                            <circle cx="200" cy="200" r="82" fill="rgba(255,255,255,0.9)" />
+                            <circle cx="200" cy="200" r="78" fill="white" stroke="#111827" strokeOpacity="0.35" strokeWidth="3" />
+                            <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
+                            <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
                           </svg>
+
+                      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+                        <div className="h-36 w-36 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
+                          <div className="relative h-28 w-28 rounded-full overflow-hidden ring-2 ring-red-600/30">
+                            <Image
+                              src="/ambc-logo.png"
+                              alt="AMBC Logo"
+                              fill
+                              className="object-cover"
+                              priority
+                            />
+                          </div>
                         </div>
                       </div>
 
                       {/* Spin Button */}
                       <Button
                         onClick={spinWheel}
-                        disabled={spinning || availableLanes.length === 0}
+                        disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame}
                         className="mt-8 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold text-xl px-10 py-6 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-transform hover:scale-105"
                       >
                         {spinning ? (
@@ -642,6 +681,12 @@ export default function UndiLanePage() {
                           "SPIN!"
                         )}
                       </Button>
+
+                      {!isRegisteredForGame ? (
+                        <p className="mt-3 text-sm text-red-200 text-center max-w-sm">
+                          Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda dalam senarai pemain.
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </CardContent>

@@ -172,4 +172,28 @@ export const laneService = {
     if (error) throw error;
     return data || [];
   },
+
+  // Check if member is registered (in game_players) for a game
+  async isMemberRegisteredForGame(gameId: string, memberId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from("game_players")
+      .select("member_id")
+      .eq("game_id", gameId)
+      .eq("member_id", memberId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return !!data?.member_id;
+  },
+
+  // Get registered member ids for a game
+  async getRegisteredMemberIdsForGame(gameId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("game_players")
+      .select("member_id")
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+    return (data || []).map((r) => r.member_id);
+  },
 };
