@@ -284,13 +284,45 @@ export async function getMiniBlokSharedByToken(shareToken: string): Promise<Mini
 
   if (!data) return null;
 
-  const typed = data as unknown as { entry: MiniBlok | null; players: MiniBlokPlayer[] | null };
-  if (!typed.entry) return null;
-
-  return {
-    entry: typed.entry,
-    players: Array.isArray(typed.players) ? typed.players : [],
+  const row = data as unknown as {
+    mini_blok_id: string;
+    title: string | null;
+    location: string | null;
+    date: string;
+    owner_id: string;
+    num_games: number | null;
+    created_at: string;
+    updated_at: string;
+    players: unknown;
   };
+
+  if (!row.mini_blok_id) return null;
+
+  const entry: MiniBlok = {
+    id: row.mini_blok_id,
+    title: row.title,
+    location: row.location,
+    date: row.date as any,
+    owner_id: row.owner_id,
+    num_games: row.num_games,
+    created_at: row.created_at as any,
+    updated_at: row.updated_at as any,
+  } as MiniBlok;
+
+  const players = Array.isArray(row.players)
+    ? (row.players as MiniBlokPlayer[])
+    : typeof row.players === "string"
+      ? (() => {
+          try {
+            const parsed = JSON.parse(row.players);
+            return Array.isArray(parsed) ? (parsed as MiniBlokPlayer[]) : [];
+          } catch {
+            return [];
+          }
+        })()
+      : (row.players as MiniBlokPlayer[]) || [];
+
+  return { entry, players };
 }
 
 export function generateShareTokenUrl(shareToken: string): string {

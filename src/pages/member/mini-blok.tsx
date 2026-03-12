@@ -1014,7 +1014,7 @@ export default function MiniBlokPage() {
                   <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                   <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
                   <p className="text-muted-foreground mb-4">
-                    Link ini mungkin telah direvoke atau tidak sah.
+                    Link ini mungkin telah direvoke, tamat tempoh, atau tidak sah.
                   </p>
                   <Button variant="outline" onClick={() => router.replace("/member/mini-blok")}>
                     Go to Mini Blok
