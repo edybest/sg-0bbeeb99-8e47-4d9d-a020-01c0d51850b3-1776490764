@@ -180,9 +180,12 @@ export default function UndiLanePage() {
         setTimeout(() => setShowConfetti(false), 3000);
       } catch (error) {
         console.error("Error saving spin result:", error);
+        const err = error as { message?: string };
         toast({
           title: "Error",
-          description: "Failed to save lane assignment. Please try again.",
+          description: err?.message
+            ? `Failed to save lane assignment: ${err.message}`
+            : "Failed to save lane assignment. Please try again.",
           variant: "destructive",
         });
       } finally {

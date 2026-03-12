@@ -67,7 +67,15 @@ export async function saveSpinResult(
     .single();
 
   if (error) {
-    console.error("Error saving spin result:", error);
+    console.error("Error saving spin result:", {
+      message: error.message,
+      code: (error as any).code,
+      details: (error as any).details,
+      hint: (error as any).hint,
+      gameId,
+      memberId,
+      lanePosition,
+    });
     throw error;
   }
 

@@ -159,6 +159,7 @@ function PublicSharedView({
     const statsB = calculatePlayerStats(b, entry.num_games || 5);
     return statsB.overall_score - statsA.overall_score;
   });
+  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
   return (
     <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-7xl">
@@ -278,7 +279,15 @@ function PublicSharedView({
 
                 return (
                   <Card key={player.id} className="overflow-hidden">
-                    <div className="p-4">
+                    <div
+                      className="p-4 cursor-pointer"
+                      onClick={() =>
+                        setExpandedScores((prev) => ({
+                          ...prev,
+                          [player.id]: !prev[player.id],
+                        }))
+                      }
+                    >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Badge variant={idx === 0 ? "default" : "secondary"}>
@@ -296,42 +305,57 @@ function PublicSharedView({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        <div>
-                          <span className="text-muted-foreground">Handicap:</span>
-                          <span className="ml-2 font-semibold">{player.handicap ?? 0}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Total:</span>
-                          <span className="ml-2 font-semibold">{stats.total_score}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Diff:</span>
-                          <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
-                            {stats.differential > 0 ? "+" : ""}{stats.differential}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Games:</span>
-                          <span className="ml-2 font-semibold">{stats.games_played}</span>
-                        </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                        <span>Tap to {isExpanded ? "hide" : "view"} details</span>
+                        <span>Games: {entry.num_games || 5}</span>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        {Array.from({ length: entry.num_games || 5 }, (_, i) => {
-                          const score = scores[`game_${i + 1}`] as number | null;
-                          return (
-                            <Badge
-                              key={i}
-                              variant="secondary"
-                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
-                            >
-                              G{i + 1}:{" "}
-                              {score !== null && score > 0 ? score : "-"}
-                            </Badge>
-                          );
-                        })}
-                      </div>
+                      {isExpanded && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                            <div>
+                              <span className="text-muted-foreground">Handicap:</span>
+                              <span className="ml-2 font-semibold">{player.handicap ?? 0}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total:</span>
+                              <span className="ml-2 font-semibold">{stats.total_score}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Diff:</span>
+                              <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
+                                {stats.differential > 0 ? "+" : ""}{stats.differential}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Games:</span>
+                              <span className="ml-2 font-semibold">{stats.games_played}</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
+                            <div className="flex flex-wrap gap-2">
+                              {Array.from({ length: entry.num_games || 5 }, (_, i) => {
+                                const score = scores[`game_${i + 1}`] as number | null;
+                                return (
+                                  <Badge
+                                    key={i}
+                                    variant="secondary"
+                                    className={
+                                      score !== null && score > 0
+                                        ? `${GAME_COLORS[i]} text-white`
+                                        : "bg-gray-200"
+                                    }
+                                  >
+                                    G{i + 1}: {score !== null && score > 0 ? score : "-"}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </Card>
                 );
@@ -1743,12 +1767,14 @@ export default function MiniBlokPage() {
                               <Card key={player.id} className="overflow-hidden">
                                 <div
                                   className="p-4 cursor-pointer"
-                                  onClick={() => setExpandedScores(prev => ({
-                                    ...prev,
-                                    [player.id]: !prev[player.id],
-                                  }))}
+                                  onClick={() =>
+                                    setExpandedScores((prev) => ({
+                                      ...prev,
+                                      [player.id]: !prev[player.id],
+                                    }))
+                                  }
                                 >
-                                  <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                       <Badge variant={idx === 0 ? "default" : "secondary"}>
                                         #{idx + 1}
@@ -2074,7 +2100,7 @@ export default function MiniBlokPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <Label className="block">Public view link (guest boleh view)</Label>
               <Select value={shareMode} onValueChange={(v) => setShareMode(v as "public" | "editable")}>
                 <SelectTrigger className="w-[190px]">
