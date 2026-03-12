@@ -3,16 +3,64 @@
   "short_name": "AMBC",
   "description": "Sistem Pengurusan Keahlian Bowling AMBC Club",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#DC2626",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "categories": ["sports", "lifestyle"],
+  "lang": "ms-MY",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/ambc-logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/ambc-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/ambc-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Member Dashboard",
+      "short_name": "Dashboard",
+      "description": "Terus ke member dashboard",
+      "url": "/member",
+      "icons": [
+        {
+          "src": "/ambc-logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "short_name": "Login",
+      "description": "Login ke akaun anda",
+      "url": "/login",
+      "icons": [
+        {
+          "src": "/ambc-logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
