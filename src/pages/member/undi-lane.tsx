@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +53,16 @@ const WHEEL_COLORS = [
   "#34495E", // Dark Blue
 ];
 
+type AudioGraph = {
+  ctx: AudioContext;
+  master: GainNode;
+  spinOsc: OscillatorNode;
+  spinLfo: OscillatorNode;
+  spinLfoGain: GainNode;
+  spinGain: GainNode;
+  isSpinning: boolean;
+};
+
 export default function UndiLanePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -69,6 +79,164 @@ export default function UndiLanePage() {
   const [selectedLane, setSelectedLane] = useState<string>("");
   const [showConfetti, setShowConfetti] = useState(false);
 
+  const audioRef = useRef<AudioGraph | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
+
+  const stopSpinSound = useCallback(() => {
+    const graph = audioRef.current;
+    if (!graph) return;
+    graph.isSpinning = false;
+    graph.spinGain.gain.cancelScheduledValues(graph.ctx.currentTime);
+    graph.spinGain.gain.setTargetAtTime(0.0001, graph.ctx.currentTime, 0.03);
+  }, []);
+
+  const ensureAudio = useCallback(async (): Promise<boolean> => {
+    if (typeof window === "undefined") return false;
+
+    if (!audioRef.current) {
+      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return false;
+
+      const ctx = new AudioContextCtor();
+
+      const master = ctx.createGain();
+      master.gain.value = 0.18;
+      master.connect(ctx.destination);
+
+      const spinOsc = ctx.createOscillator();
+      spinOsc.type = "sawtooth";
+      spinOsc.frequency.value = 160;
+
+      const spinGain = ctx.createGain();
+      spinGain.gain.value = 0.0001;
+
+      const spinFilter = ctx.createBiquadFilter();
+      spinFilter.type = "lowpass";
+      spinFilter.frequency.value = 1200;
+      spinFilter.Q.value = 0.7;
+
+      const spinLfo = ctx.createOscillator();
+      spinLfo.type = "sine";
+      spinLfo.frequency.value = 8;
+
+      const spinLfoGain = ctx.createGain();
+      spinLfoGain.gain.value = 45;
+
+      spinLfo.connect(spinLfoGain);
+      spinLfoGain.connect(spinOsc.frequency);
+
+      spinOsc.connect(spinFilter);
+      spinFilter.connect(spinGain);
+      spinGain.connect(master);
+
+      spinOsc.start();
+      spinLfo.start();
+
+      audioRef.current = {
+        ctx,
+        master,
+        spinOsc,
+        spinLfo,
+        spinLfoGain,
+        spinGain,
+        isSpinning: false,
+      };
+    }
+
+    const graph = audioRef.current;
+    if (!graph) return false;
+
+    if (graph.ctx.state !== "running") {
+      try {
+        await graph.ctx.resume();
+      } catch {
+        return false;
+      }
+    }
+
+    if (graph.ctx.state === "running") {
+      setAudioReady(true);
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  const playSpinSound = useCallback(async () => {
+    const ok = await ensureAudio();
+    if (!ok) return false;
+
+    const graph = audioRef.current;
+    if (!graph) return false;
+
+    graph.isSpinning = true;
+
+    const t = graph.ctx.currentTime;
+    graph.spinGain.gain.cancelScheduledValues(t);
+    graph.spinGain.gain.setTargetAtTime(0.14, t, 0.04);
+
+    graph.spinOsc.frequency.cancelScheduledValues(t);
+    graph.spinOsc.frequency.setTargetAtTime(220, t, 0.08);
+
+    graph.spinLfo.frequency.cancelScheduledValues(t);
+    graph.spinLfo.frequency.setTargetAtTime(12, t, 0.12);
+
+    return true;
+  }, [ensureAudio]);
+
+  const playWinSound = useCallback(async () => {
+    const ok = await ensureAudio();
+    if (!ok) return false;
+
+    const graph = audioRef.current;
+    if (!graph) return false;
+
+    const t0 = graph.ctx.currentTime;
+
+    const osc = graph.ctx.createOscillator();
+    const gain = graph.ctx.createGain();
+    const filter = graph.ctx.createBiquadFilter();
+
+    filter.type = "highpass";
+    filter.frequency.value = 250;
+
+    osc.type = "triangle";
+
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+
+    osc.frequency.setValueAtTime(880, t0);
+    osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(660, t0 + 0.32);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(graph.master);
+
+    osc.start(t0);
+    osc.stop(t0 + 0.5);
+
+    return true;
+  }, [ensureAudio]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        stopSpinSound();
+        const graph = audioRef.current;
+        if (graph) {
+          graph.spinOsc.stop();
+          graph.spinLfo.stop();
+          graph.ctx.close();
+        }
+      } catch {
+      } finally {
+        audioRef.current = null;
+      }
+    };
+  }, [stopSpinSound]);
+
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated || !member) {
@@ -77,6 +245,7 @@ export default function UndiLanePage() {
         loadGames();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, member, router]);
 
   async function loadGames() {
@@ -158,7 +327,25 @@ export default function UndiLanePage() {
       return;
     }
 
+    if (!audioReady) {
+      const unlocked = await ensureAudio();
+      if (!unlocked) {
+        toast({
+          title: "Sound",
+          description: "Browser block audio. Tap SPIN sekali lagi untuk enable sound.",
+        });
+      }
+    }
+
     setSpinning(true);
+    const startedSound = await playSpinSound();
+    if (!startedSound && audioReady) {
+      toast({
+        title: "Sound",
+        description: "Tap SPIN sekali lagi untuk enable sound.",
+      });
+    }
+
     const randomIndex = Math.floor(Math.random() * availableLanes.length);
     const winningLane = availableLanes[randomIndex];
     setSelectedLane(winningLane);
@@ -171,8 +358,11 @@ export default function UndiLanePage() {
     setRotation(finalRotation);
 
     setTimeout(async () => {
+      stopSpinSound();
+      await playWinSound();
+
       setShowConfetti(true);
-      
+
       try {
         console.log("Saving spin result:", { gameId: activeGameId, memberId: member.id, lane: winningLane });
         await withLoading("member:undi-lane:spin-save", async () => {
