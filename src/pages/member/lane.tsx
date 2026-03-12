@@ -71,27 +71,22 @@ export default function LanePage() {
     try {
       setLoading(true);
       
-      const [gamesData, configsData, membersData] = await withLoading(
+      const [gamesData, configsData] = await withLoading(
         "member:lane:load-data",
         async () =>
           Promise.all([
             gameService.getAllGames(),
             laneService.getLaneConfigurations(),
-            isAdmin ? laneService.getAllMembers() : Promise.resolve([]),
           ])
       );
 
       setGames(gamesData);
       setLaneConfigs(configsData);
-      setMembers(membersData);
       
       // Auto select latest game
       if (gamesData && gamesData.length > 0) {
         setActiveGame(gamesData[0]);
         setSelectedGameId(gamesData[0].id);
-        await withLoading("member:lane:load-spin-results", async () => {
-          await loadSpinResults(gamesData[0].id);
-        });
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -133,6 +128,26 @@ export default function LanePage() {
         laneService.getLaneAssignments(selectedGameId)
       );
       setAssignments(data);
+
+      if (isAdmin) {
+        const registered = await withLoading("member:lane:load-registered-players", async () =>
+          laneService.getRegisteredPlayersForGame(selectedGameId)
+        );
+
+        const assignedIds = new Set((data || []).map((a) => a.member_id));
+        const availablePlayers = registered
+          .filter((p) => !assignedIds.has(p.member_id))
+          .map((p) => ({
+            id: p.member_id,
+            username: p.username,
+            full_name: p.full_name,
+            avatar_url: null,
+          }));
+
+        setMembers(availablePlayers);
+      } else {
+        setMembers([]);
+      }
     } catch (error) {
       console.error("Error loading assignments:", error);
     }

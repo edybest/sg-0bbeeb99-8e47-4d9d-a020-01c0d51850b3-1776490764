@@ -318,14 +318,7 @@ export default function UndiLanePage() {
   }
 
   async function spinWheel() {
-    if (!member || availableLanes.length === 0) {
-      toast({
-        title: "No lanes available",
-        description: "All lanes have been assigned",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!member) return;
 
     if (!audioReady) {
       const unlocked = await ensureAudio();
@@ -337,6 +330,15 @@ export default function UndiLanePage() {
       }
     }
 
+    if (availableLanes.length === 0) {
+      toast({
+        title: "No lanes available",
+        description: "All lanes have been assigned",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSpinning(true);
     const startedSound = await playSpinSound();
     if (!startedSound && audioReady) {
@@ -346,12 +348,29 @@ export default function UndiLanePage() {
       });
     }
 
-    const randomIndex = Math.floor(Math.random() * availableLanes.length);
-    const winningLane = availableLanes[randomIndex];
+    let winningLane: string | null = null;
+
+    try {
+      const existingAssignment = await withLoading("member:undi-lane:check-existing-assignment", async () =>
+        laneService.getMemberLaneAssignment(activeGameId, member.id)
+      );
+      if (existingAssignment?.lane_position) {
+        winningLane = existingAssignment.lane_position;
+      }
+    } catch (e) {
+      console.warn("Could not check existing lane assignment. Falling back to random.", e);
+    }
+
+    if (!winningLane) {
+      const randomIndex = Math.floor(Math.random() * availableLanes.length);
+      winningLane = availableLanes[randomIndex];
+    }
+
     setSelectedLane(winningLane);
 
+    const winningIndex = Math.max(0, availableLanes.indexOf(winningLane));
     const segmentAngle = 360 / availableLanes.length;
-    const winningAngle = randomIndex * segmentAngle;
+    const winningAngle = winningIndex * segmentAngle;
     const spins = 5;
     const finalRotation = spins * 360 + (360 - winningAngle) - (segmentAngle / 2);
 
@@ -365,12 +384,13 @@ export default function UndiLanePage() {
 
       try {
         console.log("Saving spin result:", { gameId: activeGameId, memberId: member.id, lane: winningLane });
+
         await withLoading("member:undi-lane:spin-save", async () => {
-          await saveSpinResult(activeGameId, member.id, winningLane);
+          await saveSpinResult(activeGameId, member.id, winningLane as string);
         });
 
         await withLoading("member:undi-lane:lane-assignment-upsert", async () => {
-          await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane);
+          await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane as string);
         });
 
         console.log("Spin result saved successfully");

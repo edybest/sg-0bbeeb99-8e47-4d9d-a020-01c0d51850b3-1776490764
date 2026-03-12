@@ -3,6 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type LaneConfiguration = Database["public"]["Tables"]["lane_configurations"]["Row"];
 type LaneAssignment = Database["public"]["Tables"]["lane_assignments"]["Row"];
+type GamePlayer = Database["public"]["Tables"]["game_players"]["Row"];
 
 export type LaneConfigurationWithDetails = LaneConfiguration;
 
@@ -13,6 +14,12 @@ export interface LaneAssignmentWithMember extends LaneAssignment {
     full_name: string;
     avatar_url: string | null;
   };
+}
+
+export interface RegisteredPlayer {
+  member_id: string;
+  username: string;
+  full_name: string;
 }
 
 export const laneService = {
@@ -57,6 +64,45 @@ export const laneService = {
 
     if (error) throw error;
     return (data || []) as LaneAssignmentWithMember[];
+  },
+
+  // Get a member's current assignment (if any) for a game
+  async getMemberLaneAssignment(gameId: string, memberId: string): Promise<LaneAssignment | null> {
+    const { data, error } = await supabase
+      .from("lane_assignments")
+      .select("*")
+      .eq("game_id", gameId)
+      .eq("member_id", memberId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ?? null;
+  },
+
+  // Fetch registered players for a game from game_players
+  async getRegisteredPlayersForGame(gameId: string): Promise<RegisteredPlayer[]> {
+    const { data, error } = await supabase
+      .from("game_players")
+      .select(`
+        member_id,
+        member:members!game_players_member_id_fkey(
+          username,
+          full_name
+        )
+      `)
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+
+    const rows = (data || []) as (GamePlayer & { member?: { username: string; full_name: string } | null })[];
+
+    return rows
+      .map((r) => ({
+        member_id: r.member_id,
+        username: r.member?.username ?? "Unknown",
+        full_name: r.member?.full_name ?? "",
+      }))
+      .sort((a, b) => a.username.localeCompare(b.username));
   },
 
   // Assign member to lane
