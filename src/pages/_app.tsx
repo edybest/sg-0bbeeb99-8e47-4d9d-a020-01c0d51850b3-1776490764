@@ -3,6 +3,8 @@ import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
 import "@/styles/globals.css";
 import { useEffect } from "react";
+import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
+import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
@@ -20,9 +22,12 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <ThemeProvider>
-      <Component {...pageProps} />
-      <Toaster />
-    </ThemeProvider>
+    <GlobalLoadingProvider>
+      <ThemeProvider>
+        <Component {...pageProps} />
+        <Toaster />
+        <GlobalLoadingOverlay />
+      </ThemeProvider>
+    </GlobalLoadingProvider>
   );
 }
