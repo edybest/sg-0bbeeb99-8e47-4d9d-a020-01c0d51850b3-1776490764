@@ -27,6 +27,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
@@ -375,6 +376,9 @@ export default function HomePage() {
                 </header>
 
                 <main className="container mx-auto px-4 py-8">
+                    <div className="mb-6">
+                        <PwaInstallCard />
+                    </div>
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}

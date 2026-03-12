@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { pageAccessService, type AccessLevel } from "@/services/pageAccessService";
+import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
 
 type FiveFivePrizeConfig = {
   id: string;
@@ -687,12 +688,13 @@ export function ClubSettings() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="handicap">Handicap</TabsTrigger>
           <TabsTrigger value="statistics">Statistics</TabsTrigger>
+          <TabsTrigger value="push">Push Message</TabsTrigger>
         </TabsList>
 
         {/* General Settings Tab */}
@@ -1287,6 +1289,10 @@ export function ClubSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="push" className="space-y-6">
+          <PushMessagePanel />
         </TabsContent>
       </Tabs>
 

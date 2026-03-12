@@ -642,6 +642,72 @@ export type Database = {
           },
         ]
       }
+      notification_recipients: {
+        Row: {
+          delivered_at: string | null
+          member_id: string
+          notification_id: string
+          read_at: string | null
+        }
+        Insert: {
+          delivered_at?: string | null
+          member_id: string
+          notification_id: string
+          read_at?: string | null
+        }
+        Update: {
+          delivered_at?: string | null
+          member_id?: string
+          notification_id?: string
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_recipients_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_recipients_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          target_date: string | null
+          target_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          target_date?: string | null
+          target_type: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          target_date?: string | null
+          target_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
       page_access_control: {
         Row: {
           access_level: string
