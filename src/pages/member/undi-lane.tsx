@@ -322,8 +322,8 @@ export default function UndiLanePage() {
           ])
       );
 
-      setMyResult(mySpinResult);
-      setAllResults(gameResults);
+      setMyResult(mySpinResult as any);
+      setAllResults(gameResults as any);
       setIsRegisteredForGame(registeredOk);
 
       const list = gamesSnapshot ?? games;
@@ -332,14 +332,14 @@ export default function UndiLanePage() {
       const baseTotalLanes = selectedGame?.lanes || 20;
       const totalLanes = assignedCount > 0 ? Math.min(baseTotalLanes, assignedCount) : baseTotalLanes;
 
-      const allLanes = Array.from({ length: totalLanes }, (_, i) => {
-        const laneNum = i + 1;
-        const side = laneNum % 2 === 0 ? "B" : "A";
-        const pair = Math.ceil(laneNum / 2);
-        return `${pair}${side}`;
-      });
+      const adminAssigned = await laneService.getAdminAssignedLanePositionsForGame(gameId);
 
-      const available = allLanes.filter((lane) => !spunLanes.includes(lane));
+      const assignedList = Array.isArray(adminAssigned) ? adminAssigned.filter(Boolean) : [];
+      const fallbackList = Array.isArray(assignedLanePositions) ? assignedLanePositions.filter(Boolean) : [];
+
+      const wheelSegments = assignedList.length > 0 ? assignedList : fallbackList;
+
+      const available = wheelSegments.filter((lane) => !spunLanes.includes(lane));
       setAvailableLanes(available);
     } catch (error) {
       console.error("Error loading lane data:", error);

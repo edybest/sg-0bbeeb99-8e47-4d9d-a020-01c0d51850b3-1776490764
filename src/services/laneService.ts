@@ -207,4 +207,16 @@ export const laneService = {
     if (error) throw error;
     return (data || []).map((r) => r.lane_position);
   },
+
+  // Get the exact admin-assigned lane positions for wheel segments (sorted)
+  async getAdminAssignedLanePositionsForGame(gameId: string): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("lane_assignments")
+      .select("lane_position")
+      .eq("game_id", gameId)
+      .order("lane_position", { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map((r) => r.lane_position);
+  },
 };

@@ -6,6 +6,10 @@ export interface SpinResult {
   member_id: string;
   lane_position: string;
   spun_at: string;
+  members?: {
+    username: string;
+    full_name: string;
+  } | null;
 }
 
 /**
@@ -17,7 +21,17 @@ export async function getMemberSpinResult(
 ): Promise<SpinResult | null> {
   const { data, error } = await supabase
     .from("lane_spin_results")
-    .select("*")
+    .select(`
+      id,
+      game_id,
+      member_id,
+      lane_position,
+      spun_at,
+      members:members!lane_spin_results_member_id_fkey(
+        username,
+        full_name
+      )
+    `)
     .eq("game_id", gameId)
     .eq("member_id", memberId)
     .maybeSingle();
@@ -27,7 +41,7 @@ export async function getMemberSpinResult(
     throw error;
   }
 
-  return data;
+  return data as SpinResult | null;
 }
 
 /**
@@ -36,7 +50,17 @@ export async function getMemberSpinResult(
 export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> {
   const { data, error } = await supabase
     .from("lane_spin_results")
-    .select("*")
+    .select(`
+      id,
+      game_id,
+      member_id,
+      lane_position,
+      spun_at,
+      members:members!lane_spin_results_member_id_fkey(
+        username,
+        full_name
+      )
+    `)
     .eq("game_id", gameId)
     .order("spun_at", { ascending: true });
 
@@ -45,7 +69,7 @@ export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> 
     throw error;
   }
 
-  return data || [];
+  return (data || []) as SpinResult[];
 }
 
 /**
