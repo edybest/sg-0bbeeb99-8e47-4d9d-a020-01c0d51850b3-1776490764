@@ -189,7 +189,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <PageAccessGuard>
+    <PageAccessGuard pagePath="/member/feedback">
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
         <MemberTopBarNav />
 
@@ -473,7 +473,7 @@ export default function FeedbackPage() {
           </motion.div>
         </div>
 
-        <MobileNav currentPage="feedback" />
+        <MobileNav />
       </div>
     </PageAccessGuard>
   );
