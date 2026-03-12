@@ -366,29 +366,39 @@ export default function BlokPage() {
         return (
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: [0, 1.2, 1], rotate: [180, 360, 0] }}
-            transition={{ type: "spring", stiffness: 200, damping: 10, duration: 0.8 }}
-            className="relative">
-            
-                        <motion.div
+            animate={{
+              scale: [0, 1.2, 1],
+              rotate: [180, 360, 0],
+              y: [0, -3, 0],
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 10,
+              duration: 0.8,
+            }}
+            className="relative"
+          >
+            <motion.div
               animate={{
+                rotate: [0, -10, 10, -10, 0],
                 boxShadow: [
-                "0 0 20px rgba(234,179,8,0.3)",
-                "0 0 40px rgba(234,179,8,0.6)",
-                "0 0 20px rgba(234,179,8,0.3)"]
-
+                  "0 0 20px rgba(234,179,8,0.3)",
+                  "0 0 40px rgba(234,179,8,0.6)",
+                  "0 0 20px rgba(234,179,8,0.3)",
+                ],
               }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="rounded-full">
-              
-                            <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
-                        </motion.div>
-                        <motion.div
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="rounded-full"
+            >
+              <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
+            </motion.div>
+            <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10" />
-            
-                    </motion.div>);
+              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10"
+            />
+          </motion.div>);
 
 
       case 2:
