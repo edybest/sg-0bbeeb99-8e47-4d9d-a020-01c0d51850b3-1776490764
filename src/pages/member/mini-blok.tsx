@@ -403,6 +403,8 @@ export default function MiniBlokPage() {
       setLoading(true);
       const data = await getMiniBlokSharedByToken(shareToken);
 
+      console.log("Public share load:", { shareToken, data });
+
       if (!data) {
         toast({
           title: "Link tidak sah",
@@ -967,11 +969,9 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
-  if (loading || authLoading) {
-    return <BowlingBallLoader />;
-  }
-
   if (isPublicSharedMode) {
+    if (loading) return <BowlingBallLoader />;
+
     return (
       <>
         <Head>
@@ -1026,6 +1026,10 @@ export default function MiniBlokPage() {
         </div>
       </>
     );
+  }
+
+  if (loading || authLoading) {
+    return <BowlingBallLoader />;
   }
 
   return (
