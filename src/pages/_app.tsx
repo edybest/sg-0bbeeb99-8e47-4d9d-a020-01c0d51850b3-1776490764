@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
 import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [showSplash, setShowSplash] = useState(true);
@@ -76,6 +77,13 @@ export default function App({ Component, pageProps }: AppProps) {
     setSplashComplete(true);
   };
 
+  const hideFooter =
+    typeof window !== "undefined" &&
+    (window.location.pathname.startsWith("/admin") ||
+      window.location.pathname === "/login" ||
+      window.location.pathname === "/signup" ||
+      window.location.pathname === "/admin/login");
+
   return (
     <GlobalLoadingProvider>
       <ThemeProvider
@@ -87,9 +95,16 @@ export default function App({ Component, pageProps }: AppProps) {
         {showSplash && !splashComplete && (
           <SplashScreen onComplete={handleSplashComplete} />
         )}
-        
-        {splashComplete && <Component {...pageProps} />}
-        
+
+        {splashComplete && (
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-1">
+              <Component {...pageProps} />
+            </div>
+            {!hideFooter && <SiteFooter />}
+          </div>
+        )}
+
         <Toaster />
         {typeof window === "undefined" ? null : <GlobalLoadingOverlay />}
       </ThemeProvider>
