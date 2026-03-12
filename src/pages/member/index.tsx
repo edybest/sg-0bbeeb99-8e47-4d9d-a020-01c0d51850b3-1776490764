@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 const cardVariants = {
   hidden: {
@@ -100,17 +101,16 @@ const navigationCards = [
 export default function MemberDashboard() {
   const router = useRouter();
   const { member, loading, logout } = useAuth(false);
+  const { withLoading } = useGlobalLoading();
 
   async function handleLogout() {
-    await logout();
+    await withLoading("member:dashboard:logout", async () => {
+      await logout();
+    });
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -17,6 +17,7 @@ import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 interface Game {
   id: string;
@@ -34,6 +35,7 @@ interface Member {
 export default function LanePage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { withLoading } = useGlobalLoading();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeGame, setActiveGame] = useState<any>(null);
@@ -67,11 +69,15 @@ export default function LanePage() {
     try {
       setLoading(true);
       
-      const [gamesData, configsData, membersData] = await Promise.all([
-        gameService.getAllGames(),
-        laneService.getLaneConfigurations(),
-        isAdmin ? laneService.getAllMembers() : Promise.resolve([]),
-      ]);
+      const [gamesData, configsData, membersData] = await withLoading(
+        "member:lane:load-data",
+        async () =>
+          Promise.all([
+            gameService.getAllGames(),
+            laneService.getLaneConfigurations(),
+            isAdmin ? laneService.getAllMembers() : Promise.resolve([]),
+          ])
+      );
 
       setGames(gamesData);
       setLaneConfigs(configsData);
@@ -81,7 +87,9 @@ export default function LanePage() {
       if (gamesData && gamesData.length > 0) {
         setActiveGame(gamesData[0]);
         setSelectedGameId(gamesData[0].id);
-        await loadSpinResults(gamesData[0].id);
+        await withLoading("member:lane:load-spin-results", async () => {
+          await loadSpinResults(gamesData[0].id);
+        });
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -97,11 +105,13 @@ export default function LanePage() {
 
   async function loadSpinResults(gameId: string) {
     try {
-      const { data, error } = await supabase
-        .from("lane_spin_results")
-        .select("lane_position, member_id")
-        .eq("game_id", gameId);
-        
+      const { data, error } = await withLoading("member:lane:spin-results-query", async () =>
+        supabase
+          .from("lane_spin_results")
+          .select("lane_position, member_id")
+          .eq("game_id", gameId)
+      );
+      
       if (error) throw error;
       setSpinResults(data || []);
     } catch (error) {
@@ -117,7 +127,9 @@ export default function LanePage() {
 
   async function loadLaneAssignments() {
     try {
-      const data = await laneService.getLaneAssignments(selectedGameId);
+      const data = await withLoading("member:lane:load-assignments", async () =>
+        laneService.getLaneAssignments(selectedGameId)
+      );
       setAssignments(data);
     } catch (error) {
       console.error("Error loading assignments:", error);
@@ -128,7 +140,9 @@ export default function LanePage() {
     if (!isAdmin) return;
     try {
       setSaving(true);
-      await laneService.updateLaneConfiguration(configId, editValue);
+      await withLoading("member:lane:save-config", async () =>
+        laneService.updateLaneConfiguration(configId, editValue)
+      );
       
       setLaneConfigs(prev => 
         prev.map(config => 
@@ -170,8 +184,10 @@ export default function LanePage() {
     if (!isAdmin || !draggedMember || !selectedGameId) return;
 
     try {
-      await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
-      await loadLaneAssignments();
+      await withLoading("member:lane:assign-member", async () => {
+        await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
+        await loadLaneAssignments();
+      });
       toast({
         title: "Berjaya",
         description: `${draggedMember.username} dimasukkan ke ${lanePosition}`,
@@ -192,8 +208,10 @@ export default function LanePage() {
     if (!isAdmin || !selectedGameId) return;
 
     try {
-      await laneService.removeMemberFromLane(selectedGameId, memberId);
-      await loadLaneAssignments();
+      await withLoading("member:lane:remove-member", async () => {
+        await laneService.removeMemberFromLane(selectedGameId, memberId);
+        await loadLaneAssignments();
+      });
       toast({
         title: "Dibuang",
         description: "Ahli dikeluarkan dari lane",
@@ -337,7 +355,7 @@ export default function LanePage() {
 
   // Show loading while checking auth
   if (authLoading || loading) {
-    return <BowlingBallLoaderOverlay />;
+    return null;
   }
 
   return (

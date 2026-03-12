@@ -25,6 +25,7 @@ import {
 } from "@/services/laneSpinService";
 import { gameService } from "@/services/gameService";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 interface SpinResultWithMember {
   id: string;
@@ -55,6 +56,7 @@ export default function UndiLanePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { member, isAuthenticated, loading: authLoading } = useAuth();
+  const { withLoading } = useGlobalLoading();
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [activeGameId, setActiveGameId] = useState<string>("");
@@ -78,13 +80,15 @@ export default function UndiLanePage() {
 
   async function loadGames() {
     try {
-      const data = await gameService.getAllGames();
-      setGames(data);
-      if (data.length > 0 && member) {
-        const firstGameId = data[0].id;
-        setActiveGameId(firstGameId);
-        await loadLaneData(member.id, firstGameId);
-      }
+      await withLoading("member:undi-lane:load-games", async () => {
+        const data = await gameService.getAllGames();
+        setGames(data);
+        if (data.length > 0 && member) {
+          const firstGameId = data[0].id;
+          setActiveGameId(firstGameId);
+          await loadLaneData(member.id, firstGameId);
+        }
+      });
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
@@ -92,18 +96,21 @@ export default function UndiLanePage() {
         description: "Failed to load games",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function loadLaneData(currentMemberId: string, gameId: string) {
     try {
-      const [mySpinResult, gameResults, spunLanes] = await Promise.all([
-        getMemberSpinResult(gameId, currentMemberId),
-        getGameSpinResults(gameId),
-        getSpunLanePositions(gameId),
-      ]);
+      const [mySpinResult, gameResults, spunLanes] = await withLoading(
+        "member:undi-lane:load-lane-data",
+        async () =>
+          Promise.all([
+            getMemberSpinResult(gameId, currentMemberId),
+            getGameSpinResults(gameId),
+            getSpunLanePositions(gameId),
+          ])
+      );
 
       setMyResult(mySpinResult);
       setAllResults(gameResults);
@@ -126,16 +133,17 @@ export default function UndiLanePage() {
         description: "Failed to load lane data",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function handleGameChange(gameId: string) {
     if (!member) return;
     setActiveGameId(gameId);
     setLoading(true);
-    await loadLaneData(member.id, gameId);
+    await withLoading("member:undi-lane:change-game", async () => {
+      await loadLaneData(member.id, gameId);
+    });
     setLoading(false);
   }
 
@@ -166,10 +174,14 @@ export default function UndiLanePage() {
       
       try {
         console.log("Saving spin result:", { gameId: activeGameId, memberId: member.id, lane: winningLane });
-        await saveSpinResult(activeGameId, member.id, winningLane);
+        await withLoading("member:undi-lane:spin-save", async () => {
+          await saveSpinResult(activeGameId, member.id, winningLane);
+        });
         console.log("Spin result saved successfully");
         
-        await loadLaneData(member.id, activeGameId);
+        await withLoading("member:undi-lane:spin-reload", async () => {
+          await loadLaneData(member.id, activeGameId);
+        });
         
         toast({
           title: "🎉 Lane Assigned!",
@@ -199,8 +211,10 @@ export default function UndiLanePage() {
     if (!confirm("Reset all spin results for this game?")) return;
 
     try {
-      await resetAllSpinResults(activeGameId);
-      await loadLaneData(member.id, activeGameId);
+      await withLoading("member:undi-lane:reset", async () => {
+        await resetAllSpinResults(activeGameId);
+        await loadLaneData(member.id, activeGameId);
+      });
       toast({
         title: "Reset successful",
         description: "All spin results have been cleared",
@@ -215,12 +229,8 @@ export default function UndiLanePage() {
     }
   }
 
-  if (loading || authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-red-600" />
-      </div>
-    );
+  if (authLoading) {
+    return null;
   }
 
   return (
