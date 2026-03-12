@@ -299,7 +299,7 @@ function PublicSharedView({
                       <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                         <div>
                           <span className="text-muted-foreground">Handicap:</span>
-                          <span className="ml-2 font-semibold">{player.handicap}</span>
+                          <span className="ml-2 font-semibold">{player.handicap ?? 0}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Total:</span>
@@ -326,7 +326,8 @@ function PublicSharedView({
                               variant="secondary"
                               className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
                             >
-                              G{i + 1}: {score !== null && score > 0 ? score : "-"}
+                              G{i + 1}:{" "}
+                              {score !== null && score > 0 ? score : "-"}
                             </Badge>
                           );
                         })}
@@ -998,7 +999,12 @@ export default function MiniBlokPage() {
   }
 
   if (isPublicSharedMode) {
-    if (loading) return <BowlingBallLoader />;
+    if (loading)
+      return (
+        <div className="min-h-[70vh] w-full flex items-center justify-center">
+          <BowlingBallLoader />
+        </div>
+      );
 
     return (
       <>
@@ -1057,7 +1063,11 @@ export default function MiniBlokPage() {
   }
 
   if (loading || authLoading) {
-    return <BowlingBallLoader />;
+    return (
+      <div className="min-h-[70vh] w-full flex items-center justify-center">
+        <BowlingBallLoader />
+      </div>
+    );
   }
 
   return (
@@ -1383,9 +1393,7 @@ export default function MiniBlokPage() {
                                                 }
                                               >
                                                 G{gameNum}:{" "}
-                                                {score !== null && typeof score === "number" && score > 0
-                                                  ? score
-                                                  : "-"}
+                                                {score !== null && score > 0 ? score : "-"}
                                               </Badge>
                                             );
                                           })}
