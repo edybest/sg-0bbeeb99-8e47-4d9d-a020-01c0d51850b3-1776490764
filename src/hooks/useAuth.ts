@@ -25,7 +25,7 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       if (event === "SIGNED_IN" && session) {
-        await loadMemberData(session.user.id);
+        await loadMemberData(session.user.id, session.user.email ?? null);
       } else if (event === "SIGNED_OUT") {
         setMember(null);
         setIsAuthenticated(false);
@@ -69,7 +69,7 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
       }
 
       console.log("✅ Session found, loading member data...");
-      await loadMemberData(session.user.id);
+      await loadMemberData(session.user.id, session.user.email ?? null);
     } catch (error) {
       console.error("Auth check error:", error);
       setIsAuthenticated(false);
@@ -81,13 +81,34 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     }
   }
 
-  async function loadMemberData(userId: string) {
+  async function loadMemberData(userId: string, email: string | null) {
     try {
-      console.log("📊 Loading member data for userId:", userId);
-      const memberData = await memberService.getMemberByUserId(userId);
-      
+      console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
+
+      let memberData = await memberService.getMemberByUserId(userId);
+
+      if (!memberData && email) {
+        console.log("🔁 Member not found by user_id, trying email lookup...");
+        memberData = await memberService.getMemberByEmail(email);
+
+        if (memberData && memberData.user_id !== userId) {
+          console.log("🔗 Linking member.user_id for future sessions...", {
+            memberId: memberData.id,
+            prevUserId: memberData.user_id,
+            newUserId: userId
+          });
+
+          try {
+            await memberService.linkAuthUser(memberData.id, userId);
+            memberData = { ...memberData, user_id: userId };
+          } catch (linkError) {
+            console.warn("⚠️ Could not link member.user_id (RLS may block). Continuing anyway.", linkError);
+          }
+        }
+      }
+
       if (!memberData) {
-        console.error("❌ Member not found for user:", userId);
+        console.error("❌ Member not found for session user:", { userId, email });
         setIsAuthenticated(false);
         if (requireAuth) {
           router.push("/login");
@@ -101,7 +122,7 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
         isAdmin: memberData.is_admin
       });
 
-      setMember(memberData);
+      setMember(memberData as Member);
       setIsAuthenticated(true);
 
       // Check admin requirement

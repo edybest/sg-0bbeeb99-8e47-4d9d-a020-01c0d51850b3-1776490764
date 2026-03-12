@@ -250,6 +250,21 @@ export function WhatsAppLoginForm() {
         if (sessionError) {
           throw new Error("Gagal mencipta sesi. Sila cuba lagi.");
         }
+
+        // ✅ Wait until session is actually readable (prevents redirect loop to /login)
+        let sessionOk = false;
+        for (let i = 0; i < 5; i++) {
+          const { data: sessionData, error: sessionReadError } = await supabase.auth.getSession();
+          if (!sessionReadError && sessionData.session) {
+            sessionOk = true;
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
+        if (!sessionOk) {
+          throw new Error("Sesi log masuk belum sedia. Sila cuba lagi.");
+        }
       } else {
         throw new Error("Token sesi tidak diterima dari server.");
       }

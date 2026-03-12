@@ -37,6 +37,20 @@ export const memberService = {
   },
 
   /**
+   * Get member by email (fallback when user_id isn't linked yet)
+   */
+  async getMemberByEmail(email: string): Promise<Member | null> {
+    const { data, error } = await supabase
+      .from("members")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
    * Get member by phone number
    */
   async getMemberByPhone(phone: string): Promise<Member | null> {
