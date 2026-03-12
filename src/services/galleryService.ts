@@ -8,14 +8,43 @@ type GalleryPermission = Tables<"gallery_permissions">;
 export type AlbumWithImages = GalleryAlbum & {
   images: GalleryImage[];
   image_count: number;
+  cover_image_thumbnail?: string;
 };
 
 export type ImageWithAlbum = GalleryImage & {
   album: GalleryAlbum;
+  thumbnail_url?: string;
 };
 
 /**
- * Get all albums with image counts
+ * Generate optimized thumbnail URL using Supabase image transformations
+ */
+export function getThumbnailUrl(imageUrl: string, width: number = 300, height: number = 300): string {
+  if (!imageUrl) return imageUrl;
+  
+  // Extract the storage path from the public URL
+  const urlParts = imageUrl.split('/storage/v1/object/public/gallery/');
+  if (urlParts.length !== 2) return imageUrl;
+  
+  const storagePath = urlParts[1];
+  
+  // Use Supabase image transformation API
+  const { data } = supabase.storage
+    .from('gallery')
+    .getPublicUrl(storagePath, {
+      transform: {
+        width,
+        height,
+        resize: 'cover',
+        quality: 80
+      }
+    });
+  
+  return data.publicUrl;
+}
+
+/**
+ * Get all albums with image counts and optimized cover images
  */
 export async function getAllAlbums(): Promise<AlbumWithImages[]> {
   const { data: albums, error } = await supabase
@@ -28,15 +57,19 @@ export async function getAllAlbums(): Promise<AlbumWithImages[]> {
     throw error;
   }
 
-  return (albums || []).map((album: any) => ({
-    ...album,
-    images: [],
-    image_count: album.gallery_images?.[0]?.count || 0
-  }));
+  return (albums || []).map((album: any) => {
+    const coverUrl = album.cover_image_url;
+    return {
+      ...album,
+      images: [],
+      image_count: album.gallery_images?.[0]?.count || 0,
+      cover_image_thumbnail: coverUrl ? getThumbnailUrl(coverUrl, 400, 300) : undefined
+    };
+  });
 }
 
 /**
- * Get single album with all images
+ * Get single album with all images and thumbnails
  */
 export async function getAlbumWithImages(albumId: string): Promise<AlbumWithImages | null> {
   const { data: album, error: albumError } = await supabase
@@ -61,15 +94,22 @@ export async function getAlbumWithImages(albumId: string): Promise<AlbumWithImag
     throw imagesError;
   }
 
+  // Add thumbnail URLs to images
+  const imagesWithThumbnails = (images || []).map(img => ({
+    ...img,
+    thumbnail_url: getThumbnailUrl(img.image_url, 400, 400)
+  }));
+
   return {
     ...album,
-    images: images || [],
-    image_count: images?.length || 0
+    images: imagesWithThumbnails,
+    image_count: images?.length || 0,
+    cover_image_thumbnail: album.cover_image_url ? getThumbnailUrl(album.cover_image_url, 400, 300) : undefined
   };
 }
 
 /**
- * Get all images across all albums
+ * Get all images across all albums with thumbnails
  */
 export async function getAllImages(): Promise<ImageWithAlbum[]> {
   const { data, error } = await supabase
@@ -84,7 +124,8 @@ export async function getAllImages(): Promise<ImageWithAlbum[]> {
 
   return (data || []).map((item: any) => ({
     ...item,
-    album: item.album
+    album: item.album,
+    thumbnail_url: getThumbnailUrl(item.image_url, 400, 400)
   }));
 }
 
@@ -106,8 +147,6 @@ export async function createAlbum(
 
   const sortOrder = (maxOrder?.position_order || 0) + 1;
 
-  // We need to pass created_by since it might not have a default auth.uid() function if run without session
-  // Default to the current logged in user if not specified
   const userResponse = await supabase.auth.getUser();
   const userId = memberId || userResponse.data.user?.id;
   
@@ -232,7 +271,6 @@ export async function uploadImage(
 
   const sortOrder = (maxOrder?.position_order || 0) + 1;
 
-  // Need uploaded_by
   const userResponse = await supabase.auth.getUser();
   const userId = memberId || userResponse.data.user?.id;
   
@@ -247,7 +285,7 @@ export async function uploadImage(
       album_id: albumId,
       image_url: urlData.publicUrl,
       title: title || file.name,
-      description: title, // Using description as caption
+      description: title,
       position_order: sortOrder,
       uploaded_by: userId
     })
@@ -273,7 +311,7 @@ export async function updateImage(
     .from("gallery_images")
     .update({ 
       title,
-      description: title // Using description as caption
+      description: title
     })
     .eq("id", imageId)
     .select()
@@ -291,7 +329,6 @@ export async function updateImage(
  * Delete image (Admin/Delegated only)
  */
 export async function deleteImage(imageId: string): Promise<void> {
-  // First get the image to extract its filename to delete from storage
   const { data: image } = await supabase
     .from("gallery_images")
     .select("image_url, album_id")
@@ -299,13 +336,11 @@ export async function deleteImage(imageId: string): Promise<void> {
     .single();
 
   if (image?.image_url) {
-    // Extract filename from URL (format: /storage/v1/object/public/gallery/gallery/albumId/filename)
     try {
       const urlParts = image.image_url.split('/');
       const fileName = urlParts[urlParts.length - 1];
       const filePath = `gallery/${image.album_id}/${fileName}`;
       
-      // Delete from storage
       await supabase.storage
         .from("gallery")
         .remove([filePath]);
@@ -314,7 +349,6 @@ export async function deleteImage(imageId: string): Promise<void> {
     }
   }
 
-  // Delete record
   const { error } = await supabase
     .from("gallery_images")
     .delete()
@@ -360,15 +394,12 @@ export async function checkMemberPermissions(memberId: string): Promise<{
     return { canManage: true, albumIds: [] };
   }
 
-  // Currently our schema has permissions at a global level or member level, but no direct relation to specific albums in the permissions table
-  // Admin assigns permissions to manage gallery feature
   const { data: permissions } = await supabase
     .from("gallery_permissions")
     .select("*")
     .eq("member_id", memberId)
     .single();
 
-  // If user has any permissions, they can manage albums they created
   const hasGlobalPermission = !!permissions && (
     permissions.can_add_albums || 
     permissions.can_add_images || 
@@ -376,12 +407,9 @@ export async function checkMemberPermissions(memberId: string): Promise<{
     permissions.can_edit_images
   );
 
-  // We'll let users with permissions manage ALL albums for simplicity
-  // Alternatively we could restrict to just albums they created
-  
   return {
     canManage: hasGlobalPermission,
-    albumIds: [] // Empty array means they don't have restricted album-level permissions, but might have global
+    albumIds: []
   };
 }
 
