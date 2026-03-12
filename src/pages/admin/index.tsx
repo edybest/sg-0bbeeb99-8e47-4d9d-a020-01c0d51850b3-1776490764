@@ -11,7 +11,8 @@ import { MemberManagement } from "@/components/admin/MemberManagement";
 import { GameManagement } from "@/components/admin/GameManagement";
 import { ScoreManagement } from "@/components/admin/ScoreManagement";
 import { ClubSettings } from "@/components/admin/ClubSettings";
-import { LogOut, Users, Trophy, BarChart3, Settings, Loader2 } from "lucide-react";
+import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { LogOut, Users, Trophy, BarChart3, Settings, Loader2, Bell, MessageSquare, ListChecks } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 
 export default function AdminPage() {
@@ -100,7 +101,7 @@ export default function AdminPage() {
 
           <main className="container mx-auto px-4 py-8">
             <Tabs defaultValue="members" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-white border border-gray-200 mb-8 shadow-sm">
+              <TabsList className="grid w-full grid-cols-5 bg-white border border-gray-200 mb-8 shadow-sm">
                 <TabsTrigger 
                   value="members" 
                   className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
@@ -129,6 +130,13 @@ export default function AdminPage() {
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="feedback"
+                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Maklum Balas</span>
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="members">
@@ -145,6 +153,10 @@ export default function AdminPage() {
 
               <TabsContent value="settings">
                 <ClubSettings />
+              </TabsContent>
+
+              <TabsContent value="feedback">
+                <FeedbackManagement />
               </TabsContent>
             </Tabs>
           </main>
