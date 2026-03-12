@@ -67,7 +67,6 @@ import {
   type MiniBlokWithPlayers,
 } from "@/services/miniBlokService";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
 
 interface PlayerForm {
   player_name: string;
@@ -161,28 +160,6 @@ export default function MiniBlokPage() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
-  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
-
-  // Player Profile State
-  const [showPlayerProfile, setShowPlayerProfile] = useState(false);
-  const [loadingPlayerProfile, setLoadingPlayerProfile] = useState(false);
-  const [playerProfileData, setPlayerProfileData] = useState<{
-    playerName: string;
-    totalScore: number;
-    averageScore: string;
-    gamesPlayed: number;
-    highestScore: number;
-    lowestScore: number;
-    tournaments: any[];
-  } | null>(null);
-
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [ownershipFilter, setOwnershipFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("date-desc");
-
-  // Available members state
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [showPlayerForm, setShowPlayerForm] = useState(false);
@@ -196,10 +173,8 @@ export default function MiniBlokPage() {
   });
 
   useEffect(() => {
-    if (member) {
-      loadEntries();
-    }
-  }, [member]);
+    loadEntries();
+  }, []);
 
   useEffect(() => {
     if (router.query.entry && typeof router.query.entry === "string") {
@@ -256,23 +231,15 @@ export default function MiniBlokPage() {
     });
 
   async function loadEntries() {
-    if (!member?.id) {
-      console.log("Member not loaded yet, skipping loadEntries");
-      return;
-    }
-
-    console.log("Loading entries for member:", member.id);
-    
     try {
       setLoading(true);
-      const data = await getMiniBlokEntries(member.id);
-      console.log("Entries loaded successfully:", data);
+      const data = await getMiniBlokEntries(member?.id);
       setEntries(data);
     } catch (error) {
-      console.error("Error loading entries:", error);
+      console.error("Error loading mini blok entries:", error);
       toast({
         title: "Error",
-        description: "Failed to load tournaments",
+        description: "Failed to load entries",
         variant: "destructive",
       });
     } finally {
@@ -482,7 +449,6 @@ export default function MiniBlokPage() {
       game_20: scores.game_20 || null,
     };
     setPlayerForm(formData);
-    setShowPlayerForm(true);
   }
 
   async function handleSavePlayer() {
@@ -709,81 +675,8 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
-  async function openPlayerProfile(playerName: string) {
-    setLoadingPlayerProfile(true);
-    setShowPlayerProfile(true);
-    
-    try {
-      const playerTournaments = entries.filter(entry => 
-        entry.players.some(p => p.player_name === playerName)
-      );
-
-      let totalScore = 0;
-      let totalGames = 0;
-      let highestScore = 0;
-      let lowestScore = 999;
-      const tournamentsData = [];
-
-      for (const entry of playerTournaments) {
-        const player = entry.players.find(p => p.player_name === playerName);
-        if (!player) continue;
-
-        const scores = (player.scores as Record<string, number>) || {};
-        const gameScores = [];
-        let tTotal = 0;
-        let tGames = 0;
-
-        for (let i = 1; i <= (entry.num_games || 5); i++) {
-          const score = scores[`game_${i}`];
-          if (score && typeof score === 'number' && score > 0) {
-            gameScores.push(score);
-            tTotal += score;
-            tGames++;
-            if (score > highestScore) highestScore = score;
-            if (score < lowestScore) lowestScore = score;
-          } else {
-            gameScores.push(null);
-          }
-        }
-
-        totalScore += tTotal;
-        totalGames += tGames;
-
-        tournamentsData.push({
-          title: entry.title,
-          date: entry.date,
-          location: entry.location,
-          scores: gameScores,
-          total: tTotal,
-          average: tGames > 0 ? (tTotal / tGames).toFixed(2) : "0",
-          num_games: entry.num_games || 5
-        });
-      }
-
-      if (lowestScore === 999) lowestScore = 0;
-
-      setPlayerProfileData({
-        playerName,
-        totalScore,
-        averageScore: totalGames > 0 ? (totalScore / totalGames).toFixed(2) : "0.00",
-        gamesPlayed: totalGames,
-        highestScore,
-        lowestScore,
-        tournaments: tournamentsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      });
-    } catch (error) {
-      console.error("Error loading player profile:", error);
-    } finally {
-      setLoadingPlayerProfile(false);
-    }
-  }
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <BowlingBallLoader />
-      </div>
-    );
+    return <BowlingBallLoader />;
   }
 
   return (
@@ -813,57 +706,6 @@ export default function MiniBlokPage() {
                 Create Tournament
               </Button>
             )}
-          </div>
-
-          {/* Filters */}
-          <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Label htmlFor="search" className="sr-only">Search</Label>
-                <Input
-                  id="search"
-                  placeholder="Search by title or location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Date" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="week">Past Week</SelectItem>
-                    <SelectItem value="month">Past Month</SelectItem>
-                    <SelectItem value="year">Past Year</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ownership" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tournaments</SelectItem>
-                    <SelectItem value="mine">My Tournaments</SelectItem>
-                    <SelectItem value="shared">Shared With Me</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date-desc">Newest First</SelectItem>
-                    <SelectItem value="date-asc">Oldest First</SelectItem>
-                    <SelectItem value="title">Title (A-Z)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </div>
 
           {/* Entries Grid */}
@@ -991,12 +833,7 @@ export default function MiniBlokPage() {
                                   <Badge variant={idx === 0 ? "default" : "secondary"}>
                                     {idx + 1}
                                   </Badge>
-                                  <span 
-                                    className="font-semibold truncate text-primary hover:underline cursor-pointer"
-                                    onClick={() => openPlayerProfile(player.player_name)}
-                                  >
-                                    {player.player_name}
-                                  </span>
+                                  <span className="font-semibold truncate">{player.player_name}</span>
                                 </div>
                                 <div className="text-right">
                                   <div className="text-sm font-bold text-primary">
@@ -1334,219 +1171,92 @@ export default function MiniBlokPage() {
                       No players yet. Add your first player to get started.
                     </div>
                   ) : (
-                    <>
-                      {/* Mobile View - Expandable Cards */}
-                      <div className="md:hidden space-y-3">
-                        {selectedEntry.players
-                          .sort((a, b) => {
-                            const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
-                            const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
-                            return statsB.overall_score - statsA.overall_score;
-                          })
-                          .map((player, idx) => {
-                            const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
-                            const scores = (player.scores as Record<string, number>) || {};
-                            const isExpanded = expandedScores[player.id];
-                            
-                            return (
-                              <Card key={player.id} className="overflow-hidden">
-                                <div 
-                                  className="p-4 cursor-pointer"
-                                  onClick={() => setExpandedScores(prev => ({
-                                    ...prev,
-                                    [player.id]: !prev[player.id]
-                                  }))}
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
-                                        #{idx + 1}
-                                      </Badge>
-                                      <span className="font-semibold">{player.player_name}</span>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-lg font-bold text-primary">
-                                        {stats.overall_score}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        Avg: {stats.average}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                    <span>Tap to {isExpanded ? "hide" : "view"} details</span>
-                                    <div className="flex gap-2">
-                                      {selectedEntry.can_edit && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openEditPlayerDialog(player);
-                                            }}
-                                          >
-                                            <Edit2 className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setDeleteConfirmPlayer(player.id);
-                                            }}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {isExpanded && (
-                                  <div className="border-t bg-muted/30 p-4 space-y-3">
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">Handicap:</span>
-                                        <span className="ml-2 font-semibold">{player.handicap}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Total:</span>
-                                        <span className="ml-2 font-semibold">{stats.total_score}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Average:</span>
-                                        <span className="ml-2 font-semibold">{stats.average}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Diff:</span>
-                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
-                                          {stats.differential > 0 ? "+" : ""}{stats.differential}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    
-                                    <div>
-                                      <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
-                                      <div className="flex flex-wrap gap-2">
-                                        {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
-                                          const score = scores[`game_${i + 1}`] as number | null;
-                                          return (
-                                            <Badge 
-                                              key={i} 
-                                              variant="secondary" 
-                                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
-                                            >
-                                              G{i + 1}: {score !== null && score > 0 ? score : "-"}
-                                            </Badge>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </Card>
-                            );
-                          })}
-                      </div>
-
-                      {/* Desktop View - Full Table */}
-                      <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12">#</TableHead>
-                              <TableHead>Player</TableHead>
-                              {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
-                                <TableHead key={i} className="text-center">G{i + 1}</TableHead>
-                              ))}
-                              <TableHead className="text-center">HCP</TableHead>
-                              <TableHead className="text-center">Avg</TableHead>
-                              <TableHead className="text-center">Total</TableHead>
-                              <TableHead className="text-center">Overall</TableHead>
-                              <TableHead className="text-center">Diff</TableHead>
-                              {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedEntry.players
-                              .sort((a, b) => {
-                                const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
-                                const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
-                                return statsB.overall_score - statsA.overall_score;
-                              })
-                              .map((player, idx) => {
-                                const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
-                                const scores = (player.scores as Record<string, number>) || {};
-                                return (
-                                  <TableRow key={player.id}>
-                                    <TableCell>
-                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
-                                        {idx + 1}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-semibold">
-                                      <span 
-                                        className="font-semibold truncate text-primary hover:underline cursor-pointer"
-                                        onClick={() => openPlayerProfile(player.player_name)}
-                                      >
-                                        {player.player_name}
-                                      </span>
-                                    </TableCell>
-                                    {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
-                                      const score = scores[`game_${i + 1}`] as number | null;
-                                      return (
-                                        <TableCell key={i} className="text-center">
-                                          {score !== null && score > 0 ? (
-                                            <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
-                                              {score}
-                                            </Badge>
-                                          ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                          )}
-                                        </TableCell>
-                                      );
-                                    })}
-                                    <TableCell className="text-center">{player.handicap}</TableCell>
-                                    <TableCell className="text-center font-semibold">{stats.average}</TableCell>
-                                    <TableCell className="text-center">{stats.total_score}</TableCell>
-                                    <TableCell className="text-center font-bold text-primary">
-                                      {stats.overall_score}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                      <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
-                                        {stats.differential > 0 ? "+" : ""}{stats.differential}
-                                      </span>
-                                    </TableCell>
-                                    {selectedEntry.can_edit && (
-                                      <TableCell>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => openEditPlayerDialog(player)}
-                                          >
-                                            <Edit2 className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => setDeleteConfirmPlayer(player.id)}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">#</TableHead>
+                            <TableHead>Player</TableHead>
+                            {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
+                              <TableHead key={i} className="text-center">G{i + 1}</TableHead>
+                            ))}
+                            <TableHead className="text-center">HCP</TableHead>
+                            <TableHead className="text-center">Avg</TableHead>
+                            <TableHead className="text-center">Total</TableHead>
+                            <TableHead className="text-center">Overall</TableHead>
+                            <TableHead className="text-center">Diff</TableHead>
+                            {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedEntry.players
+                            .sort((a, b) => {
+                              const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                              const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
+                              return statsB.overall_score - statsA.overall_score;
+                            })
+                            .map((player, idx) => {
+                              const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                              const scores = (player.scores as Record<string, number>) || {};
+                              return (
+                                <TableRow key={player.id}>
+                                  <TableCell>
+                                    <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                      {idx + 1}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="font-semibold">{player.player_name}</TableCell>
+                                  {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                    const score = scores[`game_${i + 1}`] as number | null;
+                                    return (
+                                      <TableCell key={i} className="text-center">
+                                        {score !== null && score > 0 ? (
+                                          <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
+                                            {score}
+                                          </Badge>
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
                                       </TableCell>
-                                    )}
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </>
+                                    );
+                                  })}
+                                  <TableCell className="text-center">{player.handicap}</TableCell>
+                                  <TableCell className="text-center font-semibold">{stats.average}</TableCell>
+                                  <TableCell className="text-center">{stats.total_score}</TableCell>
+                                  <TableCell className="text-center font-bold text-primary">
+                                    {stats.overall_score}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                                      {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                    </span>
+                                  </TableCell>
+                                  {selectedEntry.can_edit && (
+                                    <TableCell>
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => openEditPlayerDialog(player)}
+                                        >
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setDeleteConfirmPlayer(player.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              );
+                            })}
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1725,125 +1435,6 @@ export default function MiniBlokPage() {
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Player Profile Dialog */}
-      <Dialog open={showPlayerProfile} onOpenChange={setShowPlayerProfile}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <Trophy className="h-6 w-6 text-primary" />
-              {playerProfileData?.playerName}&apos;s Profile
-            </DialogTitle>
-          </DialogHeader>
-
-          {loadingPlayerProfile ? (
-            <div className="flex justify-center py-12">
-              <BowlingBallLoader />
-            </div>
-          ) : playerProfileData ? (
-            <div className="space-y-6 mt-4">
-              {/* Overall Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs text-muted-foreground font-medium uppercase">Total Score</div>
-                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.totalScore}</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs text-muted-foreground font-medium uppercase">Average</div>
-                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.averageScore}</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs text-muted-foreground font-medium uppercase">Games</div>
-                    <div className="text-xl font-bold text-primary mt-1">{playerProfileData.gamesPlayed}</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-green-500/10 border-green-500/20">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs text-muted-foreground font-medium uppercase">High Score</div>
-                    <div className="text-xl font-bold text-green-600 mt-1">{playerProfileData.highestScore}</div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-red-500/10 border-red-500/20">
-                  <CardContent className="p-3 flex flex-col items-center justify-center">
-                    <div className="text-xs text-muted-foreground font-medium uppercase">Low Score</div>
-                    <div className="text-xl font-bold text-red-600 mt-1">{playerProfileData.lowestScore}</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Tournaments History */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  Tournament History
-                </h3>
-                
-                <div className="space-y-4">
-                  {playerProfileData.tournaments.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8 bg-muted/20 rounded-lg">
-                      No tournament records found.
-                    </div>
-                  ) : (
-                    playerProfileData.tournaments.map((t, i) => (
-                      <Card key={i} className="overflow-hidden">
-                        <CardHeader className="py-3 px-4 bg-muted/40 border-b">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <CardTitle className="text-base font-semibold">{t.title}</CardTitle>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{new Date(t.date).toLocaleDateString("en-MY", { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                <span>•</span>
-                                <MapPin className="h-3 w-3 ml-1" />
-                                <span className="truncate">{t.location}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-4 sm:text-right">
-                              <div>
-                                <div className="text-xs text-muted-foreground">Total</div>
-                                <div className="font-bold text-primary">{t.total}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-muted-foreground">Avg</div>
-                                <div className="font-semibold">{t.average}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-4">
-                          <div className="flex flex-wrap gap-2">
-                            {t.scores.map((score: number | null, j: number) => (
-                              <div key={j} className="flex flex-col items-center">
-                                <span className="text-[10px] text-muted-foreground mb-1">G{j + 1}</span>
-                                <Badge 
-                                  variant="secondary"
-                                  className={cn(
-                                    "w-12 h-8 flex items-center justify-center text-sm font-semibold",
-                                    score !== null 
-                                      ? `${GAME_COLORS[j % GAME_COLORS.length]} text-white border-transparent` 
-                                      : "bg-muted text-muted-foreground"
-                                  )}
-                                >
-                                  {score !== null ? score : "-"}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : null}
         </DialogContent>
       </Dialog>
     </>
