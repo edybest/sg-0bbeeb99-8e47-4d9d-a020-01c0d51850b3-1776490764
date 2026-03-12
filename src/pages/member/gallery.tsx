@@ -227,7 +227,7 @@ export default function GalleryPage() {
 
   function openEditImageDialog(image: GalleryImage) {
     setEditingImage(image);
-    setEditImageCaption(image.caption || "");
+    setEditImageCaption(image.description || image.title || "");
     setShowEditImageDialog(true);
   }
 
@@ -379,13 +379,13 @@ export default function GalleryPage() {
                         <div className="aspect-square relative cursor-pointer" onClick={() => openLightbox(index)}>
                           <Image
                             src={image.image_url}
-                            alt={image.caption || "Gallery image"}
+                            alt={image.description || image.title || "Gallery image"}
                             fill
                             className="object-cover transition-transform group-hover:scale-105"
                           />
-                          {image.caption && (
+                          {(image.description || image.title) && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
-                              {image.caption}
+                              {image.description || image.title}
                             </div>
                           )}
                         </div>
@@ -495,14 +495,14 @@ export default function GalleryPage() {
               <div className="max-w-6xl max-h-[90vh] relative">
                 <Image
                   src={selectedAlbum.images[lightboxIndex].image_url}
-                  alt={selectedAlbum.images[lightboxIndex].caption || "Gallery image"}
+                  alt={selectedAlbum.images[lightboxIndex].description || selectedAlbum.images[lightboxIndex].title || "Gallery image"}
                   width={1200}
                   height={900}
                   className="max-h-[90vh] w-auto object-contain"
                 />
-                {selectedAlbum.images[lightboxIndex].caption && (
+                {(selectedAlbum.images[lightboxIndex].description || selectedAlbum.images[lightboxIndex].title) && (
                   <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-white p-4 text-center">
-                    {selectedAlbum.images[lightboxIndex].caption}
+                    {selectedAlbum.images[lightboxIndex].description || selectedAlbum.images[lightboxIndex].title}
                   </div>
                 )}
               </div>

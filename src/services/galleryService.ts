@@ -21,7 +21,7 @@ export async function getAllAlbums(): Promise<AlbumWithImages[]> {
   const { data: albums, error } = await supabase
     .from("gallery_albums")
     .select("*, gallery_images(count)")
-    .order("sort_order", { ascending: true });
+    .order("position_order", { ascending: true });
 
   if (error) {
     console.error("Get albums error:", error);
@@ -54,7 +54,7 @@ export async function getAlbumWithImages(albumId: string): Promise<AlbumWithImag
     .from("gallery_images")
     .select("*")
     .eq("album_id", albumId)
-    .order("sort_order", { ascending: true });
+    .order("position_order", { ascending: true });
 
   if (imagesError) {
     console.error("Get images error:", imagesError);
@@ -94,16 +94,26 @@ export async function getAllImages(): Promise<ImageWithAlbum[]> {
 export async function createAlbum(
   name: string,
   description?: string,
-  coverImageUrl?: string
+  coverImageUrl?: string,
+  memberId?: string
 ): Promise<GalleryAlbum> {
   const { data: maxOrder } = await supabase
     .from("gallery_albums")
-    .select("sort_order")
-    .order("sort_order", { ascending: false })
+    .select("position_order")
+    .order("position_order", { ascending: false })
     .limit(1)
     .single();
 
-  const sortOrder = (maxOrder?.sort_order || 0) + 1;
+  const sortOrder = (maxOrder?.position_order || 0) + 1;
+
+  // We need to pass created_by since it might not have a default auth.uid() function if run without session
+  // Default to the current logged in user if not specified
+  const userResponse = await supabase.auth.getUser();
+  const userId = memberId || userResponse.data.user?.id;
+  
+  if (!userId) {
+    throw new Error("Authentication required to create album");
+  }
 
   const { data, error } = await supabase
     .from("gallery_albums")
@@ -111,7 +121,8 @@ export async function createAlbum(
       name,
       description,
       cover_image_url: coverImageUrl,
-      sort_order: sortOrder
+      position_order: sortOrder,
+      created_by: userId
     })
     .select()
     .single();
@@ -171,13 +182,13 @@ export async function deleteAlbum(albumId: string): Promise<void> {
 export async function reorderAlbums(albumIds: string[]): Promise<void> {
   const updates = albumIds.map((id, index) => ({
     id,
-    sort_order: index + 1
+    position_order: index + 1
   }));
 
   for (const update of updates) {
     await supabase
       .from("gallery_albums")
-      .update({ sort_order: update.sort_order })
+      .update({ position_order: update.position_order })
       .eq("id", update.id);
   }
 }
@@ -188,7 +199,8 @@ export async function reorderAlbums(albumIds: string[]): Promise<void> {
 export async function uploadImage(
   albumId: string,
   file: File,
-  caption?: string
+  title?: string,
+  memberId?: string
 ): Promise<GalleryImage> {
   // Upload to Supabase Storage
   const fileExt = file.name.split(".").pop();
@@ -212,13 +224,21 @@ export async function uploadImage(
   // Get next sort order
   const { data: maxOrder } = await supabase
     .from("gallery_images")
-    .select("sort_order")
+    .select("position_order")
     .eq("album_id", albumId)
-    .order("sort_order", { ascending: false })
+    .order("position_order", { ascending: false })
     .limit(1)
     .single();
 
-  const sortOrder = (maxOrder?.sort_order || 0) + 1;
+  const sortOrder = (maxOrder?.position_order || 0) + 1;
+
+  // Need uploaded_by
+  const userResponse = await supabase.auth.getUser();
+  const userId = memberId || userResponse.data.user?.id;
+  
+  if (!userId) {
+    throw new Error("Authentication required to upload image");
+  }
 
   // Create image record
   const { data, error } = await supabase
@@ -226,9 +246,10 @@ export async function uploadImage(
     .insert({
       album_id: albumId,
       image_url: urlData.publicUrl,
-      storage_path: filePath,
-      caption,
-      sort_order: sortOrder
+      title: title || file.name,
+      description: title, // Using description as caption
+      position_order: sortOrder,
+      uploaded_by: userId
     })
     .select()
     .single();
@@ -246,11 +267,14 @@ export async function uploadImage(
  */
 export async function updateImage(
   imageId: string,
-  caption: string
+  title: string
 ): Promise<GalleryImage> {
   const { data, error } = await supabase
     .from("gallery_images")
-    .update({ caption })
+    .update({ 
+      title,
+      description: title // Using description as caption
+    })
     .eq("id", imageId)
     .select()
     .single();
@@ -267,18 +291,27 @@ export async function updateImage(
  * Delete image (Admin/Delegated only)
  */
 export async function deleteImage(imageId: string): Promise<void> {
-  // Get image details first
+  // First get the image to extract its filename to delete from storage
   const { data: image } = await supabase
     .from("gallery_images")
-    .select("storage_path")
+    .select("image_url, album_id")
     .eq("id", imageId)
     .single();
 
-  if (image?.storage_path) {
-    // Delete from storage
-    await supabase.storage
-      .from("gallery")
-      .remove([image.storage_path]);
+  if (image?.image_url) {
+    // Extract filename from URL (format: /storage/v1/object/public/gallery/gallery/albumId/filename)
+    try {
+      const urlParts = image.image_url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `gallery/${image.album_id}/${fileName}`;
+      
+      // Delete from storage
+      await supabase.storage
+        .from("gallery")
+        .remove([filePath]);
+    } catch (e) {
+      console.error("Failed to parse image URL for storage deletion", e);
+    }
   }
 
   // Delete record
@@ -299,13 +332,13 @@ export async function deleteImage(imageId: string): Promise<void> {
 export async function reorderImages(imageIds: string[]): Promise<void> {
   const updates = imageIds.map((id, index) => ({
     id,
-    sort_order: index + 1
+    position_order: index + 1
   }));
 
   for (const update of updates) {
     await supabase
       .from("gallery_images")
-      .update({ sort_order: update.sort_order })
+      .update({ position_order: update.position_order })
       .eq("id", update.id);
   }
 }
@@ -327,54 +360,29 @@ export async function checkMemberPermissions(memberId: string): Promise<{
     return { canManage: true, albumIds: [] };
   }
 
+  // Currently our schema has permissions at a global level or member level, but no direct relation to specific albums in the permissions table
+  // Admin assigns permissions to manage gallery feature
   const { data: permissions } = await supabase
     .from("gallery_permissions")
-    .select("album_id")
-    .eq("member_id", memberId);
-
-  return {
-    canManage: (permissions?.length || 0) > 0,
-    albumIds: permissions?.map((p) => p.album_id) || []
-  };
-}
-
-/**
- * Grant permission to member (Admin only)
- */
-export async function grantPermission(
-  memberId: string,
-  albumId: string | null
-): Promise<GalleryPermission> {
-  const { data, error } = await supabase
-    .from("gallery_permissions")
-    .insert({
-      member_id: memberId,
-      album_id: albumId
-    })
-    .select()
+    .select("*")
+    .eq("member_id", memberId)
     .single();
 
-  if (error) {
-    console.error("Grant permission error:", error);
-    throw error;
-  }
+  // If user has any permissions, they can manage albums they created
+  const hasGlobalPermission = !!permissions && (
+    permissions.can_add_albums || 
+    permissions.can_add_images || 
+    permissions.can_edit_albums || 
+    permissions.can_edit_images
+  );
 
-  return data;
-}
-
-/**
- * Revoke permission from member (Admin only)
- */
-export async function revokePermission(permissionId: string): Promise<void> {
-  const { error } = await supabase
-    .from("gallery_permissions")
-    .delete()
-    .eq("id", permissionId);
-
-  if (error) {
-    console.error("Revoke permission error:", error);
-    throw error;
-  }
+  // We'll let users with permissions manage ALL albums for simplicity
+  // Alternatively we could restrict to just albums they created
+  
+  return {
+    canManage: hasGlobalPermission,
+    albumIds: [] // Empty array means they don't have restricted album-level permissions, but might have global
+  };
 }
 
 /**
@@ -382,14 +390,12 @@ export async function revokePermission(permissionId: string): Promise<void> {
  */
 export async function getAllPermissions(): Promise<Array<GalleryPermission & {
   member: { username: string; full_name: string };
-  album: { name: string } | null;
 }>> {
   const { data, error } = await supabase
     .from("gallery_permissions")
     .select(`
       *,
-      member:members!gallery_permissions_member_id_fkey(username, full_name),
-      album:gallery_albums(name)
+      member:members!gallery_permissions_member_id_fkey(username, full_name)
     `);
 
   if (error) {
@@ -399,7 +405,6 @@ export async function getAllPermissions(): Promise<Array<GalleryPermission & {
 
   return (data || []).map((item: any) => ({
     ...item,
-    member: item.member,
-    album: item.album
+    member: item.member
   }));
 }

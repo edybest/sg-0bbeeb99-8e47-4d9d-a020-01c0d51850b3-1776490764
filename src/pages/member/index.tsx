@@ -12,7 +12,7 @@ import {
   User,
   LayoutGrid,
   Shuffle,
-  Image,
+  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,7 +67,7 @@ const navigationCards = [
     title: "Gallery",
     description: "Photo Albums",
     href: "/member/gallery",
-    icon: Image,
+    icon: ImageIcon,
     iconColor: "text-pink-600",
     hoverBorder: "hover:border-pink-600",
   },
@@ -155,27 +155,30 @@ export default function MemberDashboard() {
           </motion.div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {navigationCards.map((card, index) => (
-              <motion.div
-                key={card.href}
-                custom={index}
-                initial="hidden"
-                animate="visible"
-                variants={cardVariants}
-              >
-                <Link href={card.href} className="block transition-transform hover:scale-105">
-                  <Card className={`h-full cursor-pointer hover:shadow-lg border-2 ${card.hoverBorder}`}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div>
-                        <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
-                      </div>
-                      <card.icon className={`h-6 w-6 ${card.iconColor}`} />
-                    </CardHeader>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+            {navigationCards.map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <motion.div
+                  key={card.href}
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  variants={cardVariants}
+                >
+                  <Link href={card.href} className="block transition-transform hover:scale-105">
+                    <Card className={`h-full cursor-pointer hover:shadow-lg border-2 ${card.hoverBorder}`}>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <div>
+                          <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
+                        </div>
+                        <Icon className={`h-6 w-6 ${card.iconColor}`} />
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                </motion.div>
+              );
+            })}
 
             {member && (
               <motion.div
