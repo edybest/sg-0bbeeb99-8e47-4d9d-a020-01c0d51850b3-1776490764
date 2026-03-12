@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { WhatsAppLoginForm } from "@/components/auth/WhatsAppLoginForm";
 import { SEO } from "@/components/SEO";
@@ -21,16 +21,14 @@ function AuthLoadingScreen({ message }: { message: string }) {
 export default function LoginPage() {
     const router = useRouter();
     const { isAuthenticated, loading } = useAuth();
-
-    const shouldRedirect = useMemo(
-        () => !loading && isAuthenticated,
-        [loading, isAuthenticated]
-    );
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        let isMounted = true;
+        setMounted(true);
+    }, []);
 
-        if (!shouldRedirect) return;
+    useEffect(() => {
+        if (!mounted || loading || !isAuthenticated) return;
 
         const redirect = async () => {
             try {
@@ -42,14 +40,44 @@ export default function LoginPage() {
             }
         };
 
-        if (isMounted) {
-            void redirect();
-        }
+        void redirect();
+    }, [mounted, loading, isAuthenticated, router]);
 
-        return () => {
-            isMounted = false;
-        };
-    }, [shouldRedirect, router]);
+    if (!mounted) {
+        return (
+            <>
+                <SEO
+                    title="Login - AMBC Club"
+                    description="Login ke AMBC Club member area"
+                />
+                <AuthLoadingScreen message="Loading..." />
+            </>
+        );
+    }
+
+    if (loading) {
+        return (
+            <>
+                <SEO
+                    title="Login - AMBC Club"
+                    description="Login ke AMBC Club member area"
+                />
+                <AuthLoadingScreen message="Checking session..." />
+            </>
+        );
+    }
+
+    if (isAuthenticated) {
+        return (
+            <>
+                <SEO
+                    title="Login - AMBC Club"
+                    description="Login ke AMBC Club member area"
+                />
+                <AuthLoadingScreen message="Redirecting..." />
+            </>
+        );
+    }
 
     return (
         <>
@@ -57,14 +85,7 @@ export default function LoginPage() {
                 title="Login - AMBC Club"
                 description="Login ke AMBC Club member area"
             />
-
-            {loading ? (
-                <AuthLoadingScreen message="Checking session..." />
-            ) : shouldRedirect ? (
-                <AuthLoadingScreen message="Redirecting..." />
-            ) : (
-                <WhatsAppLoginForm />
-            )}
+            <WhatsAppLoginForm />
         </>
     );
 }
