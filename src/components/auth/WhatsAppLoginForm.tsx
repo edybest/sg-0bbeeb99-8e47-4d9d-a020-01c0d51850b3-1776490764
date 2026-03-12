@@ -178,17 +178,37 @@ export function WhatsAppLoginForm() {
       return;
     }
 
+    // Validate TAC code format
     if (!/^\d{6}$/.test(formData.tac)) {
       toast({
-        title: "Sila masukkan kod TAC 6 digit",
+        title: "Kod TAC tidak sah",
+        description: "Sila masukkan kod TAC 6 digit",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Validate phone number exists and is properly formatted
+    if (!formData.phone || !formData.phone.trim()) {
+      toast({
+        title: "Ralat",
+        description: "Nombor telefon tidak dijumpai. Sila hantar kod TAC semula.",
+        variant: "destructive"
+      });
+      setTacSent(false);
       return;
     }
 
     setLoading(true);
 
     try {
+      console.log("🔐 Submitting login with:", {
+        phone: formData.phone,
+        code: formData.tac,
+        phoneLength: formData.phone.length,
+        codeLength: formData.tac.length
+      });
+
       const response = await fetch("/api/verify-tac-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
