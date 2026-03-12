@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -158,6 +158,155 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      gallery_albums: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          position_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          position_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          position_order?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_albums_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_images: {
+        Row: {
+          album_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string
+          position_order: number
+          title: string | null
+          updated_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url: string
+          position_order?: number
+          title?: string | null
+          updated_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string
+          position_order?: number
+          title?: string | null
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_images_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_images_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_permissions: {
+        Row: {
+          can_add_albums: boolean | null
+          can_add_images: boolean | null
+          can_delete_albums: boolean | null
+          can_delete_images: boolean | null
+          can_edit_albums: boolean | null
+          can_edit_images: boolean | null
+          created_at: string | null
+          granted_by: string
+          id: string
+          member_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          can_add_albums?: boolean | null
+          can_add_images?: boolean | null
+          can_delete_albums?: boolean | null
+          can_delete_images?: boolean | null
+          can_edit_albums?: boolean | null
+          can_edit_images?: boolean | null
+          created_at?: string | null
+          granted_by: string
+          id?: string
+          member_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          can_add_albums?: boolean | null
+          can_add_images?: boolean | null
+          can_delete_albums?: boolean | null
+          can_delete_images?: boolean | null
+          can_edit_albums?: boolean | null
+          can_edit_images?: boolean | null
+          created_at?: string | null
+          granted_by?: string
+          id?: string
+          member_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_permissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_players: {
         Row: {
