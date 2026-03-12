@@ -258,9 +258,9 @@ export async function revokeAccess(miniBlokId: string, userId: string): Promise<
 }
 
 export async function revokeShareToken(shareToken: string): Promise<void> {
-  const { data, error } = await supabase.rpc("revoke_mini_blok_share", {
-    p_share_token: shareToken,
-  });
+  const { data, error } = await supabase.rpc("revoke_mini_blok_share" as any, {
+    p_token: shareToken,
+  } as any);
 
   console.log("revokeShareToken:", { data, error });
 
@@ -271,9 +271,9 @@ export async function revokeShareToken(shareToken: string): Promise<void> {
 }
 
 export async function getMiniBlokSharedByToken(shareToken: string): Promise<MiniBlokPublicShared | null> {
-  const { data, error } = await supabase.rpc("get_mini_blok_shared", {
-    p_share_token: shareToken,
-  });
+  const { data, error } = await supabase.rpc("get_mini_blok_shared" as any, {
+    p_token: shareToken,
+  } as any);
 
   console.log("getMiniBlokSharedByToken:", { data, error });
 
