@@ -8,6 +8,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
+const TAC_COOLDOWN_KEY = "tac_cooldown_timestamp";
+const COOLDOWN_DURATION = 90; // 90 seconds
+
 function normalizePhone(phone: string) {
   let value = phone.replace(/\s+/g, "").replace(/-/g, "");
 
@@ -26,6 +29,27 @@ function isValidMalaysiaPhone(phone: string) {
   return /^\+601[0-46-9][0-9]{7,8}$/.test(phone);
 }
 
+function getCooldownRemaining(): number {
+  if (typeof window === "undefined") return 0;
+  
+  const storedTimestamp = localStorage.getItem(TAC_COOLDOWN_KEY);
+  if (!storedTimestamp) return 0;
+
+  const lastTacTime = parseInt(storedTimestamp, 10);
+  const elapsed = Math.floor((Date.now() - lastTacTime) / 1000);
+  return Math.max(0, COOLDOWN_DURATION - elapsed);
+}
+
+function setCooldownTimestamp() {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(TAC_COOLDOWN_KEY, Date.now().toString());
+}
+
+function clearCooldownTimestamp() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(TAC_COOLDOWN_KEY);
+}
+
 export function WhatsAppLoginForm() {
   const router = useRouter();
   const { toast } = useToast();
@@ -33,29 +57,30 @@ export function WhatsAppLoginForm() {
   const [loading, setLoading] = useState(false);
   const [sendingTAC, setSendingTAC] = useState(false);
   const [tacSent, setTacSent] = useState(false);
-  const [lastTacSentTime, setLastTacSentTime] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const [formData, setFormData] = useState({
     phone: "",
     tac: ""
   });
 
-  const cooldownRemaining = useMemo(() => {
-    if (!lastTacSentTime) return 0;
-    const elapsed = Math.floor((Date.now() - lastTacSentTime) / 1000);
-    return Math.max(0, 120 - elapsed);
-  }, [lastTacSentTime]);
-
-  const [, forceTick] = useState(0);
-
+  // Initialize cooldown from localStorage on mount
   useEffect(() => {
-    if (!lastTacSentTime) return;
+    const remaining = getCooldownRemaining();
+    setCooldownRemaining(remaining);
+    
+    if (remaining > 0) {
+      setTacSent(true);
+    }
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
 
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - lastTacSentTime) / 1000);
-      const remaining = Math.max(0, 120 - elapsed);
-
-      forceTick((n) => n + 1);
+      const remaining = getCooldownRemaining();
+      setCooldownRemaining(remaining);
 
       if (remaining === 0) {
         clearInterval(interval);
@@ -63,7 +88,7 @@ export function WhatsAppLoginForm() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [lastTacSentTime]);
+  }, [cooldownRemaining]);
 
   async function handleSendTAC() {
     const normalizedPhone = normalizePhone(formData.phone);
@@ -77,10 +102,11 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    if (cooldownRemaining > 0) {
+    const remaining = getCooldownRemaining();
+    if (remaining > 0) {
       toast({
         title: "Sila Tunggu",
-        description: `Sila tunggu ${cooldownRemaining} saat sebelum memohon kod TAC baru`,
+        description: `Sila tunggu ${remaining} saat sebelum memohon kod TAC baru`,
         variant: "destructive"
       });
       return;
@@ -115,7 +141,10 @@ export function WhatsAppLoginForm() {
         phone: normalizedPhone,
         tac: ""
       }));
-      setLastTacSentTime(Date.now());
+      
+      // Set cooldown in localStorage
+      setCooldownTimestamp();
+      setCooldownRemaining(COOLDOWN_DURATION);
       setTacSent(true);
 
       toast({
@@ -128,9 +157,9 @@ export function WhatsAppLoginForm() {
       toast({
         title: "Ralat",
         description:
-        error instanceof Error ?
-        error.message :
-        "Gagal menghantar kod TAC. Sila cuba lagi.",
+          error instanceof Error
+            ? error.message
+            : "Gagal menghantar kod TAC. Sila cuba lagi.",
         variant: "destructive"
       });
     } finally {
@@ -171,7 +200,6 @@ export function WhatsAppLoginForm() {
 
       const data = await response.json();
 
-      // Log full response for debugging
       console.log("🔍 Verify TAC Response:", {
         status: response.status,
         ok: response.ok,
@@ -206,6 +234,9 @@ export function WhatsAppLoginForm() {
         throw new Error("Token sesi tidak diterima dari server.");
       }
 
+      // Clear cooldown on successful login
+      clearCooldownTimestamp();
+
       toast({
         title: "Log masuk berjaya!",
         description: "Mengalihkan ke dashboard..."
@@ -218,9 +249,9 @@ export function WhatsAppLoginForm() {
       toast({
         title: "Ralat semasa log masuk",
         description:
-        error instanceof Error ?
-        error.message :
-        "Kod TAC tidak sah atau telah tamat tempoh",
+          error instanceof Error
+            ? error.message
+            : "Kod TAC tidak sah atau telah tamat tempoh",
         variant: "destructive"
       });
     } finally {
@@ -230,140 +261,140 @@ export function WhatsAppLoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-8">
-            <div className="w-full max-w-md space-y-8">
-                <div className="text-center">
-                    <div className="flex justify-center mb-6">
-                        <div className="relative w-32 h-32">
-                            <Image
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="relative w-32 h-32">
+              <Image
                 src="/ambc-logo.png"
                 alt="AMBC Club Logo"
                 fill
                 sizes="128px"
                 className="object-contain"
-                priority />
-              
-                        </div>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">AMBC Club</h1>
-                    <p className="text-gray-600">Log Masuk Member</p>
-                </div>
+                priority
+              />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">AMBC Club</h1>
+          <p className="text-gray-600">Log Masuk Member</p>
+        </div>
 
-                <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-                    <div className="text-center mb-6">
-                        <h2 className="text-xl font-semibold text-gray-800">Selamat Datang</h2>
-                        <p className="text-sm text-gray-500 mt-1">Login dengan WhatsApp TAC untuk akses ke Member Area
-
+        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Selamat Datang</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Login dengan WhatsApp TAC untuk akses ke Member Area
             </p>
-                    </div>
+          </div>
 
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                                Nombor WhatsApp
-                            </Label>
-                            <Input
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                Nombor WhatsApp
+              </Label>
+              <Input
                 id="phone"
                 type="tel"
                 placeholder="0123456789 atau +60123456789"
                 value={formData.phone}
                 onChange={(e) =>
-                setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                  setFormData((prev) => ({ ...prev, phone: e.target.value }))
                 }
                 disabled={loading || sendingTAC || tacSent}
                 required
-                className="h-11" />
-              
-                            <p className="text-xs text-gray-500">
-                                Format: 0123456789 atau +60123456789
-                            </p>
-                        </div>
+                className="h-11"
+              />
+              <p className="text-xs text-gray-500">
+                Format: 0123456789 atau +60123456789
+              </p>
+            </div>
 
-                        {!tacSent &&
-            <Button
-              type="button"
-              onClick={handleSendTAC}
-              disabled={sendingTAC || loading}
-              className="w-full h-11 bg-green-600 hover:bg-green-700">
-              
-                                {sendingTAC ?
-              <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Menghantar...
-                                    </> :
-
-              <>
-                                        <MessageCircle className="mr-2 h-4 w-4" />
-                                        Hantar Kod TAC ke WhatsApp
-                                    </>
-              }
-                            </Button>
-            }
-
-                        {tacSent &&
-            <>
-                                <div className="space-y-2">
-                                    <Label htmlFor="tac" className="text-sm font-medium text-gray-700">
-                                        Kod TAC (6 digit)
-                                    </Label>
-                                    <Input
-                  id="tac"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Masukkan kod TAC dari WhatsApp"
-                  value={formData.tac}
-                  onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    tac: e.target.value.replace(/\D/g, "").slice(0, 6)
-                  }))
-                  }
-                  disabled={loading}
-                  maxLength={6}
-                  required
-                  className="h-11 text-center text-2xl tracking-widest font-mono" />
-                
-                                    <p className="text-xs text-green-600 flex items-center justify-center">
-                                        ✓ Kod TAC telah dihantar ke WhatsApp anda
-                                    </p>
-                                </div>
-
-                                <Button
+            {!tacSent && (
+              <Button
                 type="button"
                 onClick={handleSendTAC}
-                variant="ghost"
-                className="w-full text-sm"
-                disabled={loading || sendingTAC || cooldownRemaining > 0}>
-                
-                                    {cooldownRemaining > 0 ?
-                `Tunggu ${cooldownRemaining}s untuk hantar semula` :
-                "Hantar semula kod TAC"}
-                                </Button>
+                disabled={sendingTAC || loading}
+                className="w-full h-11 bg-green-600 hover:bg-green-700"
+              >
+                {sendingTAC ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Menghantar...
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Hantar Kod TAC ke WhatsApp
+                  </>
+                )}
+              </Button>
+            )}
 
-                                <Button
-                type="submit"
-                disabled={loading || formData.tac.length !== 6}
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700">
-                
-                                    {loading ?
-                <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Log Masuk...
-                                        </> :
-
-                "Log Masuk"
-                }
-                                </Button>
-                            </>
-            }
-                    </form>
-
-                    <div className="text-center pt-4 border-t">
-                        <p className="text-xs text-gray-500">
-                            Masalah log masuk? Hubungi admin untuk bantuan,TQ.
-                        </p>
-                    </div>
+            {tacSent && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="tac" className="text-sm font-medium text-gray-700">
+                    Kod TAC (6 digit)
+                  </Label>
+                  <Input
+                    id="tac"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Masukkan kod TAC dari WhatsApp"
+                    value={formData.tac}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        tac: e.target.value.replace(/\D/g, "").slice(0, 6)
+                      }))
+                    }
+                    disabled={loading}
+                    maxLength={6}
+                    required
+                    className="h-11 text-center text-2xl tracking-widest font-mono"
+                  />
+                  <p className="text-xs text-green-600 flex items-center justify-center">
+                    ✓ Kod TAC telah dihantar ke WhatsApp anda
+                  </p>
                 </div>
-            </div>
-        </div>);
 
+                <Button
+                  type="button"
+                  onClick={handleSendTAC}
+                  variant="ghost"
+                  className="w-full text-sm"
+                  disabled={loading || sendingTAC || cooldownRemaining > 0}
+                >
+                  {cooldownRemaining > 0
+                    ? `Tunggu ${cooldownRemaining}s untuk hantar semula`
+                    : "Hantar semula kod TAC"}
+                </Button>
+
+                <Button
+                  type="submit"
+                  disabled={loading || formData.tac.length !== 6}
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Log Masuk...
+                    </>
+                  ) : (
+                    "Log Masuk"
+                  )}
+                </Button>
+              </>
+            )}
+          </form>
+
+          <div className="text-center pt-4 border-t">
+            <p className="text-xs text-gray-500">
+              Masalah log masuk? Hubungi admin untuk bantuan,TQ.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
