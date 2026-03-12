@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
-import Image from "next/image";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,6 +51,8 @@ export default function LanePage() {
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const { member, loading: authLoading, isAuthenticated, isAdmin } = useAuth(true);
+  const [downloading, setDownloading] = useState(false);
+  const screenshotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (router.isReady && !authLoading && isAuthenticated) {
@@ -226,6 +228,40 @@ export default function LanePage() {
     }
   }
 
+  async function handleDownloadScreenshot() {
+    if (!screenshotRef.current || !activeGame) return;
+
+    try {
+      setDownloading(true);
+
+      const dataUrl = await toPng(screenshotRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#f9fafb",
+      });
+
+      const a = document.createElement("a");
+      const safeDate = new Date(activeGame.game_date).toISOString().slice(0, 10);
+      a.download = `AMBC-Lane-${activeGame.game_name}-${safeDate}.png`;
+      a.href = dataUrl;
+      a.click();
+
+      toast({
+        title: "Berjaya",
+        description: "Screenshot telah dimuat turun",
+      });
+    } catch (error) {
+      console.error("Screenshot download error:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal buat screenshot. Cuba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   function getMemberAtPosition(lanePosition: string): LaneAssignmentWithMember | undefined {
     return assignments.find(a => a.lane_position === lanePosition);
   }
@@ -246,31 +282,11 @@ export default function LanePage() {
         
         {assignment ? (
           <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-gray-200 rounded px-2 py-1 shadow-sm">
-            <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 overflow-hidden min-w-0">
               {revealed ? (
-                <>
-                  {assignment.member.avatar_url ? (
-                    <Image
-                      src={assignment.member.avatar_url}
-                      alt={assignment.member.username}
-                      width={24}
-                      height={24}
-                      className="rounded-full shrink-0"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {assignment.member.username[0].toUpperCase()}
-                    </div>
-                  )}
-                  <span className="text-xs font-medium truncate">{assignment.member.username}</span>
-                </>
+                <span className="text-xs font-semibold truncate whitespace-nowrap">{assignment.member.username}</span>
               ) : (
-                <>
-                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">
-                    ?
-                  </div>
-                  <span className="text-xs font-medium text-gray-500 italic truncate">Belum Undi</span>
-                </>
+                <span className="text-xs font-medium text-gray-500 italic truncate whitespace-nowrap">Belum Undi</span>
               )}
             </div>
             
@@ -394,11 +410,41 @@ export default function LanePage() {
               <div className={`space-y-6 ${isAdmin ? "lg:col-span-3" : "lg:col-span-4 max-w-5xl mx-auto w-full"}`}>
                 {/* Pemilihan Game */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                    Pilih Game:
-                  </h2>
+                  <div className="flex items-start sm:items-center justify-between w-full gap-3">
+                    <div className="min-w-0">
+                      <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                        Pilih Game:
+                      </h2>
+                      {activeGame?.game_date ? (
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Tarikh Blok:{" "}
+                          <span className="font-semibold text-gray-800">
+                            {new Date(activeGame.game_date).toLocaleDateString("ms-MY")}
+                          </span>
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={handleDownloadScreenshot}
+                      disabled={!selectedGameId || downloading}
+                    >
+                      {downloading ? "Sedang buat..." : "Download Screenshot"}
+                    </Button>
+                  </div>
+
                   <div className="w-full sm:w-72">
-                    <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+                    <Select
+                      value={selectedGameId}
+                      onValueChange={(val) => {
+                        setSelectedGameId(val);
+                        const g = games.find((x) => x.id === val) || null;
+                        setActiveGame(g);
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Tiada Game" />
                       </SelectTrigger>
@@ -413,15 +459,28 @@ export default function LanePage() {
                   </div>
                 </div>
 
-                {selectedGameId ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                    {laneConfigs.map(config => renderLaneSection(config))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
-                    Sila pilih game untuk melihat lane
-                  </div>
-                )}
+                <div ref={screenshotRef} className="space-y-4">
+                  {activeGame?.game_date ? (
+                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm">
+                      <p className="text-sm font-semibold text-gray-800">
+                        Tarikh Blok:{" "}
+                        <span className="font-bold text-red-600">
+                          {new Date(activeGame.game_date).toLocaleDateString("ms-MY")}
+                        </span>
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {selectedGameId ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                      {laneConfigs.map(config => renderLaneSection(config))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
+                      Sila pilih game untuk melihat lane
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Kanan: Drag & Drop List (ADMIN SAHAJA) */}
