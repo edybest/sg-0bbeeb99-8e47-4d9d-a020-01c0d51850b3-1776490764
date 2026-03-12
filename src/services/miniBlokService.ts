@@ -13,6 +13,7 @@ export interface MiniBlokWithPlayers extends MiniBlok {
   players: MiniBlokPlayer[];
   shared_with: MiniBlokCollaborator[];
   can_edit: boolean;
+  share_token?: string | null;
 }
 
 export interface PlayerStats {

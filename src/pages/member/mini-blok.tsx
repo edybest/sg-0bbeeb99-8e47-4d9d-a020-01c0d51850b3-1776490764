@@ -372,11 +372,16 @@ export default function MiniBlokPage() {
   const [shareMode, setShareMode] = useState<"public" | "editable">("public");
   const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
   const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
+  const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [ownershipFilter, setOwnershipFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
+  const [expandedEntryPlayers, setExpandedEntryPlayers] = useState<Record<string, boolean>>({});
+  const [expandedEntryPlayerScores, setExpandedEntryPlayerScores] = useState<Record<string, Record<string, boolean>>>(
+    {}
+  );
 
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -396,34 +401,19 @@ export default function MiniBlokPage() {
 
   useEffect(() => {
     if (!isPublicSharedMode) return;
-    loadPublicShared();
+    loadPublicShared(shareToken!);
   }, [isPublicSharedMode, shareToken]);
 
-  async function loadPublicShared() {
-    if (!shareToken) return;
-
+  async function loadPublicShared(token: string) {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getMiniBlokSharedByToken(shareToken);
-
-      console.log("Public share load:", { shareToken, data });
-
-      if (!data) {
-        toast({
-          title: "Link tidak sah",
-          description: "Share link ini mungkin telah direvoke atau tamat tempoh.",
-          variant: "destructive",
-        });
-        setPublicShared(null);
-        return;
-      }
-
-      setPublicShared(data);
+      const shared = await getMiniBlokSharedByToken(token);
+      setPublicShared(shared);
     } catch (error) {
-      console.error("Error loading public shared mini blok:", error);
+      console.error("Error loading public shared:", error);
       toast({
         title: "Error",
-        description: "Gagal load tournament yang dikongsi.",
+        description: "Unable to load shared tournament",
         variant: "destructive",
       });
       setPublicShared(null);
@@ -519,8 +509,8 @@ export default function MiniBlokPage() {
 
       if (!entry) {
         toast({
-          title: "Tournament tidak dijumpai",
-          description: "Link ini mungkin salah atau tournament telah dipadam.",
+          title: "Tournament not found",
+          description: "Link may be invalid or tournament deleted.",
           variant: "destructive",
         });
         return;
@@ -528,8 +518,8 @@ export default function MiniBlokPage() {
 
       if (member?.id && !entry.can_edit) {
         toast({
-          title: "Tiada akses",
-          description: "Tournament ini tidak dikongsi dengan akaun anda.",
+          title: "No access",
+          description: "Tournament not shared with your account.",
           variant: "destructive",
         });
         return;
@@ -546,7 +536,7 @@ export default function MiniBlokPage() {
       console.error("Error loading shared entry:", error);
       toast({
         title: "Error",
-        description: "Gagal load tournament yang dikongsi",
+        description: "Failed to load shared entry",
         variant: "destructive",
       });
     }
@@ -559,8 +549,8 @@ export default function MiniBlokPage() {
       setSubmitting(true);
       await revokeShareToken(shareToken);
       toast({
-        title: "Berjaya",
-        description: "Share link telah direvoke.",
+        title: "Success",
+        description: "Share link revoked.",
       });
 
       router.replace("/member/mini-blok");
@@ -568,7 +558,7 @@ export default function MiniBlokPage() {
       console.error("Error revoking share token:", error);
       toast({
         title: "Error",
-        description: "Gagal revoke share link.",
+        description: "Failed to revoke share link.",
         variant: "destructive",
       });
     } finally {
@@ -954,14 +944,16 @@ export default function MiniBlokPage() {
 
   async function copyEditableLink() {
     if (!shareEntry) return;
+
     const url = generateShareUrl(shareEntry.id);
+
     try {
       await navigator.clipboard.writeText(url);
       setCopiedEditUrl(true);
       setTimeout(() => setCopiedEditUrl(false), 2000);
       toast({
         title: "Copied!",
-        description: "Editable link copied",
+        description: "Editable link copied to clipboard",
       });
     } catch (error) {
       console.error("Error copying editable URL:", error);
@@ -1047,10 +1039,10 @@ export default function MiniBlokPage() {
             <div className="container mx-auto px-4 py-10 max-w-3xl">
               <Card>
                 <CardContent className="py-10 text-center">
-                  <Trophy className="h-12 w-12 text-muted-foreground mb-3" />
+                  <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
                   <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
                   <p className="text-muted-foreground mb-4">
-                    Link ini mungkin telah direvoke, tamat tempoh, atau tidak sah.
+                    Link may be invalid, expired, or unauthorized.
                   </p>
                   <Button variant="outline" onClick={() => router.replace("/member/mini-blok")}>
                     Go to Mini Blok
@@ -1193,6 +1185,7 @@ export default function MiniBlokPage() {
                   const statsB = calculatePlayerStats(b, entry.num_games || 5);
                   return statsB.overall_score - statsA.overall_score;
                 });
+                const isPlayersExpanded = !!expandedEntryPlayers[entry.id];
 
                 return (
                   <Card
@@ -1283,9 +1276,125 @@ export default function MiniBlokPage() {
                               </div>
                             );
                           })}
-                          {entry.players.length > 3 && (
-                            <div className="text-center text-sm text-muted-foreground">
-                              +{entry.players.length - 3} more players
+                          <div className="pt-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="w-full justify-between"
+                              onClick={() =>
+                                setExpandedEntryPlayers((prev) => ({
+                                  ...prev,
+                                  [entry.id]: !prev[entry.id],
+                                }))
+                              }
+                            >
+                              <span className="text-sm">
+                                {isPlayersExpanded
+                                  ? "Hide full scores"
+                                  : `View full scores (${entry.players.length} players)`}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                Games: {entry.num_games}
+                              </span>
+                            </Button>
+                          </div>
+
+                          {isPlayersExpanded && (
+                            <div className="mt-2 space-y-2">
+                              {sortedPlayers.map((player, idx) => {
+                                const scores = (player.scores as Record<string, number>) || {};
+                                const stats = calculatePlayerStats(player, entry.num_games || 5);
+                                const isExpanded =
+                                  !!expandedEntryPlayerScores[entry.id]?.[player.id];
+
+                                return (
+                                  <div
+                                    key={player.id}
+                                    className="rounded-lg border bg-background"
+                                  >
+                                    <button
+                                      type="button"
+                                      className="w-full px-3 py-2 flex items-center justify-between gap-3"
+                                      onClick={() =>
+                                        setExpandedEntryPlayerScores((prev) => ({
+                                          ...prev,
+                                          [entry.id]: {
+                                            ...(prev[entry.id] || {}),
+                                            [player.id]: !(prev[entry.id] || {})[player.id],
+                                          },
+                                        }))
+                                      }
+                                    >
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <Badge
+                                            variant={idx === 0 ? "default" : "secondary"}
+                                            className="shrink-0"
+                                          >
+                                            #{idx + 1}
+                                          </Badge>
+                                          <span className="font-semibold truncate">
+                                            {player.player_name}
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground text-left mt-0.5">
+                                          HCP: {player.handicap ?? 0} · Avg: {stats.average} · Overall:{" "}
+                                          {stats.overall_score}
+                                        </div>
+                                      </div>
+                                      <span className="text-xs text-muted-foreground shrink-0">
+                                        {isExpanded ? "Hide" : "View"}
+                                      </span>
+                                    </button>
+
+                                    {isExpanded && (
+                                      <div className="border-t px-3 py-2">
+                                        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                                          <div>
+                                            <span className="text-muted-foreground">Handicap:</span>
+                                            <span className="ml-2 font-semibold">
+                                              {player.handicap ?? 0}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="text-muted-foreground">Total:</span>
+                                            <span className="ml-2 font-semibold">
+                                              {stats.total_score}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2">
+                                          {Array.from(
+                                            { length: entry.num_games || 5 },
+                                            (_, i) => i + 1
+                                          ).map((gameNum) => {
+                                            const score = scores[`game_${gameNum}`] as
+                                              | number
+                                              | null;
+                                            return (
+                                              <Badge
+                                                key={gameNum}
+                                                variant="secondary"
+                                                className={
+                                                  score !== null && typeof score === "number" && score > 0
+                                                    ? `${GAME_COLORS[gameNum - 1]} text-white`
+                                                    : "bg-gray-200"
+                                                }
+                                              >
+                                                G{gameNum}:{" "}
+                                                {score !== null && typeof score === "number" && score > 0
+                                                  ? score
+                                                  : "-"}
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
