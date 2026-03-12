@@ -89,7 +89,9 @@ export function NotificationInbox() {
                         {!it.recipient.read_at && <span className="h-2 w-2 rounded-full bg-red-600" aria-label="Unread" />}
                       </div>
                       <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{it.notification?.message ?? ""}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">{formatDate(it.notification?.created_at ?? it.recipient.delivered_at)}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {formatDate(it.notification?.created_at ?? it.recipient.delivered_at)}
+                      </p>
                     </div>
 
                     {!it.recipient.read_at && (

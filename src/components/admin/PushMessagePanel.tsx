@@ -42,10 +42,12 @@ export function PushMessagePanel() {
   const selectedPreview = useMemo(() => {
     if (selected.length === 0) return "Tiada ahli dipilih";
     const map = new Map(members.map((m) => [m.id, m]));
-    return selected
-      .slice(0, 3)
-      .map((id) => formatMember(map.get(id) as MemberRow))
-      .join(", ") + (selected.length > 3 ? ` +${selected.length - 3} lagi` : "");
+    return (
+      selected
+        .slice(0, 3)
+        .map((id) => formatMember(map.get(id) as MemberRow))
+        .join(", ") + (selected.length > 3 ? ` +${selected.length - 3} lagi` : "")
+    );
   }, [members, selected]);
 
   function buildAudience(): NotificationAudience {
