@@ -186,10 +186,11 @@ export default function MiniBlokPage() {
   }, []);
 
   useEffect(() => {
-    if (router.query.entry && typeof router.query.entry === "string") {
-      loadSharedEntry(router.query.entry);
+    const entryId = router.query.entry;
+    if (typeof entryId === "string" && entryId) {
+      loadSharedEntry(entryId);
     }
-  }, [router.query.entry]);
+  }, [router.query.entry, member?.id]);
 
   // Filter and sort logic
   const filteredAndSortedEntries = entries
@@ -256,21 +257,62 @@ export default function MiniBlokPage() {
     }
   }
 
+  function highlightEntry(entryId: string) {
+    setTimeout(() => {
+      const element = document.getElementById(`entry-${entryId}`);
+      element?.scrollIntoView({ behavior: "smooth", block: "center" });
+      element?.classList.add("ring-4", "ring-primary", "ring-offset-4");
+      setTimeout(() => {
+        element?.classList.remove("ring-4", "ring-primary", "ring-offset-4");
+      }, 3000);
+    }, 400);
+  }
+
   async function loadSharedEntry(entryId: string) {
     try {
       const entry = await getMiniBlokById(entryId, member?.id);
-      if (entry) {
-        setTimeout(() => {
-          const element = document.getElementById(`entry-${entryId}`);
-          element?.scrollIntoView({ behavior: "smooth", block: "center" });
-          element?.classList.add("ring-4", "ring-primary", "ring-offset-4");
-          setTimeout(() => {
-            element?.classList.remove("ring-4", "ring-primary", "ring-offset-4");
-          }, 3000);
-        }, 500);
+
+      if (!entry) {
+        toast({
+          title: "Tournament tidak dijumpai",
+          description: "Link ini mungkin salah atau tournament telah dipadam.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      if (member?.id && !entry.can_edit) {
+        toast({
+          title: "Tiada akses",
+          description: "Tournament ini tidak dikongsi dengan akaun anda.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!member?.id) {
+        toast({
+          title: "Sila log masuk",
+          description: "Log masuk dahulu untuk lihat tournament yang dikongsi.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setEntries((prev) => {
+        const already = prev.some((e) => e.id === entry.id);
+        if (already) return prev;
+        return [entry, ...prev];
+      });
+
+      highlightEntry(entryId);
     } catch (error) {
       console.error("Error loading shared entry:", error);
+      toast({
+        title: "Error",
+        description: "Gagal load tournament yang dikongsi",
+        variant: "destructive",
+      });
     }
   }
 
