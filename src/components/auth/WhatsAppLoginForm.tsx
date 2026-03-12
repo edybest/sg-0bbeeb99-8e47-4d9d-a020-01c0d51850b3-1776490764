@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { pageAccessService } from "@/services/pageAccessService";
 import { Loader2, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
@@ -271,6 +272,9 @@ export function WhatsAppLoginForm() {
 
       // Clear cooldown on successful login
       clearCooldownTimestamp();
+
+      // Clear any cached role/page access decisions to avoid stale redirects
+      pageAccessService.clearCache();
 
       toast({
         title: "Log masuk berjaya!",
