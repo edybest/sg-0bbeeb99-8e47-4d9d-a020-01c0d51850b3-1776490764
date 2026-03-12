@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { Volume2, VolumeX } from "lucide-react";
 
 interface SplashScreenProps {
   onComplete?: () => void;
@@ -8,6 +9,8 @@ interface SplashScreenProps {
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Dynamic tagline based on time of day in Malay
   const tagline = useMemo(() => {
@@ -23,6 +26,95 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
       return "Selamat Malam! Boling membawa kita bersama";
     }
   }, []);
+
+  // Initialize Audio Context
+  useEffect(() => {
+    if (typeof window !== "undefined" && soundEnabled) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [soundEnabled]);
+
+  // Play bowling ball rolling sound
+  const playRollingSound = () => {
+    if (!audioContextRef.current || !soundEnabled) return;
+
+    const ctx = audioContextRef.current;
+    const now = ctx.currentTime;
+
+    // Create oscillator for rolling rumble effect
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(60, now); // Low rumble
+    oscillator.frequency.exponentialRampToValueAtTime(40, now + 1.5);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(200, now);
+
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.15, now + 0.1);
+    gainNode.gain.linearRampToValueAtTime(0.1, now + 1.2);
+    gainNode.gain.linearRampToValueAtTime(0, now + 1.5);
+
+    oscillator.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 1.5);
+  };
+
+  // Play strike/pins falling sound
+  const playStrikeSound = () => {
+    if (!audioContextRef.current || !soundEnabled) return;
+
+    const ctx = audioContextRef.current;
+    const now = ctx.currentTime;
+
+    // Create multiple oscillators for pin collision sounds
+    for (let i = 0; i < 5; i++) {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(
+        300 + Math.random() * 200,
+        now + i * 0.05
+      );
+
+      gainNode.gain.setValueAtTime(0, now + i * 0.05);
+      gainNode.gain.linearRampToValueAtTime(0.2, now + i * 0.05 + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + i * 0.05 + 0.3);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      oscillator.start(now + i * 0.05);
+      oscillator.stop(now + i * 0.05 + 0.3);
+    }
+  };
+
+  useEffect(() => {
+    // Play rolling sound when splash appears
+    if (soundEnabled) {
+      playRollingSound();
+      
+      // Play strike sound after 1.5 seconds
+      const strikeTimer = setTimeout(() => {
+        playStrikeSound();
+      }, 1500);
+
+      return () => clearTimeout(strikeTimer);
+    }
+  }, [soundEnabled]);
 
   useEffect(() => {
     // Auto-dismiss after 2.5 seconds or when window loads
@@ -57,6 +149,22 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           transition={{ duration: 0.5 }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-4"
         >
+          {/* Sound Toggle Button */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+            aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            ) : (
+              <VolumeX className="w-5 h-5 sm:w-6 sm:h-6 text-white/70" />
+            )}
+          </motion.button>
+
           {/* Logo Container - Responsive sizing */}
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
