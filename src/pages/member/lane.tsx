@@ -503,22 +503,9 @@ export default function LanePage() {
                             className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
                           >
                             <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400" />
-                            {m.avatar_url ? (
-                              <Image
-                                src={m.avatar_url}
-                                alt={m.username}
-                                width={28}
-                                height={28}
-                                className="rounded-full"
-                              />
-                            ) : (
-                              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
-                                {m.username[0].toUpperCase()}
-                              </div>
-                            )}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate leading-tight">{m.username}</p>
-                              <p className="text-[10px] text-gray-500 truncate">{m.full_name}</p>
+                              <p className="text-sm font-medium truncate whitespace-nowrap leading-tight">{m.username}</p>
+                              <p className="text-[10px] text-gray-500 truncate whitespace-nowrap">{m.full_name}</p>
                             </div>
                           </div>
                         ))}
