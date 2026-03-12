@@ -139,12 +139,14 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     }
   }
 
-  async function logout() {
+  async function logout(options?: { redirectTo?: string }) {
     try {
       await supabase.auth.signOut();
       setMember(null);
       setIsAuthenticated(false);
-      router.push("/login");
+
+      const redirectTo = options?.redirectTo ?? "/login";
+      router.push(redirectTo);
     } catch (error) {
       console.error("Logout error:", error);
     }

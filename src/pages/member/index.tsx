@@ -2,25 +2,21 @@ import { useRouter } from "next/router";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { ClubLogo } from "@/components/ClubLogo";
-import { MobileNav } from "@/components/member/MobileNav";
 import {
   Trophy,
   Target,
-  Loader2,
-  LogOut,
+  Users,
   BarChart3,
   User,
-  Users,
   LayoutGrid,
   Shuffle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
-import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
+import { MemberTopBarNav } from "@/components/member/MemberTopBarNav";
 
 const cardVariants = {
   hidden: {
@@ -100,76 +96,18 @@ const navigationCards = [
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, loading, logout } = useAuth(false);
-  const { withLoading } = useGlobalLoading();
-
-  async function handleLogout() {
-    await withLoading("member:dashboard:logout", async () => {
-      await logout();
-    });
-  }
+  const { member, loading } = useAuth(false);
 
   if (loading) {
     return null;
   }
 
   return (
-    <PageAccessGuard pagePath="/member" requireAuth={true}>
+    <PageAccessGuard pagePath="/member" requireAuth={false}>
       <SEO title="Member Dashboard - AMBC Club" description="Dashboard ahli AMBC Club" />
 
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <MobileNav />
-                <ClubLogo size="sm" />
-                <div>
-                  <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
-                  <p className="text-sm text-gray-600">Member Dashboard</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {member ? (
-                  <>
-                    {member.avatar_url ? (
-                      <Image
-                        src={member.avatar_url}
-                        alt={member.username || "Member avatar"}
-                        width={40}
-                        height={40}
-                        className="rounded-full border-2 border-red-600"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white font-bold">
-                        {member.username?.[0]?.toUpperCase() || "U"}
-                      </div>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      onClick={handleLogout}
-                      className="border-gray-300 hover:bg-gray-100"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Logout</span>
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push("/login")}
-                    className="border-red-600 text-red-600 hover:bg-red-50"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Login</span>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        <MemberTopBarNav subtitle="Member Dashboard" />
 
         <div className="container mx-auto px-4 py-8">
           <motion.div
