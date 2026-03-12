@@ -15,6 +15,7 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LogOut, Users, Trophy, BarChart3, Settings, Loader2, Bell, MessageSquare, ListChecks } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
+import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -101,6 +102,9 @@ export default function AdminPage() {
           </header>
 
           <main className="container mx-auto px-4 py-8">
+            <div className="mb-6">
+              <AdminPwaInstallCard className="max-w-xl" />
+            </div>
             <Tabs defaultValue="members" className="w-full">
               <TabsList className="grid w-full grid-cols-6 bg-white border border-gray-200 mb-8 shadow-sm">
                 <TabsTrigger 
