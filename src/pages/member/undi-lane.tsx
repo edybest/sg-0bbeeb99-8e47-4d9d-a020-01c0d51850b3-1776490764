@@ -678,8 +678,8 @@ export default function UndiLanePage() {
                           </svg>
 
                           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                            <div className="h-36 w-36 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
-                              <div className="relative h-28 w-28 rounded-full overflow-hidden ring-2 ring-red-600/30">
+                            <div className="h-24 w-24 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
+                              <div className="relative h-20 w-20 rounded-full overflow-hidden ring-2 ring-red-600/30">
                                 <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-cover" priority />
                               </div>
                             </div>
