@@ -825,3 +825,4 @@ export default function UndiLanePage() {
     </PageAccessGuard>
   );
 }
+UndiLanePage.disableGlobalLoadingOverlay = true;

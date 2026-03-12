@@ -6,7 +6,13 @@ import { useEffect } from "react";
 import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
 import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 
+type AppPageComponent = AppProps["Component"] & {
+  disableGlobalLoadingOverlay?: boolean;
+};
+
 export default function App({ Component, pageProps }: AppProps) {
+  const PageComponent = Component as AppPageComponent;
+
   useEffect(() => {
     // Register service worker for PWA
     if ("serviceWorker" in navigator) {
@@ -24,9 +30,9 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <GlobalLoadingProvider>
       <ThemeProvider>
-        <Component {...pageProps} />
+        <PageComponent {...pageProps} />
         <Toaster />
-        {Component?.noGlobalLoadingOverlay ? null : <GlobalLoadingOverlay />}
+        {PageComponent.disableGlobalLoadingOverlay ? null : <GlobalLoadingOverlay />}
       </ThemeProvider>
     </GlobalLoadingProvider>
   );
