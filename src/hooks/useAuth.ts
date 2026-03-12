@@ -6,24 +6,37 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Member = Tables<"members">;
 
+type UseAuthOptions = {
+  subscribe?: boolean;
+};
+
 /**
  * Custom hook for authentication using Supabase Auth
  * Supports both admin (email/password) and member (WhatsApp OTP) login
  * @param requireAuth - If true, redirects to login page when not authenticated
  * @param requireAdmin - If true, redirects to member page when not admin
  */
-export function useAuth(requireAuth = false, requireAdmin = false) {
+export function useAuth(requireAuth = false, requireAdmin = false, options?: UseAuthOptions) {
   const router = useRouter();
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const subscribe = options?.subscribe ?? true;
+
   useEffect(() => {
     checkAuth();
 
+    if (!subscribe) {
+      return;
+    }
+
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("Auth state changed:", event);
+      }
+
       if (event === "SIGNED_IN" && session) {
         await loadMemberData(session.user.id, session.user.email ?? null);
       } else if (event === "SIGNED_OUT") {
@@ -38,17 +51,19 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [requireAuth, requireAdmin]);
+  }, [requireAuth, requireAdmin, subscribe]);
 
   async function checkAuth() {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      console.log("🔍 Session check:", { 
-        hasSession: !!session, 
-        userId: session?.user?.id,
-        error: error?.message 
-      });
+      if (process.env.NODE_ENV !== "production") {
+        console.log("🔍 Session check:", { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          error: error?.message 
+        });
+      }
 
       if (error) {
         console.error("Session error:", error);
@@ -60,7 +75,9 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
       }
 
       if (!session) {
-        console.log("❌ No session found");
+        if (process.env.NODE_ENV !== "production") {
+          console.log("❌ No session found");
+        }
         setIsAuthenticated(false);
         if (requireAuth) {
           router.push("/login");
@@ -68,7 +85,9 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
         return;
       }
 
-      console.log("✅ Session found, loading member data...");
+      if (process.env.NODE_ENV !== "production") {
+        console.log("✅ Session found, loading member data...");
+      }
       await loadMemberData(session.user.id, session.user.email ?? null);
     } catch (error) {
       console.error("Auth check error:", error);
@@ -83,20 +102,26 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
 
   async function loadMemberData(userId: string, email: string | null) {
     try {
-      console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
+      if (process.env.NODE_ENV !== "production") {
+        console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
+      }
 
       let memberData = await memberService.getMemberByUserId(userId);
 
       if (!memberData && email) {
-        console.log("🔁 Member not found by user_id, trying email lookup...");
+        if (process.env.NODE_ENV !== "production") {
+          console.log("🔁 Member not found by user_id, trying email lookup...");
+        }
         memberData = await memberService.getMemberByEmail(email);
 
         if (memberData && memberData.user_id !== userId) {
-          console.log("🔗 Linking member.user_id for future sessions...", {
-            memberId: memberData.id,
-            prevUserId: memberData.user_id,
-            newUserId: userId
-          });
+          if (process.env.NODE_ENV !== "production") {
+            console.log("🔗 Linking member.user_id for future sessions...", {
+              memberId: memberData.id,
+              prevUserId: memberData.user_id,
+              newUserId: userId
+            });
+          }
 
           try {
             await memberService.linkAuthUser(memberData.id, userId);
@@ -116,18 +141,22 @@ export function useAuth(requireAuth = false, requireAdmin = false) {
         return;
       }
 
-      console.log("✅ Member loaded:", {
-        id: memberData.id,
-        username: memberData.username,
-        isAdmin: memberData.is_admin
-      });
+      if (process.env.NODE_ENV !== "production") {
+        console.log("✅ Member loaded:", {
+          id: memberData.id,
+          username: memberData.username,
+          isAdmin: memberData.is_admin
+        });
+      }
 
       setMember(memberData as Member);
       setIsAuthenticated(true);
 
       // Check admin requirement
       if (requireAdmin && !memberData.is_admin) {
-        console.log("⚠️ Admin required but user is not admin, redirecting...");
+        if (process.env.NODE_ENV !== "production") {
+          console.log("⚠️ Admin required but user is not admin, redirecting...");
+        }
         router.push("/member");
       }
     } catch (error) {

@@ -20,7 +20,7 @@ function AuthLoadingScreen({ message }: { message: string }) {
 
 export default function LoginPage() {
     const router = useRouter();
-    const { isAuthenticated, loading } = useAuth();
+    const { isAuthenticated, loading } = useAuth(false, false, { subscribe: false });
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {

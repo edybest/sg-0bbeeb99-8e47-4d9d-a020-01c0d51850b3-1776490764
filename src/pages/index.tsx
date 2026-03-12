@@ -26,6 +26,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
 
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
@@ -204,8 +205,10 @@ function DashboardCard({
 
 export default function HomePage() {
     const router = useRouter();
-    const [authState, setAuthState] = useState < AuthState > ("loading");
-    const [member, setMember] = useState < Member | null > (null);
+    useAuth(false, false, { subscribe: false });
+
+    const [authState, setAuthState] = useState<AuthState>("loading");
+    const [member, setMember] = useState<Member | null>(null);
     const [isSigningOut, setIsSigningOut] = useState(false);
 
     const loadSession = useCallback(async (session: Session | null) => {
