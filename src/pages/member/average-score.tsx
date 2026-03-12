@@ -57,14 +57,17 @@ export default function AverageScorePage() {
     try {
       setLoading(true);
 
-      // Get all members
+      // Get all members (exclude admins - admins are not players)
       const { data: members, error: membersError } = await supabase
         .from("members")
-        .select("id, username, full_name, avatar_url, sex, birthday");
+        .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
+        .neq("is_admin", true);
 
       if (membersError) throw membersError;
 
-      const statsPromises = members?.map(async (member) => {
+      const eligibleMembers = (members || []).filter((m: any) => m?.is_admin !== true);
+
+      const statsPromises = eligibleMembers.map(async (member) => {
         // Get all official Blok games for this member
         const { data: allGames } = await supabase
           .from("game_players")
@@ -113,7 +116,7 @@ export default function AverageScorePage() {
           average_of_3: avgOf3,
           calculated_handicap: handicap
         };
-      }) || [];
+      });
 
       const stats = await Promise.all(statsPromises);
       
