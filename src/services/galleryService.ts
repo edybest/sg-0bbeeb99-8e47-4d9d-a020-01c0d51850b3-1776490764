@@ -153,7 +153,14 @@ export async function createAlbum(
 
   const userResponse = await supabase.auth.getUser();
   const userId = memberId || userResponse.data.user?.id;
-  
+
+  console.log("createAlbum: resolved user", {
+    memberIdArg: memberId,
+    authUserId: userResponse.data.user?.id,
+    resolvedUserId: userId,
+    sortOrder
+  });
+
   if (!userId) {
     throw new Error("Authentication required to create album");
   }
@@ -169,6 +176,8 @@ export async function createAlbum(
     })
     .select()
     .single();
+
+  console.log("createAlbum: insert result", { data, error });
 
   if (error) {
     console.error("Create album error:", error);
@@ -189,12 +198,16 @@ export async function updateAlbum(
     cover_image_url?: string;
   }
 ): Promise<GalleryAlbum> {
+  console.log("updateAlbum: starting", { albumId, updates });
+
   const { data, error } = await supabase
     .from("gallery_albums")
     .update(updates)
     .eq("id", albumId)
     .select()
     .single();
+
+  console.log("updateAlbum: result", { data, error });
 
   if (error) {
     console.error("Update album error:", error);
