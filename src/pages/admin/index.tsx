@@ -12,6 +12,7 @@ import { GameManagement } from "@/components/admin/GameManagement";
 import { ScoreManagement } from "@/components/admin/ScoreManagement";
 import { ClubSettings } from "@/components/admin/ClubSettings";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LogOut, Users, Trophy, BarChart3, Settings, Loader2, Bell, MessageSquare, ListChecks } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 
@@ -101,7 +102,7 @@ export default function AdminPage() {
 
           <main className="container mx-auto px-4 py-8">
             <Tabs defaultValue="members" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 bg-white border border-gray-200 mb-8 shadow-sm">
+              <TabsList className="grid w-full grid-cols-6 bg-white border border-gray-200 mb-8 shadow-sm">
                 <TabsTrigger 
                   value="members" 
                   className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
@@ -137,6 +138,13 @@ export default function AdminPage() {
                   <MessageSquare className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Maklum Balas</span>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="gallery"
+                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white"
+                >
+                  <ListChecks className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Galeri</span>
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="members">
@@ -157,6 +165,10 @@ export default function AdminPage() {
 
               <TabsContent value="feedback">
                 <FeedbackManagement />
+              </TabsContent>
+
+              <TabsContent value="gallery">
+                <GalleryPermissionsPanel />
               </TabsContent>
             </Tabs>
           </main>
