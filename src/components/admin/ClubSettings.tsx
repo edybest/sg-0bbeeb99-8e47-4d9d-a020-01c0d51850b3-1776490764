@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload, AlertCircle, Users, Settings } from "lucide-react";
+import { Trash2, Upload, AlertCircle, Users, Settings, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -45,6 +45,35 @@ type PageAccessControl = {
   is_enabled: boolean;
 };
 
+type ClubSettingsTab =
+  | "general"
+  | "cache"
+  | "security"
+  | "handicap"
+  | "statistics"
+  | "push";
+
+type TabDef = {
+  value: ClubSettingsTab;
+  label: string;
+};
+
+const PRIMARY_TABS: TabDef[] = [
+  { value: "general", label: "General" },
+  { value: "cache", label: "Cache" },
+  { value: "security", label: "Security" },
+];
+
+const MORE_TABS: TabDef[] = [
+  { value: "handicap", label: "Handicap" },
+  { value: "statistics", label: "Statistics" },
+  { value: "push", label: "Push Message" },
+];
+
+function isMoreTab(value: string): value is ClubSettingsTab {
+  return MORE_TABS.some((t) => t.value === value);
+}
+
 export function ClubSettings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -64,16 +93,22 @@ export function ClubSettings() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [configToDelete, setConfigToDelete] = useState<string | null>(null);
   const [enableCache, setEnableCache] = useState(true);
-  const [cacheDuration, setCacheDuration] = useState("3600"); // Default 1 hour in seconds
+  const [cacheDuration, setCacheDuration] = useState("3600");
   const [stats, setStats] = useState({
     totalMembers: 0,
     activeMembers: 0,
-    totalConfigs: 0
+    totalConfigs: 0,
   });
 
-  // Page Access Control states
   const [pageAccessList, setPageAccessList] = useState<PageAccessControl[]>([]);
   const [loadingPageAccess, setLoadingPageAccess] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<ClubSettingsTab>("general");
+
+  const moreTabLabel = useMemo(() => {
+    const def = MORE_TABS.find((t) => t.value === activeTab);
+    return def?.label || "More";
+  }, [activeTab]);
 
   useEffect(() => {
     loadSettings();
@@ -85,18 +120,14 @@ export function ClubSettings() {
 
   const loadStats = async () => {
     try {
-      const { count: totalMembers } = await supabase
-        .from("members")
-        .select("*", { count: "exact", head: true });
-        
-      const { count: totalConfigs } = await supabase
-        .from("fivefive_prizes")
-        .select("*", { count: "exact", head: true });
-        
+      const { count: totalMembers } = await supabase.from("members").select("*", { count: "exact", head: true });
+
+      const { count: totalConfigs } = await supabase.from("fivefive_prizes").select("*", { count: "exact", head: true });
+
       setStats({
         totalMembers: totalMembers || 0,
         activeMembers: totalMembers || 0,
-        totalConfigs: totalConfigs || 0
+        totalConfigs: totalConfigs || 0,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -122,12 +153,8 @@ export function ClubSettings() {
   const handleAccessLevelChange = async (pageId: string, newLevel: AccessLevel) => {
     try {
       await pageAccessService.updatePageAccess(pageId, { access_level: newLevel });
-      
-      setPageAccessList(prev =>
-        prev.map(page =>
-          page.id === pageId ? { ...page, access_level: newLevel } : page
-        )
-      );
+
+      setPageAccessList((prev) => prev.map((page) => (page.id === pageId ? { ...page, access_level: newLevel } : page)));
 
       toast({
         title: "✅ Berjaya!",
@@ -145,12 +172,8 @@ export function ClubSettings() {
   const handlePageToggle = async (pageId: string, isEnabled: boolean) => {
     try {
       await pageAccessService.togglePageEnabled(pageId, isEnabled);
-      
-      setPageAccessList(prev =>
-        prev.map(page =>
-          page.id === pageId ? { ...page, is_enabled: isEnabled } : page
-        )
-      );
+
+      setPageAccessList((prev) => prev.map((page) => (page.id === pageId ? { ...page, is_enabled: isEnabled } : page)));
 
       toast({
         title: "✅ Berjaya!",
@@ -177,7 +200,6 @@ export function ClubSettings() {
         setEnableCache(data.setting_value === "true");
       }
 
-      // Load cache duration
       const { data: durationData } = await supabase
         .from("club_settings")
         .select("setting_value")
@@ -194,7 +216,6 @@ export function ClubSettings() {
 
   const handleCacheToggle = async (enabled: boolean) => {
     try {
-      // First try to update
       const { data, error } = await supabase
         .from("club_settings")
         .update({ setting_value: enabled ? "true" : "false" })
@@ -203,13 +224,12 @@ export function ClubSettings() {
         .maybeSingle();
 
       if (error) throw error;
-      
-      // If it didn't exist, insert it
+
       if (!data) {
         const { error: insertError } = await supabase
           .from("club_settings")
           .insert({ setting_key: "enable_cache", setting_value: enabled ? "true" : "false" });
-          
+
         if (insertError) throw insertError;
       }
 
@@ -238,11 +258,14 @@ export function ClubSettings() {
 
       const hours = parseInt(value) / 3600;
       const days = hours / 24;
-      const displayValue = 
-        value === "0" ? "disabled" :
-        days >= 1 ? `${days} day${days > 1 ? 's' : ''}` :
-        hours >= 1 ? `${hours} hour${hours > 1 ? 's' : ''}` :
-        `${value} seconds`;
+      const displayValue =
+        value === "0"
+          ? "disabled"
+          : days >= 1
+            ? `${days} day${days > 1 ? "s" : ""}`
+            : hours >= 1
+              ? `${hours} hour${hours > 1 ? "s" : ""}`
+              : `${value} seconds`;
 
       toast({
         title: "Success",
@@ -261,9 +284,7 @@ export function ClubSettings() {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from("club_settings")
-        .select("setting_key, setting_value");
+      const { data } = await supabase.from("club_settings").select("setting_key, setting_value");
 
       if (data) {
         const nameRow = data.find((row) => row.setting_key === "club_name");
@@ -286,7 +307,9 @@ export function ClubSettings() {
   const saveClubSettings = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         toast({
@@ -298,11 +321,7 @@ export function ClubSettings() {
         return;
       }
 
-      const { data: memberData } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", session.user.id)
-        .single();
+      const { data: memberData } = await supabase.from("members").select("is_admin").eq("user_id", session.user.id).single();
 
       if (!memberData?.is_admin) {
         toast({
@@ -320,17 +339,10 @@ export function ClubSettings() {
       ];
 
       for (const setting of settings) {
-        const { data: existing } = await supabase
-          .from("club_settings")
-          .select("id")
-          .eq("setting_key", setting.setting_key)
-          .maybeSingle();
+        const { data: existing } = await supabase.from("club_settings").select("id").eq("setting_key", setting.setting_key).maybeSingle();
 
         if (existing) {
-          const { error } = await supabase
-            .from("club_settings")
-            .update({ setting_value: setting.setting_value })
-            .eq("id", existing.id);
+          const { error } = await supabase.from("club_settings").update({ setting_value: setting.setting_value }).eq("id", existing.id);
 
           if (error) throw error;
         } else {
@@ -339,8 +351,6 @@ export function ClubSettings() {
         }
       }
 
-      console.log("ClubSettings: Dispatching logo-updated event with base64 length:", logoBase64.length);
-      
       window.dispatchEvent(
         new CustomEvent("logo-updated", {
           detail: { logoBase64 },
@@ -411,7 +421,9 @@ export function ClubSettings() {
   const handleDeleteLogo = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         toast({
@@ -423,11 +435,7 @@ export function ClubSettings() {
         return;
       }
 
-      const { data: memberData } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", session.user.id)
-        .single();
+      const { data: memberData } = await supabase.from("members").select("is_admin").eq("user_id", session.user.id).single();
 
       if (!memberData?.is_admin) {
         toast({
@@ -439,25 +447,16 @@ export function ClubSettings() {
         return;
       }
 
-      const { data: existing } = await supabase
-        .from("club_settings")
-        .select("id")
-        .eq("setting_key", "club_logo_base64")
-        .maybeSingle();
+      const { data: existing } = await supabase.from("club_settings").select("id").eq("setting_key", "club_logo_base64").maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
-          .from("club_settings")
-          .update({ setting_value: "" })
-          .eq("id", existing.id);
+        const { error } = await supabase.from("club_settings").update({ setting_value: "" }).eq("id", existing.id);
 
         if (error) throw error;
       }
 
       setLogoBase64("");
 
-      console.log("ClubSettings: Dispatching logo-updated event for logo deletion");
-      
       window.dispatchEvent(
         new CustomEvent("logo-updated", {
           detail: { logoBase64: "" },
@@ -481,10 +480,7 @@ export function ClubSettings() {
 
   const loadFiveFiveConfigs = async () => {
     try {
-      const { data, error } = await supabase
-        .from("fivefive_prizes")
-        .select("*")
-        .order("player_count", { ascending: true });
+      const { data, error } = await supabase.from("fivefive_prizes").select("*").order("player_count", { ascending: true });
 
       if (error) throw error;
 
@@ -493,9 +489,7 @@ export function ClubSettings() {
           id: config.id,
           player_count: config.player_count,
           prize_count: config.prize_count,
-          prizes: Array.isArray(config.prizes)
-            ? config.prizes.map(Number)
-            : [],
+          prizes: Array.isArray(config.prizes) ? config.prizes.map(Number) : [],
         }));
         setFivefiveConfigs(configs);
       }
@@ -531,9 +525,7 @@ export function ClubSettings() {
     if (count > newPrizes.length) {
       const lastPrize = newPrizes[newPrizes.length - 1] || 100;
       for (let i = newPrizes.length; i < count; i++) {
-        newPrizes.push(
-          Math.max(10, lastPrize - 20 * (i - newPrizes.length + 1))
-        );
+        newPrizes.push(Math.max(10, lastPrize - 20 * (i - newPrizes.length + 1)));
       }
     } else if (count < newPrizes.length) {
       newPrizes.splice(count);
@@ -578,9 +570,7 @@ export function ClubSettings() {
     }
 
     if (!editingConfig || editingConfig.player_count !== dialogPlayerCount) {
-      const duplicate = fivefiveConfigs.find(
-        (c) => c.player_count === dialogPlayerCount && c.id !== editingConfig?.id
-      );
+      const duplicate = fivefiveConfigs.find((c) => c.player_count === dialogPlayerCount && c.id !== editingConfig?.id);
       if (duplicate) {
         toast({
           title: "❌ Ralat",
@@ -600,10 +590,7 @@ export function ClubSettings() {
       };
 
       if (editingConfig) {
-        const { error } = await supabase
-          .from("fivefive_prizes")
-          .update(configData)
-          .eq("id", editingConfig.id);
+        const { error } = await supabase.from("fivefive_prizes").update(configData).eq("id", editingConfig.id);
 
         if (error) throw error;
 
@@ -612,9 +599,7 @@ export function ClubSettings() {
           description: `Configuration untuk ${dialogPlayerCount} pemain telah dikemaskini.`,
         });
       } else {
-        const { error } = await supabase
-          .from("fivefive_prizes")
-          .insert(configData);
+        const { error } = await supabase.from("fivefive_prizes").insert(configData);
 
         if (error) throw error;
 
@@ -646,14 +631,9 @@ export function ClubSettings() {
     try {
       if (!configToDelete) return;
 
-      const configToDeleteData = fivefiveConfigs.find(
-        (c) => c.id === configToDelete
-      );
+      const configToDeleteData = fivefiveConfigs.find((c) => c.id === configToDelete);
 
-      const { error } = await supabase
-        .from("fivefive_prizes")
-        .delete()
-        .eq("id", configToDelete);
+      const { error } = await supabase.from("fivefive_prizes").delete().eq("id", configToDelete);
 
       if (error) throw error;
 
@@ -677,71 +657,78 @@ export function ClubSettings() {
   const totalPrizePool = dialogPrizes.reduce((sum, prize) => sum + prize, 0);
   const avgPrizePerPlayer = dialogPlayerCount > 0 ? totalPrizePool / dialogPlayerCount : 0;
 
+  const handleMoreTabChange = (value: string) => {
+    if (value === "__more__") return;
+    if (isMoreTab(value)) setActiveTab(value);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Club Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your club configurations and settings
-        </p>
+        <p className="text-muted-foreground">Manage your club configurations and settings</p>
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="w-full">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="cache">Cache</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="handicap">
-            <span className="sm:hidden">HC</span>
-            <span className="hidden sm:inline">Handicap</span>
-          </TabsTrigger>
-          <TabsTrigger value="statistics">
-            <span className="sm:hidden">Stats</span>
-            <span className="hidden sm:inline">Statistics</span>
-          </TabsTrigger>
-          <TabsTrigger value="push">
-            <span className="sm:hidden">Push</span>
-            <span className="hidden sm:inline">Push Message</span>
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ClubSettingsTab)} className="space-y-6">
+        <div className="flex items-center gap-2">
+          <TabsList className="flex-1">
+            {PRIMARY_TABS.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {/* General Settings Tab */}
+          <div className="shrink-0 sm:hidden">
+            <Select value={MORE_TABS.find((t) => t.value === activeTab)?.value ?? "__more__"} onValueChange={handleMoreTabChange}>
+              <SelectTrigger className="h-10 w-[140px]">
+                <SelectValue placeholder="More" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__more__" disabled>
+                  <span className="flex items-center gap-2">
+                    More <ChevronDown className="h-4 w-4" />
+                  </span>
+                </SelectItem>
+                {MORE_TABS.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="hidden sm:flex">
+            <TabsList>
+              {MORE_TABS.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </div>
+
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Club Settings</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Manage your club&apos;s basic information
-              </p>
+              <p className="text-sm text-muted-foreground">Manage your club&apos;s basic information</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="club-name">Club Name</Label>
-                <Input
-                  id="club-name"
-                  value={clubName}
-                  onChange={(e) => setClubName(e.target.value)}
-                  placeholder="Enter club name"
-                />
+                <Input id="club-name" value={clubName} onChange={(e) => setClubName(e.target.value)} placeholder="Enter club name" />
               </div>
 
               <div className="space-y-2">
                 <Label>Club Logo</Label>
                 <div className="flex flex-col gap-4">
                   {logoBase64 && (
-                    <div className="relative w-40 h-40 border rounded-lg overflow-hidden bg-gray-50">
-                      <img
-                        src={logoBase64}
-                        alt="Club Logo"
-                        className="w-full h-full object-contain"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={handleDeleteLogo}
-                        disabled={loading}
-                      >
+                    <div className="relative h-40 w-40 overflow-hidden rounded-lg border bg-gray-50">
+                      <img src={logoBase64} alt="Club Logo" className="h-full w-full object-contain" />
+                      <Button variant="destructive" size="icon" className="absolute right-2 top-2" onClick={handleDeleteLogo} disabled={loading}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -756,9 +743,7 @@ export function ClubSettings() {
                     />
                     {uploading && <span className="text-sm text-muted-foreground">Uploading...</span>}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
-                  </p>
+                  <p className="text-sm text-muted-foreground">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF</p>
                 </div>
               </div>
 
@@ -770,17 +755,13 @@ export function ClubSettings() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🏆 FiveFive Prize Settings
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Configure prize distributions for different player counts
-              </p>
+              <CardTitle className="flex items-center gap-2">🏆 FiveFive Prize Settings</CardTitle>
+              <p className="text-sm text-muted-foreground">Configure prize distributions for different player counts</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-900 mb-2">ℹ️ How It Works</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="mb-2 font-medium text-blue-900">ℹ️ How It Works</h4>
+                <ul className="space-y-1 text-sm text-blue-800">
                   <li>• Create configurations for different player counts</li>
                   <li>• Set how many prizes to distribute for each player count</li>
                   <li>• Enter prize amounts for each rank position</li>
@@ -789,19 +770,16 @@ export function ClubSettings() {
               </div>
 
               {fivefiveConfigs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   <p>Tiada konfigurasi lagi. Klik butang di bawah untuk tambah.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {fivefiveConfigs.map((config) => (
-                    <div
-                      key={config.id}
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-3">
+                    <div key={config.id} className="rounded-lg border p-4 transition-colors hover:bg-gray-50">
+                      <div className="mb-3 flex items-start justify-between">
                         <div>
-                          <h4 className="font-semibold text-lg">
+                          <h4 className="text-lg font-semibold">
                             {config.player_count} Player{config.player_count > 1 ? "s" : ""}
                           </h4>
                           <p className="text-sm text-muted-foreground">
@@ -809,29 +787,18 @@ export function ClubSettings() {
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEditConfigDialog(config)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => openEditConfigDialog(config)}>
                             Edit
                           </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => openDeleteDialog(config.id)}
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(config.id)}>
                             Delete
                           </Button>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="mb-2 flex flex-wrap gap-2">
                         {config.prizes.map((prize, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"
-                          >
+                          <div key={idx} className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
                             #{idx + 1}: RM {prize.toFixed(2)}
                           </div>
                         ))}
@@ -846,26 +813,21 @@ export function ClubSettings() {
               )}
 
               <Button onClick={openAddConfigDialog} className="w-full">
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="mr-2 h-4 w-4" />
                 Add Configuration
               </Button>
             </CardContent>
           </Card>
 
-          {/* Cache Control Section */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                🔄 Cache Control
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Manage cache settings for the club
-              </p>
+              <CardTitle className="flex items-center gap-2">🔄 Cache Control</CardTitle>
+              <p className="text-sm text-muted-foreground">Manage cache settings for the club</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-900 mb-2">ℹ️ How It Works</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="mb-2 font-medium text-blue-900">ℹ️ How It Works</h4>
+                <ul className="space-y-1 text-sm text-blue-800">
                   <li>• Enable or disable cache to control data freshness</li>
                   <li>• Cache is used to speed up data retrieval</li>
                   <li>• Disable cache to force data refresh</li>
@@ -879,24 +841,18 @@ export function ClubSettings() {
                   type="checkbox"
                   checked={enableCache}
                   onChange={(e) => handleCacheToggle(e.target.checked)}
-                  className="w-auto h-auto mt-2"
+                  className="mt-2 h-auto w-auto"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Turn off caching temporarily to force fresh data loads if you are experiencing issues.
-                </p>
+                <p className="text-xs text-muted-foreground">Turn off caching temporarily to force fresh data loads if you are experiencing issues.</p>
               </div>
             </CardContent>
           </Card>
 
           <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>
-                  {editingConfig ? "Edit" : "Add"} FiveFive Configuration
-                </DialogTitle>
-                <DialogDescription>
-                  Set up prize distribution for a specific player count
-                </DialogDescription>
+                <DialogTitle>{editingConfig ? "Edit" : "Add"} FiveFive Configuration</DialogTitle>
+                <DialogDescription>Set up prize distribution for a specific player count</DialogDescription>
               </DialogHeader>
 
               <div className="space-y-6">
@@ -927,12 +883,10 @@ export function ClubSettings() {
 
                 <div className="space-y-2">
                   <Label>Prize Amounts (RM)</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                     {dialogPrizes.map((prize, index) => (
                       <div key={index} className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">
-                          Prize #{index + 1}
-                        </Label>
+                        <Label className="text-xs text-muted-foreground">Prize #{index + 1}</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -946,8 +900,8 @@ export function ClubSettings() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 border rounded-lg p-4">
-                  <h4 className="font-medium mb-2">Summary</h4>
+                <div className="rounded-lg border bg-gray-50 p-4">
+                  <h4 className="mb-2 font-medium">Summary</h4>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Players</p>
@@ -962,10 +916,8 @@ export function ClubSettings() {
                       <p className="font-semibold">RM {totalPrizePool.toFixed(2)}</p>
                     </div>
                   </div>
-                  <div className="mt-2 pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Per Player Avg: RM {avgPrizePerPlayer.toFixed(2)}
-                    </p>
+                  <div className="mt-2 border-t pt-2">
+                    <p className="text-xs text-muted-foreground">Per Player Avg: RM {avgPrizePerPlayer.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -985,9 +937,7 @@ export function ClubSettings() {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Configuration?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete the prize configuration. This action cannot be undone.
-                </AlertDialogDescription>
+                <AlertDialogDescription>This will permanently delete the prize configuration. This action cannot be undone.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -999,45 +949,32 @@ export function ClubSettings() {
           </AlertDialog>
         </TabsContent>
 
-        {/* Cache Settings Tab */}
         <TabsContent value="cache" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Cache Control</CardTitle>
-              <CardDescription>
-                Configure caching behavior for uploaded images and assets
-              </CardDescription>
+              <CardDescription>Configure caching behavior for uploaded images and assets</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Enable/Disable Cache */}
               <div className="flex items-center justify-between space-x-4">
                 <div className="space-y-1">
-                  <Label htmlFor="cache-enable" className="text-base font-semibold">
+                  <Label htmlFor="cache-enable-switch" className="text-base font-semibold">
                     Enable Cache
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Store uploaded images in browser cache for faster loading
-                  </p>
+                  <p className="text-sm text-muted-foreground">Store uploaded images in browser cache for faster loading</p>
                 </div>
-                <Switch
-                  id="cache-enable"
-                  checked={enableCache}
-                  onCheckedChange={handleCacheToggle}
-                />
+                <Switch id="cache-enable-switch" checked={enableCache} onCheckedChange={handleCacheToggle} />
               </div>
 
-              {/* Cache Duration */}
               {enableCache && (
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 border-t pt-4">
                   <div className="space-y-1">
                     <Label htmlFor="cache-duration" className="text-base font-semibold">
                       Cache Duration
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      How long images should be cached in the browser
-                    </p>
+                    <p className="text-sm text-muted-foreground">How long images should be cached in the browser</p>
                   </div>
-                  
+
                   <Select value={cacheDuration} onValueChange={handleCacheDurationChange}>
                     <SelectTrigger id="cache-duration">
                       <SelectValue placeholder="Select cache duration" />
@@ -1053,7 +990,7 @@ export function ClubSettings() {
                     </SelectContent>
                   </Select>
 
-                  <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <div className="space-y-2 rounded-lg bg-muted p-4">
                     <p className="text-sm font-medium">Current Setting:</p>
                     <p className="text-sm text-muted-foreground">
                       {cacheDuration === "0" ? (
@@ -1063,10 +1000,10 @@ export function ClubSettings() {
                           Images will be cached for{" "}
                           <span className="font-semibold">
                             {parseInt(cacheDuration) >= 86400
-                              ? `${parseInt(cacheDuration) / 86400} day${parseInt(cacheDuration) / 86400 > 1 ? 's' : ''}`
+                              ? `${parseInt(cacheDuration) / 86400} day${parseInt(cacheDuration) / 86400 > 1 ? "s" : ""}`
                               : parseInt(cacheDuration) >= 3600
-                              ? `${parseInt(cacheDuration) / 3600} hour${parseInt(cacheDuration) / 3600 > 1 ? 's' : ''}`
-                              : `${parseInt(cacheDuration) / 60} minutes`}
+                                ? `${parseInt(cacheDuration) / 3600} hour${parseInt(cacheDuration) / 3600 > 1 ? "s" : ""}`
+                                : `${parseInt(cacheDuration) / 60} minutes`}
                           </span>
                         </>
                       )}
@@ -1075,16 +1012,22 @@ export function ClubSettings() {
 
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
                     <div className="flex items-start space-x-3">
-                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
+                      <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-500" />
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                          Cache Duration Recommendations
-                        </p>
-                        <ul className="text-sm text-amber-800 dark:text-amber-300 space-y-1 ml-4 list-disc">
-                          <li><strong>1 Hour:</strong> Best for most cases - balances performance and freshness</li>
-                          <li><strong>6-24 Hours:</strong> Good for stable content that rarely changes</li>
-                          <li><strong>7+ Days:</strong> Only for truly static images (logos, backgrounds)</li>
-                          <li><strong>No Cache:</strong> Use only when debugging upload issues</li>
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Cache Duration Recommendations</p>
+                        <ul className="ml-4 list-disc space-y-1 text-sm text-amber-800 dark:text-amber-300">
+                          <li>
+                            <strong>1 Hour:</strong> Best for most cases - balances performance and freshness
+                          </li>
+                          <li>
+                            <strong>6-24 Hours:</strong> Good for stable content that rarely changes
+                          </li>
+                          <li>
+                            <strong>7+ Days:</strong> Only for truly static images (logos, backgrounds)
+                          </li>
+                          <li>
+                            <strong>No Cache:</strong> Use only when debugging upload issues
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -1095,13 +1038,12 @@ export function ClubSettings() {
               {!enableCache && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
                   <div className="flex items-start space-x-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-500" />
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                        Cache Disabled
-                      </p>
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Cache Disabled</p>
                       <p className="text-sm text-amber-800 dark:text-amber-300">
-                        Images will always load fresh from the server. This may result in slower page loads and increased bandwidth usage. Enable cache for better performance.
+                        Images will always load fresh from the server. This may result in slower page loads and increased bandwidth usage. Enable cache for
+                        better performance.
                       </p>
                     </div>
                   </div>
@@ -1111,31 +1053,34 @@ export function ClubSettings() {
           </Card>
         </TabsContent>
 
-        {/* Security Settings Tab */}
         <TabsContent value="security" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Page Access Control</CardTitle>
-              <CardDescription>
-                Manage access permissions for all member pages
-              </CardDescription>
+              <CardDescription>Manage access permissions for all member pages</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-900 mb-2">ℹ️ Access Levels</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>Public:</strong> Semua orang boleh akses (Guest, Member, Admin)</li>
-                  <li>• <strong>Member:</strong> Member dan Admin sahaja boleh akses</li>
-                  <li>• <strong>Admin:</strong> Admin sahaja boleh akses</li>
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="mb-2 font-medium text-blue-900">ℹ️ Access Levels</h4>
+                <ul className="space-y-1 text-sm text-blue-800">
+                  <li>
+                    • <strong>Public:</strong> Semua orang boleh akses (Guest, Member, Admin)
+                  </li>
+                  <li>
+                    • <strong>Member:</strong> Member dan Admin sahaja boleh akses
+                  </li>
+                  <li>
+                    • <strong>Admin:</strong> Admin sahaja boleh akses
+                  </li>
                 </ul>
               </div>
 
               {loadingPageAccess ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   <p>Memuatkan tetapan page access...</p>
                 </div>
               ) : pageAccessList.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="py-8 text-center text-muted-foreground">
                   <p>Tiada page access settings dijumpai</p>
                 </div>
               ) : (
@@ -1143,23 +1088,17 @@ export function ClubSettings() {
                   {pageAccessList.map((page) => (
                     <div
                       key={page.id}
-                      className={`border rounded-lg p-4 transition-colors ${
-                        page.is_enabled ? "bg-white" : "bg-gray-50 opacity-60"
-                      }`}
+                      className={`rounded-lg border p-4 transition-colors ${page.is_enabled ? "bg-white" : "bg-gray-50 opacity-60"}`}
                     >
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="mb-3 flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            <h4 className="font-semibold text-base">{page.page_name}</h4>
+                          <div className="mb-1 flex items-center gap-3">
+                            <h4 className="text-base font-semibold">{page.page_name}</h4>
                             {!page.is_enabled && (
-                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-                                Disabled
-                              </span>
+                              <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-600">Disabled</span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground font-mono">
-                            {page.page_path}
-                          </p>
+                          <p className="font-mono text-sm text-muted-foreground">{page.page_path}</p>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="flex flex-col items-end gap-1">
@@ -1176,19 +1115,13 @@ export function ClubSettings() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="public">
-                                  <span className="flex items-center gap-2">
-                                    🌐 Public
-                                  </span>
+                                  <span className="flex items-center gap-2">🌐 Public</span>
                                 </SelectItem>
                                 <SelectItem value="member">
-                                  <span className="flex items-center gap-2">
-                                    🔒 Member
-                                  </span>
+                                  <span className="flex items-center gap-2">🔒 Member</span>
                                 </SelectItem>
                                 <SelectItem value="admin">
-                                  <span className="flex items-center gap-2">
-                                    👑 Admin
-                                  </span>
+                                  <span className="flex items-center gap-2">👑 Admin</span>
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -1197,37 +1130,23 @@ export function ClubSettings() {
                             <Label htmlFor={`enabled-${page.id}`} className="text-xs text-muted-foreground">
                               Enable
                             </Label>
-                            <Switch
-                              id={`enabled-${page.id}`}
-                              checked={page.is_enabled}
-                              onCheckedChange={(checked) => handlePageToggle(page.id, checked)}
-                            />
+                            <Switch id={`enabled-${page.id}`} checked={page.is_enabled} onCheckedChange={(checked) => handlePageToggle(page.id, checked)} />
                           </div>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+
+                      <div className="flex items-center gap-2 border-t pt-2 text-xs text-muted-foreground">
                         <span>Current Access:</span>
                         {page.access_level === "public" && (
-                          <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                            🌐 Semua orang
-                          </span>
+                          <span className="rounded bg-green-100 px-2 py-0.5 text-green-800">🌐 Semua orang</span>
                         )}
                         {page.access_level === "member" && (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                            🔒 Member + Admin
-                          </span>
+                          <span className="rounded bg-blue-100 px-2 py-0.5 text-blue-800">🔒 Member + Admin</span>
                         )}
                         {page.access_level === "admin" && (
-                          <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
-                            👑 Admin sahaja
-                          </span>
+                          <span className="rounded bg-purple-100 px-2 py-0.5 text-purple-800">👑 Admin sahaja</span>
                         )}
-                        {!page.is_enabled && (
-                          <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">
-                            ⛔ Disabled
-                          </span>
-                        )}
+                        {!page.is_enabled && <span className="rounded bg-gray-200 px-2 py-0.5 text-gray-600">⛔ Disabled</span>}
                       </div>
                     </div>
                   ))}
@@ -1237,62 +1156,48 @@ export function ClubSettings() {
           </Card>
         </TabsContent>
 
-        {/* Handicap Settings Tab */}
         <TabsContent value="handicap" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Handicap Management</CardTitle>
-              <CardDescription>
-                Configure handicap calculation settings for your club
-              </CardDescription>
+              <CardDescription>Configure handicap calculation settings for your club</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Handicap management features will be available here.
-              </p>
+              <p className="text-muted-foreground">Handicap management features will be available here.</p>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Statistics Tab */}
         <TabsContent value="statistics" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Club Statistics</CardTitle>
-              <CardDescription>
-                Overview of your club's activity and member statistics
-              </CardDescription>
+              <CardDescription>Overview of your club&apos;s activity and member statistics</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Members
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Members</p>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-2xl font-bold mt-2">{stats.totalMembers}</p>
+                  <p className="mt-2 text-2xl font-bold">{stats.totalMembers}</p>
                 </div>
 
                 <div className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Active Members
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Active Members</p>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-2xl font-bold mt-2">{stats.activeMembers}</p>
+                  <p className="mt-2 text-2xl font-bold">{stats.activeMembers}</p>
                 </div>
 
                 <div className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Total Configurations
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Configurations</p>
                     <Settings className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-2xl font-bold mt-2">{stats.totalConfigs}</p>
+                  <p className="mt-2 text-2xl font-bold">{stats.totalConfigs}</p>
                 </div>
               </div>
             </CardContent>
