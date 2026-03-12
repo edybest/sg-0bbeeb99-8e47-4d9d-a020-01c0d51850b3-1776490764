@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,13 +38,14 @@ import {
   MapPin,
   Users,
   Trophy,
-  TrendingUp,
   Copy,
   Check,
   UserPlus,
   X,
   Lock,
   Unlock,
+  Eye,
+  ArrowLeft,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,10 +62,13 @@ import {
   deletePlayer,
   shareAccess,
   revokeAccess,
+  revokeShareToken,
+  getMiniBlokSharedByToken,
   generateShareUrl,
   generateShareText,
   calculatePlayerStats,
   type MiniBlokWithPlayers,
+  type MiniBlokPublicShared,
 } from "@/services/miniBlokService";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -141,11 +145,213 @@ const GAME_COLORS = [
   "bg-purple-600",
 ];
 
+function PublicSharedView({
+  shared,
+  onBack,
+}: {
+  shared: MiniBlokPublicShared;
+  onBack: () => void;
+}) {
+  const entry = shared.entry;
+  const players = [...shared.players].sort((a, b) => {
+    const statsA = calculatePlayerStats(a, entry.num_games || 5);
+    const statsB = calculatePlayerStats(b, entry.num_games || 5);
+    return statsB.overall_score - statsA.overall_score;
+  });
+
+  return (
+    <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-7xl">
+      <div className="flex items-center gap-3 mb-6">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Eye className="h-6 w-6 text-primary" />
+            Shared Mini Blok
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            View-only · No login required
+          </p>
+        </div>
+      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-xl">{entry.title || "Mini Blok Tournament"}</CardTitle>
+          <div className="grid gap-2 md:grid-cols-3 text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span className="truncate">{entry.location}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>{new Date(entry.date).toLocaleDateString("en-MY")}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>{players.length} players · {entry.num_games} games</span>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {players.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            No players yet
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Leaderboard</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Player</TableHead>
+                    {Array.from({ length: entry.num_games || 5 }, (_, i) => (
+                      <TableHead key={i} className="text-center">G{i + 1}</TableHead>
+                    ))}
+                    <TableHead className="text-center">HCP</TableHead>
+                    <TableHead className="text-center">Avg</TableHead>
+                    <TableHead className="text-center">Total</TableHead>
+                    <TableHead className="text-center">Overall</TableHead>
+                    <TableHead className="text-center">Diff</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {players.map((player, idx) => {
+                    const stats = calculatePlayerStats(player, entry.num_games || 5);
+                    const scores = (player.scores as Record<string, number>) || {};
+                    return (
+                      <TableRow key={player.id}>
+                        <TableCell>
+                          <Badge variant={idx === 0 ? "default" : "secondary"}>
+                            {idx + 1}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold">{player.player_name}</TableCell>
+                        {Array.from({ length: entry.num_games || 5 }, (_, i) => {
+                          const score = scores[`game_${i + 1}`] as number | null;
+                          return (
+                            <TableCell key={i} className="text-center">
+                              {score !== null && score > 0 ? (
+                                <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
+                                  {score}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-center">{player.handicap}</TableCell>
+                        <TableCell className="text-center font-semibold">{stats.average}</TableCell>
+                        <TableCell className="text-center">{stats.total_score}</TableCell>
+                        <TableCell className="text-center font-bold text-primary">
+                          {stats.overall_score}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                            {stats.differential > 0 ? "+" : ""}{stats.differential}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="md:hidden space-y-3">
+              {players.map((player, idx) => {
+                const stats = calculatePlayerStats(player, entry.num_games || 5);
+                const scores = (player.scores as Record<string, number>) || {};
+                return (
+                  <Card key={player.id} className="overflow-hidden">
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={idx === 0 ? "default" : "secondary"}>
+                            #{idx + 1}
+                          </Badge>
+                          <span className="font-semibold">{player.player_name}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-primary">
+                            {stats.overall_score}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Avg: {stats.average}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div>
+                          <span className="text-muted-foreground">Handicap:</span>
+                          <span className="ml-2 font-semibold">{player.handicap}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="ml-2 font-semibold">{stats.total_score}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Diff:</span>
+                          <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
+                            {stats.differential > 0 ? "+" : ""}{stats.differential}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Games:</span>
+                          <span className="ml-2 font-semibold">{stats.games_played}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: entry.num_games || 5 }, (_, i) => {
+                          const score = scores[`game_${i + 1}`] as number | null;
+                          return (
+                            <Badge
+                              key={i}
+                              variant="secondary"
+                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
+                            >
+                              G{i + 1}: {score !== null && score > 0 ? score : "-"}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function MiniBlokPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth();
-  
+
+  const shareToken = useMemo(() => {
+    const raw = router.query.share;
+    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  }, [router.query.share]);
+
+  const isPublicSharedMode = !!shareToken;
+
   const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -162,18 +368,17 @@ export default function MiniBlokPage() {
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
-  // Filter states
+  const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [ownershipFilter, setOwnershipFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
 
-  // Available members state
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [showPlayerForm, setShowPlayerForm] = useState(false);
 
-  // Create tournament form
   const [tournamentForm, setTournamentForm] = useState({
     title: "",
     location: "Daiman Bowl",
@@ -182,20 +387,48 @@ export default function MiniBlokPage() {
   });
 
   useEffect(() => {
+    if (isPublicSharedMode) return;
     loadEntries();
-  }, []);
+  }, [isPublicSharedMode, member?.id]);
 
   useEffect(() => {
-    const entryId = router.query.entry;
-    if (typeof entryId === "string" && entryId) {
-      loadSharedEntry(entryId);
-    }
-  }, [router.query.entry, member?.id]);
+    if (!isPublicSharedMode) return;
+    loadPublicShared();
+  }, [isPublicSharedMode, shareToken]);
 
-  // Filter and sort logic
+  async function loadPublicShared() {
+    if (!shareToken) return;
+
+    try {
+      setLoading(true);
+      const data = await getMiniBlokSharedByToken(shareToken);
+
+      if (!data) {
+        toast({
+          title: "Link tidak sah",
+          description: "Share link ini mungkin telah direvoke atau tamat tempoh.",
+          variant: "destructive",
+        });
+        setPublicShared(null);
+        return;
+      }
+
+      setPublicShared(data);
+    } catch (error) {
+      console.error("Error loading public shared mini blok:", error);
+      toast({
+        title: "Error",
+        description: "Gagal load tournament yang dikongsi.",
+        variant: "destructive",
+      });
+      setPublicShared(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const filteredAndSortedEntries = entries
     .filter((entry) => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchTitle = entry.title?.toLowerCase().includes(query);
@@ -203,11 +436,10 @@ export default function MiniBlokPage() {
         if (!matchTitle && !matchLocation) return false;
       }
 
-      // Date filter
       if (dateFilter !== "all") {
         const entryDate = new Date(entry.date);
         const now = new Date();
-        
+
         if (dateFilter === "week") {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           if (entryDate < weekAgo) return false;
@@ -220,7 +452,6 @@ export default function MiniBlokPage() {
         }
       }
 
-      // Ownership filter
       if (ownershipFilter === "mine") {
         if (entry.owner_id !== member?.id) return false;
       } else if (ownershipFilter === "shared") {
@@ -268,6 +499,15 @@ export default function MiniBlokPage() {
     }, 400);
   }
 
+  useEffect(() => {
+    if (isPublicSharedMode) return;
+
+    const entryId = router.query.entry;
+    if (typeof entryId === "string" && entryId && member?.id) {
+      loadSharedEntry(entryId);
+    }
+  }, [router.query.entry, member?.id, isPublicSharedMode]);
+
   async function loadSharedEntry(entryId: string) {
     try {
       const entry = await getMiniBlokById(entryId, member?.id);
@@ -290,15 +530,6 @@ export default function MiniBlokPage() {
         return;
       }
 
-      if (!member?.id) {
-        toast({
-          title: "Sila log masuk",
-          description: "Log masuk dahulu untuk lihat tournament yang dikongsi.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       setEntries((prev) => {
         const already = prev.some((e) => e.id === entry.id);
         if (already) return prev;
@@ -316,6 +547,30 @@ export default function MiniBlokPage() {
     }
   }
 
+  async function handleRevokePublicShare() {
+    if (!shareToken) return;
+
+    try {
+      setSubmitting(true);
+      await revokeShareToken(shareToken);
+      toast({
+        title: "Berjaya",
+        description: "Share link telah direvoke.",
+      });
+
+      router.replace("/member/mini-blok");
+    } catch (error) {
+      console.error("Error revoking share token:", error);
+      toast({
+        title: "Error",
+        description: "Gagal revoke share link.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleCreateTournament() {
     if (!member) {
       toast({
@@ -325,8 +580,6 @@ export default function MiniBlokPage() {
       });
       return;
     }
-
-    console.log("Creating tournament with member:", member.id);
 
     if (!tournamentForm.title.trim()) {
       toast({
@@ -348,15 +601,13 @@ export default function MiniBlokPage() {
 
     try {
       setSubmitting(true);
-      const entry = await createMiniBlok({
+      await createMiniBlok({
         title: tournamentForm.title,
         location: tournamentForm.location,
         date: tournamentForm.date,
         num_games: tournamentForm.total_games,
         owner_id: member.id,
       });
-
-      console.log("Tournament created successfully:", entry);
 
       toast({
         title: "Success",
@@ -373,7 +624,6 @@ export default function MiniBlokPage() {
       loadEntries();
     } catch (error) {
       console.error("Error creating tournament:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create tournament",
@@ -386,14 +636,6 @@ export default function MiniBlokPage() {
 
   async function handleUpdateTournament() {
     if (!selectedEntry) return;
-
-    console.log("Updating tournament:", {
-      id: selectedEntry.id,
-      owner_id: selectedEntry.owner_id,
-      current_member: member?.id,
-      can_edit: selectedEntry.can_edit,
-      form: tournamentForm
-    });
 
     try {
       setSubmitting(true);
@@ -414,7 +656,6 @@ export default function MiniBlokPage() {
       if (updated) setSelectedEntry(updated);
     } catch (error) {
       console.error("Error updating tournament:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update tournament",
@@ -500,6 +741,7 @@ export default function MiniBlokPage() {
       game_20: scores.game_20 || null,
     };
     setPlayerForm(formData);
+    setShowPlayerForm(true);
   }
 
   async function handleSavePlayer() {
@@ -517,7 +759,7 @@ export default function MiniBlokPage() {
     const scoresObj: Record<string, number> = {};
     for (let i = 1; i <= selectedEntry.num_games; i++) {
       const val = playerForm[`game_${i}` as keyof PlayerForm];
-      if (typeof val === 'number' && val > 0) {
+      if (typeof val === "number" && val > 0) {
         scoresObj[`game_${i}`] = val;
       }
     }
@@ -538,7 +780,7 @@ export default function MiniBlokPage() {
         await updatePlayer(editingPlayer.id, {
           player_name: playerForm.player_name,
           handicap: playerForm.handicap,
-          scores: scoresObj
+          scores: scoresObj,
         });
         toast({
           title: "Success",
@@ -601,8 +843,7 @@ export default function MiniBlokPage() {
   async function openShareAccessDialog(entry: MiniBlokWithPlayers) {
     setShareAccessEntry(entry);
     setShowShareAccessDialog(true);
-    
-    // Load all members except owner and already shared
+
     try {
       const { data: members } = await supabase
         .from("members")
@@ -611,8 +852,8 @@ export default function MiniBlokPage() {
 
       if (members) {
         const filtered = members.filter(
-          m => m.id !== entry.owner_id && 
-          !entry.shared_with.some(s => s.member_id === m.id)
+          (m) => m.id !== entry.owner_id &&
+            !entry.shared_with.some((s) => s.member_id === m.id)
         );
         setAvailableMembers(filtered);
       }
@@ -627,7 +868,7 @@ export default function MiniBlokPage() {
     try {
       setSubmitting(true);
       await shareAccess(shareAccessEntry.id, selectedMemberIds);
-      
+
       toast({
         title: "Success",
         description: `Shared with ${selectedMemberIds.length} member(s)`,
@@ -636,7 +877,7 @@ export default function MiniBlokPage() {
       setShowShareAccessDialog(false);
       setSelectedMemberIds([]);
       loadEntries();
-      
+
       if (selectedEntry?.id === shareAccessEntry.id) {
         const updated = await getMiniBlokById(shareAccessEntry.id, member?.id);
         if (updated) setSelectedEntry(updated);
@@ -661,7 +902,7 @@ export default function MiniBlokPage() {
         description: "Access revoked successfully",
       });
       loadEntries();
-      
+
       if (selectedEntry?.id === entryId) {
         const updated = await getMiniBlokById(entryId, member?.id);
         if (updated) setSelectedEntry(updated);
@@ -726,8 +967,65 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return <BowlingBallLoader />;
+  }
+
+  if (isPublicSharedMode) {
+    return (
+      <>
+        <Head>
+          <title>Shared Mini Blok - AMBC CLUB</title>
+        </Head>
+
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="border-b bg-background/80 backdrop-blur sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3 max-w-7xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img src="/ambc-logo.png" alt="AMBC CLUB" className="h-8 w-8 rounded" />
+                <div className="leading-tight">
+                  <div className="font-semibold">AMBC CLUB</div>
+                  <div className="text-xs text-muted-foreground">Mini Blok Shared</div>
+                </div>
+              </div>
+
+              {member && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRevokePublicShare}
+                  disabled={submitting}
+                >
+                  {submitting ? "Revoking..." : "Revoke Link"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {publicShared ? (
+            <PublicSharedView
+              shared={publicShared}
+              onBack={() => router.replace("/member/mini-blok")}
+            />
+          ) : (
+            <div className="container mx-auto px-4 py-10 max-w-3xl">
+              <Card>
+                <CardContent className="py-10 text-center">
+                  <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
+                  <p className="text-muted-foreground mb-4">
+                    Link ini mungkin telah direvoke atau tidak sah.
+                  </p>
+                  <Button variant="outline" onClick={() => router.replace("/member/mini-blok")}>
+                    Go to Mini Blok
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </>
+    );
   }
 
   return (
@@ -740,7 +1038,6 @@ export default function MiniBlokPage() {
         <MobileNav />
 
         <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-7xl">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
               <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
@@ -759,7 +1056,6 @@ export default function MiniBlokPage() {
             )}
           </div>
 
-          {/* Filters */}
           <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -810,7 +1106,6 @@ export default function MiniBlokPage() {
             </div>
           </div>
 
-          {/* Entries Grid */}
           {entries.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -1286,14 +1581,14 @@ export default function MiniBlokPage() {
                             const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
                             const scores = (player.scores as Record<string, number>) || {};
                             const isExpanded = expandedScores[player.id];
-                            
+
                             return (
                               <Card key={player.id} className="overflow-hidden">
-                                <div 
+                                <div
                                   className="p-4 cursor-pointer"
                                   onClick={() => setExpandedScores(prev => ({
                                     ...prev,
-                                    [player.id]: !prev[player.id]
+                                    [player.id]: !prev[player.id],
                                   }))}
                                 >
                                   <div className="flex items-center justify-between mb-2">
@@ -1312,7 +1607,7 @@ export default function MiniBlokPage() {
                                       </div>
                                     </div>
                                   </div>
-                                  
+
                                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                                     <span>Tap to {isExpanded ? "hide" : "view"} details</span>
                                     <div className="flex gap-2">
@@ -1343,7 +1638,7 @@ export default function MiniBlokPage() {
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 {isExpanded && (
                                   <div className="border-t bg-muted/30 p-4 space-y-3">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1366,16 +1661,16 @@ export default function MiniBlokPage() {
                                         </span>
                                       </div>
                                     </div>
-                                    
+
                                     <div>
                                       <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
                                       <div className="flex flex-wrap gap-2">
                                         {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
                                           const score = scores[`game_${i + 1}`] as number | null;
                                           return (
-                                            <Badge 
-                                              key={i} 
-                                              variant="secondary" 
+                                            <Badge
+                                              key={i}
+                                              variant="secondary"
                                               className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
                                             >
                                               G{i + 1}: {score !== null && score > 0 ? score : "-"}
@@ -1526,12 +1821,12 @@ export default function MiniBlokPage() {
                 <Label>Selected Members ({selectedMemberIds.length})</Label>
                 <div className="flex flex-wrap gap-2">
                   {selectedMemberIds.map((id) => {
-                    const member = availableMembers.find(m => m.id === id);
+                    const memberObj = availableMembers.find((m) => m.id === id);
                     return (
                       <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                        {member?.full_name}
+                        {memberObj?.full_name}
                         <button
-                          onClick={() => setSelectedMemberIds(selectedMemberIds.filter(m => m !== id))}
+                          onClick={() => setSelectedMemberIds(selectedMemberIds.filter((m) => m !== id))}
                           className="ml-1 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
@@ -1622,7 +1917,6 @@ export default function MiniBlokPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Copy Link */}
             <div>
               <Label className="mb-2 block">Share Link</Label>
               <div className="flex gap-2">
@@ -1641,7 +1935,6 @@ export default function MiniBlokPage() {
               </div>
             </div>
 
-            {/* Share Buttons */}
             <div>
               <Label className="mb-2 block">Share to Social Media</Label>
               <div className="grid grid-cols-3 gap-2">

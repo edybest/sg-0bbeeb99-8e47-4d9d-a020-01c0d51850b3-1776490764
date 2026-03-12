@@ -23,6 +23,11 @@ export interface PlayerStats {
   games_played: number;
 }
 
+export interface MiniBlokPublicShared {
+  entry: MiniBlok;
+  players: MiniBlokPlayer[];
+}
+
 function calculatePlayerStats(player: MiniBlokPlayer, numGames: number): PlayerStats {
   const scoresObj = (player.scores as Record<string, number>) || {};
   const scores: number[] = [];
@@ -250,6 +255,47 @@ export async function revokeAccess(miniBlokId: string, userId: string): Promise<
     console.error("Error revoking access:", error);
     throw error;
   }
+}
+
+export async function revokeShareToken(shareToken: string): Promise<void> {
+  const { data, error } = await supabase.rpc("revoke_mini_blok_share", {
+    p_share_token: shareToken,
+  });
+
+  console.log("revokeShareToken:", { data, error });
+
+  if (error) {
+    console.error("Error revoking share token:", error);
+    throw error;
+  }
+}
+
+export async function getMiniBlokSharedByToken(shareToken: string): Promise<MiniBlokPublicShared | null> {
+  const { data, error } = await supabase.rpc("get_mini_blok_shared", {
+    p_share_token: shareToken,
+  });
+
+  console.log("getMiniBlokSharedByToken:", { data, error });
+
+  if (error) {
+    console.error("Error fetching shared mini blok:", error);
+    throw error;
+  }
+
+  if (!data) return null;
+
+  const typed = data as unknown as { entry: MiniBlok | null; players: MiniBlokPlayer[] | null };
+  if (!typed.entry) return null;
+
+  return {
+    entry: typed.entry,
+    players: Array.isArray(typed.players) ? typed.players : [],
+  };
+}
+
+export function generateShareTokenUrl(shareToken: string): string {
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  return `${baseUrl}/member/mini-blok?share=${encodeURIComponent(shareToken)}`;
 }
 
 export function generateShareUrl(entryId: string): string {

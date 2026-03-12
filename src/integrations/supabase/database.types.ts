@@ -594,6 +594,54 @@ export type Database = {
           },
         ]
       }
+      mini_blok_shares: {
+        Row: {
+          created_at: string
+          created_by_member_id: string
+          expires_at: string | null
+          id: string
+          last_accessed_at: string | null
+          mini_blok_id: string
+          revoked_at: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_member_id: string
+          expires_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          mini_blok_id: string
+          revoked_at?: string | null
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by_member_id?: string
+          expires_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          mini_blok_id?: string
+          revoked_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mini_blok_shares_created_by_member_id_fkey"
+            columns: ["created_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mini_blok_shares_mini_blok_id_fkey"
+            columns: ["mini_blok_id"]
+            isOneToOne: false
+            referencedRelation: "mini_blok"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       page_access_control: {
         Row: {
           access_level: string
@@ -791,6 +839,20 @@ export type Database = {
     }
     Functions: {
       get_member_id_from_auth: { Args: never; Returns: string }
+      get_mini_blok_shared: {
+        Args: { p_token: string }
+        Returns: {
+          created_at: string
+          date: string
+          location: string
+          mini_blok_id: string
+          num_games: number
+          owner_id: string
+          players: Json
+          title: string
+          updated_at: string
+        }[]
+      }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
     }
