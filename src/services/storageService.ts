@@ -34,8 +34,8 @@ async function getCacheControl(): Promise<string> {
 export const storageService = {
   /**
    * Upload member avatar to Supabase Storage
+   * @param userId - User ID
    * @param file - Image file to upload
-   * @param targetMemberId - Optional: Upload for specific member ID (for admins)
    * @returns Public URL of uploaded avatar
    */
   async uploadAvatar(
@@ -49,7 +49,7 @@ export const storageService = {
 
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = fileName; // ✅ FIXED: No 'avatars/' prefix - we're already in avatars bucket
 
       const { error } = await supabase.storage
         .from("avatars")
@@ -98,12 +98,15 @@ export const storageService = {
    * @param userId - Member's user ID
    */
   async deleteAvatar(userId: string): Promise<void> {
+    // List all files that start with userId
     const { data: files } = await supabase.storage
       .from("avatars")
-      .list(userId);
+      .list("", { // ✅ FIXED: List from root of bucket
+        search: userId
+      });
 
     if (files && files.length > 0) {
-      const filesToDelete = files.map((f) => `${userId}/${f.name}`);
+      const filesToDelete = files.map((f) => f.name); // ✅ FIXED: Just filename, no folder prefix
       const { error } = await supabase.storage
         .from("avatars")
         .remove(filesToDelete);
