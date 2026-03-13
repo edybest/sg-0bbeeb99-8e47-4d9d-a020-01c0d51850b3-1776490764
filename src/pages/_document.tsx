@@ -18,14 +18,14 @@ export default function Document() {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AMBC Club" />
-        <link rel="apple-touch-icon" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="120x120" href="/ambc-logo.png" />
+        <link rel="apple-touch-icon" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" />
 
         {/* Windows tiles (harmless on others) */}
         <meta name="msapplication-TileColor" content="#DC2626" />
-        <meta name="msapplication-TileImage" content="/ambc-logo.png" />
+        <meta name="msapplication-TileImage" content="/file_00000000b2f4720b8bfc5174c04c0a59.png" />
         
         {/* Android PWA Support */}
         <meta name="mobile-web-app-capable" content="yes" />
@@ -43,11 +43,11 @@ export default function Document() {
       if (appleTitle) appleTitle.setAttribute("content", "AMBC Admin");
 
       var tile = document.querySelector('meta[name="msapplication-TileImage"]');
-      if (tile) tile.setAttribute("content", "/file_000000002110720ba90c29d44a4b4756.png");
+      if (tile) tile.setAttribute("content", "/file_00000000b2f4720b8bfc5174c04c0a59.png");
 
       var icons = document.querySelectorAll('link[rel="apple-touch-icon"]');
       if (icons && icons.length) {
-        for (var i=0;i<icons.length;i++) icons[i].setAttribute("href", "/file_000000002110720ba90c29d44a4b4756.png");
+        for (var i=0;i<icons.length;i++) icons[i].setAttribute("href", "/file_00000000b2f4720b8bfc5174c04c0a59.png");
       }
     }
   } catch(e) {}

@@ -10,25 +10,25 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/ambc-logo.png",
+      "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/ambc-logo.png",
+      "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/ambc-logo.png",
+      "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/ambc-logo.png",
+      "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
@@ -42,7 +42,7 @@
       "url": "/member",
       "icons": [
         {
-          "src": "/ambc-logo.png",
+          "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -55,7 +55,7 @@
       "url": "/login",
       "icons": [
         {
-          "src": "/ambc-logo.png",
+          "src": "/file_00000000b2f4720b8bfc5174c04c0a59.png",
           "sizes": "192x192",
           "type": "image/png"
         }
