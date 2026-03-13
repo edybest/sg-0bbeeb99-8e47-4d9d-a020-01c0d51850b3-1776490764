@@ -75,64 +75,64 @@ const navigationCards: NavigationCard[] = [
         description: "Leaderboard & Rankings",
         href: "/member/blok",
         icon: Trophy,
-        iconColor: "text-yellow-600",
-        hoverBorder: "hover:border-yellow-600",
+        iconColor: "text-yellow-600 dark:text-yellow-500",
+        hoverBorder: "hover:border-yellow-600 dark:hover:border-yellow-500",
     },
     {
         title: "FiveFive",
         description: "Prize Distribution",
         href: "/member/five-five",
         icon: Target,
-        iconColor: "text-blue-600",
-        hoverBorder: "hover:border-blue-600",
+        iconColor: "text-blue-600 dark:text-blue-500",
+        hoverBorder: "hover:border-blue-600 dark:hover:border-blue-500",
     },
     {
         title: "Training",
         description: "Practice Scores",
         href: "/member/training",
         icon: Target,
-        iconColor: "text-green-600",
-        hoverBorder: "hover:border-green-600",
+        iconColor: "text-green-600 dark:text-green-500",
+        hoverBorder: "hover:border-green-600 dark:hover:border-green-500",
     },
     {
         title: "Hall of Fame",
         description: "Top Performers",
         href: "/member/hall-of-fame",
         icon: Trophy,
-        iconColor: "text-amber-600",
-        hoverBorder: "hover:border-amber-600",
+        iconColor: "text-amber-600 dark:text-amber-500",
+        hoverBorder: "hover:border-amber-600 dark:hover:border-amber-500",
     },
     {
         title: "Lane",
         description: "Kedudukan Lane",
         href: "/member/lane",
         icon: LayoutGrid,
-        iconColor: "text-orange-500",
-        hoverBorder: "hover:border-orange-500",
+        iconColor: "text-orange-500 dark:text-orange-400",
+        hoverBorder: "hover:border-orange-500 dark:hover:border-orange-400",
     },
     {
         title: "Undi Lane",
         description: "Undian Lane Bertuah",
         href: "/member/undi-lane",
         icon: Shuffle,
-        iconColor: "text-purple-600",
-        hoverBorder: "hover:border-purple-600",
+        iconColor: "text-purple-600 dark:text-purple-500",
+        hoverBorder: "hover:border-purple-600 dark:hover:border-purple-500",
     },
     {
         title: "Average Score",
         description: "Purata 3 game terkini",
         href: "/member/average-score",
         icon: BarChart3,
-        iconColor: "text-red-600",
-        hoverBorder: "hover:border-red-600",
+        iconColor: "text-red-600 dark:text-red-500",
+        hoverBorder: "hover:border-red-600 dark:hover:border-red-500",
     },
     {
         title: "Profile",
         description: "Edit profile & rekod game",
         href: "/member/profile",
         icon: User,
-        iconColor: "text-red-600",
-        hoverBorder: "hover:border-red-600",
+        iconColor: "text-red-600 dark:text-red-500",
+        hoverBorder: "hover:border-red-600 dark:hover:border-red-500",
         requiresAuth: true,
     },
 ];
@@ -303,8 +303,8 @@ export default function HomePage() {
 
     if (authState === "loading") {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-gray-50">
-                <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+            <div className="flex min-h-screen items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -316,16 +316,16 @@ export default function HomePage() {
                 description="Welcome to AMBC Club"
             />
 
-            <div className="min-h-screen bg-gray-50">
-                <header className="border-b border-gray-200 bg-white shadow-sm">
+            <div className="min-h-screen bg-background">
+                <header className="border-b bg-card shadow-sm">
                     <div className="container mx-auto px-4 py-4">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <MobileNav />
                                 <ClubLogo size="sm" />
                                 <div>
-                                    <h1 className="text-2xl font-bold text-red-600">AMBC CLUB</h1>
-                                    <p className="text-sm text-gray-600">Bowling Club Management</p>
+                                    <h1 className="text-2xl font-bold text-primary">AMBC CLUB</h1>
+                                    <p className="text-sm text-muted-foreground">Bowling Club Management</p>
                                 </div>
                             </div>
 
@@ -338,10 +338,10 @@ export default function HomePage() {
                                                 alt={member.username ?? "Member avatar"}
                                                 width={40}
                                                 height={40}
-                                                className="rounded-full border-2 border-red-600 object-cover"
+                                                className="rounded-full border-2 border-primary object-cover"
                                             />
                                         ) : (
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-600 font-bold text-white">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
                                                 {getInitials(member.full_name, member.username)}
                                             </div>
                                         )}
@@ -350,7 +350,6 @@ export default function HomePage() {
                                             variant="outline"
                                             onClick={handleLogout}
                                             disabled={isSigningOut}
-                                            className="border-gray-300 hover:bg-gray-100"
                                         >
                                             {isSigningOut ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -364,7 +363,7 @@ export default function HomePage() {
                                     <Button
                                         variant="outline"
                                         onClick={() => void router.push("/login")}
-                                        className="border-red-600 text-red-600 hover:bg-red-50"
+                                        className="border-primary text-primary hover:bg-primary/10"
                                     >
                                         <User className="mr-2 h-4 w-4" />
                                         <span className="hidden sm:inline">Login</span>
@@ -385,7 +384,7 @@ export default function HomePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                     >
-                        <Card className="mb-8 bg-gradient-to-r from-red-600 to-red-700 text-white">
+                        <Card className="mb-8 bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700 dark:to-red-800 text-white">
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1">
@@ -396,9 +395,9 @@ export default function HomePage() {
                                         </h2>
 
                                         {isAuthenticated && member?.username ? (
-                                            <p className="text-red-100">@{member.username}</p>
+                                            <p className="text-red-100 dark:text-red-200">@{member.username}</p>
                                         ) : (
-                                            <p className="text-red-100">Explore our bowling club features</p>
+                                            <p className="text-red-100 dark:text-red-200">Explore our bowling club features</p>
                                         )}
                                     </div>
 
@@ -423,7 +422,7 @@ export default function HomePage() {
                         transition={{ delay: 0.8, duration: 0.6 }}
                         aria-label="Coming soon features"
                     >
-                        <h3 className="mb-4 text-lg font-semibold text-gray-700">Coming Soon</h3>
+                        <h3 className="mb-4 text-lg font-semibold text-foreground">Coming Soon</h3>
 
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             {comingSoonCards.map((item, index) => {

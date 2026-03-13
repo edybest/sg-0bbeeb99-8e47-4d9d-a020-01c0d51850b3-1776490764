@@ -1210,6 +1210,82 @@ export function ClubSettings() {
         <TabsContent value="push" className="space-y-6">
           <PushMessagePanel />
         </TabsContent>
+
+        <TabsContent value="layout" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Navigation Layout</CardTitle>
+              <CardDescription>Configure navigation layout settings for member pages</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+                <h4 className="mb-2 font-medium text-blue-900 dark:text-blue-200">ℹ️ Layout Options</h4>
+                <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
+                  <li>• Configure navigation bar position (top/bottom)</li>
+                  <li>• Customize navigation style and behavior</li>
+                  <li>• Set default layout preferences for members</li>
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="nav-position" className="text-base font-semibold">
+                      Navigation Position
+                    </Label>
+                    <p className="text-sm text-muted-foreground">Choose where navigation bar appears for members</p>
+                  </div>
+                  <Select defaultValue="bottom">
+                    <SelectTrigger id="nav-position" className="w-[180px]">
+                      <SelectValue placeholder="Select position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top">Top Bar</SelectItem>
+                      <SelectItem value="bottom">Bottom Bar (Mobile)</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="fixed-nav" className="text-base font-semibold">
+                      Fixed Navigation
+                    </Label>
+                    <p className="text-sm text-muted-foreground">Keep navigation visible when scrolling</p>
+                  </div>
+                  <Switch id="fixed-nav" defaultChecked />
+                </div>
+
+                <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="compact-nav" className="text-base font-semibold">
+                      Compact Mode
+                    </Label>
+                    <p className="text-sm text-muted-foreground">Use smaller navigation icons and labels</p>
+                  </div>
+                  <Switch id="compact-nav" />
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-500" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Coming Soon</p>
+                      <p className="text-sm text-amber-800 dark:text-amber-300">
+                        Layout customization features are currently under development. These settings will be functional in a future update.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button disabled className="w-full">
+                  Save Layout Settings (Coming Soon)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
