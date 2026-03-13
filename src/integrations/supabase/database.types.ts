@@ -829,6 +829,27 @@ export type Database = {
           },
         ]
       }
+      nav_layout_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       notification_recipients: {
         Row: {
           delivered_at: string | null

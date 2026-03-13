@@ -103,6 +103,14 @@ const navigationCards = [
     iconColor: "text-red-600",
     hoverBorder: "hover:border-red-600",
   },
+  {
+    title: "Feedback",
+    description: "Hantar cadangan / aduan",
+    href: "/member/feedback",
+    icon: Users,
+    iconColor: "text-sky-600",
+    hoverBorder: "hover:border-sky-600",
+  },
 ];
 
 export default function MemberDashboard() {

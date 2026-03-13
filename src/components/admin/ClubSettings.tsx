@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload, AlertCircle, Users, Settings, ChevronDown } from "lucide-react";
+import { Trash2, Upload, AlertCircle, Users, Settings, ChevronDown, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { pageAccessService, type AccessLevel } from "@/services/pageAccessService";
 import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
+import { navLayoutService } from "@/services/navLayoutService";
 
 type FiveFivePrizeConfig = {
   id: string;
@@ -51,7 +52,8 @@ type ClubSettingsTab =
   | "security"
   | "handicap"
   | "statistics"
-  | "push";
+  | "push"
+  | "layout";
 
 type TabDef = {
   value: ClubSettingsTab;
@@ -68,6 +70,7 @@ const MORE_TABS: TabDef[] = [
   { value: "handicap", label: "Handicap" },
   { value: "statistics", label: "Statistics" },
   { value: "push", label: "Push Message" },
+  { value: "layout", label: "Layout" },
 ];
 
 function isMoreTab(value: string): value is ClubSettingsTab {
