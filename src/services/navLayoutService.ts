@@ -26,10 +26,24 @@ export type MemberMenuItemKey =
   | "feedback"
   | "profile";
 
-export type LayoutKey = "member_dashboard_cards" | "member_menu";
+export type LayoutKey = "member_dashboard_cards" | "member_menu" | "navigation_settings";
 
 export type LayoutValue = {
   order: string[];
+};
+
+export type NavPosition = "top" | "bottom" | "sidebar";
+
+export type NavigationSettings = {
+  position: NavPosition;
+  isFixed: boolean;
+  isCompact: boolean;
+};
+
+const DEFAULT_NAV_SETTINGS: NavigationSettings = {
+  position: "bottom",
+  isFixed: true,
+  isCompact: false,
 };
 
 function parseLayoutValue(row: NavLayoutRow | null): LayoutValue | null {
@@ -39,6 +53,19 @@ function parseLayoutValue(row: NavLayoutRow | null): LayoutValue | null {
   const order = (v as { order?: unknown }).order;
   if (!Array.isArray(order)) return null;
   return { order: order.map(String) };
+}
+
+function parseNavigationSettings(row: NavLayoutRow | null): NavigationSettings {
+  if (!row) return DEFAULT_NAV_SETTINGS;
+  const v = row.value as unknown;
+  if (!v || typeof v !== "object") return DEFAULT_NAV_SETTINGS;
+  
+  const settings = v as Partial<NavigationSettings>;
+  return {
+    position: settings.position || DEFAULT_NAV_SETTINGS.position,
+    isFixed: settings.isFixed ?? DEFAULT_NAV_SETTINGS.isFixed,
+    isCompact: settings.isCompact ?? DEFAULT_NAV_SETTINGS.isCompact,
+  };
 }
 
 async function getLayout(key: LayoutKey): Promise<LayoutValue | null> {
@@ -70,6 +97,36 @@ async function setLayout(key: LayoutKey, value: LayoutValue): Promise<void> {
   }
 }
 
+async function getNavigationSettings(): Promise<NavigationSettings> {
+  const { data, error } = await supabase
+    .from("nav_layout_settings")
+    .select("*")
+    .eq("key", "navigation_settings")
+    .maybeSingle();
+
+  if (error) {
+    console.error("navLayoutService:getNavigationSettings error", error);
+    return DEFAULT_NAV_SETTINGS;
+  }
+
+  return parseNavigationSettings(data);
+}
+
+async function setNavigationSettings(settings: NavigationSettings): Promise<void> {
+  const { error } = await supabase.from("nav_layout_settings").upsert(
+    {
+      key: "navigation_settings",
+      value: settings as unknown as Record<string, unknown>,
+    },
+    { onConflict: "key" }
+  );
+
+  if (error) {
+    console.error("navLayoutService:setNavigationSettings error", error);
+    throw error;
+  }
+}
+
 function applyOrder<T extends { key: string }>(
   items: T[],
   orderedKeys: string[] | null
@@ -92,4 +149,7 @@ export const navLayoutService = {
   getLayout,
   setLayout,
   applyOrder,
+  getNavigationSettings,
+  setNavigationSettings,
+  DEFAULT_NAV_SETTINGS,
 };
