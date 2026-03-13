@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 import { LogOut, User } from "lucide-react";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 
 interface MemberTopBarNavProps {
   title?: string;
@@ -73,6 +74,8 @@ export function MemberTopBarNav({
                   </div>
                 </div>
 
+                <ThemeSwitch />
+
                 <Button
                   variant="outline"
                   onClick={handleLogout}
@@ -83,14 +86,18 @@ export function MemberTopBarNav({
                 </Button>
               </>
             ) : (
-              <Button
-                variant="outline"
-                onClick={() => router.push("/login")}
-                className="border-red-600 text-red-600 hover:bg-red-50"
-              >
-                <User className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Login</span>
-              </Button>
+              <>
+                <ThemeSwitch />
+                
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/login")}
+                  className="border-red-600 text-red-600 hover:bg-red-50"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Login</span>
+                </Button>
+              </>
             )}
           </div>
         </div>
