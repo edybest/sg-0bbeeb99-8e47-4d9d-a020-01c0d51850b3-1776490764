@@ -29,7 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { pageAccessService, type AccessLevel } from "@/services/pageAccessService";
 import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
-import { navLayoutService } from "@/services/navLayoutService";
+import { navLayoutService, type NavigationSettings, type NavPosition } from "@/services/navLayoutService";
 
 type FiveFivePrizeConfig = {
   id: string;
@@ -106,6 +106,9 @@ export function ClubSettings() {
   const [pageAccessList, setPageAccessList] = useState<PageAccessControl[]>([]);
   const [loadingPageAccess, setLoadingPageAccess] = useState(false);
 
+  const [navSettings, setNavSettings] = useState<NavigationSettings>(navLayoutService.DEFAULT_NAV_SETTINGS);
+  const [savingNav, setSavingNav] = useState(false);
+
   const [activeTab, setActiveTab] = useState<ClubSettingsTab>("general");
 
   const moreTabLabel = useMemo(() => {
@@ -119,7 +122,44 @@ export function ClubSettings() {
     loadCacheSetting();
     loadStats();
     loadPageAccessSettings();
+    loadNavigationSettings();
   }, []);
+
+  const loadNavigationSettings = async () => {
+    try {
+      const settings = await navLayoutService.getNavigationSettings();
+      setNavSettings(settings);
+    } catch (error) {
+      console.error("Error loading nav settings:", error);
+    }
+  };
+
+  const handleSaveNavSettings = async () => {
+    setSavingNav(true);
+    try {
+      await navLayoutService.setNavigationSettings(navSettings);
+      
+      // Dispatch an event to update navigation across the app without reloading
+      window.dispatchEvent(
+        new CustomEvent("nav-settings-updated", {
+          detail: { settings: navSettings },
+        })
+      );
+      
+      toast({
+        title: "✅ Berjaya!",
+        description: "Tetapan navigasi telah disimpan.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal menyimpan tetapan navigasi",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingNav(false);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -1235,14 +1275,16 @@ export function ClubSettings() {
                     </Label>
                     <p className="text-sm text-muted-foreground">Choose where navigation bar appears for members</p>
                   </div>
-                  <Select defaultValue="bottom">
+                  <Select 
+                    value={navSettings.position} 
+                    onValueChange={(val: NavPosition) => setNavSettings(prev => ({ ...prev, position: val }))}
+                  >
                     <SelectTrigger id="nav-position" className="w-[180px]">
                       <SelectValue placeholder="Select position" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="top">Top Bar</SelectItem>
                       <SelectItem value="bottom">Bottom Bar (Mobile)</SelectItem>
-                      <SelectItem value="sidebar">Sidebar</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1254,7 +1296,11 @@ export function ClubSettings() {
                     </Label>
                     <p className="text-sm text-muted-foreground">Keep navigation visible when scrolling</p>
                   </div>
-                  <Switch id="fixed-nav" defaultChecked />
+                  <Switch 
+                    id="fixed-nav" 
+                    checked={navSettings.isFixed}
+                    onCheckedChange={(checked) => setNavSettings(prev => ({ ...prev, isFixed: checked }))} 
+                  />
                 </div>
 
                 <div className="flex items-center justify-between space-x-4 rounded-lg border p-4">
@@ -1264,23 +1310,15 @@ export function ClubSettings() {
                     </Label>
                     <p className="text-sm text-muted-foreground">Use smaller navigation icons and labels</p>
                   </div>
-                  <Switch id="compact-nav" />
+                  <Switch 
+                    id="compact-nav" 
+                    checked={navSettings.isCompact}
+                    onCheckedChange={(checked) => setNavSettings(prev => ({ ...prev, isCompact: checked }))}
+                  />
                 </div>
 
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600 dark:text-amber-500" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-amber-900 dark:text-amber-200">Coming Soon</p>
-                      <p className="text-sm text-amber-800 dark:text-amber-300">
-                        Layout customization features are currently under development. These settings will be functional in a future update.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button disabled className="w-full">
-                  Save Layout Settings (Coming Soon)
+                <Button onClick={handleSaveNavSettings} disabled={savingNav} className="w-full">
+                  {savingNav ? "Menyimpan..." : "Save Layout Settings"}
                 </Button>
               </div>
             </CardContent>

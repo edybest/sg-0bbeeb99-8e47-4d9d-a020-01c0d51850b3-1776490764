@@ -116,7 +116,7 @@ async function setNavigationSettings(settings: NavigationSettings): Promise<void
   const { error } = await supabase.from("nav_layout_settings").upsert(
     {
       key: "navigation_settings",
-      value: settings as unknown as Record<string, unknown>,
+      value: settings as any,
     },
     { onConflict: "key" }
   );
