@@ -416,7 +416,7 @@ export function WhatsAppLoginForm() {
                     disabled={loading}
                     maxLength={6}
                     required
-                    className="h-11 text-center text-2xl tracking-widest font-mono"
+                    className="h-11 text-center"
                   />
                   <p className="text-xs text-green-600 flex items-center justify-center">
                     ✓ Kod TAC telah dihantar ke WhatsApp anda
