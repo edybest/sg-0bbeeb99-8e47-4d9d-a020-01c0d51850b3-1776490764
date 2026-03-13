@@ -21,7 +21,7 @@ type Game = Tables<"games">;
 
 interface FiveFiveParticipant {
   member_id: string;
-  member_name: string;
+  username: string;
   game1_score: number;
   game2_score: number;
   game3_score: number;
@@ -119,7 +119,7 @@ export default function FiveFivePage() {
           game3_score,
           game4_score,
           game5_score,
-          members!inner(full_name)
+          members!inner(username)
         `)
         .eq("game_id", gameId)
         .eq("is_fivefive", true);
@@ -147,7 +147,7 @@ export default function FiveFivePage() {
 
       const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => ({
         member_id: player.member_id,
-        member_name: player.members?.full_name || "Unknown",
+        username: player.members?.username || "Unknown",
         game1_score: player.game1_score || 0,
         game2_score: player.game2_score || 0,
         game3_score: player.game3_score || 0,
@@ -399,7 +399,7 @@ export default function FiveFivePage() {
                                       #{index + 1}
                                     </Badge>
                                     <h3 className="font-bold text-gray-900 dark:text-white text-lg">
-                                      {participant.member_name}
+                                      {participant.username}
                                     </h3>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -563,7 +563,7 @@ export default function FiveFivePage() {
                                   <TableCell className="font-semibold text-gray-900 dark:text-white sticky left-0 bg-inherit z-10 shadow-sm">
                                     <div className="flex items-center gap-2">
                                       <span className="text-gray-400 dark:text-gray-500 text-sm">#{index + 1}</span>
-                                      {participant.member_name}
+                                      {participant.username}
                                     </div>
                                   </TableCell>
 
