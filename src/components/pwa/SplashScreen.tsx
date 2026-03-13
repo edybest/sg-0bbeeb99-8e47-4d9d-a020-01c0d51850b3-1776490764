@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 import { Volume2, VolumeX } from "lucide-react";
 
@@ -8,31 +8,33 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ onComplete }: SplashScreenProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [isVisible, setIsVisible] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Dynamic tagline based on time of day in Malay
-  const tagline = useMemo(() => {
+  const [tagline, setTagline] = useState<string>("Selamat Datang! Jom main boling");
+
+  useEffect(() => {
     const hour = new Date().getHours();
-    
+
     if (hour >= 5 && hour < 12) {
-      return "Selamat Pagi! Mari bermain boling bersama";
+      setTagline("Selamat Pagi! Mari bermain boling bersama");
     } else if (hour >= 12 && hour < 17) {
-      return "Selamat Tengahari! Masa untuk strike";
+      setTagline("Selamat Tengahari! Masa untuk strike");
     } else if (hour >= 17 && hour < 19) {
-      return "Selamat Petang! Jom main boling";
+      setTagline("Selamat Petang! Jom main boling");
     } else {
-      return "Selamat Malam! Boling membawa kita bersama";
+      setTagline("Selamat Malam! Boling membawa kita bersama");
     }
   }, []);
 
-  // Initialize Audio Context
   useEffect(() => {
     if (typeof window !== "undefined" && soundEnabled) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
     }
-    
+
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close();
@@ -40,20 +42,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, [soundEnabled]);
 
-  // Play bowling ball rolling sound
   const playRollingSound = () => {
     if (!audioContextRef.current || !soundEnabled) return;
 
     const ctx = audioContextRef.current;
     const now = ctx.currentTime;
 
-    // Create oscillator for rolling rumble effect
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     const filter = ctx.createBiquadFilter();
 
     oscillator.type = "sawtooth";
-    oscillator.frequency.setValueAtTime(60, now); // Low rumble
+    oscillator.frequency.setValueAtTime(60, now);
     oscillator.frequency.exponentialRampToValueAtTime(40, now + 1.5);
 
     filter.type = "lowpass";
@@ -72,23 +72,18 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     oscillator.stop(now + 1.5);
   };
 
-  // Play strike/pins falling sound
   const playStrikeSound = () => {
     if (!audioContextRef.current || !soundEnabled) return;
 
     const ctx = audioContextRef.current;
     const now = ctx.currentTime;
 
-    // Create multiple oscillators for pin collision sounds
     for (let i = 0; i < 5; i++) {
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
 
       oscillator.type = "triangle";
-      oscillator.frequency.setValueAtTime(
-        300 + Math.random() * 200,
-        now + i * 0.05
-      );
+      oscillator.frequency.setValueAtTime(300 + Math.random() * 200, now + i * 0.05);
 
       gainNode.gain.setValueAtTime(0, now + i * 0.05);
       gainNode.gain.linearRampToValueAtTime(0.2, now + i * 0.05 + 0.01);
@@ -103,11 +98,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   };
 
   useEffect(() => {
-    // Play rolling sound when splash appears
     if (soundEnabled) {
       playRollingSound();
-      
-      // Play strike sound after 1.5 seconds
+
       const strikeTimer = setTimeout(() => {
         playStrikeSound();
       }, 1500);
@@ -117,7 +110,6 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [soundEnabled]);
 
   useEffect(() => {
-    // Auto-dismiss after 2.5 seconds or when window loads
     const timer = setTimeout(() => {
       setIsVisible(false);
       onComplete?.();
@@ -140,22 +132,62 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     };
   }, [onComplete]);
 
+  const overlayVariants = {
+    initial: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
+
+  const shimmerVariants = shouldReduceMotion
+    ? {}
+    : {
+        animate: {
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        },
+      };
+
+  const logoFloatVariants = shouldReduceMotion
+    ? { animate: { y: 0 } }
+    : {
+        animate: {
+          y: [0, -6, 0],
+        },
+      };
+
+  const glowVariants = shouldReduceMotion
+    ? { animate: { opacity: 0.25, scale: 1.5 } }
+    : {
+        animate: {
+          opacity: [0.15, 0.35, 0.2],
+          scale: [1.45, 1.6, 1.5],
+        },
+      };
+
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          variants={overlayVariants}
+          initial="initial"
+          exit="exit"
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-red-600 via-red-700 to-red-800 px-4"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center px-4"
         >
-          {/* Sound Toggle Button */}
+          <motion.div
+            className="absolute inset-0 bg-[length:200%_200%] bg-gradient-to-br from-red-600 via-red-700 to-red-800"
+            variants={shimmerVariants as any}
+            animate="animate"
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_55%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(0,0,0,0.25),transparent_60%)]" />
+
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm z-10"
             aria-label={soundEnabled ? "Mute sound" : "Enable sound"}
           >
             {soundEnabled ? (
@@ -165,21 +197,36 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             )}
           </motion.button>
 
-          {/* Logo Container - Responsive sizing */}
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
+            variants={logoFloatVariants}
+            animate="animate"
             transition={{
-              duration: 0.6,
-              ease: "easeOut",
+              duration: 3.2,
+              repeat: Infinity,
+              ease: "easeInOut",
             }}
-            className="relative mb-6 sm:mb-8 md:mb-10 lg:mb-12"
+            className="relative mb-6 sm:mb-8 md:mb-10 lg:mb-12 z-10"
           >
-            {/* Glow effect behind logo - Responsive */}
-            <div className="absolute inset-0 blur-2xl sm:blur-3xl bg-white/20 rounded-full scale-150" />
-            
-            {/* Logo - Responsive sizes */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48">
+            <motion.div
+              variants={glowVariants}
+              animate="animate"
+              transition={{
+                duration: 2.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute inset-0 blur-2xl sm:blur-3xl bg-white/20 rounded-full"
+            />
+
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, filter: "blur(8px)" }}
+              animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+              transition={{
+                duration: 0.8,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48"
+            >
               <Image
                 src="/ambc-logo.png"
                 alt="AMBC Club Logo"
@@ -187,46 +234,44 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 className="object-contain drop-shadow-2xl"
                 priority
               />
-            </div>
+            </motion.div>
           </motion.div>
 
-          {/* Tagline - Responsive text and spacing */}
           <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            initial={{ y: 18, opacity: 0, filter: "blur(8px)" }}
+            animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
             transition={{
-              delay: 0.3,
-              duration: 0.6,
-              ease: "easeOut",
+              delay: 0.25,
+              duration: 0.7,
+              ease: [0.16, 1, 0.3, 1],
             }}
-            className="text-center px-4 sm:px-6 md:px-8 max-w-xl"
+            className="text-center px-4 sm:px-6 md:px-8 max-w-xl z-10"
           >
-            {/* App Name - Responsive sizing */}
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight">
               AMBC Club
             </h1>
-            
-            {/* Dynamic Tagline - Responsive sizing */}
+
             <p className="text-white/95 text-sm sm:text-base md:text-lg lg:text-xl font-light italic tracking-wide leading-relaxed">
               {tagline}
             </p>
           </motion.div>
 
-          {/* Animated bowling pins - Responsive positioning and size */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.8 }}
-            className="absolute bottom-16 sm:bottom-20 md:bottom-24 flex gap-1.5 sm:gap-2 md:gap-3"
+            className="absolute bottom-16 sm:bottom-20 md:bottom-24 flex gap-1.5 sm:gap-2 md:gap-3 z-10"
           >
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={i}
-                animate={{
-                  y: [0, -8, 0],
-                }}
+                animate={
+                  shouldReduceMotion
+                    ? { y: 0, rotate: 0 }
+                    : { y: [0, -7, 0], rotate: [0, i % 2 === 0 ? -2 : 2, 0] }
+                }
                 transition={{
-                  duration: 1.2,
+                  duration: 1.25,
                   repeat: Infinity,
                   delay: i * 0.2,
                   ease: "easeInOut",
@@ -236,25 +281,26 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             ))}
           </motion.div>
 
-          {/* Loading spinner - Responsive positioning and size */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="absolute bottom-6 sm:bottom-8 md:bottom-10"
+            transition={{ delay: 0.85 }}
+            className="absolute bottom-6 sm:bottom-8 md:bottom-10 z-10"
           >
             <div className="flex gap-1 sm:gap-1.5">
               {[...Array(3)].map((_, i) => (
                 <motion.div
                   key={i}
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.5, 1, 0.5],
-                  }}
+                  animate={
+                    shouldReduceMotion
+                      ? { opacity: 0.8, y: 0 }
+                      : { y: [0, -3, 0], opacity: [0.45, 1, 0.45] }
+                  }
                   transition={{
-                    duration: 1,
+                    duration: 0.95,
                     repeat: Infinity,
                     delay: i * 0.15,
+                    ease: "easeInOut",
                   }}
                   className="w-1.5 h-1.5 sm:w-2 sm:h-2 md:w-2.5 md:h-2.5 rounded-full bg-white"
                 />
