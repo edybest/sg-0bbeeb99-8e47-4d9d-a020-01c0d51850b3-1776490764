@@ -44,6 +44,19 @@ function toDebugError(err: unknown): GalleryDebugInfo["error"] {
   };
 }
 
+async function requireAuthUserId(debugLog?: GalleryDebugInfo[]): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  debugLog?.push({ step: "auth.getUser", data: { user: data.user ? { id: data.user.id, email: data.user.email } : null }, error: error ? toDebugError(error) : null });
+
+  const userId = data.user?.id;
+  if (!userId) {
+    const err = new Error("Authentication required");
+    debugLog?.push({ step: "auth.missingUser", error: toDebugError(err) });
+    throw err;
+  }
+  return userId;
+}
+
 /**
  * Generate optimized thumbnail URL using Supabase image transformations
  */
@@ -180,21 +193,19 @@ export async function createAlbum(
 
   const sortOrder = ((maxOrder as any)?.position_order || 0) + 1;
 
-  const userResponse = await supabase.auth.getUser();
-  const userId = memberId || userResponse.data.user?.id;
+  let userId: string | null = null;
+  try {
+    userId = memberId || await requireAuthUserId(debugLog);
+  } catch (e) {
+    if (debug) return { album: null, debug: debugLog };
+    throw e;
+  }
 
   debugLog.push({
     step: "resolvedUser",
-    data: { memberIdArg: memberId, authUserId: userResponse.data.user?.id, resolvedUserId: userId, sortOrder },
+    data: { memberIdArg: memberId, resolvedUserId: userId, sortOrder },
     error: null
   });
-
-  if (!userId) {
-    const err = new Error("Authentication required to create album");
-    debugLog.push({ step: "auth", error: toDebugError(err) });
-    if (debug) return { album: null, debug: debugLog };
-    throw err;
-  }
 
   const { data, error } = await supabase
     .from("gallery_albums")
@@ -319,19 +330,30 @@ export async function uploadImage(
     .getPublicUrl(filePath);
 
   // Get next sort order
-  const { data: maxOrder } = await supabase
+  const { data: maxOrder, error: maxOrderError } = await supabase
     .from("gallery_images")
     .select("position_order")
     .eq("album_id", albumId)
     .order("position_order", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  const sortOrder = (maxOrder?.position_order || 0) + 1;
+  if (maxOrderError) {
+    console.error("Get max order error:", maxOrderError);
+    throw maxOrderError;
+  }
 
-  const userResponse = await supabase.auth.getUser();
-  const userId = memberId || userResponse.data.user?.id;
-  
+  const sortOrder = ((maxOrder as any)?.position_order || 0) + 1;
+
+  let userId: string | null = null;
+  if (memberId) {
+    userId = memberId;
+  } else {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    userId = userData.user?.id || null;
+  }
+
   if (!userId) {
     throw new Error("Authentication required to upload image");
   }
