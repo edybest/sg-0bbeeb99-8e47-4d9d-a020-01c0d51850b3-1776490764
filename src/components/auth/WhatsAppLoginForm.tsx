@@ -325,7 +325,7 @@ export function WhatsAppLoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-purple-50 dark:from-blue-950/20 dark:via-background dark:to-purple-950/20 px-4 py-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="flex justify-center mb-6">
@@ -342,17 +342,17 @@ export function WhatsAppLoginForm() {
           </div>
          </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+        <div className="bg-card rounded-2xl shadow-xl p-8 space-y-6">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">Selamat Datang</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-xl font-semibold text-foreground">Selamat Datang</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Login dengan WhatsApp TAC untuk akses ke Member Area
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="phone" className="text-sm font-medium">
                 Nombor WhatsApp
               </Label>
               <Input
@@ -367,7 +367,7 @@ export function WhatsAppLoginForm() {
                 required
                 className="h-11"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Format: 0123456789 atau +60123456789
               </p>
             </div>
@@ -377,7 +377,7 @@ export function WhatsAppLoginForm() {
                 type="button"
                 onClick={handleSendTAC}
                 disabled={sendingTAC || loading}
-                className="w-full h-11 bg-green-600 hover:bg-green-700"
+                className="w-full h-11 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
               >
                 {sendingTAC ? (
                   <>
@@ -396,7 +396,7 @@ export function WhatsAppLoginForm() {
             {tacSent && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="tac" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="tac" className="text-sm font-medium">
                     Kod TAC (6 digit)
                   </Label>
                   <Input
@@ -416,7 +416,7 @@ export function WhatsAppLoginForm() {
                     required
                     className="h-11 text-center"
                   />
-                  <p className="text-xs text-green-600 flex items-center justify-center">
+                  <p className="text-xs text-green-600 dark:text-green-500 flex items-center justify-center">
                     ✓ Kod TAC telah dihantar ke WhatsApp anda
                   </p>
                 </div>
@@ -436,7 +436,7 @@ export function WhatsAppLoginForm() {
                 <Button
                   type="submit"
                   disabled={loading || formData.tac.length !== 6}
-                  className="w-full h-11 bg-blue-600 hover:bg-blue-700"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                 >
                   {loading ? (
                     <>
@@ -451,8 +451,8 @@ export function WhatsAppLoginForm() {
             )}
           </form>
 
-          <div className="text-center pt-4 border-t">
-            <p className="text-xs text-gray-500">
+          <div className="text-center pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground">
               Masalah log masuk? Hubungi admin untuk bantuan,TQ.
             </p>
           </div>

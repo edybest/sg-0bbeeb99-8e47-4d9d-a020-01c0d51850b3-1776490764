@@ -66,7 +66,7 @@ export function AdminLoginForm() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
         <div className="flex justify-center mb-4">
-          <ShieldCheck className="h-12 w-12 text-red-600" />
+          <ShieldCheck className="h-12 w-12 text-red-600 dark:text-red-500" />
         </div>
         <CardTitle className="text-2xl">Admin Login</CardTitle>
         <CardDescription>
@@ -123,7 +123,7 @@ export function AdminLoginForm() {
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            <p>Member? <Link href="/login" className="text-red-600 hover:underline">Login di sini</Link></p>
+            <p>Member? <Link href="/login" className="text-red-600 dark:text-red-500 hover:underline">Login di sini</Link></p>
           </div>
         </form>
       </CardContent>

@@ -4,7 +4,7 @@ import { SEOElements } from "@/components/SEO";
 
 export default function Document() {
   return (
-    <Html lang="ms">
+    <Html lang="ms" suppressHydrationWarning>
       <Head>
         <SEOElements />
         

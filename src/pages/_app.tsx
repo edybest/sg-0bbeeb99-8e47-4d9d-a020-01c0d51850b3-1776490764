@@ -102,6 +102,7 @@ export default function App({ Component, pageProps }: AppProps) {
         defaultTheme="system"
         enableSystem
         disableTransitionOnChange
+        storageKey="theme"
       >
         {showSplash && !splashComplete && (
           <SplashScreen onComplete={handleSplashComplete} />

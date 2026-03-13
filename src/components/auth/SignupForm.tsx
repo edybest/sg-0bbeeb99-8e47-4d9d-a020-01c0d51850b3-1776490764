@@ -150,8 +150,8 @@ export function SignupForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <Card className="w-full max-w-2xl shadow-xl border-gray-200">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <Image 
@@ -162,8 +162,8 @@ export function SignupForm() {
               className="drop-shadow-lg"
             />
           </div>
-          <CardTitle className="text-3xl font-bold text-red-600">Daftar AMBC CLUB</CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardTitle className="text-3xl font-bold text-red-600 dark:text-red-500">Daftar AMBC CLUB</CardTitle>
+          <CardDescription>
             Lengkapkan maklumat untuk mendaftar
           </CardDescription>
         </CardHeader>
@@ -171,21 +171,21 @@ export function SignupForm() {
           {success ? (
             <div className="space-y-6 text-center py-8">
               <div className="flex justify-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-10 h-10 text-green-600" />
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-500" />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-green-700">Pendaftaran Berjaya! 🎉</h3>
-                <p className="text-gray-600">
+                <h3 className="text-2xl font-bold text-green-700 dark:text-green-500">Pendaftaran Berjaya! 🎉</h3>
+                <p className="text-muted-foreground">
                   Akaun anda telah berjaya didaftarkan.
                 </p>
               </div>
 
-              <Alert className="border-blue-500 bg-blue-50">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
+              <Alert className="border-blue-500 bg-blue-50 dark:bg-blue-950/50">
+                <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-500" />
+                <AlertDescription className="text-blue-800 dark:text-blue-300">
                   <strong>Langkah seterusnya:</strong>
                   <ul className="mt-2 space-y-1 text-sm list-disc list-inside text-left">
                     <li>Semak email untuk <strong>kod verification</strong> (check spam/junk folder)</li>
@@ -198,12 +198,12 @@ export function SignupForm() {
               <div className="space-y-3">
                 <Button
                   onClick={() => router.push("/login")}
-                  className="w-full bg-red-600 hover:bg-red-700"
+                  className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
                 >
                   Login Sekarang
                 </Button>
                 
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   Redirect automatically dalam 5 saat...
                 </p>
               </div>
@@ -212,7 +212,7 @@ export function SignupForm() {
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-gray-700">Username *</Label>
+                  <Label htmlFor="username">Username *</Label>
                   <Input
                     id="username"
                     type="text"
@@ -220,11 +220,10 @@ export function SignupForm() {
                     value={formData.username}
                     onChange={(e) => handleChange("username", e.target.value)}
                     required
-                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-700">Email *</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
@@ -232,13 +231,12 @@ export function SignupForm() {
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                     required
-                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-gray-700">Nama Penuh *</Label>
+                <Label htmlFor="fullName">Nama Penuh *</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -246,13 +244,12 @@ export function SignupForm() {
                   value={formData.fullName}
                   onChange={(e) => handleChange("fullName", e.target.value)}
                   required
-                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-gray-700">Telefon *</Label>
+                  <Label htmlFor="phone">Telefon *</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -260,38 +257,36 @@ export function SignupForm() {
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
                     required
-                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="birthday" className="text-gray-700">Tarikh Lahir *</Label>
+                  <Label htmlFor="birthday">Tarikh Lahir *</Label>
                   <Input
                     id="birthday"
                     type="date"
                     value={formData.birthday}
                     onChange={(e) => handleChange("birthday", e.target.value)}
                     required
-                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sex" className="text-gray-700">Jantina *</Label>
+                <Label htmlFor="sex">Jantina *</Label>
                 <Select value={formData.sex} onValueChange={(value) => handleChange("sex", value)} required>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                  <SelectTrigger>
                     <SelectValue placeholder="Pilih jantina" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-300">
-                    <SelectItem value="men" className="text-gray-900">Lelaki</SelectItem>
-                    <SelectItem value="women" className="text-gray-900">Perempuan</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="men">Lelaki</SelectItem>
+                    <SelectItem value="women">Perempuan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-700">Password *</Label>
+                  <Label htmlFor="password">Password *</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -301,19 +296,19 @@ export function SignupForm() {
                       onChange={(e) => handleChange("password", e.target.value)}
                       required
                       minLength={6}
-                      className="bg-white border-gray-300 text-gray-900 pr-10"
+                      className="pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-gray-700">Sahkan Password *</Label>
+                  <Label htmlFor="confirmPassword">Sahkan Password *</Label>
                   <Input
                     id="confirmPassword"
                     type={showPassword ? "text" : "password"}
@@ -321,7 +316,6 @@ export function SignupForm() {
                     value={formData.confirmPassword}
                     onChange={(e) => handleChange("confirmPassword", e.target.value)}
                     required
-                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
@@ -336,7 +330,7 @@ export function SignupForm() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold"
+                className="w-full bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white font-semibold"
               >
                 {loading ? (
                   <>
@@ -348,12 +342,12 @@ export function SignupForm() {
                 )}
               </Button>
 
-              <div className="text-center text-sm text-gray-600">
+              <div className="text-center text-sm text-muted-foreground">
                 Sudah ada akaun?{" "}
                 <button
                   type="button"
                   onClick={() => router.push("/login")}
-                  className="text-red-600 hover:text-red-700 font-medium"
+                  className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-600 font-medium"
                 >
                   Login sekarang
                 </button>
