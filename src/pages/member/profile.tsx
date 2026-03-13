@@ -210,11 +210,15 @@ export default function ProfilePage() {
       
       const publicUrl = await storageService.uploadAvatar(member.id, file);
       
+      // Add cache-busting parameter to force browser reload
+      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
+      
       await memberService.updateMember(member.id, {
-        avatar_url: publicUrl
+        avatar_url: publicUrl  // Store clean URL in database
       });
 
-      setMember(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+      // Update local state with cache-busted URL for immediate display
+      setMember(prev => prev ? { ...prev, avatar_url: urlWithCacheBust } : null);
 
       toast({
         title: "Berjaya",
@@ -289,7 +293,7 @@ export default function ProfilePage() {
                             <img
                               src={member.avatar_url}
                               alt={member.username}
-                              className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                              className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
                             />
                           ) : (
                             <Image
@@ -297,11 +301,12 @@ export default function ProfilePage() {
                               alt={member.username}
                               width={150}
                               height={150}
-                              className="rounded-full border-4 border-red-100 object-cover w-[150px] h-[150px]"
+                              className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
+                              unoptimized
                             />
                           )
                         ) : (
-                          <div className="w-[150px] h-[150px] rounded-full bg-red-100 flex items-center justify-center text-red-600 text-4xl font-bold border-4 border-white shadow">
+                          <div className="w-[150px] h-[150px] rounded-full bg-primary/10 flex items-center justify-center text-primary text-4xl font-bold border-4 border-primary/20 shadow">
                             {member.username[0].toUpperCase()}
                           </div>
                         )}
