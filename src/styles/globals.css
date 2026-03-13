@@ -87,8 +87,8 @@
     --secondary: 221 83% 53%;
     --secondary-foreground: 0 0% 100%;
     
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 217 33% 22%;
+    --muted-foreground: 215 20% 75%;
     
     --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
@@ -96,8 +96,8 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
     --ring: 221 83% 53%;
     
     /* Dark mode gradients */
@@ -115,9 +115,9 @@
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 0 84% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent: 217 33% 22%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
+    --sidebar-border: 217 33% 25%;
     --sidebar-ring: 221 83% 53%;
   }
 }
