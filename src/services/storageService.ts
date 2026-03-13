@@ -44,7 +44,8 @@ export const storageService = {
   ): Promise<string> {
     try {
       // Get cache control setting
-      const cacheEnabled = await getCacheControl();
+      const cacheDuration = await getCacheControl();
+      const cacheControl = cacheDuration === "0" ? "no-cache" : `max-age=${cacheDuration}`;
 
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
@@ -53,7 +54,7 @@ export const storageService = {
       const { error } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
-          cacheControl: cacheEnabled,
+          cacheControl: cacheControl,
           upsert: true,
         });
 
@@ -200,7 +201,8 @@ export const storageService = {
   ): Promise<string> {
     try {
       // Get cache control setting
-      const cacheEnabled = await getCacheControl();
+      const cacheDuration = await getCacheControl();
+      const cacheControl = cacheDuration === "0" ? "no-cache" : `max-age=${cacheDuration}`;
 
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -209,7 +211,7 @@ export const storageService = {
       const { error: uploadError } = await supabase.storage
         .from("images")
         .upload(filePath, file, {
-          cacheControl: cacheEnabled,
+          cacheControl: cacheControl,
           upsert: true,
         });
 
