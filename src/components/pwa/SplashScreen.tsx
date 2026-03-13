@@ -13,9 +13,47 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const [tagline, setTagline] = useState<string>("Selamat Datang! Jom main boling");
+  const DEFAULT_TAGLINE = "Selamat Datang! Jom main boling";
+  const [tagline, setTagline] = useState<string>(DEFAULT_TAGLINE);
+
+  const [parallax, setParallax] = useState<{ x: number; y: number; s: number }>({
+    x: 0,
+    y: 0,
+    s: 0,
+  });
 
   useEffect(() => {
+    if (shouldReduceMotion) return;
+
+    const handleScroll = () => {
+      const y = typeof window === "undefined" ? 0 : Math.min(18, window.scrollY * 0.06);
+      setParallax((p) => ({ ...p, s: y }));
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const w = window.innerWidth || 1;
+      const h = window.innerHeight || 1;
+      const nx = (e.clientX - w / 2) / (w / 2);
+      const ny = (e.clientY - h / 2) / (h / 2);
+
+      const x = Math.max(-14, Math.min(14, nx * 14));
+      const y = Math.max(-10, Math.min(10, ny * 10));
+      setParallax((p) => ({ ...p, x, y }));
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+  }, [shouldReduceMotion]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const hour = new Date().getHours();
 
     if (hour >= 5 && hour < 12) {
@@ -162,6 +200,36 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         },
       };
 
+  const backgroundParallaxStyle = shouldReduceMotion
+    ? undefined
+    : ({
+        transform: `translate3d(${parallax.x * 0.25}px, ${parallax.y * 0.25 + parallax.s * 0.35}px, 0)`,
+      } as const);
+
+  const logoParallaxStyle = shouldReduceMotion
+    ? undefined
+    : ({
+        transform: `translate3d(${parallax.x * 0.55}px, ${parallax.y * 0.6 + parallax.s * 0.25}px, 0)`,
+      } as const);
+
+  const textParallaxStyle = shouldReduceMotion
+    ? undefined
+    : ({
+        transform: `translate3d(${parallax.x * 0.35}px, ${parallax.y * 0.3 + parallax.s * 0.15}px, 0)`,
+      } as const);
+
+  const pinsParallaxStyle = shouldReduceMotion
+    ? undefined
+    : ({
+        transform: `translate3d(${parallax.x * 0.2}px, ${parallax.y * 0.15 + parallax.s * 0.45}px, 0)`,
+      } as const);
+
+  const dotsParallaxStyle = shouldReduceMotion
+    ? undefined
+    : ({
+        transform: `translate3d(${parallax.x * 0.15}px, ${parallax.y * 0.1 + parallax.s * 0.55}px, 0)`,
+      } as const);
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -170,9 +238,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           initial="initial"
           exit="exit"
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center px-4"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center px-4 overflow-hidden"
         >
           <motion.div
+            style={backgroundParallaxStyle}
             className="absolute inset-0 bg-[length:200%_200%] bg-gradient-to-br from-red-600 via-red-700 to-red-800"
             variants={shimmerVariants as any}
             animate="animate"
@@ -206,6 +275,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               ease: "easeInOut",
             }}
             className="relative mb-6 sm:mb-8 md:mb-10 lg:mb-12 z-10"
+            style={logoParallaxStyle}
           >
             <motion.div
               variants={glowVariants}
@@ -246,6 +316,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               ease: [0.16, 1, 0.3, 1],
             }}
             className="text-center px-4 sm:px-6 md:px-8 max-w-xl z-10"
+            style={textParallaxStyle}
           >
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 sm:mb-3 tracking-tight">
               AMBC Club
@@ -261,6 +332,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.8 }}
             className="absolute bottom-16 sm:bottom-20 md:bottom-24 flex gap-1.5 sm:gap-2 md:gap-3 z-10"
+            style={pinsParallaxStyle}
           >
             {[...Array(3)].map((_, i) => (
               <motion.div
@@ -286,6 +358,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.85 }}
             className="absolute bottom-6 sm:bottom-8 md:bottom-10 z-10"
+            style={dotsParallaxStyle}
           >
             <div className="flex gap-1 sm:gap-1.5">
               {[...Array(3)].map((_, i) => (
