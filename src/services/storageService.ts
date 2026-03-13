@@ -59,13 +59,14 @@ export const storageService = {
 
       if (error) throw error;
 
-      // Get public URL
+      // Get public URL (same bucket)
       const { data: urlData } = supabase.storage
-        .from("member-assets")
+        .from("avatars")
         .getPublicUrl(filePath);
 
       return urlData.publicUrl;
     } catch (error) {
+      console.error("uploadAvatar failed:", error);
       throw error;
     }
   },
@@ -214,13 +215,14 @@ export const storageService = {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Get public URL (same bucket)
       const { data: urlData } = supabase.storage
-        .from("member-assets")
+        .from("images")
         .getPublicUrl(filePath);
 
       return urlData.publicUrl;
     } catch (error) {
+      console.error("uploadImage failed:", error);
       throw error;
     }
   },
