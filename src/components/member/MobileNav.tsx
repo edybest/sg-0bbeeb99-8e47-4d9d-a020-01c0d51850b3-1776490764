@@ -20,7 +20,7 @@ const navItems = [
   { key: "profile", href: "/member/profile", label: "Profile", icon: User },
 ];
 
-export function MobileNav() {
+export function MobileNav({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [orderedItems, setOrderedItems] = useState(navItems);
   const router = useRouter();
@@ -75,13 +75,13 @@ export function MobileNav() {
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center gap-3 rounded-lg px-3 ${compact ? "py-1.5" : "py-2.5"} text-sm font-medium transition-all duration-200 ${
                       active
                         ? "bg-red-600 text-white shadow-md"
-                        : "text-gray-700 hover:bg-gray-100 hover:text-red-600 hover:translate-x-1"
+                        : "text-foreground hover:bg-muted hover:text-red-600 hover:translate-x-1"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
                     {item.label}
                   </Link>
                 </motion.div>

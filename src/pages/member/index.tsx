@@ -17,9 +17,9 @@ import {
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
-import { MemberTopBarNav } from "@/components/member/MemberTopBarNav";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 const cardVariants = {
   hidden: {
@@ -125,9 +125,7 @@ export default function MemberDashboard() {
     <PageAccessGuard pagePath="/member" requireAuth={false}>
       <SEO title="Member Dashboard - AMBC Club" description="Dashboard ahli AMBC Club" />
 
-      <div className="min-h-screen bg-gray-50">
-        <MemberTopBarNav subtitle="Member Dashboard" />
-
+      <MemberLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 grid gap-6 lg:grid-cols-2">
             <PwaInstallCard />
@@ -254,7 +252,7 @@ export default function MemberDashboard() {
             </div>
           </motion.div>
         </div>
-      </div>
+      </MemberLayout>
     </PageAccessGuard>
   );
 }

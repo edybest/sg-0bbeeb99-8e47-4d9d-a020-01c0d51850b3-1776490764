@@ -13,12 +13,14 @@ interface MemberTopBarNavProps {
   title?: string;
   subtitle?: string;
   showMobileNav?: boolean;
+  compact?: boolean;
 }
 
 export function MemberTopBarNav({
   title = "AMBC CLUB",
   subtitle = "Member",
   showMobileNav = true,
+  compact = false,
 }: MemberTopBarNavProps) {
   const router = useRouter();
   const { member, logout } = useAuth(false);
@@ -31,18 +33,18 @@ export function MemberTopBarNav({
   }
 
   return (
-    <header className="bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 shadow-sm border-b border-gray-200 sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-4">
+    <header className="bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70 shadow-sm border-b border-border sticky top-0 z-40">
+      <div className={`container mx-auto px-4 ${compact ? "py-2" : "py-4"}`}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            {showMobileNav ? <MobileNav /> : null}
+            {showMobileNav ? <MobileNav compact={compact} /> : null}
 
             <Link href="/member" className="flex items-center gap-3 min-w-0">
-              <ClubLogo size="sm" />
+              <ClubLogo size={compact ? "xs" : "sm"} />
               <div className="min-w-0">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h1 className="text-xl sm:text-2xl font-bold text-red-600 truncate">{title}</h1>
-                  <span className="hidden sm:inline text-sm text-gray-500 truncate">{subtitle}</span>
+                  <h1 className={`${compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"} font-bold text-red-600 truncate`}>{title}</h1>
+                  <span className={`hidden sm:inline ${compact ? "text-xs" : "text-sm"} text-muted-foreground truncate`}>{subtitle}</span>
                 </div>
               </div>
             </Link>
