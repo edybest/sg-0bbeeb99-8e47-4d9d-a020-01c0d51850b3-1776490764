@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -190,15 +190,7 @@ export type Database = {
           position_order?: number
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "gallery_albums_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       gallery_images: {
         Row: {
@@ -240,13 +232,6 @@ export type Database = {
             columns: ["album_id"]
             isOneToOne: false
             referencedRelation: "gallery_albums"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gallery_images_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -292,13 +277,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "gallery_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "gallery_permissions_member_id_fkey"
             columns: ["member_id"]
@@ -1113,6 +1091,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_member_id: { Args: never; Returns: string }
       get_member_id_from_auth: { Args: never; Returns: string }
       get_mini_blok_shared: {
         Args: { p_token: string }
