@@ -29,7 +29,8 @@ export function GlobalLoadingProvider({ children }: { children: React.ReactNode 
     });
   }, []);
 
-  const isLoading = useMemo(() => Object.keys(state).length > 0, [state]);
+  // DISABLED: Global loading is turned off
+  const isLoading = false; // useMemo(() => Object.keys(state).length > 0, [state]);
 
   const withLoading = useCallback(
     async <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
