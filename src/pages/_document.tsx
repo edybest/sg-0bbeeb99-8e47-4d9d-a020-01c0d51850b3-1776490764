@@ -11,6 +11,12 @@ export default function Document() {
         {/* PWA Manifest */}
         <link rel="manifest" href="/manifest.json" />
         
+        {/* Browser tab icons */}
+        <link rel="icon" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" type="image/png" />
+        <link rel="icon" sizes="32x32" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" type="image/png" />
+        <link rel="icon" sizes="16x16" href="/file_00000000b2f4720b8bfc5174c04c0a59.png" type="image/png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        
         {/* Theme Color */}
         <meta name="theme-color" content="#DC2626" />
         
