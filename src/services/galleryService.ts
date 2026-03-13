@@ -20,6 +20,30 @@ export type ImageWithAlbum = GalleryImage & {
   thumbnail_url?: string;
 };
 
+export type GalleryDebugInfo = {
+  step: string;
+  data?: unknown;
+  error?: {
+    message?: string;
+    details?: string;
+    hint?: string;
+    code?: string;
+    status?: number;
+  } | null;
+};
+
+function toDebugError(err: unknown): GalleryDebugInfo["error"] {
+  if (!err || typeof err !== "object") return { message: String(err) };
+  const e = err as any;
+  return {
+    message: e.message,
+    details: e.details,
+    hint: e.hint,
+    code: e.code,
+    status: e.status
+  };
+}
+
 /**
  * Generate optimized thumbnail URL using Supabase image transformations
  */
@@ -140,29 +164,36 @@ export async function createAlbum(
   name: string,
   description?: string,
   coverImageUrl?: string,
-  memberId?: string
-): Promise<GalleryAlbum> {
-  const { data: maxOrder } = await supabase
+  memberId?: string,
+  debug?: boolean
+): Promise<GalleryAlbum | { album: GalleryAlbum | null; debug: GalleryDebugInfo[] }> {
+  const debugLog: GalleryDebugInfo[] = [];
+
+  const { data: maxOrder, error: maxOrderError } = await supabase
     .from("gallery_albums")
     .select("position_order")
     .order("position_order", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  const sortOrder = (maxOrder?.position_order || 0) + 1;
+  debugLog.push({ step: "maxOrder", data: maxOrder, error: maxOrderError ? toDebugError(maxOrderError) : null });
+
+  const sortOrder = ((maxOrder as any)?.position_order || 0) + 1;
 
   const userResponse = await supabase.auth.getUser();
   const userId = memberId || userResponse.data.user?.id;
 
-  console.log("createAlbum: resolved user", {
-    memberIdArg: memberId,
-    authUserId: userResponse.data.user?.id,
-    resolvedUserId: userId,
-    sortOrder
+  debugLog.push({
+    step: "resolvedUser",
+    data: { memberIdArg: memberId, authUserId: userResponse.data.user?.id, resolvedUserId: userId, sortOrder },
+    error: null
   });
 
   if (!userId) {
-    throw new Error("Authentication required to create album");
+    const err = new Error("Authentication required to create album");
+    debugLog.push({ step: "auth", error: toDebugError(err) });
+    if (debug) return { album: null, debug: debugLog };
+    throw err;
   }
 
   const { data, error } = await supabase
@@ -175,14 +206,24 @@ export async function createAlbum(
       created_by: userId
     })
     .select()
-    .single();
+    .maybeSingle();
 
-  console.log("createAlbum: insert result", { data, error });
+  debugLog.push({ step: "insertAlbum", data, error: error ? toDebugError(error) : null });
 
   if (error) {
+    if (debug) return { album: null, debug: debugLog };
     console.error("Create album error:", error);
     throw error;
   }
+
+  if (!data) {
+    const err = new Error("Album insert returned no data");
+    debugLog.push({ step: "insertAlbumNoData", error: toDebugError(err) });
+    if (debug) return { album: null, debug: debugLog };
+    throw err;
+  }
+
+  if (debug) return { album: data, debug: debugLog };
 
   return data;
 }

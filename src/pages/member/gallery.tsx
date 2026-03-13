@@ -77,6 +77,9 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   
+  const [debugEnabled, setDebugEnabled] = useState(false);
+  const [debugOutput, setDebugOutput] = useState<string>("");
+
   // Album form
   const [showAlbumDialog, setShowAlbumDialog] = useState(false);
   const [editingAlbum, setEditingAlbum] = useState<AlbumWithImages | null>(null);
@@ -141,12 +144,30 @@ export default function GalleryPage() {
     
     try {
       setUploading(true);
+      setDebugOutput("");
+
       if (editingAlbum) {
         await updateAlbum(editingAlbum.id, {
           name: albumName,
           description: albumDescription || undefined
         });
       } else {
+        if (debugEnabled) {
+          const result = await createAlbum(albumName, albumDescription || undefined, undefined, undefined, true);
+          const payload = {
+            member: member ? { id: member.id, is_admin: member.is_admin, user_id: (member as any).user_id } : null,
+            result
+          };
+          setDebugOutput(JSON.stringify(payload, null, 2));
+
+          if ((result as any).album) {
+            await loadData();
+            setShowAlbumDialog(false);
+            resetAlbumForm();
+          }
+          return;
+        }
+
         await createAlbum(albumName, albumDescription || undefined);
       }
       
@@ -155,6 +176,18 @@ export default function GalleryPage() {
       resetAlbumForm();
     } catch (error) {
       console.error("Save album error:", error);
+      if (debugEnabled) {
+        setDebugOutput(
+          JSON.stringify(
+            {
+              member: member ? { id: member.id, is_admin: member.is_admin, user_id: (member as any).user_id } : null,
+              error: error ? (error as any) : null
+            },
+            null,
+            2
+          )
+        );
+      }
     } finally {
       setUploading(false);
     }
@@ -351,6 +384,47 @@ export default function GalleryPage() {
 
           {/* Content */}
           <main className="container mx-auto px-4 py-6">
+            {/* Debug Panel (mobile-friendly) */}
+            <Card className="mb-4">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Debug (sementara)</p>
+                    <p className="text-xs text-muted-foreground">Untuk kes “gagal create album” (mobile)</p>
+                  </div>
+                  <Button
+                    variant={debugEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setDebugEnabled(v => !v);
+                      setDebugOutput("");
+                    }}
+                  >
+                    {debugEnabled ? "ON" : "OFF"}
+                  </Button>
+                </div>
+
+                {debugEnabled && (
+                  <>
+                    <div className="text-xs text-muted-foreground">
+                      <div>member.id: <span className="font-mono text-foreground">{member?.id || "-"}</span></div>
+                      <div>member.is_admin: <span className="font-mono text-foreground">{String(member?.is_admin ?? "-")}</span></div>
+                    </div>
+                    <Textarea
+                      value={debugOutput}
+                      onChange={() => {}}
+                      rows={8}
+                      className="font-mono text-xs"
+                      placeholder="Debug output akan muncul di sini selepas cuba buat album."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Lepas anda cuba buat album dan gagal, copy teks dalam box ini dan paste ke chat.
+                    </p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
