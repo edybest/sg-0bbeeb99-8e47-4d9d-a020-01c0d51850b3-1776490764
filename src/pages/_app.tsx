@@ -7,13 +7,23 @@ import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
 import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { SiteFooter } from "@/components/SiteFooter";
+import { useRouter } from "next/router";
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
-    // Only show splash on first load in standalone mode (PWA)
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
     const hasSeenSplash = sessionStorage.getItem("splash_shown");
 
@@ -23,10 +33,13 @@ export default function App({ Component, pageProps }: AppProps) {
     } else {
       sessionStorage.setItem("splash_shown", "true");
     }
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
-    // Register service worker
+    if (!isMounted) {
+      return;
+    }
+
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker
@@ -34,12 +47,10 @@ export default function App({ Component, pageProps }: AppProps) {
           .then((registration) => {
             console.log("Service Worker registered:", registration);
 
-            // Check for updates every hour
             setInterval(() => {
               registration.update();
             }, 60 * 60 * 1000);
 
-            // Listen for updates
             registration.addEventListener("updatefound", () => {
               const newWorker = registration.installing;
               if (newWorker) {
@@ -48,7 +59,6 @@ export default function App({ Component, pageProps }: AppProps) {
                     newWorker.state === "installed" &&
                     navigator.serviceWorker.controller
                   ) {
-                    // New service worker available, prompt update
                     if (
                       confirm(
                         "New version available! Click OK to update and reload."
@@ -65,24 +75,25 @@ export default function App({ Component, pageProps }: AppProps) {
             console.error("Service Worker registration failed:", error);
           });
 
-        // Listen for controller change (new SW activated)
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           window.location.reload();
         });
       });
     }
-  }, []);
+  }, [isMounted]);
 
   const handleSplashComplete = () => {
     setSplashComplete(true);
   };
 
-  const hideFooter =
-    typeof window !== "undefined" &&
-    (window.location.pathname.startsWith("/admin") ||
-      window.location.pathname === "/login" ||
-      window.location.pathname === "/signup" ||
-      window.location.pathname === "/admin/login");
+  const hideFooter = useState(() => false)[0];
+
+  const shouldHideFooter =
+    isMounted &&
+    (router.pathname.startsWith("/admin") ||
+      router.pathname === "/login" ||
+      router.pathname === "/signup" ||
+      router.pathname === "/admin/login");
 
   return (
     <GlobalLoadingProvider>
@@ -101,7 +112,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <div className="flex-1">
               <Component {...pageProps} />
             </div>
-            {!hideFooter && <SiteFooter />}
+            {!shouldHideFooter && <SiteFooter />}
           </div>
         )}
 
