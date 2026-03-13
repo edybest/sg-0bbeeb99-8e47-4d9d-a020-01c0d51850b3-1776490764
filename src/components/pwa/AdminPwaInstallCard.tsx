@@ -27,9 +27,14 @@ export function AdminPwaInstallCard({ className }: { className?: string }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const ios = useMemo(() => isIos(), []);
-  const standalone = useMemo(() => isInStandaloneMode(), []);
+  const ios = useMemo(() => (mounted ? isIos() : false), [mounted]);
+  const standalone = useMemo(() => (mounted ? isInStandaloneMode() : false), [mounted]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -44,6 +49,7 @@ export function AdminPwaInstallCard({ className }: { className?: string }) {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  if (!mounted) return null;
   if (standalone || dismissed) return null;
 
   async function handleInstall() {
