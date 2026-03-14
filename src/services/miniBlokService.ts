@@ -285,11 +285,51 @@ export async function generateShareToken(miniBlokId: string): Promise<string> {
   } as any);
 
   if (error) {
-    console.error("Error generating share token:", error);
-    throw error;
+    const code = (error as any).code as string | undefined;
+    const message = (error as any).message as string | undefined;
+    const hint = (error as any).hint as string | undefined;
+
+    console.error("Error generating share token:", {
+      code,
+      message,
+      hint,
+      details: (error as any).details,
+    });
+
+    const specificMessage = (() => {
+      if (code === "42883") {
+        if (message?.includes("gen_random_bytes")) {
+          return "Share token generator is missing crypto function (pgcrypto). Please ensure pgcrypto is installed and the share function is updated.";
+        }
+        return "Share token function is missing or has a signature mismatch in the database. Please redeploy/refresh the share function.";
+      }
+
+      if (code === "42501") {
+        return "Permission denied while generating share link. Please check function grants and RLS policies.";
+      }
+
+      if (code === "PGRST202") {
+        return "Share token RPC was not found. Please confirm the RPC name exists in Supabase.";
+      }
+
+      if (code === "57014") {
+        return "Request timed out while generating share link. Please try again.";
+      }
+
+      if (typeof message === "string" && message.length > 0) return message;
+
+      return "Failed to generate share link due to an unknown database error.";
+    })();
+
+    throw new Error(specificMessage);
   }
 
-  return data as string;
+  if (!data || typeof data !== "string") {
+    console.error("generateShareToken: unexpected response:", { data });
+    throw new Error("Failed to generate share link (unexpected server response).");
+  }
+
+  return data;
 }
 
 export async function getMiniBlokSharedByToken(shareToken: string): Promise<MiniBlokPublicShared | null> {
