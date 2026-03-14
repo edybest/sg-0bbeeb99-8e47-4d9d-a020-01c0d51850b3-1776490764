@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert, Plus, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
@@ -35,6 +36,8 @@ export function MemberManagement() {
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [formData, setFormData] = useState({
@@ -65,6 +68,7 @@ export function MemberManagement() {
   }, []);
 
   useEffect(() => {
+    setCurrentPage(1);
     filterMembers();
   }, [searchQuery, members]);
 
@@ -96,6 +100,11 @@ export function MemberManagement() {
     );
     setFilteredMembers(filtered);
   }
+
+  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentMembers = filteredMembers.slice(startIndex, endIndex);
 
   function openAddDialog() {
     setEditingMember(null);
@@ -446,7 +455,7 @@ export function MemberManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredMembers.map((member) => (
+                {currentMembers.map((member) => (
                   <tr key={member.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {member.avatar_url ? (
@@ -520,11 +529,45 @@ export function MemberManagement() {
             </table>
           </div>
 
-          {filteredMembers.length === 0 && (
+          {currentMembers.length === 0 && (
             <div className="text-center py-12">
               <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No members found</p>
               <p className="text-gray-500 text-sm mt-1">Try adjusting your search or add a new member</p>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="py-4 border-t border-gray-200">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <PaginationItem key={i}>
+                      <PaginationLink 
+                        onClick={() => setCurrentPage(i + 1)}
+                        isActive={currentPage === i + 1}
+                        className="cursor-pointer"
+                      >
+                        {i + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
         </CardContent>
