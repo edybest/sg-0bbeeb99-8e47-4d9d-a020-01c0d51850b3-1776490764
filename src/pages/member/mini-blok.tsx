@@ -390,6 +390,12 @@ export default function MiniBlokPage() {
     return typeof raw === "string" && raw.trim() ? raw.trim() : null;
   }, [router.query.share, isRouterReady]);
 
+  const entryIdFromQuery = useMemo(() => {
+    if (!isRouterReady) return null;
+    const raw = router.query.entry;
+    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  }, [router.query.entry, isRouterReady]);
+
   const isPublicSharedMode = !!shareToken;
 
   const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
@@ -539,11 +545,10 @@ export default function MiniBlokPage() {
   useEffect(() => {
     if (isPublicSharedMode) return;
 
-    const entryId = router.query.entry;
-    if (typeof entryId === "string" && entryId && member?.id) {
-      loadSharedEntry(entryId);
+    if (entryIdFromQuery && member?.id) {
+      loadSharedEntry(entryIdFromQuery);
     }
-  }, [router.query.entry, member?.id, isPublicSharedMode]);
+  }, [entryIdFromQuery, member?.id, isPublicSharedMode]);
 
   async function loadSharedEntry(entryId: string) {
     try {
@@ -981,7 +986,7 @@ export default function MiniBlokPage() {
       console.error("Failed to generate token:", error);
       toast({
         title: "Error",
-        description: "Failed to generate public link",
+        description: error instanceof Error ? error.message : "Failed to generate public link",
         variant: "destructive",
       });
     } finally {
@@ -995,7 +1000,7 @@ export default function MiniBlokPage() {
     const url =
       shareMode === "editable"
         ? generateShareUrl(shareEntry.id)
-        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : "");
     try {
       await navigator.clipboard.writeText(url);
       setCopiedUrl(true);
@@ -2183,7 +2188,7 @@ export default function MiniBlokPage() {
                   shareEntry
                     ? (shareMode === "editable"
                         ? generateShareUrl(shareEntry.id)
-                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id))
+                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : "")
                     )
                     : ""
                 }
