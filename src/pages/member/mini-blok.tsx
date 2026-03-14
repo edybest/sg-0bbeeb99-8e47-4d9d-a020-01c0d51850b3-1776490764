@@ -1105,13 +1105,23 @@ export default function MiniBlokPage() {
 
         <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-7xl">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                🎳 Mini Blok
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Multi-player tournament tracker
-              </p>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => router.back()} 
+                className="shrink-0 h-10 w-10 md:h-12 md:w-12 rounded-full"
+              >
+                <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
+              </Button>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                  🎳 Mini Blok
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Multi-player tournament tracker
+                </p>
+              </div>
             </div>
 
             {member && (
@@ -1722,7 +1732,6 @@ export default function MiniBlokPage() {
                             ))}
                           </div>
                         </div>
-
                         <div className="flex gap-2">
                           <Button onClick={handleSavePlayer} disabled={submitting}>
                             {submitting ? "Saving..." : editingPlayer ? "Update Player" : "Add Player"}
