@@ -16,11 +16,14 @@ export function PageAccessGuard({ children, pagePath, requireAuth = false }: Pag
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
+    // Wait for router to be ready so query params are available
+    if (!router.isReady) return;
+
     // Prevent multiple simultaneous checks
     if (checking) return;
     
     checkAccess();
-  }, [pagePath]); // Only re-run when pagePath changes
+  }, [pagePath, router.isReady]); // Only re-run when pagePath changes or router is ready
 
   const checkAccess = async () => {
     // Prevent concurrent checks
@@ -29,6 +32,13 @@ export function PageAccessGuard({ children, pagePath, requireAuth = false }: Pag
     setChecking(true);
     
     try {
+      // Bypass access check for public share links
+      if (router.pathname === "/member/mini-blok" && router.query.share) {
+        console.log("🔓 Allowing public access to shared Mini Blok");
+        setHasAccess(true);
+        return;
+      }
+
       // Get user role
       const userRole = await pageAccessService.getUserRole();
       
