@@ -17,6 +17,7 @@ export type MemberDashboardCardKey =
 export type MemberMenuItemKey =
   | "dashboard"
   | "blok"
+  | "mini_blok"
   | "fivefive"
   | "training"
   | "gallery"

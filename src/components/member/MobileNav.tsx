@@ -10,6 +10,7 @@ import { navLayoutService } from "@/services/navLayoutService";
 const navItems = [
   { key: "dashboard", href: "/member", label: "Dashboard", icon: Home },
   { key: "blok", href: "/member/blok", label: "Blok", icon: Trophy },
+  { key: "mini_blok", href: "/member/mini-blok", label: "Mini Blok", icon: Trophy },
   { key: "fivefive", href: "/member/five-five", label: "FiveFive", icon: Target },
   { key: "training", href: "/member/training", label: "Training", icon: Target },
   { key: "gallery", href: "/member/gallery", label: "Gallery", icon: Trophy },
