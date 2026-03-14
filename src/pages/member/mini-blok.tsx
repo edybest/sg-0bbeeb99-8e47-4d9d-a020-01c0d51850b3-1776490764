@@ -68,6 +68,7 @@ import {
   generateShareTokenUrl,
   generateShareUrl,
   generateShareText,
+  generateShareToken,
   calculatePlayerStats,
   type MiniBlokWithPlayers,
   type MiniBlokPublicShared,
@@ -401,6 +402,7 @@ export default function MiniBlokPage() {
   const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<string | null>(null);
   const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
   const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
   const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedEditUrl, setCopiedEditUrl] = useState(false);
@@ -954,6 +956,36 @@ export default function MiniBlokPage() {
   function handleShare(entry: MiniBlokWithPlayers) {
     setShareEntry(entry);
     setCopiedUrl(false);
+    setCopiedEditUrl(false);
+  }
+
+  async function handleGenerateToken() {
+    if (!shareEntry) return;
+    
+    try {
+      setIsGeneratingToken(true);
+      const newToken = await generateShareToken(shareEntry.id);
+      
+      const updatedEntry = { ...shareEntry, share_token: newToken };
+      setShareEntry(updatedEntry);
+      
+      // Update entry in list to reflect new token
+      setEntries(prev => prev.map(e => e.id === updatedEntry.id ? updatedEntry : e));
+      
+      toast({
+        title: "Success",
+        description: "Public link generated successfully!",
+      });
+    } catch (error) {
+      console.error("Failed to generate token:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate public link",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingToken(false);
+    }
   }
 
   async function copyShareUrl() {
@@ -2144,22 +2176,30 @@ export default function MiniBlokPage() {
                   shareEntry
                     ? (shareMode === "editable"
                         ? generateShareUrl(shareEntry.id)
-                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id)))
+                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : ""))
                     : ""
                 }
                 className="flex-1"
+                placeholder={shareMode === "public" && shareEntry && !shareEntry.share_token ? "Tiada public link lagi..." : ""}
               />
-              <Button onClick={copyShareUrl} variant="outline">
-                {copiedUrl ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
+              
+              {shareMode === "public" && shareEntry && !shareEntry.share_token ? (
+                <Button onClick={handleGenerateToken} disabled={isGeneratingToken}>
+                  {isGeneratingToken ? "Generating..." : "Generate Public Link"}
+                </Button>
+              ) : (
+                <Button onClick={copyShareUrl} variant="outline" disabled={!shareEntry || (shareMode === "public" && !shareEntry.share_token)}>
+                  {copiedUrl ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
             {shareMode === "public" && shareEntry && !shareEntry.share_token && (
               <p className="text-xs text-muted-foreground mt-2">
-                Token public belum ada untuk tournament ini. Link akan fallback ke editable link.
+                Anda perlu "Generate" link ini terlebih dahulu sebelum anda boleh kongsikan dengan public (pelawat tanpa akaun).
               </p>
             )}
 

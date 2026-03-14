@@ -60,7 +60,8 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     .select(`
       *,
       players:mini_blok_players(*),
-      shared_with:mini_blok_collaborators(*)
+      shared_with:mini_blok_collaborators(*),
+      shares:mini_blok_shares(token, revoked_at, expires_at)
     `)
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -78,6 +79,9 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
     ...entry,
     players: Array.isArray(entry.players) ? entry.players : [],
     shared_with: Array.isArray(entry.shared_with) ? entry.shared_with : [],
+    share_token: Array.isArray(entry.shares) 
+      ? entry.shares.find((s: any) => !s.revoked_at && (!s.expires_at || new Date(s.expires_at) > new Date()))?.token || null
+      : null,
     can_edit: memberId ? (
       entry.owner_id === memberId || 
       (Array.isArray(entry.shared_with) && entry.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId))
@@ -94,7 +98,8 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
     .select(`
       *,
       players:mini_blok_players(*),
-      shared_with:mini_blok_collaborators(*)
+      shared_with:mini_blok_collaborators(*),
+      shares:mini_blok_shares(token, revoked_at, expires_at)
     `)
     .eq("id", id)
     .single();
@@ -112,6 +117,9 @@ export async function getMiniBlokById(id: string, memberId?: string): Promise<Mi
     ...data,
     players: Array.isArray(data.players) ? data.players : [],
     shared_with: Array.isArray(data.shared_with) ? data.shared_with : [],
+    share_token: Array.isArray((data as any).shares) 
+      ? (data as any).shares.find((s: any) => !s.revoked_at && (!s.expires_at || new Date(s.expires_at) > new Date()))?.token || null
+      : null,
     can_edit: memberId ? (
       data.owner_id === memberId || 
       (Array.isArray(data.shared_with) && data.shared_with.some((access: MiniBlokCollaborator) => access.member_id === memberId))
@@ -269,6 +277,19 @@ export async function revokeShareToken(shareToken: string): Promise<void> {
     console.error("Error revoking share token:", error);
     throw error;
   }
+}
+
+export async function generateShareToken(miniBlokId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("generate_mini_blok_share" as any, {
+    p_mini_blok_id: miniBlokId,
+  } as any);
+
+  if (error) {
+    console.error("Error generating share token:", error);
+    throw error;
+  }
+
+  return data as string;
 }
 
 export async function getMiniBlokSharedByToken(shareToken: string): Promise<MiniBlokPublicShared | null> {

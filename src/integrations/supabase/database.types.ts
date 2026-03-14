@@ -1113,6 +1113,10 @@ export type Database = {
     }
     Functions: {
       current_member_id: { Args: never; Returns: string }
+      generate_mini_blok_share: {
+        Args: { p_mini_blok_id: string }
+        Returns: string
+      }
       get_member_id_from_auth: { Args: never; Returns: string }
       get_mini_blok_shared: {
         Args: { p_token: string }
