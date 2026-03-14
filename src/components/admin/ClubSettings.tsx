@@ -54,7 +54,8 @@ type ClubSettingsTab =
   | "handicap"
   | "statistics"
   | "push"
-  | "layout";
+  | "layout"
+  | "theme";
 
 type TabDef = {
   value: ClubSettingsTab;
