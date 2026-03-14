@@ -13,6 +13,7 @@ import {
     Trophy,
     User,
     Users,
+    Image as ImageIcon,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -88,28 +89,12 @@ const navigationCards: NavigationCard[] = [
         hoverBorder: "hover:border-blue-600 dark:hover:border-blue-500",
     },
     {
-        title: "Training",
-        description: "Practice Scores",
-        href: "/member/training",
-        icon: Target,
-        iconColor: "text-green-600 dark:text-green-500",
-        hoverBorder: "hover:border-green-600 dark:hover:border-green-500",
-    },
-    {
         title: "Hall of Fame",
         description: "Top Performers",
         href: "/member/hall-of-fame",
         icon: Trophy,
         iconColor: "text-amber-600 dark:text-amber-500",
         hoverBorder: "hover:border-amber-600 dark:hover:border-amber-500",
-    },
-    {
-        title: "Lane",
-        description: "Kedudukan Lane",
-        href: "/member/lane",
-        icon: LayoutGrid,
-        iconColor: "text-orange-500 dark:text-orange-400",
-        hoverBorder: "hover:border-orange-500 dark:hover:border-orange-400",
     },
     {
         title: "Undi Lane",
@@ -128,6 +113,46 @@ const navigationCards: NavigationCard[] = [
         hoverBorder: "hover:border-red-600 dark:hover:border-red-500",
     },
     {
+        title: "Lane",
+        description: "Kedudukan Lane",
+        href: "/member/lane",
+        icon: LayoutGrid,
+        iconColor: "text-orange-500 dark:text-orange-400",
+        hoverBorder: "hover:border-orange-500 dark:hover:border-orange-400",
+    },
+    {
+        title: "Gallery",
+        description: "Photo Albums",
+        href: "/member/gallery",
+        icon: ImageIcon,
+        iconColor: "text-pink-600 dark:text-pink-500",
+        hoverBorder: "hover:border-pink-600 dark:hover:border-pink-500",
+    },
+    {
+        title: "Mini Blok",
+        description: "Mini Competition",
+        href: "/member/mini-blok",
+        icon: Trophy,
+        iconColor: "text-indigo-600 dark:text-indigo-500",
+        hoverBorder: "hover:border-indigo-600 dark:hover:border-indigo-500",
+    },
+    {
+        title: "Training",
+        description: "Practice Scores",
+        href: "/member/training",
+        icon: Target,
+        iconColor: "text-green-600 dark:text-green-500",
+        hoverBorder: "hover:border-green-600 dark:hover:border-green-500",
+    },
+    {
+        title: "Feedback",
+        description: "Hantar cadangan / aduan",
+        href: "/member/feedback",
+        icon: Users,
+        iconColor: "text-sky-600 dark:text-sky-500",
+        hoverBorder: "hover:border-sky-600 dark:hover:border-sky-500",
+    },
+    {
         title: "Profile",
         description: "Edit profile & rekod game",
         href: "/member/profile",
@@ -137,23 +162,6 @@ const navigationCards: NavigationCard[] = [
         requiresAuth: true,
     },
 ];
-
-const comingSoonCards = [
-    {
-        title: "Liga",
-        description: "Coming Soon",
-        icon: Trophy,
-    },
-    {
-        title: "Couple",
-        description: "Coming Soon",
-        icon: Users,
-    },
-] satisfies Array<{
-    title: string;
-    description: string;
-    icon: LucideIcon;
-}>;
 
 function getInitials(name?: string | null, username?: string | null) {
     const source = name?.trim() || username?.trim() || "User";
@@ -417,41 +425,6 @@ export default function HomePage() {
                             ))}
                         </div>
                     </section>
-
-                    <motion.section
-                        className="mt-8"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8, duration: 0.6 }}
-                        aria-label="Coming soon features"
-                    >
-                        <h3 className="mb-4 text-lg font-semibold text-foreground">Coming Soon</h3>
-
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                            {comingSoonCards.map((item, index) => {
-                                const Icon = item.icon;
-
-                                return (
-                                    <motion.div
-                                        key={item.title}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 0.6, scale: 1 }}
-                                        transition={{ delay: 1 + index * 0.1, duration: 0.35 }}
-                                    >
-                                        <Card className="opacity-60">
-                                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                                <div>
-                                                    <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                                                    <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
-                                                </div>
-                                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                            </CardHeader>
-                                        </Card>
-                                    </motion.div>
-                                );
-                            })}
-                        </div>
-                    </motion.section>
                 </main>
             </div>
         </>

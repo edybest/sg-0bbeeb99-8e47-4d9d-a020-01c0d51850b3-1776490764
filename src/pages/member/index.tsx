@@ -56,36 +56,12 @@ const navigationCards = [
     hoverBorder: "hover:border-blue-600",
   },
   {
-    title: "Training",
-    description: "Practice Scores",
-    href: "/member/training",
-    icon: Target,
-    iconColor: "text-green-600",
-    hoverBorder: "hover:border-green-600",
-  },
-  {
-    title: "Gallery",
-    description: "Photo Albums",
-    href: "/member/gallery",
-    icon: ImageIcon,
-    iconColor: "text-pink-600",
-    hoverBorder: "hover:border-pink-600",
-  },
-  {
     title: "Hall of Fame",
     description: "Top Performers",
     href: "/member/hall-of-fame",
     icon: Trophy,
     iconColor: "text-amber-600",
     hoverBorder: "hover:border-amber-600",
-  },
-  {
-    title: "Lane",
-    description: "Kedudukan Lane",
-    href: "/member/lane",
-    icon: LayoutGrid,
-    iconColor: "text-orange-500",
-    hoverBorder: "hover:border-orange-500",
   },
   {
     title: "Undi Lane",
@@ -102,6 +78,38 @@ const navigationCards = [
     icon: BarChart3,
     iconColor: "text-red-600",
     hoverBorder: "hover:border-red-600",
+  },
+  {
+    title: "Lane",
+    description: "Kedudukan Lane",
+    href: "/member/lane",
+    icon: LayoutGrid,
+    iconColor: "text-orange-500",
+    hoverBorder: "hover:border-orange-500",
+  },
+  {
+    title: "Gallery",
+    description: "Photo Albums",
+    href: "/member/gallery",
+    icon: ImageIcon,
+    iconColor: "text-pink-600",
+    hoverBorder: "hover:border-pink-600",
+  },
+  {
+    title: "Mini Blok",
+    description: "Mini Competition",
+    href: "/member/mini-blok",
+    icon: Trophy,
+    iconColor: "text-indigo-600",
+    hoverBorder: "hover:border-indigo-600",
+  },
+  {
+    title: "Training",
+    description: "Practice Scores",
+    href: "/member/training",
+    icon: Target,
+    iconColor: "text-green-600",
+    hoverBorder: "hover:border-green-600",
   },
   {
     title: "Feedback",
@@ -209,48 +217,6 @@ export default function MemberDashboard() {
               </motion.div>
             )}
           </div>
-
-          <motion.div
-            className="mt-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 0.6 }}
-          >
-            <h3 className="text-lg font-semibold mb-4 text-gray-700">Coming Soon</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 0.6, scale: 1 }}
-                transition={{ delay: 1.2, duration: 0.4 }}
-              >
-                <Card className="opacity-60">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div>
-                      <CardTitle className="text-sm font-medium">Liga</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
-                    </div>
-                    <Trophy className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 0.6, scale: 1 }}
-                transition={{ delay: 1.3, duration: 0.4 }}
-              >
-                <Card className="opacity-60">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div>
-                      <CardTitle className="text-sm font-medium">Couple</CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
-                    </div>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                </Card>
-              </motion.div>
-            </div>
-          </motion.div>
         </div>
       </MemberLayout>
     </PageAccessGuard>
