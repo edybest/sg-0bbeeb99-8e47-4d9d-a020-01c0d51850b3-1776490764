@@ -249,10 +249,25 @@ export default function LanePage() {
     try {
       setDownloading(true);
 
-      const dataUrl = await toPng(screenshotRef.current, {
+      const element = screenshotRef.current;
+      
+      // Calculate actual dimensions to prevent clipping
+      const width = element.scrollWidth;
+      const height = element.scrollHeight;
+
+      // Add a small delay to ensure all DOM updates/renders are complete
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const dataUrl = await toPng(element, {
         cacheBust: true,
         pixelRatio: 2,
         backgroundColor: "#f9fafb",
+        width: width,
+        height: height + 40, // Add 40px buffer height to prevent bottom cut-off
+        style: {
+          paddingBottom: '40px', // Add padding to push content up from the bottom edge
+          margin: '0',
+        }
       });
 
       const a = document.createElement("a");
