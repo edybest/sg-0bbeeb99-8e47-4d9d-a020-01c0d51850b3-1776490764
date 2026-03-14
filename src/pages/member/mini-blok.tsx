@@ -46,6 +46,7 @@ import {
   Unlock,
   Eye,
   ArrowLeft,
+  Globe,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -1288,8 +1289,14 @@ export default function MiniBlokPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg mb-2 truncate">
-                            {entry.title}
+                          <CardTitle className="text-lg mb-2 flex items-center gap-2">
+                            <span className="truncate">{entry.title}</span>
+                            {entry.share_token && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex-shrink-0 text-[10px] uppercase font-bold tracking-wider py-0 px-1.5 h-5">
+                                <Globe className="h-3 w-3 mr-1" />
+                                Public
+                              </Badge>
+                            )}
                           </CardTitle>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <MapPin className="h-4 w-4" />
@@ -2176,7 +2183,8 @@ export default function MiniBlokPage() {
                   shareEntry
                     ? (shareMode === "editable"
                         ? generateShareUrl(shareEntry.id)
-                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : ""))
+                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id))
+                    )
                     : ""
                 }
                 className="flex-1"
