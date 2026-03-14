@@ -374,10 +374,19 @@ export default function MiniBlokPage() {
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth();
 
+  const [isRouterReady, setIsRouterReady] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady) {
+      setIsRouterReady(true);
+    }
+  }, [router.isReady]);
+
   const shareToken = useMemo(() => {
+    if (!isRouterReady) return null;
     const raw = router.query.share;
     return typeof raw === "string" && raw.trim() ? raw.trim() : null;
-  }, [router.query.share]);
+  }, [router.query.share, isRouterReady]);
 
   const isPublicSharedMode = !!shareToken;
 
@@ -421,14 +430,18 @@ export default function MiniBlokPage() {
   });
 
   useEffect(() => {
+    if (!isRouterReady) return;
     if (isPublicSharedMode) return;
+    // For non-shared mode, we wait for auth to finish before loading entries
+    if (authLoading) return;
     loadEntries();
-  }, [isPublicSharedMode, member?.id]);
+  }, [isRouterReady, isPublicSharedMode, member?.id, authLoading]);
 
   useEffect(() => {
+    if (!isRouterReady) return;
     if (!isPublicSharedMode) return;
     loadPublicShared(shareToken!);
-  }, [isPublicSharedMode, shareToken]);
+  }, [isRouterReady, isPublicSharedMode, shareToken]);
 
   async function loadPublicShared(token: string) {
     setLoading(true);
@@ -1023,10 +1036,19 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
+  // Show a blank/minimal loader only until Next.js router initializes
+  if (!isRouterReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <BowlingBallLoader />
+      </div>
+    );
+  }
+
   if (isPublicSharedMode) {
     if (loading)
       return (
-        <div className="min-h-[70vh] w-full flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
           <BowlingBallLoader />
         </div>
       );
@@ -1090,9 +1112,10 @@ export default function MiniBlokPage() {
     );
   }
 
-  if (loading || authLoading) {
+  // Only block the main dashboard view if auth is still loading or entries are loading
+  if (authLoading || loading) {
     return (
-      <div className="min-h-[70vh] w-full flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <BowlingBallLoader />
       </div>
     );
