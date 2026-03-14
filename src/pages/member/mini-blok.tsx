@@ -1036,13 +1036,9 @@ export default function MiniBlokPage() {
     window.open(twitterUrl, "_blank");
   }
 
-  // Show a blank/minimal loader only until Next.js router initializes
+  // Show nothing to avoid flashes until Next.js router initializes
   if (!isRouterReady) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-        <BowlingBallLoader />
-      </div>
-    );
+    return null;
   }
 
   if (isPublicSharedMode) {
@@ -1095,7 +1091,7 @@ export default function MiniBlokPage() {
             <div className="container mx-auto px-4 py-10 max-w-3xl">
               <Card>
                 <CardContent className="py-10 text-center">
-                  <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
+                  <Trophy className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
                   <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
                   <p className="text-muted-foreground mb-4">
                     Link may be invalid, expired, or unauthorized.
@@ -1820,7 +1816,7 @@ export default function MiniBlokPage() {
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
                                     <span>Tap to {isExpanded ? "hide" : "view"} details</span>
                                     <div className="flex gap-2">
                                       {selectedEntry.can_edit && (
