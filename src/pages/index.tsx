@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
+import { ThemeSwitch } from "@/components/ui/theme-switch";
 
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
@@ -330,6 +331,8 @@ export default function HomePage() {
                             </div>
 
                             <div className="flex items-center gap-3">
+                                <ThemeSwitch />
+                                
                                 {isAuthenticated && member ? (
                                     <>
                                         {member.avatar_url ? (
