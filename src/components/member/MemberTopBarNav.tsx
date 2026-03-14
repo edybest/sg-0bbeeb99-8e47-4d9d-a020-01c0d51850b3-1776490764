@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, ArrowLeft } from "lucide-react";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
 
 interface MemberTopBarNavProps {
@@ -14,6 +14,7 @@ interface MemberTopBarNavProps {
   subtitle?: string;
   showMobileNav?: boolean;
   compact?: boolean;
+  backTo?: string;
 }
 
 export function MemberTopBarNav({
@@ -21,6 +22,7 @@ export function MemberTopBarNav({
   subtitle = "Member",
   showMobileNav = true,
   compact = false,
+  backTo,
 }: MemberTopBarNavProps) {
   const router = useRouter();
   const { member, logout } = useAuth(false);
@@ -38,6 +40,17 @@ export function MemberTopBarNav({
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             {showMobileNav ? <MobileNav compact={compact} /> : null}
+
+            {backTo && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => router.push(backTo)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
 
             <Link href="/member" className="flex items-center gap-3 min-w-0">
               <ClubLogo size={compact ? "xs" : "sm"} />
