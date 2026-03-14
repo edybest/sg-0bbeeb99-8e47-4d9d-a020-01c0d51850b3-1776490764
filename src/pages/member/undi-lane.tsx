@@ -795,7 +795,7 @@ export default function UndiLanePage() {
                   {availableLanes.map((lane) => (
                     <div
                       key={lane}
-                      className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] transition-transform hover:scale-105"
+                      className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:border-primary"
                     >
                       {lane}
                     </div>
