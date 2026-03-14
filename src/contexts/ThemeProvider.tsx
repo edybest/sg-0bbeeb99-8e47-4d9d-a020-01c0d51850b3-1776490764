@@ -43,6 +43,8 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
         ${processValue(colors.primary, 'primary')}
         ${processValue(colors.card, 'card')}
         ${processValue(colors.text, 'foreground')}
+        ${processValue(colors.link || { type: 'solid', value: colors.primary.value }, 'link')}
+        ${processValue(colors.icon || { type: 'solid', value: colors.text.value }, 'icon')}
         ${processValue(colors.header || colors.card, 'header')}
         ${processValue(colors.footer || colors.card, 'footer')}
         ${processValue(colors.welcomeCard || { type: 'solid', value: '0 0% 100%' }, 'welcome-card')}
@@ -83,6 +85,14 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 
           .bg-theme-welcome {
             background: var(--welcome-card-gradient, hsl(var(--welcome-card))) !important;
+          }
+
+          a.text-primary, a:hover {
+             color: var(--link-gradient, hsl(var(--link)));
+          }
+
+          .theme-icon {
+             color: var(--icon-gradient, hsl(var(--icon)));
           }
         `
       }} />

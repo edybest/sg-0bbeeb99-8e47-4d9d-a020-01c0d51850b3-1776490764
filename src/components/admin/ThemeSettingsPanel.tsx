@@ -6,9 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette, Plus, X, Save, RotateCcw } from "lucide-react";
-import { themeService, type AppTheme, type ThemeColors, type ColorConfig, DEFAULT_THEME } from "@/services/themeService";
+import { Palette, Plus, X, Save, RotateCcw, Bookmark, Download } from "lucide-react";
+import { themeService, type AppTheme, type ThemeColors, type ColorConfig, DEFAULT_THEME, PREDEFINED_PRESETS, type ThemePreset } from "@/services/themeService";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Utils to convert between Hex (for color picker) and HSL (for Shadcn)
 function hexToHsl(hex: string): string {
@@ -73,14 +82,23 @@ export function ThemeSettingsPanel() {
   const { toast } = useToast();
   const [themeConfig, setThemeConfig] = useState<AppTheme | null>(null);
   const [loading, setLoading] = useState(false);
+  const [customPresets, setCustomPresets] = useState<ThemePreset[]>([]);
+  const [newPresetName, setNewPresetName] = useState("");
+  const [isSavePresetOpen, setIsSavePresetOpen] = useState(false);
 
   useEffect(() => {
     loadTheme();
+    loadPresets();
   }, []);
 
   const loadTheme = async () => {
     const config = await themeService.getTheme();
     setThemeConfig(config);
+  };
+
+  const loadPresets = async () => {
+    const presets = await themeService.getCustomPresets();
+    setCustomPresets(presets);
   };
 
   const handleSave = async () => {
@@ -93,6 +111,47 @@ export function ThemeSettingsPanel() {
       toast({ title: "❌ Ralat", description: "Gagal menyimpan tema.", variant: "destructive" });
     }
     setLoading(false);
+  };
+
+  const handleResetToDefault = () => {
+    setThemeConfig(DEFAULT_THEME);
+    toast({ title: "ℹ️ Tema Direset", description: "Tema telah dikembalikan ke tetapan asal. Sila klik 'Simpan Tema' untuk mengesahkan." });
+  };
+
+  const applyPreset = (preset: ThemePreset) => {
+    setThemeConfig(preset.theme);
+    toast({ title: "🎨 Tema Dimuatkan", description: `Pratetap "${preset.name}" telah digunakan.` });
+  };
+
+  const handleSavePreset = async () => {
+    if (!themeConfig || !newPresetName.trim()) return;
+    
+    const newPreset: ThemePreset = {
+      id: `custom-${Date.now()}`,
+      name: newPresetName.trim(),
+      theme: themeConfig
+    };
+
+    const updatedPresets = [...customPresets, newPreset];
+    const success = await themeService.saveCustomPresets(updatedPresets);
+    
+    if (success) {
+      setCustomPresets(updatedPresets);
+      setNewPresetName("");
+      setIsSavePresetOpen(false);
+      toast({ title: "✅ Berjaya", description: "Pratetap baharu telah disimpan." });
+    } else {
+      toast({ title: "❌ Ralat", description: "Gagal menyimpan pratetap." });
+    }
+  };
+
+  const deleteCustomPreset = async (id: string) => {
+    const updatedPresets = customPresets.filter(p => p.id !== id);
+    const success = await themeService.saveCustomPresets(updatedPresets);
+    if (success) {
+      setCustomPresets(updatedPresets);
+      toast({ title: "🗑️ Berjaya", description: "Pratetap telah dipadam." });
+    }
   };
 
   const updateColor = (mode: "light" | "dark", key: keyof ThemeColors, updates: Partial<ColorConfig>) => {
@@ -260,7 +319,7 @@ export function ThemeSettingsPanel() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Palette className="w-5 h-5 text-primary" />
@@ -268,15 +327,91 @@ export function ThemeSettingsPanel() {
           </CardTitle>
           <CardDescription>Ubah warna Latar Belakang, Butang, dan Kad untuk mod cerah dan gelap.</CardDescription>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={loadTheme} disabled={loading}>
-            <RotateCcw className="w-4 h-4 mr-2" /> Reset
+        <div className="flex flex-wrap items-center gap-2">
+          
+          <Dialog open={isSavePresetOpen} onOpenChange={setIsSavePresetOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Bookmark className="w-4 h-4 mr-2" /> Simpan Preset
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Simpan Tema Semasa</DialogTitle>
+                <DialogDescription>
+                  Simpan kombinasi warna ini sebagai pratetap untuk digunakan pada masa hadapan.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label>Nama Pratetap (Preset Name)</Label>
+                <Input 
+                  value={newPresetName}
+                  onChange={(e) => setNewPresetName(e.target.value)}
+                  placeholder="Contoh: Tema Merdeka"
+                  className="mt-2"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsSavePresetOpen(false)}>Batal</Button>
+                <Button onClick={handleSavePreset} disabled={!newPresetName.trim()}>Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="destructive" onClick={handleResetToDefault} disabled={loading} size="sm">
+            <RotateCcw className="w-4 h-4 mr-2" /> Reset ke Asal
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            <Save className="w-4 h-4 mr-2" /> {loading ? "Menyimpan..." : "Simpan Tema"}
+
+          <Button onClick={handleSave} disabled={loading} size="sm">
+            <Save className="w-4 h-4 mr-2" /> {loading ? "Menyimpan..." : "Simpan Tema Global"}
           </Button>
         </div>
       </CardHeader>
+
+      <div className="px-6 pb-2">
+        <div className="flex flex-col space-y-2 mb-6 p-4 rounded-lg bg-muted/30 border border-border">
+          <Label className="text-sm font-semibold flex items-center">
+            <Download className="w-4 h-4 mr-2" /> Tema Pratetap (Quick Presets)
+          </Label>
+          <div className="flex flex-wrap gap-2 pt-2">
+            {PREDEFINED_PRESETS.map((preset) => (
+              <Button 
+                key={preset.id} 
+                variant="outline" 
+                size="sm"
+                onClick={() => applyPreset(preset)}
+              >
+                {preset.name}
+              </Button>
+            ))}
+            
+            {customPresets.length > 0 && <div className="w-px h-6 bg-border mx-2 self-center"></div>}
+            
+            {customPresets.map((preset) => (
+              <div key={preset.id} className="flex items-center group">
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  className="rounded-r-none"
+                  onClick={() => applyPreset(preset)}
+                >
+                  ⭐ {preset.name}
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  className="rounded-l-none border-l border-border px-2 text-destructive hover:bg-destructive/20"
+                  onClick={() => deleteCustomPreset(preset.id)}
+                  title="Padam Preset"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <CardContent>
         <Tabs defaultValue="light" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -291,7 +426,11 @@ export function ThemeSettingsPanel() {
             {renderColorEditor("light", "header", "Header (Latar Atas)", true)}
             {renderColorEditor("light", "footer", "Footer (Latar Bawah)", true)}
             {renderColorEditor("light", "welcomeCard", "Kad Selamat Datang (Welcome Card)", true)}
-            {renderColorEditor("light", "text", "Warna Teks (Text Color)", false)}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-6 mt-6">
+              {renderColorEditor("light", "text", "Warna Teks", false)}
+              {renderColorEditor("light", "link", "Warna Pautan (Link)", true)}
+              {renderColorEditor("light", "icon", "Warna Ikon", true)}
+            </div>
           </TabsContent>
           
           <TabsContent value="dark" className="space-y-6">
@@ -301,7 +440,11 @@ export function ThemeSettingsPanel() {
             {renderColorEditor("dark", "header", "Header (Latar Atas)", true)}
             {renderColorEditor("dark", "footer", "Footer (Latar Bawah)", true)}
             {renderColorEditor("dark", "welcomeCard", "Kad Selamat Datang (Welcome Card)", true)}
-            {renderColorEditor("dark", "text", "Warna Teks (Text Color)", false)}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-6 mt-6">
+              {renderColorEditor("dark", "text", "Warna Teks", false)}
+              {renderColorEditor("dark", "link", "Warna Pautan (Link)", true)}
+              {renderColorEditor("dark", "icon", "Warna Ikon", true)}
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
