@@ -53,6 +53,7 @@ export function NotificationInbox() {
             : it
         )
       );
+      window.dispatchEvent(new CustomEvent("notifications-updated"));
     } catch (e) {
       console.error("Mark read failed:", e);
     } finally {

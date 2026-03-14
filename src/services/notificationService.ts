@@ -135,6 +135,19 @@ export const notificationService = {
     }));
   },
 
+  async getUnreadCount() {
+    const { count, error } = await supabase
+      .from("notification_recipients")
+      .select("*", { count: "exact", head: true })
+      .is("read_at", null);
+
+    if (error) {
+      console.error("Failed to get unread count:", error);
+      return 0;
+    }
+    return count ?? 0;
+  },
+
   async markRead(notificationId: string, memberId: string) {
     const { error } = await supabase
       .from("notification_recipients")

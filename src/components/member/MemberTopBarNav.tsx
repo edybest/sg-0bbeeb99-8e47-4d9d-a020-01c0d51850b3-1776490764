@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
-import { LogOut, User, ArrowLeft } from "lucide-react";
+import { LogOut, User, ArrowLeft, Bell } from "lucide-react";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
+import { useEffect, useState } from "react";
+import { notificationService } from "@/services/notificationService";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { NotificationInbox } from "@/components/notifications/NotificationInbox";
 
 interface MemberTopBarNavProps {
   title?: string;
@@ -27,6 +31,31 @@ export function MemberTopBarNav({
   const router = useRouter();
   const { member, logout } = useAuth(false);
   const { withLoading } = useGlobalLoading();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!member) return;
+
+    let mounted = true;
+
+    async function fetchCount() {
+      try {
+        const count = await notificationService.getUnreadCount();
+        if (mounted) setUnreadCount(count);
+      } catch (e) {
+        console.error("Failed to fetch unread count:", e);
+      }
+    }
+
+    void fetchCount();
+
+    const handleUpdate = () => void fetchCount();
+    window.addEventListener("notifications-updated", handleUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener("notifications-updated", handleUpdate);
+    };
+  }, [member]);
 
   async function handleLogout() {
     await withLoading("member:topbar:logout", async () => {
@@ -66,6 +95,28 @@ export function MemberTopBarNav({
           <div className="flex items-center gap-3">
             {member ? (
               <>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+                      <Bell className="h-5 w-5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-full sm:max-w-md p-0 flex flex-col border-l">
+                    <div className="sr-only">
+                      <SheetTitle>Notifications</SheetTitle>
+                      <SheetDescription>View your notifications</SheetDescription>
+                    </div>
+                    <div className="flex-1 overflow-auto bg-muted/20 p-4">
+                      <NotificationInbox />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
                 <div className="hidden sm:flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5">
                   {member.avatar_url ? (
                     <Image
