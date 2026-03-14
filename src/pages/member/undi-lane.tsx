@@ -584,13 +584,17 @@ export default function UndiLanePage() {
 
                 <CardContent className="flex flex-col items-center justify-center p-4 md:p-8">
                   {myResult ? (
-                    <div className="text-center">
-                      <div className="text-8xl font-black text-primary mb-4 animate-bounce">{myResult.lane_position}</div>
-                      <p className="text-muted-foreground text-lg">Your assigned lane</p>
+                    <div className="text-center animate-in zoom-in duration-500 ease-out">
+                      <div className="text-[120px] leading-none font-black bg-gradient-to-br from-primary via-primary/80 to-primary/40 text-transparent bg-clip-text mb-4 animate-bounce shadow-primary/20 drop-shadow-2xl">
+                        {myResult.lane_position}
+                      </div>
+                      <div className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary font-semibold text-lg animate-pulse">
+                        🎉 Your assigned lane
+                      </div>
                     </div>
                   ) : (
-                    <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
-                      <div className="relative w-full">
+                    <div className="w-full flex flex-col items-center">
+                      <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20">
                           <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-primary drop-shadow-2xl" />
                         </div>
@@ -602,7 +606,7 @@ export default function UndiLanePage() {
                             className="w-full h-full drop-shadow-2xl"
                             style={{
                               transform: `rotate(${spinFromRotation}deg)`,
-                              animation: spinning ? "wheel-spin-realistic 5.2s forwards" : undefined,
+                              animation: spinning ? "wheel-spin-realistic 5.2s forwards cubic-bezier(0.2, 0.8, 0.1, 1)" : undefined,
                               ["--spin-to" as any]: `${rotation}deg`,
                               willChange: "transform",
                             }}
@@ -610,7 +614,7 @@ export default function UndiLanePage() {
                             <defs>
                               <radialGradient id="rimGrad" cx="50%" cy="50%" r="60%">
                                 <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                                <stop offset="55%" stopColor="#d1d5db" stopOpacity="0.9" />
+                                <stop offset="55%" stopColor="#e5e7eb" stopOpacity="0.9" />
                                 <stop offset="100%" stopColor="#9ca3af" stopOpacity="0.95" />
                               </radialGradient>
                               <radialGradient id="innerShadow" cx="50%" cy="45%" r="60%">
@@ -618,14 +622,14 @@ export default function UndiLanePage() {
                                 <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
                               </radialGradient>
                               <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
                                 <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
                                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                               </linearGradient>
                             </defs>
 
                             <circle cx="200" cy="200" r="197" fill="none" stroke="url(#rimGrad)" strokeWidth="12" />
-                            <circle cx="200" cy="200" r="191" fill="none" stroke="#111827" strokeOpacity="0.55" strokeWidth="2" />
+                            <circle cx="200" cy="200" r="191" fill="none" stroke="var(--border)" strokeOpacity="0.2" strokeWidth="2" />
 
                             {availableLanes.map((lane, index) => {
                               const segmentAngle = 360 / availableLanes.length;
@@ -652,7 +656,7 @@ export default function UndiLanePage() {
 
                               return (
                                 <g key={lane}>
-                                  <path d={pathData} fill={color} stroke="#fff" strokeWidth="3" />
+                                  <path d={pathData} fill={color} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
                                   <text
                                     x={textX}
                                     y={textY}
@@ -664,10 +668,11 @@ export default function UndiLanePage() {
                                     transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
                                     style={{
                                       paintOrder: "stroke",
-                                      stroke: "rgba(0,0,0,0.45)",
-                                      strokeWidth: 3,
-                                      textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
-                                      fontFamily: "Arial, sans-serif",
+                                      stroke: "rgba(0,0,0,0.3)",
+                                      strokeWidth: 4,
+                                      textShadow: "1px 2px 4px rgba(0,0,0,0.6)",
+                                      fontFamily: "var(--font-sans), sans-serif",
+                                      letterSpacing: "1px"
                                     }}
                                   >
                                     {lane}
@@ -676,15 +681,15 @@ export default function UndiLanePage() {
                               );
                             })}
 
-                            <circle cx="200" cy="200" r="82" fill="rgba(255,255,255,0.9)" />
-                            <circle cx="200" cy="200" r="78" fill="white" stroke="#111827" strokeOpacity="0.35" strokeWidth="3" />
+                            <circle cx="200" cy="200" r="82" fill="var(--background)" fillOpacity="0.95" />
+                            <circle cx="200" cy="200" r="78" fill="var(--card)" stroke="var(--border)" strokeWidth="3" />
                             <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
                             <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
                           </svg>
 
                           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                            <div className="h-20 w-20 rounded-full bg-white shadow-2xl ring-4 ring-gray-900/20 flex items-center justify-center overflow-hidden">
-                              <div className="relative h-16 w-16 rounded-full overflow-hidden ring-2 ring-red-600/30">
+                            <div className="h-20 w-20 rounded-full bg-background shadow-[0_10px_30px_rgba(0,0,0,0.3)] ring-4 ring-primary/20 flex items-center justify-center overflow-hidden">
+                              <div className="relative h-16 w-16 rounded-full overflow-hidden ring-2 ring-primary/30">
                                 <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-cover" priority />
                               </div>
                             </div>
@@ -692,25 +697,39 @@ export default function UndiLanePage() {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={spinWheel}
-                        disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
-                        className="mt-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-bold text-xl px-10 py-6 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transform transition-transform hover:scale-105"
-                      >
-                        {spinning ? "Spinning..." : "SPIN!"}
-                      </Button>
+                      <div className="flex flex-col items-center mt-10 space-y-4">
+                        <div className="relative group">
+                          {/* Glow effect behind button */}
+                          <div className={`absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-40 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'animate-pulse' : 'hidden'}`}></div>
+                          <Button
+                            onClick={spinWheel}
+                            disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
+                            className={`relative bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-black text-2xl tracking-wider px-14 py-8 rounded-full shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'hover:scale-105 hover:shadow-primary/50' : ''}`}
+                          >
+                            {spinning ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="animate-spin h-6 w-6" /> SPINNING...
+                              </span>
+                            ) : "SPIN NOW!"}
+                          </Button>
+                        </div>
 
-                      {isPastGame ? (
-                        <p className="mt-3 text-sm text-destructive font-semibold text-center max-w-sm">
-                          Tarikh untuk game ini telah lepas. Anda tidak boleh mengundi lagi.
-                        </p>
-                      ) : !isRegisteredForGame ? (
-                        <p className="mt-3 text-sm text-destructive text-center max-w-sm">
-                          Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda dalam senarai pemain.
-                        </p>
-                      ) : null}
-
-                      {selectedLane ? <p className="mt-3 text-xs text-muted-foreground">Target: {selectedLane}</p> : null}
+                        <div className="h-12 flex items-center justify-center">
+                          {isPastGame ? (
+                            <div className="px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium animate-in slide-in-from-bottom-2">
+                              Tarikh untuk game ini telah lepas. Anda tidak boleh mengundi lagi.
+                            </div>
+                          ) : !isRegisteredForGame ? (
+                            <div className="px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium text-center max-w-sm animate-in slide-in-from-bottom-2">
+                              Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda.
+                            </div>
+                          ) : selectedLane ? (
+                            <p className="text-sm font-medium text-muted-foreground animate-pulse">
+                              Targeting: <span className="text-primary font-bold">{selectedLane}</span>
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
