@@ -91,7 +91,7 @@ export default function UndiLanePage() {
       if (deltaTime > 100) deltaTime = 16;
 
       if (!spinning && !myResult && availableLanes.length > 0) {
-        currentRotationRef.current = (currentRotationRef.current + deltaTime * 0.015) % 360;
+        currentRotationRef.current = (currentRotationRef.current + deltaTime * 0.02) % 360;
         if (wheelRef.current) {
           wheelRef.current.style.transform = `rotate(${currentRotationRef.current}deg)`;
         }
@@ -639,7 +639,7 @@ export default function UndiLanePage() {
                             viewBox="0 0 400 400"
                             className="w-full h-full drop-shadow-2xl"
                             style={{
-                              transform: `rotate(${spinFromRotation}deg)`,
+                              transform: `rotate(${spinning ? spinFromRotation : currentRotationRef.current}deg)`,
                               animation: spinning ? "wheel-spin-realistic 5.2s forwards cubic-bezier(0.2, 0.8, 0.1, 1)" : undefined,
                               ["--spin-to" as any]: `${rotation}deg`,
                               willChange: "transform",
@@ -715,15 +715,15 @@ export default function UndiLanePage() {
                               );
                             })}
 
-                            <circle cx="200" cy="200" r="82" fill="var(--background)" fillOpacity="0.95" />
-                            <circle cx="200" cy="200" r="78" fill="var(--card)" stroke="var(--border)" strokeWidth="3" />
+                            <circle cx="200" cy="200" r="75" fill="var(--background)" fillOpacity="0.95" />
+                            <circle cx="200" cy="200" r="70" fill="var(--card)" stroke="var(--border)" strokeWidth="3" />
                             <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
                             <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
                           </svg>
 
-                          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                            <div className="h-[150px] w-[150px] rounded-full bg-card shadow-2xl border-[5px] border-border flex items-center justify-center overflow-hidden">
-                              <div className="relative h-[110px] w-[110px]">
+                          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
+                            <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-gray-200 flex items-center justify-center p-2.5">
+                              <div className="relative w-full h-full">
                                 <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-contain" priority />
                               </div>
                             </div>
