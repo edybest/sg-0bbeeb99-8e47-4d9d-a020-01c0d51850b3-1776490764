@@ -33,7 +33,7 @@ export function MemberTopBarNav({
   }
 
   return (
-    <header className="bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70 shadow-sm border-b border-border sticky top-0 z-40">
+    <header className="bg-theme-header/90 backdrop-blur supports-[backdrop-filter]:bg-theme-header/70 shadow-sm border-b border-border sticky top-0 z-40">
       <div className={`container mx-auto px-4 ${compact ? "py-2" : "py-4"}`}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">

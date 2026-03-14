@@ -326,7 +326,7 @@ export default function HomePage() {
             />
 
             <div className="min-h-screen bg-background">
-                <header className="border-b bg-card shadow-sm">
+                <header className="border-b bg-theme-header shadow-sm">
                     <div className="container mx-auto px-4 py-4">
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
@@ -395,7 +395,7 @@ export default function HomePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                     >
-                        <Card className="mb-8 bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700 dark:to-red-800 text-white">
+                        <Card className="mb-8 bg-theme-welcome text-white border-0">
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1">

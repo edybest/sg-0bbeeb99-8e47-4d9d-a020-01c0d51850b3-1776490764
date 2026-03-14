@@ -43,6 +43,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
         ${processValue(colors.primary, 'primary')}
         ${processValue(colors.card, 'card')}
         ${processValue(colors.text, 'foreground')}
+        ${processValue(colors.header || colors.card, 'header')}
+        ${processValue(colors.footer || colors.card, 'footer')}
+        ${processValue(colors.welcomeCard || { type: 'solid', value: '0 0% 100%' }, 'welcome-card')}
       `;
     };
 
@@ -68,6 +71,18 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
           
           .bg-card {
             background: var(--card-gradient, hsl(var(--card))) !important;
+          }
+
+          .bg-theme-header {
+            background: var(--header-gradient, hsl(var(--header))) !important;
+          }
+
+          .bg-theme-footer {
+            background: var(--footer-gradient, hsl(var(--footer))) !important;
+          }
+
+          .bg-theme-welcome {
+            background: var(--welcome-card-gradient, hsl(var(--welcome-card))) !important;
           }
         `
       }} />

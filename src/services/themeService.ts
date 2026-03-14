@@ -16,6 +16,9 @@ export interface ThemeColors {
   primary: ColorConfig;
   card: ColorConfig;
   text: ColorConfig;
+  header: ColorConfig;
+  footer: ColorConfig;
+  welcomeCard: ColorConfig;
 }
 
 export interface AppTheme {
@@ -31,12 +34,18 @@ const DEFAULT_THEME: AppTheme = {
     primary: { type: "solid", value: "220 90% 56%", gradientParams: defaultGradient },
     card: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
     text: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    header: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
+    footer: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
+    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #dc2626, #b91c1c)", gradientParams: { angle: "to right", colors: ["#dc2626", "#b91c1c"] } },
   },
   dark: {
     background: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
     primary: { type: "solid", value: "217.2 91.2% 59.8%", gradientParams: defaultGradient },
     card: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
     text: { type: "solid", value: "210 40% 98%", gradientParams: defaultGradient },
+    header: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    footer: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #b91c1c, #991b1b)", gradientParams: { angle: "to right", colors: ["#b91c1c", "#991b1b"] } },
   }
 };
 

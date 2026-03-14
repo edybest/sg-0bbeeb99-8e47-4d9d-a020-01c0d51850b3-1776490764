@@ -145,7 +145,7 @@ export default function MemberDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="bg-gradient-to-r from-red-600 to-red-700 text-white mb-8">
+            <Card className="mb-8 bg-theme-welcome text-white border-0">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
