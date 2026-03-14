@@ -584,16 +584,16 @@ export default function UndiLanePage() {
 
                 <CardContent className="flex flex-col items-center justify-center p-4 md:p-8">
                   {myResult ? (
-                    <div className="text-center animate-in zoom-in duration-500 ease-out">
-                      <div className="text-[120px] leading-none font-black bg-gradient-to-br from-primary via-primary/80 to-primary/40 text-transparent bg-clip-text mb-4 animate-bounce shadow-primary/20 drop-shadow-2xl">
+                    <div className="text-center animate-in zoom-in duration-500 ease-out py-12">
+                      <div className="text-[120px] leading-none font-black bg-gradient-to-br from-primary via-primary/80 to-primary/40 text-transparent bg-clip-text mb-6 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite" }}>
                         {myResult.lane_position}
                       </div>
-                      <div className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary font-semibold text-lg animate-pulse">
+                      <div className="inline-block px-6 py-2 rounded-full bg-primary/10 text-primary font-bold text-xl animate-pulse border border-primary/20 shadow-sm">
                         🎉 Your assigned lane
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full flex flex-col items-center">
+                    <div className="w-full flex flex-col items-center pb-6">
                       <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20">
                           <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-primary drop-shadow-2xl" />
@@ -697,36 +697,39 @@ export default function UndiLanePage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-center mt-10 space-y-4">
+                      <div className="flex flex-col items-center mt-12 space-y-6 w-full max-w-sm relative z-10">
                         <div className="relative group">
                           {/* Glow effect behind button */}
                           <div className={`absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-40 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'animate-pulse' : 'hidden'}`}></div>
                           <Button
                             onClick={spinWheel}
                             disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
-                            className={`relative bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-black text-2xl tracking-wider px-14 py-8 rounded-full shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'hover:scale-105 hover:shadow-primary/50' : ''}`}
+                            className={`relative bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-black text-3xl tracking-wider px-16 py-10 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'hover:scale-105 hover:shadow-primary/50' : ''}`}
+                            style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
                           >
                             {spinning ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="animate-spin h-6 w-6" /> SPINNING...
+                              <span className="flex items-center gap-2 text-2xl">
+                                <Loader2 className="animate-spin h-8 w-8" /> SPINNING
                               </span>
                             ) : "SPIN NOW!"}
                           </Button>
                         </div>
 
-                        <div className="h-12 flex items-center justify-center">
+                        <div className="min-h-[60px] flex items-center justify-center w-full">
                           {isPastGame ? (
-                            <div className="px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium animate-in slide-in-from-bottom-2">
+                            <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm md:text-base font-semibold text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
                               Tarikh untuk game ini telah lepas. Anda tidak boleh mengundi lagi.
                             </div>
                           ) : !isRegisteredForGame ? (
-                            <div className="px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium text-center max-w-sm animate-in slide-in-from-bottom-2">
+                            <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm md:text-base font-semibold text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
                               Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda.
                             </div>
                           ) : selectedLane ? (
-                            <p className="text-sm font-medium text-muted-foreground animate-pulse">
-                              Targeting: <span className="text-primary font-bold">{selectedLane}</span>
-                            </p>
+                            <div className="animate-in zoom-in duration-300">
+                              <p className="text-lg font-medium text-muted-foreground bg-primary/5 px-6 py-2.5 rounded-full border border-primary/20 shadow-inner">
+                                Targeting: <span className="text-primary font-black text-2xl ml-2">{selectedLane}</span>
+                              </p>
+                            </div>
                           ) : null}
                         </div>
                       </div>
@@ -828,6 +831,17 @@ export default function UndiLanePage() {
             }
             .animate-confetti {
               animation: confetti linear forwards;
+            }
+
+            @keyframes buttonPulse {
+              0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+              50% { transform: scale(1.03); box-shadow: 0 0 0 15px rgba(14, 165, 233, 0); }
+              100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+            }
+
+            @keyframes resultBounce {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-15px); }
             }
           `}</style>
         </div>
