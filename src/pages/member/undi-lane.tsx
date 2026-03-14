@@ -77,6 +77,32 @@ export default function UndiLanePage() {
   const [spinAnimKey, setSpinAnimKey] = useState(0);
   const [spinFromRotation, setSpinFromRotation] = useState(0);
 
+  const wheelRef = useRef<SVGSVGElement>(null);
+  const currentRotationRef = useRef(0);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const rotateWheel = (time: number) => {
+      let deltaTime = time - lastTime;
+      lastTime = time;
+      
+      if (deltaTime > 100) deltaTime = 16;
+
+      if (!spinning && !myResult && availableLanes.length > 0) {
+        currentRotationRef.current = (currentRotationRef.current + deltaTime * 0.015) % 360;
+        if (wheelRef.current) {
+          wheelRef.current.style.transform = `rotate(${currentRotationRef.current}deg)`;
+        }
+      }
+      animationFrameId = requestAnimationFrame(rotateWheel);
+    };
+
+    animationFrameId = requestAnimationFrame(rotateWheel);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [spinning, myResult, availableLanes.length]);
+
   const audioRef = useRef<AudioGraph | null>(null);
   const [audioReady, setAudioReady] = useState(false);
 
@@ -439,10 +465,18 @@ export default function UndiLanePage() {
     const segmentAngle = 360 / availableLanes.length;
     const winningAngle = winningIndex * segmentAngle;
     const spins = 6;
-    const finalRotation = spins * 360 + (360 - winningAngle) - segmentAngle / 2;
+    
+    const currentRotation = currentRotationRef.current;
+    const targetMod = (360 - winningAngle) - segmentAngle / 2;
+    const currentMod = currentRotation % 360;
+    let diff = targetMod - currentMod;
+    if (diff <= 0) diff += 360;
+    
+    const finalRotation = currentRotation + (spins * 360) + diff;
 
-    setSpinFromRotation(rotation);
+    setSpinFromRotation(currentRotation);
     setRotation(finalRotation);
+    currentRotationRef.current = finalRotation % 360;
     setSpinAnimKey((k) => k + 1);
 
     setTimeout(async () => {
@@ -600,6 +634,7 @@ export default function UndiLanePage() {
 
                         <div className="relative w-full aspect-square">
                           <svg
+                            ref={wheelRef}
                             key={spinAnimKey}
                             viewBox="0 0 400 400"
                             className="w-full h-full drop-shadow-2xl"
@@ -687,9 +722,9 @@ export default function UndiLanePage() {
                           </svg>
 
                           <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
-                            <div className="h-20 w-20 rounded-full bg-background shadow-[0_10px_30px_rgba(0,0,0,0.3)] ring-4 ring-primary/20 flex items-center justify-center overflow-hidden">
-                              <div className="relative h-16 w-16 rounded-full overflow-hidden ring-2 ring-primary/30">
-                                <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-cover" priority />
+                            <div className="h-[150px] w-[150px] rounded-full bg-card shadow-2xl border-[5px] border-border flex items-center justify-center overflow-hidden">
+                              <div className="relative h-[110px] w-[110px]">
+                                <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-contain" priority />
                               </div>
                             </div>
                           </div>
