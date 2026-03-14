@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { pageAccessService, type AccessLevel } from "@/services/pageAccessService";
 import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
+import { ThemeSettingsPanel } from "@/components/admin/ThemeSettingsPanel";
 import { navLayoutService, type NavigationSettings, type NavPosition } from "@/services/navLayoutService";
 
 type FiveFivePrizeConfig = {
@@ -71,6 +72,7 @@ const MORE_TABS: TabDef[] = [
   { value: "statistics", label: "Statistics" },
   { value: "push", label: "Push Message" },
   { value: "layout", label: "Layout" },
+  { value: "theme", label: "Theme & Colors" },
 ];
 
 function isMoreTab(value: string): value is ClubSettingsTab {
@@ -1323,6 +1325,10 @@ export function ClubSettings() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="theme" className="space-y-6">
+          <ThemeSettingsPanel />
         </TabsContent>
       </Tabs>
 

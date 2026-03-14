@@ -5,6 +5,10 @@ export type ColorType = "solid" | "gradient";
 export interface ColorConfig {
   type: ColorType;
   value: string; // e.g., "#ffffff" or "linear-gradient(to right, #ff0000, #0000ff)"
+  gradientParams?: {
+    angle: string;
+    colors: string[];
+  };
 }
 
 export interface ThemeColors {
@@ -19,18 +23,20 @@ export interface AppTheme {
   dark: ThemeColors;
 }
 
+const defaultGradient = { angle: "to right", colors: ["#3b82f6", "#8b5cf6"] };
+
 const DEFAULT_THEME: AppTheme = {
   light: {
-    background: { type: "solid", value: "0 0% 100%" }, // HSL for white
-    primary: { type: "solid", value: "220 90% 56%" }, // HSL for primary
-    card: { type: "solid", value: "0 0% 100%" }, // HSL for white
-    text: { type: "solid", value: "222.2 84% 4.9%" }, // HSL for dark text
+    background: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
+    primary: { type: "solid", value: "220 90% 56%", gradientParams: defaultGradient },
+    card: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
+    text: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
   },
   dark: {
-    background: { type: "solid", value: "222.2 84% 4.9%" }, // HSL for dark bg
-    primary: { type: "solid", value: "217.2 91.2% 59.8%" }, // HSL for primary
-    card: { type: "solid", value: "222.2 84% 4.9%" }, // HSL for dark card
-    text: { type: "solid", value: "210 40% 98%" }, // HSL for light text
+    background: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    primary: { type: "solid", value: "217.2 91.2% 59.8%", gradientParams: defaultGradient },
+    card: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    text: { type: "solid", value: "210 40% 98%", gradientParams: defaultGradient },
   }
 };
 

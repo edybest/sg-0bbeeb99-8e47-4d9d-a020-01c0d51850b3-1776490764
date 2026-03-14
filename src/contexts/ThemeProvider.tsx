@@ -59,6 +59,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
           /* Apply custom gradient backgrounds if configured */
           body {
             background: var(--background-gradient, hsl(var(--background)));
+            color: hsl(var(--foreground));
           }
           
           .bg-primary {
