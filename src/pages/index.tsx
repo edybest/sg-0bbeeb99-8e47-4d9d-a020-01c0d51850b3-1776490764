@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
-import { ThemeSwitch } from "@/components/ui/theme-switch";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
