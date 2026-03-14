@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Palette, Plus, X, Save, RotateCcw } from "lucide-react";
-import { themeService, type AppTheme, type ThemeColors, type ColorConfig } from "@/services/themeService";
+import { themeService, type AppTheme, type ThemeColors, type ColorConfig, DEFAULT_THEME } from "@/services/themeService";
 import { useToast } from "@/hooks/use-toast";
 
 // Utils to convert between Hex (for color picker) and HSL (for Shadcn)
@@ -120,7 +120,7 @@ export function ThemeSettingsPanel() {
 
   const renderColorEditor = (mode: "light" | "dark", key: keyof ThemeColors, label: string, allowGradient = true) => {
     if (!themeConfig) return null;
-    const color = themeConfig[mode][key];
+    const color = themeConfig[mode][key] || DEFAULT_THEME[mode][key];
     const isGradient = color.type === "gradient";
 
     return (

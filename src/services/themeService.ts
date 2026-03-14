@@ -28,7 +28,7 @@ export interface AppTheme {
 
 const defaultGradient = { angle: "to right", colors: ["#3b82f6", "#8b5cf6"] };
 
-const DEFAULT_THEME: AppTheme = {
+export const DEFAULT_THEME: AppTheme = {
   light: {
     background: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
     primary: { type: "solid", value: "220 90% 56%", gradientParams: defaultGradient },
@@ -60,7 +60,13 @@ export const themeService = {
 
       if (error || !data?.setting_value) return DEFAULT_THEME;
       
-      return JSON.parse(data.setting_value) as AppTheme;
+      const parsed = JSON.parse(data.setting_value) as Partial<AppTheme>;
+      
+      // Merge with DEFAULT_THEME to handle newly added keys (backward compatibility)
+      return {
+        light: { ...DEFAULT_THEME.light, ...(parsed.light || {}) },
+        dark: { ...DEFAULT_THEME.dark, ...(parsed.dark || {}) }
+      };
     } catch (err) {
       console.error("Failed to parse theme config:", err);
       return DEFAULT_THEME;
