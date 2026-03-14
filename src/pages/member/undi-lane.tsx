@@ -5,10 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
-import { ClubLogo } from "@/components/ClubLogo";
 import { MemberTopBarNav } from "@/components/member/MemberTopBarNav";
 import { Loader2, RotateCcw, Sparkles } from "lucide-react";
-import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import {
   getMemberSpinResult,
@@ -554,13 +552,13 @@ export default function UndiLanePage() {
           <MemberTopBarNav backTo="/member" />
 
           <div className="container mx-auto px-4 py-6 max-w-6xl">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Select Game</CardTitle>
+            <Card className="mb-6 shadow-sm border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl">Select Game</CardTitle>
               </CardHeader>
               <CardContent>
                 <Select value={activeGameId} onValueChange={handleGameChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Choose a game" />
                   </SelectTrigger>
                   <SelectContent>
@@ -574,29 +572,30 @@ export default function UndiLanePage() {
               </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-center text-white text-2xl">
-                    {myResult ? "Your Lane" : "Click to Spin!"}
+            <div className="grid md:grid-cols-2 gap-6 items-start">
+              {/* WHEEL CARD */}
+              <Card className="flex flex-col border-border shadow-md overflow-hidden bg-card">
+                <CardHeader className="bg-primary/5 border-b border-border/50 pb-4">
+                  <CardTitle className="text-center text-primary text-2xl font-black uppercase tracking-wider">
+                    {myResult ? "Your Lane Assigned" : "Click to Spin!"}
                   </CardTitle>
                 </CardHeader>
-
-                <CardContent className="flex flex-col items-center justify-center p-4 md:p-8">
+                
+                <CardContent className="flex flex-col items-center justify-center p-6 md:p-8">
                   {myResult ? (
-                    <div className="text-center animate-in zoom-in duration-500 ease-out py-12">
-                      <div className="text-[120px] leading-none font-black bg-gradient-to-br from-primary via-primary/80 to-primary/40 text-transparent bg-clip-text mb-6 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite" }}>
+                    <div className="text-center animate-in zoom-in-50 fade-in duration-500 ease-out py-16">
+                      <div className="text-[120px] md:text-[140px] leading-none font-black text-primary mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
                         {myResult.lane_position}
                       </div>
-                      <div className="inline-block px-6 py-2 rounded-full bg-primary/10 text-primary font-bold text-xl animate-pulse border border-primary/20 shadow-sm">
-                        🎉 Your assigned lane
+                      <div className="inline-block px-8 py-3 rounded-full bg-primary/10 text-primary font-bold text-xl md:text-2xl animate-pulse border border-primary/20 shadow-sm">
+                        🎉 Your Assigned Lane
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full flex flex-col items-center pb-6">
-                      <div className="relative w-full max-w-[400px] aspect-square flex flex-col items-center">
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-3 z-20">
-                          <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-t-[30px] border-t-primary drop-shadow-2xl" />
+                    <div className="w-full flex flex-col items-center">
+                      <div className="relative w-full max-w-[320px] aspect-square flex flex-col items-center mb-8">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20">
+                          <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-primary drop-shadow-xl" />
                         </div>
 
                         <div className="relative w-full aspect-square">
@@ -697,38 +696,37 @@ export default function UndiLanePage() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-center mt-12 space-y-6 w-full max-w-sm relative z-10">
-                        <div className="relative group">
-                          {/* Glow effect behind button */}
-                          <div className={`absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-full blur opacity-40 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'animate-pulse' : 'hidden'}`}></div>
-                          <Button
-                            onClick={spinWheel}
-                            disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
-                            className={`relative bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-primary-foreground font-black text-3xl tracking-wider px-16 py-10 rounded-full shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ${!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? 'hover:scale-105 hover:shadow-primary/50' : ''}`}
-                            style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
-                          >
-                            {spinning ? (
-                              <span className="flex items-center gap-2 text-2xl">
-                                <Loader2 className="animate-spin h-8 w-8" /> SPINNING
-                              </span>
-                            ) : "SPIN NOW!"}
-                          </Button>
-                        </div>
+                      <div className="flex flex-col items-center space-y-4 w-full max-w-[280px] sm:max-w-[320px] relative z-10">
+                        <Button
+                          onClick={spinWheel}
+                          disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
+                          className={`relative w-full text-xl sm:text-2xl font-black py-7 sm:py-8 rounded-2xl shadow-xl transition-all duration-300 uppercase tracking-widest overflow-hidden group ${
+                            !spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:-translate-y-1" 
+                              : "opacity-50"
+                          }`}
+                          style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
+                        >
+                          <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          {spinning ? (
+                            <span className="flex items-center gap-3">
+                              <Loader2 className="animate-spin h-6 w-6 sm:h-8 sm:w-8" /> SPINNING...
+                            </span>
+                          ) : "SPIN NOW!"}
+                        </Button>
 
-                        <div className="min-h-[60px] flex items-center justify-center w-full">
+                        <div className="min-h-[50px] flex items-center justify-center w-full">
                           {isPastGame ? (
-                            <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm md:text-base font-semibold text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
+                            <div className="px-4 py-2.5 rounded-xl bg-destructive/10 text-destructive text-xs sm:text-sm font-semibold border border-destructive/20 text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
                               Tarikh untuk game ini telah lepas. Anda tidak boleh mengundi lagi.
                             </div>
                           ) : !isRegisteredForGame ? (
-                            <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm md:text-base font-semibold text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
-                              Anda tidak tersenarai untuk game ini. Admin sahaja boleh masukkan nama anda.
+                            <div className="px-4 py-2.5 rounded-xl bg-destructive/10 text-destructive text-xs sm:text-sm font-semibold border border-destructive/20 text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
+                              Anda tidak tersenarai untuk game ini. Sila hubungi admin.
                             </div>
                           ) : selectedLane ? (
-                            <div className="animate-in zoom-in duration-300">
-                              <p className="text-lg font-medium text-muted-foreground bg-primary/5 px-6 py-2.5 rounded-full border border-primary/20 shadow-inner">
-                                Targeting: <span className="text-primary font-black text-2xl ml-2">{selectedLane}</span>
-                              </p>
+                            <div className="px-6 py-2 rounded-full bg-primary/10 text-primary font-bold text-base sm:text-lg animate-in zoom-in border border-primary/20 shadow-inner">
+                              Target: <span className="text-xl sm:text-2xl ml-1">{selectedLane}</span>
                             </div>
                           ) : null}
                         </div>
@@ -738,42 +736,43 @@ export default function UndiLanePage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>All Results ({allResults.length})</CardTitle>
+              {/* ALL RESULTS CARD */}
+              <Card className="flex flex-col border-border shadow-md bg-card">
+                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
+                  <CardTitle className="text-xl">All Results ({allResults.length})</CardTitle>
                   {member?.is_admin ? (
                     <Button
                       onClick={handleResetSpins}
                       variant="outline"
                       size="sm"
-                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
                       Reset All
                     </Button>
                   ) : null}
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                <CardContent className="p-0">
+                  <div className="p-4 space-y-2 max-h-[550px] overflow-y-auto">
                     {allResults.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground">
+                      <div className="text-center py-16 text-muted-foreground">
                         <p>No spins yet. Be the first!</p>
                       </div>
                     ) : (
                       allResults.map((result) => (
                         <div
                           key={result.id}
-                          className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
+                          className="flex items-center justify-between p-3.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-xl border border-border"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-black text-lg shadow-sm">
                               {result.lane_position}
                             </div>
                             <div>
-                              <p className="font-semibold text-foreground">
+                              <p className="font-bold text-foreground">
                                 {result.members?.full_name || result.members?.username || "Unknown"}
                               </p>
-                              <p className="text-xs text-muted-foreground">{new Date(result.spun_at).toLocaleString()}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{new Date(result.spun_at).toLocaleString()}</p>
                             </div>
                           </div>
                         </div>
@@ -784,16 +783,19 @@ export default function UndiLanePage() {
               </Card>
             </div>
 
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Available Lanes ({availableLanes.length})</CardTitle>
+            <Card className="mt-6 shadow-md border-border bg-card">
+              <CardHeader className="bg-muted/30 pb-4 border-b border-border/50">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                  Available Lanes ({availableLanes.length})
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-wrap gap-3">
                   {availableLanes.map((lane) => (
                     <div
                       key={lane}
-                      className="px-4 py-2 bg-muted rounded-lg text-foreground font-semibold border border-border"
+                      className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] transition-transform hover:scale-105"
                     >
                       {lane}
                     </div>
@@ -805,43 +807,29 @@ export default function UndiLanePage() {
 
           <style jsx>{`
             @keyframes wheel-spin-realistic {
-              0% {
-                transform: rotate(0deg);
-              }
-              70% {
-                transform: rotate(calc(var(--spin-to) - 18deg));
-              }
-              88% {
-                transform: rotate(calc(var(--spin-to) + 4deg));
-              }
-              100% {
-                transform: rotate(var(--spin-to));
-              }
+              0% { transform: rotate(0deg); }
+              70% { transform: rotate(calc(var(--spin-to) - 18deg)); }
+              88% { transform: rotate(calc(var(--spin-to) + 4deg)); }
+              100% { transform: rotate(var(--spin-to)); }
             }
 
             @keyframes confetti {
-              0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-              }
-              100% {
-                transform: translateY(100vh) rotate(720deg);
-                opacity: 0;
-              }
+              0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+              100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
             }
             .animate-confetti {
               animation: confetti linear forwards;
             }
 
             @keyframes buttonPulse {
-              0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
-              50% { transform: scale(1.03); box-shadow: 0 0 0 15px rgba(14, 165, 233, 0); }
-              100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+              0% { transform: scale(1); box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5); }
+              70% { transform: scale(1.02); box-shadow: 0 0 0 20px hsl(var(--primary) / 0); }
+              100% { transform: scale(1); box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
             }
 
             @keyframes resultBounce {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-15px); }
+              0%, 100% { transform: scale(1); }
+              50% { transform: scale(1.08) rotate(1deg); }
             }
           `}</style>
         </div>
