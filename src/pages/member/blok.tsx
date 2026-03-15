@@ -476,17 +476,30 @@ export default function BlokPage() {
   if (error && !loadingGames) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-                <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
-                    <div className="container mx-auto px-4">
-                        <div className="flex items-center justify-between h-16">
-                            <div className="flex items-center gap-4">
-                                <MobileNav />
-                                <ClubLogo size="sm" />
-                                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                {/* Header */}
+          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push("/member")}
+                    className="text-gray-700 hover:text-red-600">
+                    
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+
+                  <ClubLogo size="sm" />
+
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
 
                 <main className="container mx-auto px-4 py-8">
                     <Card className="max-w-md mx-auto">
@@ -520,17 +533,30 @@ export default function BlokPage() {
   if (isPageLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-                <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
-                    <div className="container mx-auto px-4">
-                        <div className="flex items-center justify-between h-16">
-                            <div className="flex items-center gap-4">
-                                <MobileNav />
-                                <ClubLogo size="sm" />
-                                <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                            </div>
-                        </div>
-                    </div>
-                </header>
+                {/* Header */}
+          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push("/member")}
+                    className="text-gray-700 hover:text-red-600">
+                    
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+
+                  <ClubLogo size="sm" />
+
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
 
                 <main className="container mx-auto px-4 py-8">
                     <div className="flex items-center justify-center min-h-[400px]">
@@ -574,29 +600,30 @@ export default function BlokPage() {
         
 
                 <div className="min-h-screen bg-white">
-                    <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-                        <div className="container mx-auto px-4 py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Button
+                    {/* Header */}
+          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
                     className="text-gray-700 hover:text-red-600">
                     
-                                        <ArrowLeft className="h-5 w-5" />
-                                    </Button>
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
 
-                                    <ClubLogo size="sm" />
+                  <ClubLogo size="sm" />
 
-                                    <div>
-                                        <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                                        <p className="text-sm text-gray-600">Kedudukan Semasa</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
 
                     <main className="container mx-auto px-4 py-6 space-y-6">
                         {/* Game Selection */}

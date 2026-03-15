@@ -30,7 +30,7 @@ type Champion = {
 export default function HallOfFamePage() {
   const router = useRouter();
   const { member, loading, isAuthenticated } = useAuth(false);
-  
+
   const [champions, setChampions] = useState<Champion[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [years, setYears] = useState<number[]>([]);
@@ -38,7 +38,7 @@ export default function HallOfFamePage() {
 
   useEffect(() => {
     loadChampions();
-    
+
     // Trigger confetti celebration when page loads
     const duration = 3000;
     const end = Date.now() + duration;
@@ -51,7 +51,7 @@ export default function HallOfFamePage() {
         origin: { x: 0 },
         colors: ["#FFD700", "#FFA500", "#FF6347"]
       });
-      
+
       confetti({
         particleCount: 2,
         angle: 120,
@@ -72,8 +72,8 @@ export default function HallOfFamePage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-red-600" />
-      </div>
-    );
+      </div>);
+
   }
 
   async function loadChampions() {
@@ -81,9 +81,9 @@ export default function HallOfFamePage() {
       setLoadingChampions(true);
 
       // Get all Blok games with their top scorer
-      const { data: games, error } = await supabase
-        .from("games")
-        .select(`
+      const { data: games, error } = await supabase.
+      from("games").
+      select(`
           id,
           game_name,
           game_date,
@@ -99,9 +99,9 @@ export default function HallOfFamePage() {
               avatar_url
             )
           )
-        `)
-        .eq("game_type", "Blok Rasmi 10 PIN")
-        .order("game_date", { ascending: false });
+        `).
+      eq("game_type", "Blok Rasmi 10 PIN").
+      order("game_date", { ascending: false });
 
       if (error) throw error;
 
@@ -112,8 +112,8 @@ export default function HallOfFamePage() {
       games?.forEach((game: any) => {
         if (game.game_players && game.game_players.length > 0) {
           // Find top scorer
-          const topPlayer = game.game_players.reduce((max: any, player: any) => 
-            player.overall_score > max.overall_score ? player : max
+          const topPlayer = game.game_players.reduce((max: any, player: any) =>
+          player.overall_score > max.overall_score ? player : max
           );
 
           championsData.push({
@@ -142,9 +142,9 @@ export default function HallOfFamePage() {
     }
   }
 
-  const filteredChampions = selectedYear === "all" 
-    ? champions 
-    : champions.filter(c => c.year.toString() === selectedYear);
+  const filteredChampions = selectedYear === "all" ?
+  champions :
+  champions.filter((c) => c.year.toString() === selectedYear);
 
   return (
     <PageAccessGuard pagePath="/member/hall-of-fame" requireAuth={true}>
@@ -160,14 +160,14 @@ export default function HallOfFamePage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-white hover:bg-white/20"
-                  >
+                    className="text-white hover:bg-white/20">
+                    
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <ClubLogo size="sm" />
                   <div>
                     <h1 className="text-2xl font-bold">Hall of Fame</h1>
-                    <p className="text-sm text-yellow-100">Atlet Terbaik AMBC</p>
+                    <p className="text-sm text-yellow-100">Pemain Terbaik AMBC</p>
                   </div>
                 </div>
               </div>
@@ -191,34 +191,34 @@ export default function HallOfFamePage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Tahun</SelectItem>
-                    {years.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
+                    {years.map((year) =>
+                    <SelectItem key={year} value={year.toString()}>
                         {year}
                       </SelectItem>
-                    ))}
+                    )}
                   </SelectContent>
                 </Select>
               </CardContent>
             </Card>
 
             {/* Champions List */}
-            {loadingChampions ? (
-              <div className="flex justify-center items-center py-12">
+            {loadingChampions ?
+            <div className="flex justify-center items-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-yellow-600" />
-              </div>
-            ) : filteredChampions.length === 0 ? (
-              <Card>
+              </div> :
+            filteredChampions.length === 0 ?
+            <Card>
                 <CardContent className="py-12 text-center text-gray-500">
                   Tiada juara dijumpai
                 </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {filteredChampions.map((champion, index) => (
-                  <Card
-                    key={`${champion.game_name}-${index}`}
-                    className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-yellow-300"
-                  >
+              </Card> :
+
+            <div className="space-y-4">
+                {filteredChampions.map((champion, index) =>
+              <Card
+                key={`${champion.game_name}-${index}`}
+                className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-yellow-300">
+                
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4">
                         {/* Trophy Icon */}
@@ -240,27 +240,27 @@ export default function HallOfFamePage() {
                           </div>
                           <p className="text-sm text-gray-600 mb-3">
                             {new Date(champion.game_date).toLocaleDateString("ms-MY", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric"
-                            })}
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric"
+                        })}
                           </p>
 
                           <div className="flex items-center gap-3">
                             <Link href={`/member/profile?id=${champion.winner.id}`}>
-                              {champion.winner.avatar_url ? (
-                                <Image
-                                  src={champion.winner.avatar_url}
-                                  alt={champion.winner.username}
-                                  width={48}
-                                  height={48}
-                                  className="rounded-full border-2 border-yellow-400 shadow-md"
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-yellow-600 flex items-center justify-center text-white font-bold text-lg">
+                              {champion.winner.avatar_url ?
+                          <Image
+                            src={champion.winner.avatar_url}
+                            alt={champion.winner.username}
+                            width={48}
+                            height={48}
+                            className="rounded-full border-2 border-yellow-400 shadow-md" /> :
+
+
+                          <div className="w-12 h-12 rounded-full bg-yellow-600 flex items-center justify-center text-white font-bold text-lg">
                                   {champion.winner.username[0].toUpperCase()}
                                 </div>
-                              )}
+                          }
                             </Link>
                             <div>
                               <Link href={`/member/profile?id=${champion.winner.id}`}>
@@ -283,12 +283,12 @@ export default function HallOfFamePage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+              )}
               </div>
-            )}
+            }
           </main>
         </div>
       </>
-    </PageAccessGuard>
-  );
+    </PageAccessGuard>);
+
 }
