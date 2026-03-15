@@ -423,6 +423,7 @@ export function ThemeSettingsPanel() {
             {renderColorEditor("light", "background", "Latar Belakang (Page Background)", true)}
             {renderColorEditor("light", "primary", "Warna Utama (Butang/Aksen)", true)}
             {renderColorEditor("light", "card", "Latar Kad (Card Background)", true)}
+            {renderColorEditor("light", "cardBorder", "Border Kad (Card Border)", true)}
             {renderColorEditor("light", "header", "Header (Latar Atas)", true)}
             {renderColorEditor("light", "footer", "Footer (Latar Bawah)", true)}
             {renderColorEditor("light", "welcomeCard", "Kad Selamat Datang (Welcome Card)", true)}
@@ -437,6 +438,7 @@ export function ThemeSettingsPanel() {
             {renderColorEditor("dark", "background", "Latar Belakang (Page Background)", true)}
             {renderColorEditor("dark", "primary", "Warna Utama (Butang/Aksen)", true)}
             {renderColorEditor("dark", "card", "Latar Kad (Card Background)", true)}
+            {renderColorEditor("dark", "cardBorder", "Border Kad (Card Border)", true)}
             {renderColorEditor("dark", "header", "Header (Latar Atas)", true)}
             {renderColorEditor("dark", "footer", "Footer (Latar Bawah)", true)}
             {renderColorEditor("dark", "welcomeCard", "Kad Selamat Datang (Welcome Card)", true)}
