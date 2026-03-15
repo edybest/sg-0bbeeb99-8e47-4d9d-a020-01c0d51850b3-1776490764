@@ -86,23 +86,23 @@ const STICKY_LEFT = {
 };
 
 function sortData(
-data: LeaderboardEntry[],
-field: SortField,
-direction: SortDirection)
-: LeaderboardEntry[] {
+  data: LeaderboardEntry[],
+  field: SortField,
+  direction: SortDirection
+): LeaderboardEntry[] {
   return [...data].sort((a, b) => {
     const aValue = field === "username" ? a.member.username.toLowerCase() : a[field];
     const bValue = field === "username" ? b.member.username.toLowerCase() : b[field];
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return direction === "asc" ?
-      aValue.localeCompare(bValue) :
-      bValue.localeCompare(aValue);
+      return direction === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     }
 
-    return direction === "asc" ?
-    Number(aValue) - Number(bValue) :
-    Number(bValue) - Number(aValue);
+    return direction === "asc"
+      ? Number(aValue) - Number(bValue)
+      : Number(bValue) - Number(aValue);
   });
 }
 
@@ -608,32 +608,99 @@ export default function BlokPage() {
                             </CardHeader>
 
                             <CardContent className="p-4">
-                                {loadingGames && games.length === 0 ?
-                <div className="flex justify-center py-8">
+                                {loadingGames && games.length === 0 ? (
+                                    <div className="flex justify-center py-8">
                                         <Loader2 className="w-6 h-6 animate-spin text-red-600" />
-                                    </div> :
-                games.length === 0 ?
-                <div className="text-center py-8 text-gray-500">Tiada game tersedia</div> :
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                        {games.map((game) =>
-                  <motion.button
-                    key={game.id}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => setSelectedGame(game.id)}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${selectedGame === game.id ?
-                    "bg-red-600 border-red-600 text-white shadow-lg" :
-                    "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"}`
-                    }>
-                    
-                                                <div className="font-semibold">{game.game_name}</div>
-                                                <div className="text-sm opacity-80">
-                                                    {new Date(game.game_date).toLocaleDateString("ms-MY")}
-                                                </div>
-                                            </motion.button>
-                  )}
                                     </div>
-                }
+                                ) : games.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">Tiada game tersedia</div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                        {games.map((game) => {
+                                            const gameDate = new Date(game.game_date);
+                                            const today = new Date();
+                                            const yesterday = new Date(today);
+                                            yesterday.setDate(yesterday.getDate() - 1);
+                                            
+                                            const isToday = gameDate.toDateString() === today.toDateString();
+                                            const isYesterday = gameDate.toDateString() === yesterday.toDateString();
+                                            const isThisWeek = (today.getTime() - gameDate.getTime()) / (1000 * 60 * 60 * 24) < 7;
+                                            
+                                            let dateLabel = "";
+                                            let dateColor = "";
+                                            
+                                            if (isToday) {
+                                                dateLabel = "Hari Ini";
+                                                dateColor = "bg-green-100 text-green-700 border-green-300";
+                                            } else if (isYesterday) {
+                                                dateLabel = "Semalam";
+                                                dateColor = "bg-blue-100 text-blue-700 border-blue-300";
+                                            } else if (isThisWeek) {
+                                                const daysAgo = Math.floor((today.getTime() - gameDate.getTime()) / (1000 * 60 * 60 * 24));
+                                                dateLabel = `${daysAgo} hari lepas`;
+                                                dateColor = "bg-purple-100 text-purple-700 border-purple-300";
+                                            } else {
+                                                dateLabel = gameDate.toLocaleDateString("ms-MY", { 
+                                                    day: "numeric", 
+                                                    month: "short",
+                                                    year: "numeric"
+                                                });
+                                                dateColor = "bg-gray-100 text-gray-700 border-gray-300";
+                                            }
+                                            
+                                            const dayName = gameDate.toLocaleDateString("ms-MY", { weekday: "long" });
+                                            const formattedDate = gameDate.toLocaleDateString("ms-MY", {
+                                                day: "numeric",
+                                                month: "long",
+                                                year: "numeric"
+                                            });
+                                            
+                                            return (
+                                                <motion.button
+                                                    key={game.id}
+                                                    whileTap={{ scale: 0.97 }}
+                                                    onClick={() => setSelectedGame(game.id)}
+                                                    className={`p-4 rounded-lg border-2 transition-all text-left relative overflow-hidden ${
+                                                        selectedGame === game.id
+                                                            ? "bg-red-600 border-red-600 text-white shadow-lg"
+                                                            : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"
+                                                    }`}
+                                                >
+                                                    <div className="space-y-2">
+                                                        <div className={`inline-block px-2 py-1 rounded-md text-xs font-semibold border ${
+                                                            selectedGame === game.id 
+                                                                ? "bg-white/20 text-white border-white/30" 
+                                                                : dateColor
+                                                        }`}>
+                                                            {dateLabel}
+                                                        </div>
+                                                        
+                                                        <div className="font-bold text-lg">{game.game_name}</div>
+                                                        
+                                                        <div className={`text-sm space-y-1 ${
+                                                            selectedGame === game.id ? "opacity-90" : "opacity-70"
+                                                        }`}>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-medium">{dayName}</span>
+                                                            </div>
+                                                            <div>{formattedDate}</div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {selectedGame === game.id && (
+                                                        <motion.div
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center"
+                                                        >
+                                                            <div className="w-3 h-3 bg-red-600 rounded-full" />
+                                                        </motion.div>
+                                                    )}
+                                                </motion.button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
