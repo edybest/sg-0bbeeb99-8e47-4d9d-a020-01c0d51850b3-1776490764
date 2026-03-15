@@ -1005,7 +1005,7 @@ export default function BlokPage() {
                               className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
                               
                                                                         <Link
-                                                                            href={`/member/profile?member_id=${entry.member.id}`}
+                                                                            href={`/member/profile?id=${entry.member.id}`}
                                                                             className={`font-medium hover:text-red-600 transition-colors ${
                                                                                 currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                             }`}
