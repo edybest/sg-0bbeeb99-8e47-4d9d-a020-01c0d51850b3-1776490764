@@ -137,7 +137,7 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
 
 export default function BlokPage() {
   const router = useRouter();
-  const { loading: authLoading, user } = useAuth(false);
+  const { loading: authLoading, member: currentUser } = useAuth(false);
   const { toast } = useToast();
 
   const [games, setGames] = useState<GameSummary[]>([]);
@@ -695,7 +695,7 @@ export default function BlokPage() {
                                                                     <Link 
                                                                         href={`/member/profile?member_id=${entry.member.id}`}
                                                                         className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
-                                                                            user?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                            currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                         }`}
                                                                     >
                                                                         {entry.member.username}
@@ -951,7 +951,7 @@ export default function BlokPage() {
                                                                         <Link
                                                                             href={`/member/profile?member_id=${entry.member.id}`}
                                                                             className={`font-medium hover:text-red-600 transition-colors ${
-                                                                                user?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                                currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                             }`}
                                                                         >
                                                                             {entry.member.username}
