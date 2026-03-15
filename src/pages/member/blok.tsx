@@ -20,8 +20,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  ChevronRight } from
-"lucide-react";
+  ChevronRight
+} from "lucide-react";
 
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -599,106 +599,65 @@ export default function BlokPage() {
                     </header>
 
                     <main className="container mx-auto px-4 py-6 space-y-6">
+                        {/* Game Selection */}
                         <Card className="bg-white border-gray-200 shadow-md">
                             <CardHeader className="border-b border-gray-200">
                                 <CardTitle className="text-gray-900">Pilih Game</CardTitle>
                                 <CardDescription className="text-gray-600">
-                                    Pilih game untuk melihat kedudukan
+                                    Pilih tarikh untuk melihat kedudukan
                                 </CardDescription>
                             </CardHeader>
-
-                            <CardContent className="p-4">
-                                {loadingGames && games.length === 0 ? (
+                            <CardContent className="p-6">
+                                {loadingGames ? (
                                     <div className="flex justify-center py-8">
-                                        <Loader2 className="w-6 h-6 animate-spin text-red-600" />
+                                        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
                                     </div>
                                 ) : games.length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">Tiada game tersedia</div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                        {games.map((game) => {
-                                            const gameDate = new Date(game.game_date);
-                                            const today = new Date();
-                                            const yesterday = new Date(today);
-                                            yesterday.setDate(yesterday.getDate() - 1);
-                                            
-                                            const isToday = gameDate.toDateString() === today.toDateString();
-                                            const isYesterday = gameDate.toDateString() === yesterday.toDateString();
-                                            const isThisWeek = (today.getTime() - gameDate.getTime()) / (1000 * 60 * 60 * 24) < 7;
-                                            
-                                            let dateLabel = "";
-                                            let dateColor = "";
-                                            
-                                            if (isToday) {
-                                                dateLabel = "Hari Ini";
-                                                dateColor = "bg-green-100 text-green-700 border-green-300";
-                                            } else if (isYesterday) {
-                                                dateLabel = "Semalam";
-                                                dateColor = "bg-blue-100 text-blue-700 border-blue-300";
-                                            } else if (isThisWeek) {
-                                                const daysAgo = Math.floor((today.getTime() - gameDate.getTime()) / (1000 * 60 * 60 * 24));
-                                                dateLabel = `${daysAgo} hari lepas`;
-                                                dateColor = "bg-purple-100 text-purple-700 border-purple-300";
-                                            } else {
-                                                dateLabel = gameDate.toLocaleDateString("ms-MY", { 
-                                                    day: "numeric", 
+                                    <div className="max-w-md mx-auto">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tarikh & Game</label>
+                                        <select
+                                            value={selectedGame || ""}
+                                            onChange={(e) => setSelectedGame(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-900 font-medium transition-colors cursor-pointer appearance-none"
+                                            style={{
+                                                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                                                backgroundPosition: `right 0.75rem center`,
+                                                backgroundRepeat: `no-repeat`,
+                                                backgroundSize: `1.5em 1.5em`,
+                                                paddingRight: `2.5rem`
+                                            }}
+                                        >
+                                            <option value="" disabled>-- Sila Pilih Tarikh --</option>
+                                            {games.map((game) => {
+                                                const gameDate = new Date(game.game_date);
+                                                
+                                                // Format dates relatively
+                                                const today = new Date();
+                                                const yesterday = new Date(today);
+                                                yesterday.setDate(yesterday.getDate() - 1);
+                                                
+                                                const isToday = gameDate.toDateString() === today.toDateString();
+                                                const isYesterday = gameDate.toDateString() === yesterday.toDateString();
+                                                
+                                                let prefix = "";
+                                                if (isToday) prefix = "🟢 Hari Ini - ";
+                                                else if (isYesterday) prefix = "🔵 Semalam - ";
+                                                
+                                                const fullDate = gameDate.toLocaleDateString("ms-MY", {
+                                                    day: "2-digit",
                                                     month: "short",
-                                                    year: "numeric"
+                                                    year: "numeric",
                                                 });
-                                                dateColor = "bg-gray-100 text-gray-700 border-gray-300";
-                                            }
-                                            
-                                            const dayName = gameDate.toLocaleDateString("ms-MY", { weekday: "long" });
-                                            const formattedDate = gameDate.toLocaleDateString("ms-MY", {
-                                                day: "numeric",
-                                                month: "long",
-                                                year: "numeric"
-                                            });
-                                            
-                                            return (
-                                                <motion.button
-                                                    key={game.id}
-                                                    whileTap={{ scale: 0.97 }}
-                                                    onClick={() => setSelectedGame(game.id)}
-                                                    className={`p-4 rounded-lg border-2 transition-all text-left relative overflow-hidden ${
-                                                        selectedGame === game.id
-                                                            ? "bg-red-600 border-red-600 text-white shadow-lg"
-                                                            : "bg-white border-gray-200 text-gray-700 hover:border-red-300 hover:bg-red-50"
-                                                    }`}
-                                                >
-                                                    <div className="space-y-2">
-                                                        <div className={`inline-block px-2 py-1 rounded-md text-xs font-semibold border ${
-                                                            selectedGame === game.id 
-                                                                ? "bg-white/20 text-white border-white/30" 
-                                                                : dateColor
-                                                        }`}>
-                                                            {dateLabel}
-                                                        </div>
-                                                        
-                                                        <div className="font-bold text-lg">{game.game_name}</div>
-                                                        
-                                                        <div className={`text-sm space-y-1 ${
-                                                            selectedGame === game.id ? "opacity-90" : "opacity-70"
-                                                        }`}>
-                                                            <div className="flex items-center gap-1">
-                                                                <span className="font-medium">{dayName}</span>
-                                                            </div>
-                                                            <div>{formattedDate}</div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {selectedGame === game.id && (
-                                                        <motion.div
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            className="absolute top-2 right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center"
-                                                        >
-                                                            <div className="w-3 h-3 bg-red-600 rounded-full" />
-                                                        </motion.div>
-                                                    )}
-                                                </motion.button>
-                                            );
-                                        })}
+                                                
+                                                return (
+                                                    <option key={game.id} value={game.id}>
+                                                        {prefix}{game.game_name} ({fullDate})
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
                                     </div>
                                 )}
                             </CardContent>
@@ -706,15 +665,18 @@ export default function BlokPage() {
 
                         {selectedGame &&
             <Card className="bg-white border-gray-200 shadow-md overflow-hidden">
-                                <CardHeader className="border-b border-gray-200 bg-gray-50/50">
-                                    <CardTitle className="text-gray-900 flex items-center gap-2">
-                                        <Trophy className="w-5 h-5 text-yellow-500" />
-                                        Leaderboard
-                                    </CardTitle>
-                                </CardHeader>
+                            <CardHeader className="border-b border-gray-200 bg-gray-50/50">
+                                <CardTitle className="text-gray-900 flex items-center gap-2">
+                                    <Trophy className="w-5 h-5 text-yellow-500" />
+                                    Leaderboard
+                                </CardTitle>
+                                <CardDescription className="text-gray-600">
+                                    Skor untuk game yang dipilih
+                                </CardDescription>
+                            </CardHeader>
 
-                                <CardContent className="p-0">
-                                    {loadingLeaderboard ?
+                            <CardContent className="p-0">
+                                {loadingLeaderboard ?
                 <div className="flex justify-center items-center py-20">
                                             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
                                             <span className="ml-3 text-gray-600">Memuatkan skor...</span>
