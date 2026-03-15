@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -136,7 +137,7 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
 
 export default function BlokPage() {
   const router = useRouter();
-  const { loading: authLoading } = useAuth(false);
+  const { loading: authLoading, user } = useAuth(false);
   const { toast } = useToast();
 
   const [games, setGames] = useState<GameSummary[]>([]);
@@ -679,21 +680,26 @@ export default function BlokPage() {
                                                                         <Image
                                                                             src={entry.member.avatar_url}
                                                                             alt={entry.member.username}
-                                                                            width={48}
-                                                                            height={48}
+                                                                            width={40}
+                                                                            height={40}
                                                                             className="rounded-full border-2 border-gray-200"
                                                                         />
                                                                     ) : (
-                                                                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg">
+                                                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg">
                                                                             {entry.member.username[0].toUpperCase()}
                                                                         </div>
                                                                     )}
                                                                 </div>
 
                                                                 <div className="flex-1 min-w-0">
-                                                                    <div className="font-semibold text-sm truncate">
+                                                                    <Link 
+                                                                        href={`/member/profile?member_id=${entry.member.id}`}
+                                                                        className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
+                                                                            user?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                        }`}
+                                                                    >
                                                                         {entry.member.username}
-                                                                    </div>
+                                                                    </Link>
                                                                     <div className="flex items-center gap-2 text-xs text-gray-600">
                                                                         <span className="font-bold text-red-600" style={{ fontSize: "24px" }}>
                                                                             {entry.overall_score || "-"}
@@ -933,7 +939,7 @@ export default function BlokPage() {
                                                                                 className="rounded-full border-2 border-gray-200 mx-auto"
                                                                             />
                                                                         ) : (
-                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 mx-auto">
+                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg mx-auto">
                                                                                 {entry.member.username[0].toUpperCase()}
                                                                             </div>
                                                                         )}
@@ -942,7 +948,14 @@ export default function BlokPage() {
                                                                     <td
                               className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
                               
-                                                                        <span className="font-medium">{entry.member.username}</span>
+                                                                        <Link
+                                                                            href={`/member/profile?member_id=${entry.member.id}`}
+                                                                            className={`font-medium hover:text-red-600 transition-colors ${
+                                                                                user?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                            }`}
+                                                                        >
+                                                                            {entry.member.username}
+                                                                        </Link>
                                                                     </td>
 
                                                                     <td
