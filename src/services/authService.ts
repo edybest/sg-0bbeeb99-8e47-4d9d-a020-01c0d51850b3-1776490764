@@ -5,6 +5,12 @@ import { whatsappService } from "./whatsappService";
 type Member = Tables<"members">;
 
 /**
+ * Session cache to reduce concurrent auth checks
+ */
+let sessionCache: { session: any; timestamp: number } | null = null;
+const SESSION_CACHE_DURATION = 2000; // 2 seconds cache
+
+/**
  * Get dynamic redirect URL based on environment
  */
 const getRedirectUrl = () => {
@@ -431,16 +437,63 @@ export const authService = {
 
   /**
    * Get current session
+   * Optimized with caching to reduce lock contention
    */
   getSession: async () => {
-    const { data, error } = await supabase.auth.getSession();
-    return { data: data.session, error };
+    try {
+      // Check cache first
+      const now = Date.now();
+      if (sessionCache && (now - sessionCache.timestamp) < SESSION_CACHE_DURATION) {
+        return { data: sessionCache.session, error: null };
+      }
+
+      // Get fresh session with retry mechanism
+      let retries = 3;
+      let lastError = null;
+
+      while (retries > 0) {
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (!error) {
+            // Update cache
+            sessionCache = {
+              session: data.session,
+              timestamp: now
+            };
+            return { data: data.session, error: null };
+          }
+          
+          lastError = error;
+          retries--;
+          
+          // Wait before retry (exponential backoff)
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
+          }
+        } catch (err: any) {
+          lastError = err;
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100 * (4 - retries)));
+          }
+        }
+      }
+
+      return { data: null, error: lastError };
+    } catch (error: any) {
+      console.error("getSession error:", error);
+      return { data: null, error };
+    }
   },
 
   /**
    * Sign out
    */
   signOut: async () => {
+    // Clear session cache
+    sessionCache = null;
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   },
@@ -449,15 +502,24 @@ export const authService = {
    * Get current user profile from members table
    */
   getCurrentMember: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: { message: "Not authenticated" } };
+    try {
+      // Use optimized getSession
+      const { data: session, error: sessionError } = await authService.getSession();
+      
+      if (sessionError || !session?.user) {
+        return { data: null, error: { message: "Not authenticated" } };
+      }
 
-    const { data, error } = await supabase
-      .from("members")
-      .select("*")
-      .eq("email", user.email)
-      .single();
+      const { data, error } = await supabase
+        .from("members")
+        .select("*")
+        .eq("email", session.user.email)
+        .single();
 
-    return { data, error };
+      return { data, error };
+    } catch (error: any) {
+      console.error("getCurrentMember error:", error);
+      return { data: null, error };
+    }
   },
 };
