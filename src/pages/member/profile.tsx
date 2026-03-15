@@ -82,7 +82,6 @@ export default function ProfilePage() {
     return date.toLocaleDateString("en-MY", {
       day: "2-digit",
       month: "short",
-      year: "numeric",
     });
   };
 
