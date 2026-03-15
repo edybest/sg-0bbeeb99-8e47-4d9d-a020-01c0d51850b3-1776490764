@@ -124,6 +124,44 @@ export const PREDEFINED_PRESETS: ThemePreset[] = [
         link: { type: "solid", value: "262 83% 58%", gradientParams: defaultGradient },
       }
     }
+  },
+  {
+    id: "sunshine-yellow",
+    name: "Sunshine Yellow",
+    theme: {
+      light: {
+        ...DEFAULT_THEME.light,
+        primary: { type: "solid", value: "60 100% 50%", gradientParams: defaultGradient }, // yellow
+        header: { type: "solid", value: "100 100% 97%", gradientParams: defaultGradient },
+        welcomeCard: { type: "gradient", value: "linear-gradient(to right, #fde047, #fca5a3)", gradientParams: { angle: "to right", colors: ["#fde047", "#fca5a3"] } },
+        link: { type: "solid", value: "60 100% 50%", gradientParams: defaultGradient },
+      },
+      dark: {
+        ...DEFAULT_THEME.dark,
+        primary: { type: "solid", value: "60 100% 50%", gradientParams: defaultGradient },
+        welcomeCard: { type: "gradient", value: "linear-gradient(to right, #fde047, #fca5a3)", gradientParams: { angle: "to right", colors: ["#fde047", "#fca5a3"] } },
+        link: { type: "solid", value: "60 100% 50%", gradientParams: defaultGradient },
+      }
+    }
+  },
+  {
+    id: "vibrant-orange",
+    name: "Vibrant Orange",
+    theme: {
+      light: {
+        ...DEFAULT_THEME.light,
+        primary: { type: "solid", value: "15 100% 50%", gradientParams: defaultGradient }, // orange
+        header: { type: "solid", value: "100 100% 97%", gradientParams: defaultGradient },
+        welcomeCard: { type: "gradient", value: "linear-gradient(to right, #fca5a3, #fde047)", gradientParams: { angle: "to right", colors: ["#fca5a3", "#fde047"] } },
+        link: { type: "solid", value: "15 100% 50%", gradientParams: defaultGradient },
+      },
+      dark: {
+        ...DEFAULT_THEME.dark,
+        primary: { type: "solid", value: "15 100% 50%", gradientParams: defaultGradient },
+        welcomeCard: { type: "gradient", value: "linear-gradient(to right, #fca5a3, #fde047)", gradientParams: { angle: "to right", colors: ["#fca5a3", "#fde047"] } },
+        link: { type: "solid", value: "15 100% 50%", gradientParams: defaultGradient },
+      }
+    }
   }
 ];
 
