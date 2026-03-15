@@ -95,7 +95,7 @@ export function GameManagement() {
       game_name: "",
       game_type: "Blok Rasmi 10 PIN",
       game_date: new Date().toISOString().split("T")[0],
-      location: "Wangsa Bowl, IOI City Mall",
+      location: "Daiman Bowl",
       is_official: true
     });
     setDialogOpen(true);
@@ -107,7 +107,7 @@ export function GameManagement() {
       game_name: game.game_name,
       game_type: game.game_type,
       game_date: game.game_date,
-      location: game.location || "Wangsa Bowl, IOI City Mall",
+      location: game.location || "Daiman Bowl",
       is_official: game.is_official ?? true
     });
     setDialogOpen(true);
