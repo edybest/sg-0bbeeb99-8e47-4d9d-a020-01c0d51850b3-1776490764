@@ -749,7 +749,7 @@ export default function BlokPage() {
 
                                                                 <div className="flex-1 min-w-0">
                                                                     <Link 
-                                                                        href={`/member/profile?member_id=${entry.member.id}`}
+                                                                        href={`/member/profile?id=${entry.member.id}`}
                                                                         className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
                                                                             currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                         }`}
