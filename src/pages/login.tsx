@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import { WhatsAppLoginForm } from "@/components/auth/WhatsAppLoginForm";
 import { SEO } from "@/components/SEO";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 function AuthLoadingScreen({ message }: { message: string }) {
     return (
@@ -85,7 +87,19 @@ export default function LoginPage() {
                 title="Login - AMBC Club"
                 description="Login ke AMBC Club member area"
             />
-            <WhatsAppLoginForm />
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+                <div className="container mx-auto px-4 py-8">
+                    <Button
+                        variant="ghost"
+                        onClick={() => router.push("/")}
+                        className="mb-4"
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Kembali
+                    </Button>
+                </div>
+                <WhatsAppLoginForm />
+            </div>
         </>
     );
 }
