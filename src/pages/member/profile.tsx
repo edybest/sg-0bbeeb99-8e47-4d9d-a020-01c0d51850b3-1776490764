@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Save, Loader2, Camera, History } from "lucide-react";
+import { ArrowLeft, User, Save, Loader2, Camera, History, Calendar, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ClubLogo } from "@/components/ClubLogo";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
@@ -70,16 +70,20 @@ export default function ProfilePage() {
   // Get ID from query param or session
   const queryId = router.query.id as string;
 
-  useEffect(() => {
-    if (!authLoading && isAuthenticated && currentMember) {
-      loadProfile();
-    }
-  }, [authLoading, isAuthenticated, currentMember, queryId]);
-
   // Helper function to check if avatar is base64
   const isBase64Image = (url: string | null) => {
     if (!url) return false;
     return url.startsWith("data:image/");
+  };
+
+  const formatBirthday = (birthday: string | null) => {
+    if (!birthday) return "Not set";
+    const date = new Date(birthday);
+    return date.toLocaleDateString("en-MY", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   async function loadProfile() {
@@ -235,6 +239,10 @@ export default function ProfilePage() {
       setUploading(false);
     }
   }
+
+  useEffect(() => {
+    loadProfile();
+  }, [currentMember]);
 
   // Show loading while checking auth
   if (authLoading || loading) {
