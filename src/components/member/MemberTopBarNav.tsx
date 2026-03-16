@@ -82,7 +82,6 @@ export function MemberTopBarNav({
             )}
 
             <Link href="/member" className="flex items-center gap-3 min-w-0">
-              <ClubLogo size={compact ? "xs" : "sm"} />
               <div className="min-w-0">
                 <div className="flex items-baseline gap-2 min-w-0">
                   <h1 className={`${compact ? "text-lg sm:text-xl" : "text-xl sm:text-2xl"} font-bold text-red-600 truncate`}>{title}</h1>

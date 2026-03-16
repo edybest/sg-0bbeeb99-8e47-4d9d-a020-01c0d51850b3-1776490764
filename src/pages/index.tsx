@@ -364,7 +364,6 @@ export default function HomePage() {
                         <div className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <MobileNav />
-                                <ClubLogo size="sm" />
                                 <div>
                                     <h1 className="text-2xl font-bold text-primary">AMBC CLUB</h1>
                                     <p className="text-sm text-muted-foreground">Bowling Club Management</p>
