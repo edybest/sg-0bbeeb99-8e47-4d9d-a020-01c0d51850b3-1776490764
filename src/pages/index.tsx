@@ -30,6 +30,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
+import { ParticleBackground } from "@/components/ParticleBackground";
 
 import type { Session } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
@@ -427,8 +428,9 @@ export default function HomePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
                     >
-                        <Card className="mb-8 bg-theme-welcome text-white border-0">
-                            <CardContent className="p-6">
+                        <Card className="mb-8 bg-theme-welcome text-white border-0 relative overflow-hidden">
+                            <ParticleBackground />
+                            <CardContent className="p-6 relative z-10">
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1">
                                         <h2 className="mb-2 text-2xl font-bold">
