@@ -135,11 +135,6 @@ export default function MemberDashboard() {
 
       <MemberLayout>
         <div className="container mx-auto px-4 py-8">
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
-            <PwaInstallCard />
-            <NotificationInbox />
-          </div>
-
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
