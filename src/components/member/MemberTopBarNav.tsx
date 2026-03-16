@@ -117,29 +117,6 @@ export function MemberTopBarNav({
                   </SheetContent>
                 </Sheet>
 
-                <div className="hidden sm:flex items-center gap-3 rounded-full border border-gray-200 bg-white px-3 py-1.5">
-                  {member.avatar_url ? (
-                    <Image
-                      src={member.avatar_url}
-                      alt={member.username || "Member avatar"}
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-semibold">
-                      {member.username?.[0]?.toUpperCase() || "U"}
-                    </div>
-                  )}
-
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 truncate">
-                      {member.full_name || member.username}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">@{member.username}</div>
-                  </div>
-                </div>
-
                 <ThemeSwitch />
 
                 <Button
