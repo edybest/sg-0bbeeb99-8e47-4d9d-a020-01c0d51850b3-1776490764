@@ -20,6 +20,7 @@ import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { Button } from "@/components/ui/button";
 
 const cardVariants = {
   hidden: {
