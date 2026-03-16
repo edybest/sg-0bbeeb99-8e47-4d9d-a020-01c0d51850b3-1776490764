@@ -198,16 +198,49 @@ function DashboardCard({
             animate="visible"
             variants={cardVariants}
         >
-            <Link href={href} className="block transition-transform hover:scale-[1.02]">
-                <Card className={`h-full cursor-pointer border-2 transition-all hover:shadow-lg ${hoverBorder}`}>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <div>
-                            <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                            <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-                        </div>
-                        <Icon className={`h-6 w-6 ${iconColor}`} />
-                    </CardHeader>
-                </Card>
+            <Link href={href} className="block">
+                {/* Mobile: Button Style */}
+                <motion.div 
+                    className="md:hidden"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    <Button
+                        variant="outline"
+                        className={`w-full justify-start gap-3 h-auto py-4 px-4 border-2 transition-all ${hoverBorder} hover:shadow-md`}
+                    >
+                        <motion.div
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        >
+                            <Icon className={`h-5 w-5 ${iconColor}`} />
+                        </motion.div>
+                        <span className="font-semibold">{title}</span>
+                    </Button>
+                </motion.div>
+
+                {/* Desktop: Card Style */}
+                <motion.div 
+                    className="hidden md:block"
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                    <Card className={`h-full cursor-pointer border-2 transition-all hover:shadow-lg ${hoverBorder}`}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+                                <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+                            </div>
+                            <motion.div
+                                whileHover={{ scale: 1.2, rotate: 10 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                            >
+                                <Icon className={`h-6 w-6 ${iconColor}`} />
+                            </motion.div>
+                        </CardHeader>
+                    </Card>
+                </motion.div>
             </Link>
         </motion.div>
     );

@@ -174,16 +174,49 @@ export default function MemberDashboard() {
                   animate="visible"
                   variants={cardVariants}
                 >
-                  <Link href={card.href} className="block transition-transform hover:scale-105">
-                    <Card className={`h-full cursor-pointer hover:shadow-lg border-2 ${card.hoverBorder}`}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <div>
-                          <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
-                        </div>
-                        <Icon className={`h-6 w-6 ${card.iconColor}`} />
-                      </CardHeader>
-                    </Card>
+                  <Link href={card.href} className="block">
+                    {/* Mobile: Button Style */}
+                    <motion.div 
+                      className="md:hidden"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start gap-3 h-auto py-4 px-4 border-2 transition-all ${card.hoverBorder} hover:shadow-md`}
+                      >
+                        <motion.div
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        >
+                          <Icon className={`h-5 w-5 ${card.iconColor}`} />
+                        </motion.div>
+                        <span className="font-semibold">{card.title}</span>
+                      </Button>
+                    </motion.div>
+
+                    {/* Desktop: Card Style */}
+                    <motion.div 
+                      className="hidden md:block"
+                      whileHover={{ scale: 1.02, y: -4 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <Card className={`h-full cursor-pointer hover:shadow-lg border-2 ${card.hoverBorder}`}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <div>
+                            <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
+                            <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
+                          </div>
+                          <motion.div
+                            whileHover={{ scale: 1.2, rotate: 10 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                          >
+                            <Icon className={`h-6 w-6 ${card.iconColor}`} />
+                          </motion.div>
+                        </CardHeader>
+                      </Card>
+                    </motion.div>
                   </Link>
                 </motion.div>
               );
@@ -196,18 +229,51 @@ export default function MemberDashboard() {
                 animate="visible"
                 variants={cardVariants}
               >
-                <Link href="/member/profile" className="block transition-transform hover:scale-105">
-                  <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-red-600">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div>
-                        <CardTitle className="text-lg font-semibold">Profile</CardTitle>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Edit profile & rekod game
-                        </p>
-                      </div>
-                      <User className="h-6 w-6 text-red-600" />
-                    </CardHeader>
-                  </Card>
+                <Link href="/member/profile" className="block">
+                  {/* Mobile: Button Style */}
+                  <motion.div 
+                    className="md:hidden"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-3 h-auto py-4 px-4 border-2 transition-all hover:border-red-600 hover:shadow-md"
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                      >
+                        <User className="h-5 w-5 text-red-600" />
+                      </motion.div>
+                      <span className="font-semibold">Profile</span>
+                    </Button>
+                  </motion.div>
+
+                  {/* Desktop: Card Style */}
+                  <motion.div 
+                    className="hidden md:block"
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-red-600">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <div>
+                          <CardTitle className="text-lg font-semibold">Profile</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Edit profile & rekod game
+                          </p>
+                        </div>
+                        <motion.div
+                          whileHover={{ scale: 1.2, rotate: 10 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        >
+                          <User className="h-6 w-6 text-red-600" />
+                        </motion.div>
+                      </CardHeader>
+                    </Card>
+                  </motion.div>
                 </Link>
               </motion.div>
             )}
