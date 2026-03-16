@@ -122,7 +122,7 @@ export function MemberTopBarNav({
                 <Button
                   variant="outline"
                   onClick={handleLogout}
-                  className="border-gray-300 hover:bg-gray-100"
+                  className="hover:bg-gray-100"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Logout</span>
@@ -135,7 +135,7 @@ export function MemberTopBarNav({
                 <Button
                   variant="outline"
                   onClick={() => router.push("/login")}
-                  className="border-red-600 text-red-600 hover:bg-red-50"
+                  className="text-red-600 hover:bg-red-50"
                 >
                   <User className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Login</span>
