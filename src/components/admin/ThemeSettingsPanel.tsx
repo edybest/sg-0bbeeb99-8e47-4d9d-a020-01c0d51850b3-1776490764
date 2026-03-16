@@ -179,7 +179,8 @@ export function ThemeSettingsPanel() {
 
   const renderColorEditor = (mode: "light" | "dark", key: keyof ThemeColors, label: string, allowGradient = true) => {
     if (!themeConfig) return null;
-    const color = themeConfig[mode][key] || DEFAULT_THEME[mode][key];
+    const color = themeConfig[mode][key] ?? DEFAULT_THEME[mode][key];
+    if (!color) return null;
     const isGradient = color.type === "gradient";
 
     return (
