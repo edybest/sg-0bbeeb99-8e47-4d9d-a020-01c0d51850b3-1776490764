@@ -55,7 +55,9 @@ export default function ChatPage() {
   useEffect(() => {
     async function init() {
       // Ensure user is in Lobby Room
-      await ensureLobbyRoom();
+      const lobbyId = await ensureLobbyRoom();
+      console.log("🏛️ Lobby Room ID:", lobbyId);
+      
       // Then load all chats
       await loadRooms();
     }
@@ -96,6 +98,7 @@ export default function ChatPage() {
   async function loadRooms() {
     setLoading(true);
     const data = await listMyChats();
+    console.log("📋 Loaded rooms:", data);
     setRooms(data);
     setLoading(false);
   }

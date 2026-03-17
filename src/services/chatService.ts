@@ -94,8 +94,12 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     return [];
   }
 
+  console.log("🔍 RPC returned room IDs:", roomIds);
+
   // Extract room IDs from the result
   const roomIdArray = roomIds.map((r: { room_id: string }) => r.room_id);
+  
+  console.log("🔍 Extracted room ID array:", roomIdArray);
 
   // Get full room details
   const { data, error } = await supabase
@@ -114,6 +118,8 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     console.error("Error loading chat details:", error);
     return [];
   }
+
+  console.log("🔍 Fetched room details:", data);
 
   // Fetch last message and unread count for each room
   const rooms = await Promise.all(
