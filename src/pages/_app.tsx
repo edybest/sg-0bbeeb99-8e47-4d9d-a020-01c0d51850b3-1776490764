@@ -8,7 +8,6 @@ import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useRouter } from "next/router";
-import { ScrollToTop } from "@/components/ScrollToTop";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -120,7 +119,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
         <Toaster />
         {typeof window === "undefined" ? null : <GlobalLoadingOverlay />}
-        <ScrollToTop />
       </ThemeProvider>
     </GlobalLoadingProvider>
   );

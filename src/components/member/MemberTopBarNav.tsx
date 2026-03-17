@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { Bell, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { NotificationInbox } from "@/components/notifications/NotificationInbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,10 +41,24 @@ export function MemberTopBarNav() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <Button variant="ghost" size="icon" className="relative text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-full h-10 w-10 transition-colors">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 border-2 border-white dark:border-gray-950" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-full h-10 w-10 transition-colors"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-rose-500 border-2 border-white dark:border-gray-950" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-[400px] max-w-[calc(100vw-2rem)] border-rose-100 shadow-large mt-2" 
+              align="end"
+            >
+              <NotificationInbox />
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
