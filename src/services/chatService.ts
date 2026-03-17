@@ -118,33 +118,48 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
 }
 
 /**
- * Get or create direct chat with another member
+ * Get existing direct chat or create new one with another member
  */
-export async function getOrCreateDirectChat(
-  otherMemberId: string
-): Promise<ChatRoom | null> {
-  const memberId = await getCurrentMemberId();
-  if (!memberId) return null;
+export async function getOrCreateDirectChat(otherMemberId: string): Promise<string | null> {
+  try {
+    // Get current user's member ID
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      console.error("No authenticated user");
+      return null;
+    }
 
-  const { data: roomId, error } = await supabase.rpc("get_or_create_direct_chat", {
-    member1_id: memberId,
-    member2_id: otherMemberId,
-  });
+    const { data: members } = await supabase
+      .from("members")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single();
 
-  if (error) {
-    console.error("Error getting/creating chat:", error);
+    if (!members) {
+      console.error("Current user has no member record");
+      return null;
+    }
+
+    const myMemberId = members.id;
+    console.log("Creating/getting direct chat:", { myMemberId, otherMemberId });
+
+    // Call RPC function to get or create direct chat
+    const { data: roomId, error } = await supabase.rpc("get_or_create_direct_chat", {
+      member1_id: myMemberId,
+      member2_id: otherMemberId,
+    });
+
+    if (error) {
+      console.error("RPC error:", error);
+      return null;
+    }
+
+    console.log("Direct chat room ID:", roomId);
+    return roomId;
+  } catch (err) {
+    console.error("Error in getOrCreateDirectChat:", err);
     return null;
   }
-
-  if (!roomId) return null;
-
-  const { data } = await supabase
-    .from("chat_rooms")
-    .select("*")
-    .eq("id", roomId)
-    .single();
-
-  return data;
 }
 
 /**

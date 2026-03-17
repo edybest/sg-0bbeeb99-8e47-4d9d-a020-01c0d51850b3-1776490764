@@ -47,6 +47,7 @@ export default function ChatPage() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [allMembers, setAllMembers] = useState<Array<{ id: string; full_name: string; avatar_url: string | null }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [creatingChat, setCreatingChat] = useState(false);
 
   // Load chat rooms
   useEffect(() => {
@@ -121,21 +122,32 @@ export default function ChatPage() {
   }
 
   async function handleStartChat(memberId: string) {
-    const room = await getOrCreateDirectChat(memberId);
-    if (room) {
-      const roomDetails = await getChatRoom(room.id);
+    console.log("Starting chat with member:", memberId);
+    setCreatingChat(true);
+    
+    try {
+      const roomId = await getOrCreateDirectChat(memberId);
+      console.log("Got room ID:", roomId);
+      
+      if (!roomId) {
+        console.error("Failed to create/get chat room");
+        alert("Failed to create chat. Please try again.");
+        setCreatingChat(false);
+        return;
+      }
+
+      const roomDetails = await getChatRoom(roomId);
       if (roomDetails) {
         setSelectedRoom(roomDetails);
         setShowNewChat(false);
         // Reload rooms list to include new chat
         void loadRooms();
       }
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to create chat",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      alert("Failed to create chat. Please try again.");
+    } finally {
+      setCreatingChat(false);
     }
   }
 
