@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Crown, Star, Sparkles, Loader2, Award } from "lucide-react";
-import { ClubLogo } from "@/components/ClubLogo";
 import confetti from "canvas-confetti";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
@@ -164,7 +163,6 @@ export default function HallOfFamePage() {
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <ClubLogo size="sm" />
                   <div>
                     <h1 className="text-2xl font-bold">Hall of Fame</h1>
                     <p className="text-sm text-yellow-100">Pemain Terbaik AMBC</p>

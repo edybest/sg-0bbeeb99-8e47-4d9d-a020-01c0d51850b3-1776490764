@@ -9,7 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClubLogo } from "@/components/ClubLogo";
 import { SEO } from "@/components/SEO";
 import { Trophy, Calendar, TrendingUp, ArrowLeft, Loader2, Award, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -310,7 +309,6 @@ export default function FiveFivePage() {
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
-                <ClubLogo size="md" />
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SEO } from "@/components/SEO";
-import { ClubLogo } from "@/components/ClubLogo";
 import { useToast } from "@/hooks/use-toast";
 import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWithMember } from "@/services/laneService";
 import { gameService } from "@/services/gameService";
@@ -422,7 +421,6 @@ export default function LanePage() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </Link>
-                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-xl font-bold text-red-600">Kedudukan Lane</h1>
                   <p className="text-xs text-gray-600">

@@ -41,7 +41,6 @@ import {
   ChevronRight,
   Folder,
 } from "lucide-react";
-import { ClubLogo } from "@/components/ClubLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import {
@@ -337,7 +336,6 @@ export default function GalleryPage() {
                     </Button>
                   </Link>
                 )}
-                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-lg font-bold">
                     {selectedAlbum ? selectedAlbum.name : "Gallery"}

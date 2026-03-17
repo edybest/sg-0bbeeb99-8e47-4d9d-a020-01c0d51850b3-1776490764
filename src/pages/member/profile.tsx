@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Save, Loader2, Camera, History, Calendar, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ClubLogo } from "@/components/ClubLogo";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 
@@ -273,7 +272,6 @@ export default function ProfilePage() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </Link>
-                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-lg font-bold">Profile</h1>
                   <p className="text-xs text-muted-foreground">Maklumat Ahli</p>

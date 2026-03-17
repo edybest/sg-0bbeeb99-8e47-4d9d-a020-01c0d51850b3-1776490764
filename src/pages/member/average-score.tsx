@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown } from "lucide-react";
-import { ClubLogo } from "@/components/ClubLogo";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 
@@ -216,7 +215,6 @@ export default function AverageScorePage() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </Link>
-                <ClubLogo size="sm" />
                 <div>
                   <h1 className="text-lg font-bold">Average Score</h1>
                   <p className="text-xs text-muted-foreground">Purata & Handicap</p>

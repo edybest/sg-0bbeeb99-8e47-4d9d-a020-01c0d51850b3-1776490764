@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
-import { ClubLogo } from "@/components/ClubLogo";
 import { MobileNav } from "@/components/member/MobileNav";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 
@@ -490,8 +489,6 @@ export default function BlokPage() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
 
-                  <ClubLogo size="sm" />
-
                   <div>
                     <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
                     <p className="text-sm text-gray-600">Kedudukan Semasa</p>
@@ -546,8 +543,6 @@ export default function BlokPage() {
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-
-                  <ClubLogo size="sm" />
 
                   <div>
                     <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
@@ -613,8 +608,6 @@ export default function BlokPage() {
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-
-                  <ClubLogo size="sm" />
 
                   <div>
                     <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>

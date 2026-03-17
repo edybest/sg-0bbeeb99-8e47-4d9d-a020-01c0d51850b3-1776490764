@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SEO } from "@/components/SEO";
-import { ClubLogo } from "@/components/ClubLogo";
+import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { MobileNav } from "@/components/member/MobileNav";
 import {
   Trophy,
@@ -479,7 +479,6 @@ export default function TrainingPage() {
                     </Button>
                   </Link>
                   <MobileNav />
-                  <ClubLogo size="sm" />
                   <div>
                     <h1 className="text-xl md:text-2xl font-bold text-red-600">Training</h1>
                     <p className="text-xs md:text-sm text-gray-600">Practice Scores</p>
