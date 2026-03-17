@@ -131,7 +131,11 @@ export default function ChatPage() {
       
       if (!roomId) {
         console.error("Failed to create/get chat room");
-        alert("Failed to create chat. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to create chat. Please try again.",
+          variant: "destructive",
+        });
         setCreatingChat(false);
         return;
       }
@@ -142,10 +146,20 @@ export default function ChatPage() {
         setShowNewChat(false);
         // Reload rooms list to include new chat
         void loadRooms();
+      } else {
+        toast({
+          title: "Error", 
+          description: "Failed to load chat room. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error starting chat:", error);
-      alert("Failed to create chat. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to create chat. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setCreatingChat(false);
     }
