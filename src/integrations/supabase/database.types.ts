@@ -1132,6 +1132,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_or_create_direct_chat: {
+        Args: { member1_id: string; member2_id: string }
+        Returns: string
+      }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
     }
