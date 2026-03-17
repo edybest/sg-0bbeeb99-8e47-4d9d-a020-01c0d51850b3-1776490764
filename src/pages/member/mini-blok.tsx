@@ -55,6 +55,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { MemberTopBarNav } from "@/components/member/MemberTopBarNav";
+import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
   getMiniBlokById,
