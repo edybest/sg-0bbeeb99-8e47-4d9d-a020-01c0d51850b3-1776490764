@@ -105,7 +105,8 @@ export default function MemberDashboard() {
       label: "Permainan",
       value: stats.totalGames,
       color: "text-rose-600",
-      gradient: "from-rose-500 to-pink-500"
+      gradient: "from-rose-500 to-pink-500",
+      iconColor: "text-rose-100",
     },
     {
       icon: TrendingUp,
