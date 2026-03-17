@@ -156,103 +156,20 @@ export async function ensureLobbyRoom(): Promise<string | null> {
  */
 export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
   console.log("🔍 [chatService] listMyChats: Starting...");
-  
+
   const memberId = await getCurrentMemberId();
   console.log("🔍 [chatService] Current member ID for listMyChats:", memberId);
-  
+
   if (!memberId) {
     console.log("❌ [chatService] No member ID, returning empty array");
     return [];
   }
 
-  // First attempt: use optimized RPC
-  console.log("🔍 [chatService] Calling RPC: get_member_chat_rooms...");
-  
-  const { data: rpcRooms, error: rpcError } = await supabase
-    .rpc("get_member_chat_rooms", { p_member_id: memberId });
-
-  console.log("🔍 [chatService] RPC result:", { 
-    roomCount: rpcRooms?.length || 0,
-    error: rpcError?.message 
-  });
-
-  let roomIds: string[] = [];
-
-  if (!rpcError && rpcRooms && rpcRooms.length > 0) {
-    roomIds = rpcRooms.map((r: any) => r.room_id);
-  } else {
-    console.log("⚠️ [chatService] RPC failed or returned empty, falling back to direct query...");
-
-    // Fallback: query rooms directly based on chat_participants
-    const { data: fallbackRooms, error: fallbackError } = await supabase
-      .from("chat_rooms")
-      .select(
-        `
-        id,
-        name,
-        type,
-        is_public,
-        last_message_at,
-        participants:chat_participants(
-          id,
-          member_id,
-          is_banned,
-          is_silenced,
-          member:members(id, full_name, avatar_url)
-        )
-      `
-      )
-      .in(
-        "id",
-        supabase
-          .from("chat_participants")
-          .select("room_id")
-          .eq("member_id", memberId) as unknown as string[]
-      );
-
-    // NOTE: Supabase doesn't support subselect in .in() like this on client side,
-    // so instead we do a separate query to get room IDs:
-
-    if (!fallbackRooms && !fallbackError) {
-      // Proper fallback: 2-step query
-      const { data: participantRows, error: participantError } = await supabase
-        .from("chat_participants")
-        .select("room_id")
-        .eq("member_id", memberId);
-
-      if (participantError) {
-        console.error("❌ [chatService] Fallback participants error:", participantError);
-        return [];
-      }
-
-      const ids = (participantRows || []).map((p: any) => p.room_id);
-      console.log("🔍 [chatService] Fallback participant room IDs:", ids);
-
-      if (ids.length === 0) {
-        console.log("⚠️ [chatService] No rooms found for member via participants");
-        return [];
-      }
-
-      roomIds = ids;
-    } else if (fallbackRooms) {
-      // If the earlier attempt actually returned data, use its IDs
-      roomIds = fallbackRooms.map((r: any) => r.id);
-    }
-
-    // If still no roomIds, bail out
-    if (roomIds.length === 0) {
-      console.log("⚠️ [chatService] No room IDs after fallback");
-      return [];
-    }
-
-    // We will not use rpcRooms anymore in this branch
-  }
-
-  console.log("🔍 [chatService] Room IDs to fetch:", roomIds);
-
+  // Direct, simple query: get all rooms where this member is a participant
   const { data: roomsData, error: roomsError } = await supabase
     .from("chat_rooms")
-    .select(`
+    .select(
+      `
       id,
       name,
       type,
@@ -265,33 +182,45 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
         is_silenced,
         member:members(id, full_name, avatar_url)
       )
-    `)
-    .in("id", roomIds);
+    `
+    )
+    .in(
+      "id",
+      (
+        await supabase
+          .from("chat_participants")
+          .select("room_id")
+          .eq("member_id", memberId)
+      ).data?.map((p: { room_id: string }) => p.room_id) || []
+    );
 
-  console.log("🔍 [chatService] Rooms data fetch:", { 
+  console.log("🔍 [chatService] Direct rooms query:", {
     count: roomsData?.length || 0,
-    error: roomsError?.message 
+    error: roomsError?.message,
   });
 
-  if (!roomsData || roomsData.length === 0) {
-    console.log("❌ [chatService] No rooms data returned");
+  if (roomsError) {
+    console.error("❌ [chatService] roomsError:", roomsError);
     return [];
   }
 
-  // Rebuild rpcRooms map if we have it (for unread_count / flags). If not, default values.
-  const rpcMap = (rpcRooms || []).reduce<Record<string, any>>((acc, r: any) => {
-    acc[r.room_id] = r;
-    return acc;
-  }, {});
+  if (!roomsData || roomsData.length === 0) {
+    console.log("⚠️ [chatService] No rooms found for member via direct query");
+    return [];
+  }
 
+  // Get last message for each room (optional but nice)
   const rooms = await Promise.all(
     roomsData.map(async (room: any) => {
-      const rpcData = rpcMap[room.id];
-
-      // Get last message
       const { data: lastMsg } = await supabase
         .from("chat_messages")
-        .select("message, created_at, sender:members(full_name)")
+        .select(
+          `
+          message,
+          created_at,
+          sender:members(full_name)
+        `
+        )
         .eq("room_id", room.id)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
@@ -300,15 +229,21 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
 
       return {
         ...room,
-        unread_count: rpcData?.unread_count || 0,
-        is_banned: rpcData?.is_banned || false,
-        is_silenced: rpcData?.is_silenced || false,
+        unread_count: 0,
+        is_banned:
+          room.participants?.find(
+            (p: any) => p.member_id === memberId && p.is_banned,
+          )?.is_banned || false,
+        is_silenced:
+          room.participants?.find(
+            (p: any) => p.member_id === memberId && p.is_silenced,
+          )?.is_silenced || false,
         last_message: lastMsg as any,
       } as ChatRoomWithDetails;
-    })
+    }),
   );
 
-  // Sort: Lobby Room first, then by last message time
+  // Sort: Lobby first, then by last message time desc
   const sortedRooms = rooms.sort((a, b) => {
     if (a.type === "lobby") return -1;
     if (b.type === "lobby") return 1;
@@ -317,9 +252,9 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     return bTime - aTime;
   });
 
-  console.log("✅ [chatService] Final rooms:", { 
+  console.log("✅ [chatService] Final rooms:", {
     count: sortedRooms.length,
-    rooms: sortedRooms.map(r => ({ id: r.id, name: r.name, type: r.type }))
+    rooms: sortedRooms.map((r) => ({ id: r.id, name: r.name, type: r.type })),
   });
 
   return sortedRooms;
