@@ -104,29 +104,28 @@ export default function MemberDashboard() {
       icon: Target,
       label: "Permainan",
       value: stats.totalGames,
-      color: "text-rose-600",
-      gradient: "from-rose-500 to-pink-500",
-      iconColor: "text-rose-100",
+      color: "text-rose-100",
+      gradient: "from-rose-500 to-pink-500"
     },
     {
       icon: TrendingUp,
       label: "Purata",
       value: stats.averageScore,
-      color: "text-purple-600",
+      color: "text-purple-100",
       gradient: "from-purple-500 to-pink-500"
     },
     {
       icon: Trophy,
       label: "Tertinggi",
       value: stats.highScore,
-      color: "text-amber-600",
+      color: "text-amber-100",
       gradient: "from-amber-500 to-orange-500"
     },
     {
       icon: Award,
       label: "Kedudukan",
       value: stats.rank,
-      color: "text-blue-600",
+      color: "text-blue-100",
       gradient: "from-blue-500 to-cyan-500"
     }
   ];
