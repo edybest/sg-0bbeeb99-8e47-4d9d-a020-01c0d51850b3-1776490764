@@ -19,6 +19,7 @@ export type Database = {
         Row: {
           created_at: string | null
           deleted_at: string | null
+          deleted_by: string | null
           edited_at: string | null
           id: string
           message: string
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
           edited_at?: string | null
           id?: string
           message: string
@@ -37,6 +39,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           deleted_at?: string | null
+          deleted_by?: string | null
           edited_at?: string | null
           id?: string
           message?: string
@@ -44,6 +47,13 @@ export type Database = {
           sender_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_messages_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_messages_room_id_fkey"
             columns: ["room_id"]
@@ -62,27 +72,58 @@ export type Database = {
       }
       chat_participants: {
         Row: {
+          ban_reason: string | null
+          banned_at: string | null
+          banned_by: string | null
           id: string
+          is_banned: boolean | null
+          is_silenced: boolean | null
           joined_at: string | null
           last_read_at: string | null
           member_id: string
           room_id: string
+          silence_reason: string | null
+          silenced_at: string | null
+          silenced_by: string | null
         }
         Insert: {
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
           id?: string
+          is_banned?: boolean | null
+          is_silenced?: boolean | null
           joined_at?: string | null
           last_read_at?: string | null
           member_id: string
           room_id: string
+          silence_reason?: string | null
+          silenced_at?: string | null
+          silenced_by?: string | null
         }
         Update: {
+          ban_reason?: string | null
+          banned_at?: string | null
+          banned_by?: string | null
           id?: string
+          is_banned?: boolean | null
+          is_silenced?: boolean | null
           joined_at?: string | null
           last_read_at?: string | null
           member_id?: string
           room_id?: string
+          silence_reason?: string | null
+          silenced_at?: string | null
+          silenced_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_participants_banned_by_fkey"
+            columns: ["banned_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_participants_member_id_fkey"
             columns: ["member_id"]
@@ -97,6 +138,13 @@ export type Database = {
             referencedRelation: "chat_rooms"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chat_participants_silenced_by_fkey"
+            columns: ["silenced_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       chat_rooms: {
@@ -104,25 +152,31 @@ export type Database = {
           created_at: string | null
           created_by: string
           id: string
+          is_public: boolean | null
           last_message_at: string | null
           name: string | null
           type: string
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           created_by: string
           id?: string
+          is_public?: boolean | null
           last_message_at?: string | null
           name?: string | null
           type: string
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string
           id?: string
+          is_public?: boolean | null
           last_message_at?: string | null
           name?: string | null
           type?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1239,7 +1293,14 @@ export type Database = {
       get_member_chat_rooms: {
         Args: { p_member_id: string }
         Returns: {
+          is_banned: boolean
+          is_public: boolean
+          is_silenced: boolean
+          last_message_at: string
           room_id: string
+          room_name: string
+          room_type: string
+          unread_count: number
         }[]
       }
       get_member_id_from_auth: { Args: never; Returns: string }

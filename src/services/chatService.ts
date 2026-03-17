@@ -1,19 +1,27 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 
-type ChatRoom = Tables<"chat_rooms">;
-type ChatMessage = Tables<"chat_messages">;
-type ChatParticipant = Tables<"chat_participants">;
+export interface ChatParticipant {
+  id: string;
+  member_id: string;
+  is_banned: boolean;
+  is_silenced: boolean;
+  member: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+}
 
-export interface ChatRoomWithDetails extends ChatRoom {
-  participants: Array<{
-    last_read_at: string | null;
-    member: {
-      id: string;
-      full_name: string;
-      avatar_url: string | null;
-    };
-  }>;
+export interface ChatRoomWithDetails {
+  id: string;
+  name: string | null;
+  type: "lobby" | "direct" | "group";
+  is_public: boolean;
+  last_message_at: string | null;
+  participants: ChatParticipant[];
+  unread_count?: number;
+  is_banned?: boolean;
+  is_silenced?: boolean;
   last_message?: {
     message: string;
     created_at: string;
@@ -21,10 +29,14 @@ export interface ChatRoomWithDetails extends ChatRoom {
       full_name: string;
     };
   };
-  unread_count?: number;
 }
 
-export interface ChatMessageWithSender extends ChatMessage {
+export interface ChatMessageWithSender {
+  id: string;
+  room_id: string;
+  message: string;
+  created_at: string;
+  sender_id: string;
   sender: {
     id: string;
     full_name: string;
@@ -54,28 +66,18 @@ async function getCurrentMemberId(): Promise<string | null> {
 export async function ensureLobbyRoom(): Promise<string | null> {
   try {
     const memberId = await getCurrentMemberId();
-    if (!memberId) {
-      console.error("No member ID found");
-      return null;
-    }
+    if (!memberId) return null;
 
     // Get lobby room
     const { data: lobby, error: lobbyError } = await supabase
       .from("chat_rooms")
       .select("id")
-      .eq("name", "Lobby AMBC Club")
-      .eq("type", "group")
-      .single();
+      .eq("type", "lobby")
+      .eq("is_public", true)
+      .limit(1)
+      .maybeSingle();
 
-    if (lobbyError) {
-      console.error("Error fetching lobby:", lobbyError);
-      return null;
-    }
-
-    if (!lobby) {
-      console.error("Lobby room not found in database");
-      return null;
-    }
+    if (lobbyError || !lobby) return null;
 
     // Check if already a participant
     const { data: existing } = await supabase
@@ -87,17 +89,12 @@ export async function ensureLobbyRoom(): Promise<string | null> {
 
     // If not a participant, join
     if (!existing) {
-      const { error: joinError } = await supabase
+      await supabase
         .from("chat_participants")
         .insert({
           room_id: lobby.id,
           member_id: memberId,
         });
-
-      // Ignore duplicate key errors
-      if (joinError && joinError.code !== "23505") {
-        console.error("Error joining lobby:", joinError);
-      }
     }
 
     return lobby.id;
@@ -114,195 +111,93 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
   const memberId = await getCurrentMemberId();
   if (!memberId) return [];
 
-  // Get room IDs first using RPC
-  const { data: roomIds, error: roomError } = await supabase
+  // Get room base info via RPC
+  const { data: rpcRooms, error: rpcError } = await supabase
     .rpc('get_member_chat_rooms', { p_member_id: memberId });
 
-  if (roomError || !roomIds || roomIds.length === 0) {
-    console.log("No chat rooms found or error:", roomError);
+  if (rpcError || !rpcRooms || rpcRooms.length === 0) {
     return [];
   }
 
-  console.log("🔍 RPC returned room IDs:", roomIds);
+  const roomIds = rpcRooms.map(r => r.room_id);
 
-  // Extract room IDs from the result
-  const roomIdArray = roomIds.map((r: { room_id: string }) => r.room_id);
-  
-  console.log("🔍 Extracted room ID array:", roomIdArray);
-
-  // Get full room details
-  const { data, error } = await supabase
+  // Fetch full details (participants & last message)
+  const { data: roomsData } = await supabase
     .from("chat_rooms")
     .select(`
-      *,
+      id,
+      name,
+      type,
+      is_public,
+      last_message_at,
       participants:chat_participants(
-        last_read_at,
+        id,
+        member_id,
+        is_banned,
+        is_silenced,
         member:members(id, full_name, avatar_url)
       )
     `)
-    .in('id', roomIdArray)
-    .order("last_message_at", { ascending: false });
+    .in("id", roomIds);
 
-  if (error) {
-    console.error("Error loading chat details:", error);
-    return [];
-  }
+  if (!roomsData) return [];
 
-  console.log("🔍 Fetched room details:", data);
-
-  // Fetch last message and unread count for each room
   const rooms = await Promise.all(
-    (data || []).map(async (room) => {
+    roomsData.map(async (room: any) => {
+      // Find the RPC data for this room to get unread_count, is_banned, is_silenced
+      const rpcData = rpcRooms.find(r => r.room_id === room.id);
+      
       // Get last message
       const { data: lastMsg } = await supabase
         .from("chat_messages")
         .select("message, created_at, sender:members(full_name)")
         .eq("room_id", room.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      // Get unread count based on last_read_at
-      const participant = room.participants.find((p: any) => p.member?.id === memberId);
-      const lastReadAt = participant ? participant.last_read_at : null;
-      
-      let count = 0;
-      if (lastReadAt) {
-        const { count: c } = await supabase
-          .from("chat_messages")
-          .select("*", { count: "exact", head: true })
-          .eq("room_id", room.id)
-          .gt("created_at", lastReadAt)
-          .neq("sender_id", memberId);
-        count = c || 0;
-      } else {
-        const { count: c } = await supabase
-          .from("chat_messages")
-          .select("*", { count: "exact", head: true })
-          .eq("room_id", room.id)
-          .neq("sender_id", memberId);
-        count = c || 0;
-      }
-
       return {
         ...room,
+        unread_count: rpcData?.unread_count || 0,
+        is_banned: rpcData?.is_banned || false,
+        is_silenced: rpcData?.is_silenced || false,
         last_message: lastMsg as any,
-        unread_count: count,
-      };
+      } as ChatRoomWithDetails;
     })
   );
 
   // Sort: Lobby Room first, then by last message time
-  const sorted = rooms.sort((a, b) => {
-    // Lobby Room always first
-    if (a.name === "Lobby AMBC Club") return -1;
-    if (b.name === "Lobby AMBC Club") return 1;
-    
-    // Then by last message time
+  return rooms.sort((a, b) => {
+    if (a.type === "lobby") return -1;
+    if (b.type === "lobby") return 1;
     const aTime = new Date(a.last_message_at || 0).getTime();
     const bTime = new Date(b.last_message_at || 0).getTime();
     return bTime - aTime;
   });
-
-  return sorted as ChatRoomWithDetails[];
 }
 
 /**
- * Get existing direct chat or create new one with another member
+ * Get existing direct chat or create new one
  */
 export async function getOrCreateDirectChat(otherMemberId: string): Promise<string | null> {
   try {
-    // Step 1: Get current user's session with explicit check
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    console.log("Auth session check:", { 
-      hasSession: !!session, 
-      sessionError,
-      userId: session?.user?.id 
-    });
+    const myMemberId = await getCurrentMemberId();
+    if (!myMemberId) return null;
 
-    if (sessionError) {
-      console.error("Session error:", sessionError);
-      return null;
-    }
-
-    if (!session?.user) {
-      console.error("No authenticated user - user needs to login");
-      return null;
-    }
-
-    // Step 2: Get current user's member record
-    const { data: memberData, error: memberError } = await supabase
-      .from("members")
-      .select("id")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-
-    console.log("Member lookup:", { 
-      memberData, 
-      memberError,
-      userId: session.user.id 
-    });
-
-    if (memberError) {
-      console.error("Error fetching member:", memberError);
-      return null;
-    }
-
-    if (!memberData) {
-      console.error("Current user has no member record - profile incomplete");
-      return null;
-    }
-
-    const myMemberId = memberData.id;
-
-    // Step 3: Validate other member exists
-    const { data: otherMember, error: otherMemberError } = await supabase
-      .from("members")
-      .select("id, full_name")
-      .eq("id", otherMemberId)
-      .maybeSingle();
-
-    console.log("Other member check:", { otherMember, otherMemberError });
-
-    if (otherMemberError || !otherMember) {
-      console.error("Target member not found:", otherMemberId);
-      return null;
-    }
-
-    console.log("Creating/getting direct chat:", { 
-      myMemberId, 
-      otherMemberId,
-      otherMemberName: otherMember.full_name
-    });
-
-    // Step 4: Call RPC function to get or create chat
-    const { data: roomId, error: rpcError } = await supabase.rpc("get_or_create_direct_chat", {
+    const { data: roomId, error } = await supabase.rpc("get_or_create_direct_chat", {
       member1_id: myMemberId,
       member2_id: otherMemberId,
     });
 
-    console.log("RPC result:", { roomId, rpcError });
-
-    if (rpcError) {
-      console.error("RPC error details:", {
-        message: rpcError.message,
-        details: rpcError.details,
-        hint: rpcError.hint,
-        code: rpcError.code
-      });
+    if (error) {
+      console.error("RPC error:", error);
       return null;
     }
 
-    if (!roomId) {
-      console.error("RPC returned null room ID");
-      return null;
-    }
-
-    console.log("✅ Direct chat room created/found:", roomId);
     return roomId;
   } catch (err) {
-    console.error("Unexpected error in getOrCreateDirectChat:", err);
+    console.error("Error in getOrCreateDirectChat:", err);
     return null;
   }
 }
@@ -310,80 +205,70 @@ export async function getOrCreateDirectChat(otherMemberId: string): Promise<stri
 /**
  * Get chat room details
  */
-export async function getChatRoom(
-  roomId: string
-): Promise<ChatRoomWithDetails | null> {
+export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails | null> {
   const { data, error } = await supabase
     .from("chat_rooms")
     .select(`
-      *,
+      id,
+      name,
+      type,
+      is_public,
+      last_message_at,
       participants:chat_participants(
-        last_read_at,
+        id,
+        member_id,
+        is_banned,
+        is_silenced,
         member:members(id, full_name, avatar_url)
       )
     `)
     .eq("id", roomId)
     .single();
 
-  if (error) {
-    console.error("Error loading chat room:", error);
-    return null;
-  }
+  if (error) return null;
 
   return data as unknown as ChatRoomWithDetails;
 }
 
 /**
- * List messages in a chat room
+ * List messages
  */
-export async function listMessages(
-  roomId: string,
-  limit = 50
-): Promise<ChatMessageWithSender[]> {
+export async function listMessages(roomId: string, limit = 100): Promise<ChatMessageWithSender[]> {
   const { data, error } = await supabase
     .from("chat_messages")
     .select(`
-      *,
+      id,
+      room_id,
+      message,
+      created_at,
+      sender_id,
       sender:members(id, full_name, avatar_url)
     `)
     .eq("room_id", roomId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true })
     .limit(limit);
 
-  if (error) {
-    console.error("Error loading messages:", error);
-    return [];
-  }
-
-  return (data || []) as unknown as ChatMessageWithSender[];
+  if (error) return [];
+  return data as unknown as ChatMessageWithSender[];
 }
 
 /**
  * Send a message
  */
-export async function sendMessage(
-  roomId: string,
-  content: string
-): Promise<ChatMessage | null> {
+export async function sendMessage(roomId: string, content: string): Promise<boolean> {
   const memberId = await getCurrentMemberId();
-  if (!memberId) return null;
+  if (!memberId) return false;
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("chat_messages")
     .insert({
       room_id: roomId,
       sender_id: memberId,
       message: content.trim(),
-    })
-    .select()
-    .single();
+    });
 
-  if (error) {
-    console.error("Error sending message:", error);
-    return null;
-  }
-
-  return data;
+  return !error;
 }
 
 /**
@@ -393,24 +278,17 @@ export async function markMessagesAsRead(roomId: string): Promise<void> {
   const memberId = await getCurrentMemberId();
   if (!memberId) return;
 
-  const { error } = await supabase
+  await supabase
     .from("chat_participants")
     .update({ last_read_at: new Date().toISOString() })
     .eq("room_id", roomId)
     .eq("member_id", memberId);
-
-  if (error) {
-    console.error("Error marking messages as read:", error);
-  }
 }
 
 /**
- * Subscribe to new messages in a room (Realtime)
+ * Subscribe to new messages
  */
-export function subscribeToMessages(
-  roomId: string,
-  callback: (message: ChatMessageWithSender) => void
-) {
+export function subscribeToMessages(roomId: string, callback: (message: ChatMessageWithSender) => void) {
   const channel = supabase
     .channel(`room:${roomId}`)
     .on(
@@ -422,19 +300,20 @@ export function subscribeToMessages(
         filter: `room_id=eq.${roomId}`,
       },
       async (payload) => {
-        // Fetch full message with sender details
         const { data } = await supabase
           .from("chat_messages")
           .select(`
-            *,
+            id,
+            room_id,
+            message,
+            created_at,
+            sender_id,
             sender:members(id, full_name, avatar_url)
           `)
           .eq("id", payload.new.id)
           .single();
 
-        if (data) {
-          callback(data as unknown as ChatMessageWithSender);
-        }
+        if (data) callback(data as unknown as ChatMessageWithSender);
       }
     )
     .subscribe();
@@ -445,65 +324,63 @@ export function subscribeToMessages(
 }
 
 /**
- * List all members (for starting new chat)
+ * List all members
  */
-export async function listAllMembers(): Promise<
-  Array<{ id: string; full_name: string; avatar_url: string | null }>
-> {
-  const { data, error } = await supabase
+export async function listAllMembers(): Promise<Array<{ id: string; full_name: string; avatar_url: string | null }>> {
+  const { data } = await supabase
     .from("members")
     .select("id, full_name, avatar_url")
     .order("full_name");
-
-  if (error) {
-    console.error("Error loading members:", error);
-    return [];
-  }
-
+  
   return data || [];
 }
 
 /**
- * Create group chat
+ * ADMIN: Silence or Unsilence a member in a room
  */
-export async function createGroupChat(
-  name: string,
-  memberIds: string[]
-): Promise<ChatRoom | null> {
-  const memberId = await getCurrentMemberId();
-  if (!memberId) return null;
-
-  // Create room
-  const { data: room, error: roomError } = await supabase
-    .from("chat_rooms")
-    .insert({
-      type: "group",
-      name,
-      created_by: memberId,
-    })
-    .select()
-    .single();
-
-  if (roomError) {
-    console.error("Error creating group chat:", roomError);
-    return null;
-  }
-
-  // Add participants (creator + selected members)
-  const allMemberIds = Array.from(new Set([memberId, ...memberIds]));
-  const { error: participantsError } = await supabase
+export async function toggleSilenceMember(roomId: string, memberId: string, isSilenced: boolean): Promise<boolean> {
+  const { error } = await supabase
     .from("chat_participants")
-    .insert(
-      allMemberIds.map((id) => ({
-        room_id: room.id,
-        member_id: id,
-      }))
-    );
+    .update({ 
+      is_silenced: isSilenced,
+      silenced_at: isSilenced ? new Date().toISOString() : null
+    })
+    .eq("room_id", roomId)
+    .eq("member_id", memberId);
 
-  if (participantsError) {
-    console.error("Error adding participants:", participantsError);
-    return null;
-  }
+  return !error;
+}
 
-  return room;
+/**
+ * ADMIN: Ban or Unban a member from a room
+ */
+export async function toggleBanMember(roomId: string, memberId: string, isBanned: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from("chat_participants")
+    .update({ 
+      is_banned: isBanned,
+      banned_at: isBanned ? new Date().toISOString() : null
+    })
+    .eq("room_id", roomId)
+    .eq("member_id", memberId);
+
+  return !error;
+}
+
+/**
+ * ADMIN: Delete a message
+ */
+export async function adminDeleteMessage(messageId: string): Promise<boolean> {
+  const memberId = await getCurrentMemberId();
+  if (!memberId) return false;
+
+  const { error } = await supabase
+    .from("chat_messages")
+    .update({ 
+      deleted_at: new Date().toISOString(),
+      deleted_by: memberId
+    })
+    .eq("id", messageId);
+
+  return !error;
 }

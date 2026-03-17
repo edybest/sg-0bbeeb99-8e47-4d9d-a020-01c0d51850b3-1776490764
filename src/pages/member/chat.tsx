@@ -1,16 +1,15 @@
-import React from "react";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -19,6 +18,12 @@ import {
   MessageSquarePlus,
   Users,
   Search,
+  MoreVertical,
+  VolumeX,
+  Volume2,
+  Ban,
+  Trash2,
+  AlertCircle
 } from "lucide-react";
 import {
   listMyChats,
@@ -30,19 +35,22 @@ import {
   getOrCreateDirectChat,
   listAllMembers,
   ensureLobbyRoom,
+  toggleSilenceMember,
+  toggleBanMember,
+  adminDeleteMessage,
   type ChatRoomWithDetails,
   type ChatMessageWithSender,
+  type ChatParticipant
 } from "@/services/chatService";
 import { cn } from "@/lib/utils";
 
 export default function ChatPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { member, loading: authLoading, isAuthenticated } = useAuth(true, false);
+  const { member, loading: authLoading } = useAuth(true, false);
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
-  const [debugInfo, setDebugInfo] = useState<string>("");
 
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomWithDetails | null>(null);
@@ -53,284 +61,185 @@ export default function ChatPage() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [allMembers, setAllMembers] = useState<Array<{ id: string; full_name: string; avatar_url: string | null }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [creatingChat, setCreatingChat] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Load chat rooms
+  // Initialize
   useEffect(() => {
     async function init() {
       try {
-        setDebugInfo("🔄 Loading...");
-        
-        // Ensure user joins lobby
-        const lobbyId = await ensureLobbyRoom();
-        setDebugInfo(`🏛️ Lobby: ${lobbyId ? '✅' : '❌'} | ID: ${lobbyId?.slice(0, 8) || 'none'}`);
-        
-        // Then load all chats
+        await ensureLobbyRoom();
         await loadRooms();
       } catch (error) {
-        setDebugInfo(`❌ Error: ${error}`);
+        console.error(error);
       }
     }
-    void init();
+    init();
   }, []);
 
-  // Load messages when room selected
+  // Room selection
   useEffect(() => {
     if (selectedRoom) {
-      void loadMessages(selectedRoom.id);
-      void markMessagesAsRead(selectedRoom.id);
+      loadMessages(selectedRoom.id);
+      markMessagesAsRead(selectedRoom.id);
     }
   }, [selectedRoom]);
 
-  // Auto-scroll to bottom
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
-  };
-
-  // Check if user is scrolled to bottom
-  const isScrolledToBottom = () => {
-    if (!messagesContainerRef.current) return true;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    return scrollHeight - scrollTop - clientHeight < 100;
-  };
-
-  // Handle scroll event
-  const handleScroll = () => {
-    if (!messagesContainerRef.current) return;
-    const isAtBottom = isScrolledToBottom();
-    setShowScrollButton(!isAtBottom);
-    if (isAtBottom) {
-      setUnreadCount(0);
-    }
-  };
-
-  // Load all members for new chat dialog
-  useEffect(() => {
-    if (showNewChat) {
-      void loadAllMembers();
-    }
-  }, [showNewChat]);
-
-  // Subscribe to new messages
+  // Realtime subscription
   useEffect(() => {
     if (!selectedRoom?.id || !member?.id) return;
 
     const unsubscribe = subscribeToMessages(selectedRoom.id, (newMsg) => {
       setMessages((prev) => {
-        // Check if message already exists
         if (prev.some(m => m.id === newMsg.id)) return prev;
         
         const wasAtBottom = isScrolledToBottom();
         const isMyMessage = newMsg.sender_id === member.id;
         
-        // Auto-scroll if user was at bottom OR it's their own message
         if (wasAtBottom || isMyMessage) {
           setTimeout(() => scrollToBottom("smooth"), 100);
         } else {
-          // Show notification for new messages when scrolled up
           setUnreadCount(c => c + 1);
-          
-          // Play notification sound (optional)
-          if (!isMyMessage) {
-            try {
-              const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE=");
-              audio.volume = 0.3;
-              void audio.play();
-            } catch (e) {
-              // Ignore audio errors
-            }
-          }
         }
         
         return [...prev, newMsg];
       });
     });
 
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [selectedRoom?.id, member?.id]);
 
-  // Add scroll event listener
+  // Scroll detection
+  const isScrolledToBottom = () => {
+    if (!messagesContainerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    return scrollHeight - scrollTop - clientHeight < 100;
+  };
+
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const isAtBottom = isScrolledToBottom();
+    setShowScrollButton(!isAtBottom);
+    if (isAtBottom) setUnreadCount(0);
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener("scroll", handleScroll);
-    return () => container.removeEventListener("scroll", handleScroll);
+    if (container) container.addEventListener("scroll", handleScroll);
+    return () => container?.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Loaders
   async function loadRooms() {
     setLoading(true);
     const data = await listMyChats();
-    
-    const hasLobby = data.some(r => r.name === 'Lobby AMBC Club');
-    setDebugInfo(prev => `${prev} | 📋 Rooms: ${data.length} | Lobby in list: ${hasLobby ? '✅' : '❌'}`);
-    
     setRooms(data);
     setLoading(false);
   }
 
   async function loadMessages(roomId: string) {
-    setMessages([]);
     const data = await listMessages(roomId);
     setMessages(data);
-    
-    // Auto-scroll to bottom on initial load
     setTimeout(() => scrollToBottom("auto"), 100);
   }
 
-  async function loadAllMembers() {
-    const data = await listAllMembers();
-    // Filter out current user
-    setAllMembers(data.filter((m) => m.id !== member?.id));
-  }
-
-  async function handleSend() {
+  // Actions
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
     if (!newMessage.trim() || !selectedRoom || sending) return;
 
     setSending(true);
-    const msg = await sendMessage(selectedRoom.id, newMessage);
-    if (msg) {
+    const success = await sendMessage(selectedRoom.id, newMessage);
+    if (success) {
       setNewMessage("");
-      // Message will be added via realtime subscription
     } else {
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Gagal menghantar mesej", variant: "destructive" });
     }
     setSending(false);
   }
 
-  async function handleStartChat(memberId: string) {
-    console.log("=== Starting new chat ===");
-    console.log("Target member ID:", memberId);
-    console.log("Current user:", member);
-    console.log("Is authenticated:", member !== null);
+  async function handleStartChat(targetMemberId: string) {
+    if (!member) return;
+    setShowNewChat(false);
     
-    // CRITICAL: Check authentication first
-    if (!member) {
-      toast({
-        title: "Sila Login Dahulu",
-        description: "Session anda telah tamat. Sila login semula.",
-        variant: "destructive",
-      });
-      router.push("/login");
-      return;
-    }
-    
-    setCreatingChat(true);
-    
-    try {
-      const roomId = await getOrCreateDirectChat(memberId);
-      console.log("Got room ID:", roomId);
-      
-      if (!roomId) {
-        console.error("Failed to create/get chat room - roomId is null");
-        
-        toast({
-          title: "Tidak Dapat Membuat Chat",
-          description: "Session mungkin telah tamat. Sila refresh page dan cuba lagi.",
-          variant: "destructive",
-        });
-        setCreatingChat(false);
-        return;
-      }
-
-      console.log("Fetching room details for:", roomId);
-      const roomDetails = await getChatRoom(roomId);
-      
-      if (!roomDetails) {
-        console.error("Room created but failed to fetch details");
-        toast({
-          title: "Chat Dibuat",
-          description: "Chat telah dibuat tetapi tidak dapat dipaparkan. Sila refresh page.",
-          variant: "destructive",
-        });
-        setCreatingChat(false);
-        return;
-      }
-
-      console.log("✅ Chat loaded successfully:", roomDetails);
-      setSelectedRoom(roomDetails);
-      setShowNewChat(false);
-      
-      // Reload rooms list to include new chat
-      void loadRooms();
-      
-      toast({
-        title: "Chat Berjaya Dibuat! 🎉",
-        description: `Anda kini boleh chat dengan ${getRoomName(roomDetails)}`,
-      });
-    } catch (error) {
-      console.error("Unexpected error in handleStartChat:", error);
-      toast({
-        title: "Error Tidak Dijangka",
-        description: "Sila refresh page dan cuba lagi.",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatingChat(false);
+    const roomId = await getOrCreateDirectChat(targetMemberId);
+    if (roomId) {
+      const room = await getChatRoom(roomId);
+      if (room) setSelectedRoom(room);
+      await loadRooms();
+    } else {
+      toast({ title: "Error", description: "Gagal memulakan chat", variant: "destructive" });
     }
   }
 
+  // Admin Actions
+  async function handleToggleSilence(participant: ChatParticipant) {
+    if (!selectedRoom) return;
+    const newStatus = !participant.is_silenced;
+    const success = await toggleSilenceMember(selectedRoom.id, participant.member_id, newStatus);
+    if (success) {
+      toast({ title: "Berjaya", description: `Member telah di${newStatus ? 'silenced' : 'unsilenced'}` });
+      // Update local state
+      const updatedRoom = await getChatRoom(selectedRoom.id);
+      if (updatedRoom) setSelectedRoom(updatedRoom);
+    }
+  }
+
+  async function handleToggleBan(participant: ChatParticipant) {
+    if (!selectedRoom) return;
+    if (confirm("Adakah anda pasti mahu Ban/Unban member ini dari room ini?")) {
+      const newStatus = !participant.is_banned;
+      const success = await toggleBanMember(selectedRoom.id, participant.member_id, newStatus);
+      if (success) {
+        toast({ title: "Berjaya", description: `Member telah di${newStatus ? 'banned' : 'unbanned'}` });
+        const updatedRoom = await getChatRoom(selectedRoom.id);
+        if (updatedRoom) setSelectedRoom(updatedRoom);
+      }
+    }
+  }
+
+  async function handleDeleteMessage(msgId: string) {
+    if (confirm("Padam mesej ini?")) {
+      const success = await adminDeleteMessage(msgId);
+      if (success) {
+        toast({ title: "Berjaya", description: "Mesej dipadam" });
+        setMessages(messages.filter(m => m.id !== msgId));
+      }
+    }
+  }
+
+  // Helpers
   function getOtherMember(room: ChatRoomWithDetails) {
-    if (room.type === "group") return null;
-    const participants = Array.isArray(room.participants) ? room.participants : [];
-    return participants.find((p) => p.member?.id !== member?.id)?.member;
+    if (room.type === "lobby" || room.type === "group") return null;
+    return room.participants?.find(p => p.member?.id !== member?.id)?.member;
   }
 
   function getRoomName(room: ChatRoomWithDetails) {
-    if (room.type === "group") return room.name;
+    if (room.type === "lobby") return "Lobby AMBC Club";
+    if (room.type === "group") return room.name || "Group Chat";
     const other = getOtherMember(room);
-    return other?.full_name || "Unknown";
+    return other?.full_name || "Direct Chat";
   }
 
   function getRoomAvatar(room: ChatRoomWithDetails) {
-    if (room.type === "group") return null;
+    if (room.type === "lobby" || room.type === "group") return null;
     const other = getOtherMember(room);
     return other?.avatar_url;
   }
 
-  const filteredMembers = allMembers.filter((m) =>
-    m.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const isAdmin = member?.is_admin === true;
 
-  // Show loading while auth is checking
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
       <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
         <MemberLayout>
           <SEO title="Chat - AMBC Club" />
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Loading chats...
-              </p>
-            </div>
-          </div>
-        </MemberLayout>
-      </PageAccessGuard>
-    );
-  }
-
-  if (loading) {
-    return (
-      <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
-        <MemberLayout>
-          <SEO title="Chat - AMBC Club" />
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-              <p className="text-muted-foreground">
-                Loading chats...
-              </p>
-            </div>
+          <div className="flex h-screen items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
           </div>
         </MemberLayout>
       </PageAccessGuard>
@@ -341,262 +250,198 @@ export default function ChatPage() {
     <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
       <MemberLayout>
         <SEO title="Chat - AMBC Club" />
-        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-gray-900 dark:to-gray-800">
-          {/* Mobile: Full screen chat */}
-          <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex">
-            {/* Chat List - Hidden when room selected on mobile */}
-            <div className={`${selectedRoom ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 border-r border-rose-100 dark:border-gray-700 bg-white dark:bg-gray-800`}>
-              {/* Header */}
-              <div className="p-4 border-b border-rose-100 dark:border-gray-700 bg-gradient-to-r from-rose-500 to-pink-500 text-white">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-xl font-bold">Chats</h1>
-                  <Dialog open={showNewChat} onOpenChange={setShowNewChat}>
-                    <DialogTrigger asChild>
-                      <Button size="icon" variant="ghost" className="text-white hover:bg-white/20">
-                        <MessageSquarePlus className="h-5 w-5" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Start New Chat</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            placeholder="Search members..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                          />
-                        </div>
-                        <ScrollArea className="h-[400px]">
-                          <div className="space-y-2">
-                            {filteredMembers.map((m) => (
-                              <Button
-                                key={m.id}
-                                variant="ghost"
-                                className="w-full justify-start"
-                                onClick={() => void handleStartChat(m.id)}
-                                disabled={creatingChat}
-                              >
-                                <Avatar className="h-8 w-8 mr-3">
-                                  <AvatarImage src={m.avatar_url || undefined} />
-                                  <AvatarFallback className="bg-gradient-to-br from-rose-500 to-pink-500 text-white text-sm">
-                                    {m.full_name[0]?.toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{m.full_name}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex max-w-7xl mx-auto border-x border-gray-200 dark:border-gray-800">
+            
+            {/* Sidebar / Chat List */}
+            <div className={`${selectedRoom ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700`}>
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-rose-600 to-pink-600 text-white flex justify-between items-center">
+                <h1 className="text-xl font-bold">Chats</h1>
+                <Dialog open={showNewChat} onOpenChange={setShowNewChat}>
+                  <DialogTrigger asChild>
+                    <Button size="icon" variant="ghost" className="text-white hover:bg-white/20" onClick={() => {
+                      listAllMembers().then(m => setAllMembers(m.filter(x => x.id !== member?.id)));
+                    }}>
+                      <MessageSquarePlus className="h-5 w-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Start New Chat</DialogTitle></DialogHeader>
+                    <Input placeholder="Search member..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                    <ScrollArea className="h-72 mt-4">
+                      {allMembers.filter(m => m.full_name.toLowerCase().includes(searchQuery.toLowerCase())).map(m => (
+                        <Button key={m.id} variant="ghost" className="w-full justify-start mb-2" onClick={() => handleStartChat(m.id)}>
+                          <Avatar className="h-8 w-8 mr-3"><AvatarFallback>{m.full_name[0]}</AvatarFallback></Avatar>
+                          {m.full_name}
+                        </Button>
+                      ))}
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
               </div>
 
-              {/* Chat List */}
               <ScrollArea className="flex-1">
-                {rooms.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <MessageSquarePlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No chats yet</p>
-                    <p className="text-sm mt-2">Start a new conversation!</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-rose-100 dark:divide-gray-700">
-                    {rooms.map((room) => (
-                      <button
-                        key={room.id}
-                        onClick={() => setSelectedRoom(room)}
-                        className={`w-full p-4 hover:bg-rose-50 dark:hover:bg-gray-700 transition-colors text-left ${
-                          selectedRoom?.id === room.id ? "bg-rose-50 dark:bg-gray-700" : ""
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-12 w-12 flex-shrink-0">
-                            <AvatarImage src={getRoomAvatar(room) || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-rose-500 to-pink-500 text-white">
-                              {room.type === "group" ? <Users className="h-5 w-5" /> : getRoomName(room)[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-sm truncate">{getRoomName(room)}</h3>
-                                {room.name === "Lobby AMBC Club" && (
-                                  <Badge variant="secondary" className="text-xs bg-gradient-to-r from-amber-400 to-orange-400 text-white">
-                                    🌟 Public
-                                  </Badge>
-                                )}
-                              </div>
-                              {room.unread_count && room.unread_count > 0 ? (
-                                <Badge className="bg-rose-500 text-white ml-2 flex-shrink-0">
-                                  {room.unread_count}
-                                </Badge>
-                              ) : null}
-                            </div>
-                            {room.last_message ? (
-                              <p className="text-xs text-muted-foreground truncate">
-                                {room.last_message.message}
-                              </p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground italic">No messages yet</p>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {rooms.map(room => (
+                  <button
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room)}
+                    className={cn(
+                      "w-full p-4 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 transition-colors text-left",
+                      selectedRoom?.id === room.id && "bg-rose-50 dark:bg-gray-700"
+                    )}
+                  >
+                    <Avatar className="h-12 w-12 flex-shrink-0">
+                      <AvatarImage src={getRoomAvatar(room) || undefined} />
+                      <AvatarFallback className="bg-rose-100 text-rose-600">
+                        {room.type !== 'direct' ? <Users className="h-5 w-5" /> : getRoomName(room)[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <h3 className="font-semibold truncate">{getRoomName(room)}</h3>
+                        {room.unread_count ? (
+                          <Badge className="bg-rose-500">{room.unread_count}</Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-gray-500 truncate">
+                        {room.last_message?.message || "Tiada mesej"}
+                      </p>
+                    </div>
+                  </button>
+                ))}
               </ScrollArea>
             </div>
 
             {/* Chat Window */}
             {selectedRoom ? (
-              <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
-                {/* Chat Header */}
-                <div className="p-4 border-b border-rose-100 dark:border-gray-700 bg-gradient-to-r from-rose-500 to-pink-500 text-white">
+              <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 relative">
+                {/* Header */}
+                <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between shadow-sm z-10">
                   <div className="flex items-center gap-3">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="md:hidden text-white hover:bg-white/20"
-                      onClick={() => setSelectedRoom(null)}
-                    >
+                    <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSelectedRoom(null)}>
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <Avatar className="h-10 w-10">
+                    <Avatar>
                       <AvatarImage src={getRoomAvatar(selectedRoom) || undefined} />
-                      <AvatarFallback className="bg-white text-rose-600">
-                        {selectedRoom.type === "group" ? <Users className="h-5 w-5" /> : getRoomName(selectedRoom)[0]?.toUpperCase()}
+                      <AvatarFallback className="bg-rose-100 text-rose-600">
+                        {selectedRoom.type !== 'direct' ? <Users className="h-5 w-5" /> : getRoomName(selectedRoom)[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h2 className="font-semibold">{getRoomName(selectedRoom)}</h2>
-                      <p className="text-xs text-white/80">
-                        {selectedRoom.type === "group" ? `${selectedRoom.participants?.length || 0} members` : "Direct Message"}
-                      </p>
+                      <h2 className="font-bold">{getRoomName(selectedRoom)}</h2>
+                      {selectedRoom.type === 'lobby' && <Badge variant="secondary" className="text-xs">Lobby Rasmi</Badge>}
                     </div>
                   </div>
-                </div>
 
-                {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
-                  {messages.map((msg) => {
-                    const isMine = msg.sender_id === member?.id;
-                    const senderName = msg.sender?.full_name || "Unknown";
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          "flex gap-3",
-                          isMine ? "flex-row-reverse" : "flex-row"
-                        )}
-                      >
-                        <Avatar className="h-8 w-8 flex-shrink-0">
-                          <AvatarFallback className="text-xs">
-                            {senderName[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div
-                          className={cn(
-                            "flex flex-col gap-1 max-w-[70%]",
-                            isMine ? "items-end" : "items-start"
-                          )}
-                        >
-                          <span className="text-xs text-muted-foreground">
-                            {senderName}
-                          </span>
-                          <div
-                            className={cn(
-                              "rounded-lg px-4 py-2",
-                              isMine
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            )}
-                          >
-                            <p className="text-sm">{msg.message}</p>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(msg.created_at).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                  
-                  {/* Scroll to Bottom Button */}
-                  {showScrollButton && (
-                    <button
-                      onClick={() => {
-                        scrollToBottom("smooth");
-                        setUnreadCount(0);
-                      }}
-                      className="fixed bottom-24 right-6 bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:scale-110 transition-transform z-10"
-                      aria-label="Scroll to bottom"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m18 15-6-6-6 6"/>
-                      </svg>
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
-                          {unreadCount > 9 ? "9+" : unreadCount}
-                        </span>
-                      )}
-                    </button>
+                  {/* Admin Participants Menu (Only for Lobby/Group) */}
+                  {isAdmin && selectedRoom.type !== 'direct' && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">Urus Member</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader><DialogTitle>Senarai Member ({getRoomName(selectedRoom)})</DialogTitle></DialogHeader>
+                        <ScrollArea className="h-[400px]">
+                          {selectedRoom.participants?.map(p => (
+                            <div key={p.id} className="flex items-center justify-between py-2 border-b">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-8 w-8"><AvatarFallback>{p.member.full_name[0]}</AvatarFallback></Avatar>
+                                <span className={p.is_banned ? "line-through text-red-500" : ""}>{p.member.full_name}</span>
+                                {p.is_silenced && <VolumeX className="h-3 w-3 text-orange-500" />}
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant={p.is_silenced ? "default" : "secondary"} onClick={() => handleToggleSilence(p)}>
+                                  {p.is_silenced ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                                </Button>
+                                <Button size="sm" variant={p.is_banned ? "default" : "destructive"} onClick={() => handleToggleBan(p)}>
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </div>
 
-                {/* Message Input */}
-                <div className="p-4 border-t border-rose-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void handleSend();
-                    }}
-                    className="flex gap-2"
-                  >
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      disabled={sending}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="submit"
-                      disabled={!newMessage.trim() || sending}
-                      className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
+                  {selectedRoom.is_banned ? (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center bg-red-50 text-red-600 p-6 rounded-lg max-w-sm">
+                        <Ban className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <h3 className="font-bold text-lg mb-1">Anda Telah Di-Ban</h3>
+                        <p className="text-sm">Anda tidak lagi boleh mengakses room ini.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {messages.map(msg => {
+                        const isMine = msg.sender_id === member?.id;
+                        return (
+                          <div key={msg.id} className={cn("flex gap-3 max-w-[85%]", isMine ? "ml-auto flex-row-reverse" : "")}>
+                            {!isMine && (
+                              <Avatar className="h-8 w-8 mt-1"><AvatarFallback className="text-xs">{msg.sender.full_name[0]}</AvatarFallback></Avatar>
+                            )}
+                            <div className={cn("flex flex-col gap-1", isMine ? "items-end" : "items-start")}>
+                              {!isMine && <span className="text-xs text-gray-500 ml-1">{msg.sender.full_name}</span>}
+                              
+                              <div className="group relative flex items-center gap-2">
+                                {/* Admin Delete Button */}
+                                {isAdmin && !isMine && (
+                                  <button onClick={() => handleDeleteMessage(msg.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition-opacity">
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                                
+                                <div className={cn(
+                                  "px-4 py-2 rounded-2xl",
+                                  isMine ? "bg-rose-600 text-white rounded-tr-sm" : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-tl-sm shadow-sm"
+                                )}>
+                                  <p className="text-sm break-words whitespace-pre-wrap">{msg.message}</p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] text-gray-400 mt-0.5">
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </>
+                  )}
                 </div>
+
+                {/* Input Area */}
+                {!selectedRoom.is_banned && (
+                  <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                    {selectedRoom.is_silenced ? (
+                      <div className="flex items-center justify-center gap-2 text-orange-500 bg-orange-50 p-3 rounded-lg border border-orange-200">
+                        <VolumeX className="h-5 w-5" />
+                        <p className="text-sm font-medium">Admin telah mute anda dari menghantar mesej di sini.</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSend} className="flex gap-2">
+                        <Input
+                          value={newMessage}
+                          onChange={e => setNewMessage(e.target.value)}
+                          placeholder="Taip mesej..."
+                          className="flex-1 bg-gray-50 focus-visible:ring-rose-500"
+                        />
+                        <Button type="submit" disabled={!newMessage.trim() || sending} className="bg-rose-600 hover:bg-rose-700 text-white shrink-0">
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-rose-50 to-pink-50 dark:from-gray-900 dark:to-gray-800">
-                <div className="text-center text-muted-foreground">
-                  <MessageSquarePlus className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Select a chat to start messaging</p>
-                </div>
+              <div className="hidden md:flex flex-1 items-center justify-center flex-col text-gray-400">
+                <MessageSquarePlus className="h-16 w-16 mb-4 opacity-20" />
+                <p>Pilih chat untuk mula berbual</p>
               </div>
             )}
           </div>

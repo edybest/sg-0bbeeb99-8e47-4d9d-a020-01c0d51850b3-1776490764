@@ -1,0 +1,4 @@
+-- Step 5: Enable RLS on all chat tables
+ALTER TABLE chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
