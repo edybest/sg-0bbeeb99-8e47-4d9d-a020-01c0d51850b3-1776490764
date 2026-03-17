@@ -183,6 +183,7 @@ export function ClubSettings() {
   const loadPageAccessSettings = async () => {
     setLoadingPageAccess(true);
     try {
+      // Auto-loads ALL pages from page_access_control table (including new Chat page)
       const pages = await pageAccessService.getAllPageAccess();
       setPageAccessList(pages as PageAccessControl[]);
     } catch (error: any) {
