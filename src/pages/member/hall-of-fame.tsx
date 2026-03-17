@@ -70,7 +70,7 @@ export default function HallOfFamePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
       </div>);
 
   }
@@ -149,9 +149,9 @@ export default function HallOfFamePage() {
     <PageAccessGuard pagePath="/member/hall-of-fame" requireAuth={true}>
       <>
         <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
-        <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50">
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
           {/* Header */}
-          <header className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg sticky top-0 z-40">
+          <header className="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg sticky top-0 z-40">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -175,10 +175,10 @@ export default function HallOfFamePage() {
           {/* Content */}
           <main className="container mx-auto px-4 py-6">
             {/* Year Filter */}
-            <Card className="mb-6 bg-gradient-to-r from-yellow-100 to-orange-100 border-yellow-300">
+            <Card className="mb-6 bg-gradient-to-r from-rose-100 to-pink-100 border-rose-200">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-600" />
+                  <Trophy className="h-5 w-5 text-pink-600" />
                   Filter Tahun
                 </CardTitle>
               </CardHeader>
@@ -202,11 +202,11 @@ export default function HallOfFamePage() {
             {/* Champions List */}
             {loadingChampions ?
             <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-yellow-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
               </div> :
             filteredChampions.length === 0 ?
             <Card>
-                <CardContent className="py-12 text-center text-gray-500">
+                <CardContent className="py-12 text-center text-rose-500">
                   Tiada juara dijumpai
                 </CardContent>
               </Card> :
@@ -215,13 +215,13 @@ export default function HallOfFamePage() {
                 {filteredChampions.map((champion, index) =>
               <Card
                 key={`${champion.game_name}-${index}`}
-                className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-yellow-300">
+                className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-rose-200">
                 
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4">
                         {/* Trophy Icon */}
                         <div className="flex-shrink-0">
-                          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                          <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-pink-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
                             <Trophy className="h-8 w-8 text-white" />
                           </div>
                         </div>
@@ -229,14 +229,14 @@ export default function HallOfFamePage() {
                         {/* Champion Info */}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge className="bg-yellow-600 text-white">
+                            <Badge className="bg-pink-500 text-white">
                               {champion.year}
                             </Badge>
-                            <h3 className="font-bold text-lg text-gray-800">
+                            <h3 className="font-bold text-lg text-rose-800">
                               {champion.game_name}
                             </h3>
                           </div>
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-sm text-rose-600 mb-3">
                             {new Date(champion.game_date).toLocaleDateString("ms-MY", {
                           day: "numeric",
                           month: "long",
@@ -252,20 +252,20 @@ export default function HallOfFamePage() {
                             alt={champion.winner.username}
                             width={48}
                             height={48}
-                            className="rounded-full border-2 border-yellow-400 shadow-md" /> :
+                            className="rounded-full border-2 border-pink-300 shadow-md" /> :
 
 
-                          <div className="w-12 h-12 rounded-full bg-yellow-600 flex items-center justify-center text-white font-bold text-lg">
+                          <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">
                                   {champion.winner.username[0].toUpperCase()}
                                 </div>
                           }
                             </Link>
                             <div>
                               <Link href={`/member/profile?id=${champion.winner.id}`}>
-                                <p className="font-bold text-lg hover:text-yellow-600 transition-colors">
+                                <p className="font-bold text-lg hover:text-pink-600 transition-colors">
                                   {champion.winner.full_name}
                                 </p>
-                                <p className="text-sm text-gray-600">@{champion.winner.username}</p>
+                                <p className="text-sm text-rose-600">@{champion.winner.username}</p>
                               </Link>
                             </div>
                           </div>
@@ -273,8 +273,8 @@ export default function HallOfFamePage() {
 
                         {/* Score */}
                         <div className="text-right">
-                          <p className="text-sm text-gray-500 mb-1">Score</p>
-                          <p className="text-3xl font-bold text-yellow-600">
+                          <p className="text-sm text-rose-500 mb-1">Score</p>
+                          <p className="text-3xl font-bold text-pink-600">
                             {champion.winner.overall_score}
                           </p>
                         </div>

@@ -28,7 +28,7 @@ const categoryConfig = {
   ralat_sistem: {
     label: "Ralat Sistem",
     icon: Bug,
-    color: "text-primary",
+    color: "text-pink-600",
     bgColor: "bg-pink-50",
     description: "Laporkan masalah atau bug yang anda jumpa",
   },
@@ -45,8 +45,8 @@ const statusConfig = {
   pending: {
     label: "Belum Dibaca",
     icon: Clock,
-    color: "text-gray-600",
-    bgColor: "bg-gray-100",
+    color: "text-rose-600",
+    bgColor: "bg-rose-100",
   },
   read: {
     label: "Dibaca",
@@ -200,8 +200,8 @@ export default function FeedbackPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <h1 className="text-3xl font-bold text-gray-900">Maklum Balas</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-rose-900">Maklum Balas</h1>
+            <p className="text-rose-600 mt-2">
               Kongsi cadangan, laporkan masalah, atau tanya soalan
             </p>
           </motion.div>
@@ -239,8 +239,8 @@ export default function FeedbackPage() {
                                 relative p-4 rounded-lg border-2 transition-all text-left
                                 ${
                                   isSelected
-                                    ? "border-primary bg-primary/5 shadow-sm"
-                                    : "border-gray-200 hover:border-gray-300"
+                                    ? "border-primary bg-pink-600/5 shadow-sm"
+                                    : "border-rose-200 hover:border-rose-300"
                                 }
                               `}
                             >
@@ -249,10 +249,10 @@ export default function FeedbackPage() {
                                   <Icon className={`w-5 h-5 ${config.color}`} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-sm text-gray-900">
+                                  <p className="font-semibold text-sm text-rose-900">
                                     {config.label}
                                   </p>
-                                  <p className="text-xs text-gray-600 mt-1">
+                                  <p className="text-xs text-rose-600 mt-1">
                                     {config.description}
                                   </p>
                                 </div>
@@ -296,7 +296,7 @@ export default function FeedbackPage() {
                       rows={6}
                       maxLength={1000}
                     />
-                    <p className="text-xs text-gray-500 text-right">
+                    <p className="text-xs text-rose-500 text-right">
                       {message.length}/1000 aksara
                     </p>
                   </div>
@@ -315,12 +315,12 @@ export default function FeedbackPage() {
                           className="hidden"
                         />
                         <label htmlFor="screenshot">
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors">
+                          <div className="border-2 border-dashed border-rose-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400 transition-colors">
                             <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-rose-600">
                               Klik untuk muat naik gambar
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-rose-500 mt-1">
                               Maksimum 5MB
                             </p>
                           </div>
@@ -336,7 +336,7 @@ export default function FeedbackPage() {
                         <button
                           type="button"
                           onClick={handleRemoveScreenshot}
-                          className="absolute top-2 right-2 p-2 bg-pink-400 text-white rounded-full hover:bg-primary transition-colors"
+                          className="absolute top-2 right-2 p-2 bg-pink-400 text-white rounded-full hover:bg-pink-600 transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -389,7 +389,7 @@ export default function FeedbackPage() {
                 ) : myFeedback.length === 0 ? (
                   <div className="text-center py-12">
                     <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600">Belum ada maklum balas dihantar</p>
+                    <p className="text-rose-600">Belum ada maklum balas dihantar</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -410,10 +410,10 @@ export default function FeedbackPage() {
                                 <CategoryIcon className={`w-5 h-5 ${category.color}`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-gray-900 line-clamp-1">
+                                <h3 className="font-semibold text-rose-900 line-clamp-1">
                                   {feedback.subject}
                                 </h3>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <p className="text-sm text-rose-600 mt-1">
                                   {category.label}
                                 </p>
                               </div>
@@ -426,7 +426,7 @@ export default function FeedbackPage() {
                             </div>
                           </div>
 
-                          <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+                          <p className="text-sm text-rose-700 mb-3 line-clamp-2">
                             {feedback.message}
                           </p>
 
@@ -458,7 +458,7 @@ export default function FeedbackPage() {
                             </div>
                           )}
 
-                          <p className="text-xs text-gray-500 mt-3">
+                          <p className="text-xs text-rose-500 mt-3">
                             Dihantar: {format(new Date(feedback.created_at), "dd MMM yyyy, hh:mm a", {
                               locale: ms,
                             })}

@@ -311,7 +311,7 @@ export default function GalleryPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
       </div>
     );
   }
@@ -392,14 +392,14 @@ export default function GalleryPage() {
                 {selectedAlbum.description && (
                   <Card className="mb-6 bg-blue-50 border-blue-200">
                     <CardContent className="p-4">
-                      <p className="text-sm text-gray-700">{selectedAlbum.description}</p>
+                      <p className="text-sm text-rose-700">{selectedAlbum.description}</p>
                     </CardContent>
                   </Card>
                 )}
 
                 {selectedAlbum.images.length === 0 ? (
                   <Card>
-                    <CardContent className="py-12 text-center text-gray-500">
+                    <CardContent className="py-12 text-center text-rose-500">
                       <ImageIcon className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                       <p>Belum ada gambar dalam album ini</p>
                     </CardContent>
@@ -461,7 +461,7 @@ export default function GalleryPage() {
               <>
                 {albums.length === 0 ? (
                   <Card>
-                    <CardContent className="py-12 text-center text-gray-500">
+                    <CardContent className="py-12 text-center text-rose-500">
                       <Folder className="h-12 w-12 mx-auto mb-3 text-gray-400" />
                       <p>Belum ada album</p>
                     </CardContent>
@@ -474,7 +474,7 @@ export default function GalleryPage() {
                         className="overflow-hidden group cursor-pointer hover:shadow-lg transition-all"
                         onClick={() => loadAlbumImages(album.id)}
                       >
-                        <div className="aspect-video relative bg-gray-100">
+                        <div className="aspect-video relative bg-rose-100">
                           {album.cover_image_thumbnail ? (
                             <Image
                               src={album.cover_image_thumbnail}
@@ -498,7 +498,7 @@ export default function GalleryPage() {
                         <CardContent className="p-4">
                           <h3 className="font-bold text-lg mb-1">{album.name}</h3>
                           {album.description && (
-                            <p className="text-sm text-gray-600 line-clamp-2">{album.description}</p>
+                            <p className="text-sm text-rose-600 line-clamp-2">{album.description}</p>
                           )}
                         </CardContent>
                       </Card>
@@ -662,7 +662,7 @@ export default function GalleryPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-primary hover:bg-pink-600">
+                <AlertDialogAction onClick={handleDelete} className="bg-pink-600 hover:bg-pink-600">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
                 </AlertDialogAction>
               </AlertDialogFooter>

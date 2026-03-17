@@ -311,7 +311,7 @@ export default function ProfilePage() {
                             />
                           )
                         ) : (
-                          <div className="w-[150px] h-[150px] rounded-full bg-primary/10 flex items-center justify-center text-primary text-4xl font-bold border-4 border-primary/20 shadow">
+                          <div className="w-[150px] h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-4xl font-bold border-4 border-primary/20 shadow">
                             {member.username[0].toUpperCase()}
                           </div>
                         )}
@@ -340,7 +340,7 @@ export default function ProfilePage() {
                       </div>
                       
                       <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
-                      <p className="text-gray-500 text-center mb-2">@{member.username}</p>
+                      <p className="text-rose-500 text-center mb-2">@{member.username}</p>
                       <Badge variant="outline" className="mb-4">
                         Handicap: {member.handicap}
                       </Badge>
@@ -440,7 +440,7 @@ export default function ProfilePage() {
 
                         {isOwnProfile && (
                           <div className="pt-4 flex justify-end">
-                            <Button type="submit" disabled={saving} className="bg-primary hover:bg-pink-600">
+                            <Button type="submit" disabled={saving} className="bg-pink-600 hover:bg-pink-600">
                               {saving ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -482,7 +482,7 @@ export default function ProfilePage() {
                         {history.map((game) => (
                           <div 
                             key={game.id} 
-                            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                            className="border rounded-lg p-4 hover:bg-rose-50 transition-colors"
                           >
                             <div className="flex justify-between items-start mb-3">
                               <div>
@@ -493,29 +493,29 @@ export default function ProfilePage() {
                               </div>
                               <div className="text-right">
                                 <span className="text-xs text-muted-foreground">Overall</span>
-                                <p className="text-xl font-bold text-primary">{game.overall_score}</p>
+                                <p className="text-xl font-bold text-pink-600">{game.overall_score}</p>
                               </div>
                             </div>
                             
                             <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                              <div className="bg-gray-100 rounded p-1">
-                                <span className="text-xs text-gray-500 block">G1</span>
+                              <div className="bg-rose-100 rounded p-1">
+                                <span className="text-xs text-rose-500 block">G1</span>
                                 <span className="font-medium">{game.game1_score}</span>
                               </div>
-                              <div className="bg-gray-100 rounded p-1">
-                                <span className="text-xs text-gray-500 block">G2</span>
+                              <div className="bg-rose-100 rounded p-1">
+                                <span className="text-xs text-rose-500 block">G2</span>
                                 <span className="font-medium">{game.game2_score}</span>
                               </div>
-                              <div className="bg-gray-100 rounded p-1">
-                                <span className="text-xs text-gray-500 block">G3</span>
+                              <div className="bg-rose-100 rounded p-1">
+                                <span className="text-xs text-rose-500 block">G3</span>
                                 <span className="font-medium">{game.game3_score}</span>
                               </div>
-                              <div className="bg-gray-100 rounded p-1">
-                                <span className="text-xs text-gray-500 block">G4</span>
+                              <div className="bg-rose-100 rounded p-1">
+                                <span className="text-xs text-rose-500 block">G4</span>
                                 <span className="font-medium">{game.game4_score}</span>
                               </div>
-                              <div className="bg-gray-100 rounded p-1">
-                                <span className="text-xs text-gray-500 block">G5</span>
+                              <div className="bg-rose-100 rounded p-1">
+                                <span className="text-xs text-rose-500 block">G5</span>
                                 <span className="font-medium">{game.game5_score}</span>
                               </div>
                             </div>

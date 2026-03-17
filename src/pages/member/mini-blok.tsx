@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import { motion } from "framer-motion";
 import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ import {
   Eye,
   ArrowLeft,
   Globe,
+  Crown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -174,7 +176,7 @@ function PublicSharedView({
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Eye className="h-6 w-6 text-primary" />
+            <Eye className="h-6 w-6 text-pink-600" />
             Shared Mini Blok
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -260,11 +262,11 @@ function PublicSharedView({
                         <TableCell className="text-center">{player.handicap}</TableCell>
                         <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                         <TableCell className="text-center">{stats.total_score}</TableCell>
-                        <TableCell className="text-center font-bold text-primary">
+                        <TableCell className="text-center font-bold text-pink-600">
                           {stats.overall_score}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={stats.differential > 0 ? "text-green-600" : "text-primary"}>
+                          <span className={stats.differential > 0 ? "text-green-600" : "text-pink-600"}>
                             {stats.differential > 0 ? "+" : ""}{stats.differential}
                           </span>
                         </TableCell>
@@ -300,7 +302,7 @@ function PublicSharedView({
                           <span className="font-semibold">{player.player_name}</span>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-primary">
+                          <div className="text-lg font-bold text-pink-600">
                             {stats.overall_score}
                           </div>
                           <div className="text-xs text-muted-foreground">
@@ -327,7 +329,7 @@ function PublicSharedView({
                             </div>
                             <div>
                               <span className="text-muted-foreground">Diff:</span>
-                              <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-primary"}`}>
+                              <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-pink-600"}`}>
                                 {stats.differential > 0 ? "+" : ""}{stats.differential}
                               </span>
                             </div>
@@ -349,7 +351,7 @@ function PublicSharedView({
                                     className={
                                       score !== null && score > 0
                                         ? `${GAME_COLORS[i]} text-white`
-                                        : "bg-gray-200"
+                                        : "bg-rose-200"
                                     }
                                   >
                                     G{i + 1}: {score !== null && score > 0 ? score : "-"}
@@ -1155,8 +1157,36 @@ export default function MiniBlokPage() {
   return (
     <>
       <SEO title="Mini Blok - AMBC Club" description="Keputusan terkini liga mini blok AMBC Club" />
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-rose-50 flex flex-col">
         <MemberTopBarNav />
+
+        {/* Hero Header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 pt-8 pb-12 sm:pt-12 sm:pb-16 px-4">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_50%)]"></div>
+          <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.1),transparent_50%)]"></div>
+          
+          <div className="relative container mx-auto max-w-6xl z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col md:flex-row gap-6 items-center justify-between"
+            >
+              <div className="text-white text-center md:text-left flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium mb-4">
+                  <Crown className="w-4 h-4 text-yellow-300" />
+                  <span>Liga Mini Blok</span>
+                </div>
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 tracking-tight drop-shadow-md">
+                  Liga Mini Blok 🎳
+                </h1>
+                <p className="text-pink-50 text-lg max-w-xl mx-auto md:mx-0">
+                  Sistem perlawanan Mini Blok (3 Game). Cipta, kongsi, dan bersaing bersama rakan-rakan!
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
 
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
           <div className="border-b bg-theme-header/90 backdrop-blur sticky top-0 z-40">
@@ -1361,7 +1391,7 @@ export default function MiniBlokPage() {
                                   <span className="font-semibold truncate">{player.player_name}</span>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-sm font-bold text-primary">
+                                  <div className="text-sm font-bold text-pink-600">
                                     {stats.overall_score}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
@@ -1474,7 +1504,7 @@ export default function MiniBlokPage() {
                                                 className={
                                                   score !== null && typeof score === "number" && score > 0
                                                     ? `${GAME_COLORS[gameNum - 1]} text-white`
-                                                    : "bg-gray-200"
+                                                    : "bg-rose-200"
                                                 }
                                               >
                                                 G{gameNum}:{" "}
@@ -1842,7 +1872,7 @@ export default function MiniBlokPage() {
                                       <span className="font-semibold">{player.player_name}</span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="text-lg font-bold text-primary">
+                                      <div className="text-lg font-bold text-pink-600">
                                         {stats.overall_score}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
@@ -1899,7 +1929,7 @@ export default function MiniBlokPage() {
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground">Diff:</span>
-                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-primary"}`}>
+                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-pink-600"}`}>
                                           {stats.differential > 0 ? "+" : ""}{stats.differential}
                                         </span>
                                       </div>
@@ -1914,7 +1944,7 @@ export default function MiniBlokPage() {
                                             <Badge
                                               key={i}
                                               variant="secondary"
-                                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-gray-200"}
+                                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-rose-200"}
                                             >
                                               G{i + 1}: {score !== null && score > 0 ? score : "-"}
                                             </Badge>
@@ -1982,11 +2012,11 @@ export default function MiniBlokPage() {
                                     <TableCell className="text-center">{player.handicap}</TableCell>
                                     <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                                     <TableCell className="text-center">{stats.total_score}</TableCell>
-                                    <TableCell className="text-center font-bold text-primary">
+                                    <TableCell className="text-center font-bold text-pink-600">
                                       {stats.overall_score}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                      <span className={stats.differential > 0 ? "text-green-600" : "text-primary"}>
+                                      <span className={stats.differential > 0 ? "text-green-600" : "text-pink-600"}>
                                         {stats.differential > 0 ? "+" : ""}{stats.differential}
                                       </span>
                                     </TableCell>

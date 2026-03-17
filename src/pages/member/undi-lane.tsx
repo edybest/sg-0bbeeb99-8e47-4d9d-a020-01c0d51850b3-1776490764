@@ -558,7 +558,7 @@ export default function UndiLanePage() {
       <>
         <SEO title="Undi Lane - AMBC Club" description="Undian lane bowling secara rawak" />
 
-        <div className="min-h-screen bg-gray-50 flex flex-col pb-20 sm:pb-0">
+        <div className="min-h-screen bg-rose-50 flex flex-col pb-20 sm:pb-0">
           <MemberTopBarNav />
 
           <main className="flex-1 container max-w-lg mx-auto p-4 sm:p-6 lg:p-8 relative">
@@ -588,31 +588,34 @@ export default function UndiLanePage() {
             ) : null}
 
             <div className="container mx-auto px-4 py-6 max-w-6xl">
-              <Card className="mb-6 shadow-sm border-border">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl">Select Game</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={activeGameId} onValueChange={handleGameChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose a game" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {games.map((game) => (
-                        <SelectItem key={game.id} value={game.id}>
-                          {game.name} - {new Date(game.game_date).toLocaleDateString()}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Game Selector Card */}
+              <Card className="border-2 border-pink-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-2xl">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-400 via-rose-500 to-purple-500"></div>
+                <CardContent className="p-6">
+                  <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="w-full sm:w-1/3">
+                      <Select value={activeGameId} onValueChange={handleGameChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose a game" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {games.map((game) => (
+                            <SelectItem key={game.id} value={game.id}>
+                              {game.name} - {new Date(game.game_date).toLocaleDateString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               <div className="grid md:grid-cols-2 gap-6 items-start">
                 {/* WHEEL CARD */}
                 <Card className="flex flex-col border-border shadow-md overflow-hidden bg-card">
-                  <CardHeader className="bg-primary/5 border-b border-border/50 pb-4">
-                    <CardTitle className="text-center text-primary text-2xl font-black uppercase tracking-wider">
+                  <CardHeader className="bg-pink-600/5 border-b border-border/50 pb-4">
+                    <CardTitle className="text-center text-pink-600 text-2xl font-black uppercase tracking-wider">
                       {myResult ? "Your Lane Assigned" : "Click to Spin!"}
                     </CardTitle>
                   </CardHeader>
@@ -620,10 +623,10 @@ export default function UndiLanePage() {
                   <CardContent className="flex flex-col items-center justify-center p-6 md:p-8">
                     {myResult ? (
                       <div className="text-center animate-in zoom-in-50 fade-in duration-500 ease-out py-16">
-                        <div className="text-[120px] md:text-[140px] leading-none font-black text-primary mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
+                        <div className="text-[120px] md:text-[140px] leading-none font-black text-pink-600 mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
                           {myResult.lane_position}
                         </div>
-                        <div className="inline-block px-8 py-3 rounded-full bg-primary/10 text-primary font-bold text-xl md:text-2xl animate-pulse border border-primary/20 shadow-sm">
+                        <div className="inline-block px-8 py-3 rounded-full bg-pink-600/10 text-pink-600 font-bold text-xl md:text-2xl animate-pulse border border-primary/20 shadow-sm">
                           🎉 Your Assigned Lane
                         </div>
                       </div>
@@ -724,7 +727,7 @@ export default function UndiLanePage() {
                             </svg>
 
                             <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
-                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-gray-200 flex items-center justify-center p-2.5">
+                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-rose-200 flex items-center justify-center p-2.5">
                                 <div className="relative w-full h-full">
                                   <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-contain" priority />
                                 </div>
@@ -739,7 +742,7 @@ export default function UndiLanePage() {
                             disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
                             className={`relative w-full text-xl sm:text-2xl font-black py-7 sm:py-8 rounded-2xl shadow-xl transition-all duration-300 uppercase tracking-widest overflow-hidden group ${
                               !spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame 
-                                ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:-translate-y-1" 
+                                ? "bg-pink-600 text-pink-600-foreground hover:bg-pink-600/90 hover:-translate-y-1" 
                                 : "opacity-50"
                             }`}
                             style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
@@ -762,7 +765,7 @@ export default function UndiLanePage() {
                                 Anda tidak tersenarai untuk game ini. Sila hubungi admin.
                               </div>
                             ) : selectedLane ? (
-                              <div className="px-6 py-2 rounded-full bg-primary/10 text-primary font-bold text-base sm:text-lg animate-in zoom-in border border-primary/20 shadow-inner">
+                              <div className="px-6 py-2 rounded-full bg-pink-600/10 text-pink-600 font-bold text-base sm:text-lg animate-in zoom-in border border-primary/20 shadow-inner">
                                 Target: <span className="text-xl sm:text-2xl ml-1">{selectedLane}</span>
                               </div>
                             ) : null}
@@ -802,7 +805,7 @@ export default function UndiLanePage() {
                             className="flex items-center justify-between p-3.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-xl border border-border"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-black text-lg shadow-sm">
+                              <div className="w-12 h-12 rounded-full bg-pink-600 flex items-center justify-center text-pink-600-foreground font-black text-lg shadow-sm">
                                 {result.lane_position}
                               </div>
                               <div>
@@ -832,7 +835,7 @@ export default function UndiLanePage() {
                     {availableLanes.map((lane) => (
                       <div
                         key={lane}
-                        className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:border-primary"
+                        className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-pink-600 hover:text-pink-600-foreground hover:shadow-lg hover:border-primary"
                       >
                         {lane}
                       </div>

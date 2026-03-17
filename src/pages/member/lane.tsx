@@ -10,7 +10,7 @@ import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
 import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWithMember } from "@/services/laneService";
 import { gameService } from "@/services/gameService";
-import { ArrowLeft, Save, Users, Loader2, GripVertical, X } from "lucide-react";
+import { ArrowLeft, Save, Users, Loader2, GripVertical, X, Target, Calendar } from "lucide-react";
 import Link from "next/link";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
@@ -307,22 +307,22 @@ export default function LanePage() {
         onDragOver={isAdmin ? handleDragOver : undefined}
         onDrop={isAdmin ? (e) => handleDrop(e, lanePosition) : undefined}
       >
-        <span className="text-sm font-semibold text-gray-800 w-10 shrink-0">{lanePosition} -</span>
+        <span className="text-sm font-semibold text-rose-800 w-10 shrink-0">{lanePosition} -</span>
         
         {assignment ? (
-          <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-gray-200 rounded px-2 py-1 shadow-sm">
+          <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-rose-200 rounded px-2 py-1 shadow-sm">
             <div className="flex items-center gap-2 overflow-hidden min-w-0">
               {revealed ? (
                 <span className="text-xs font-semibold truncate whitespace-nowrap">{assignment.member.username}</span>
               ) : (
-                <span className="text-xs font-medium text-gray-500 italic truncate whitespace-nowrap">Belum Undi</span>
+                <span className="text-xs font-medium text-rose-500 italic truncate whitespace-nowrap">Belum Undi</span>
               )}
             </div>
             
             {isAdmin && (
               <button
                 onClick={() => handleRemoveMember(assignment.member_id)}
-                className="text-gray-400 hover:text-primary p-1 shrink-0 ml-1"
+                className="text-gray-400 hover:text-pink-600 p-1 shrink-0 ml-1"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -345,7 +345,7 @@ export default function LanePage() {
     const rightPositions = [`${rightLane}A`, `${rightLane}B`, `${rightLane}C`];
 
     return (
-      <Card key={config.id} className="overflow-hidden border border-gray-200 shadow-sm">
+      <Card key={config.id} className="overflow-hidden border border-rose-200 shadow-sm">
         {/* Header Kuning */}
         <div className="bg-[#facc15] py-3 text-center border-b border-yellow-500">
           <p className="text-xs font-semibold text-yellow-900 mb-0.5">LANE UNDIAN {config.lane_undian}</p>
@@ -410,26 +410,31 @@ export default function LanePage() {
           title="Lane Assignment - AMBC Club"
           description="Kedudukan Lane Ahli"
         />
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 pb-20 sm:pb-8">
           {/* Header */}
-          <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex items-center gap-4">
-                <MobileNav />
-                <Link href="/member">
-                  <Button variant="ghost" size="icon" className="hidden sm:flex">
-                    <ArrowLeft className="h-5 w-5" />
+          <div className="bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-pink-100 shadow-sm">
+            <div className="container mx-auto px-4 py-4 max-w-6xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => router.push("/member")}
+                    className="shrink-0 border-pink-200 text-pink-600 hover:bg-pink-50 hover:text-pink-700 rounded-full"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
                   </Button>
-                </Link>
-                <div>
-                  <h1 className="text-xl font-bold text-primary">Kedudukan Lane</h1>
-                  <p className="text-xs text-gray-600">
-                    {isAdmin ? "Admin: Drag & Drop Ahli" : "Lihat kedudukan lane terkini"}
-                  </p>
+                  <div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent flex items-center gap-2">
+                      <Target className="w-6 h-6 text-pink-500" />
+                      Kedudukan Lane
+                    </h1>
+                    <p className="text-sm text-gray-500 mt-0.5">Semak pembahagian lane anda</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </header>
+          </div>
 
           <div className="container mx-auto px-4 py-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -437,16 +442,16 @@ export default function LanePage() {
               {/* Kiri: Lane Grid */}
               <div className={`space-y-6 ${isAdmin ? "lg:col-span-3" : "lg:col-span-4 max-w-5xl mx-auto w-full"}`}>
                 {/* Pemilihan Game */}
-                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center justify-between w-full gap-3">
                     <div className="min-w-0">
-                      <h2 className="font-semibold text-gray-800 flex items-center gap-2">
+                      <h2 className="font-semibold text-rose-800 flex items-center gap-2">
                         Pilih Game:
                       </h2>
                       {activeGame?.game_date ? (
-                        <p className="text-xs text-gray-600 mt-0.5">
+                        <p className="text-xs text-rose-600 mt-0.5">
                           Tarikh Blok:{" "}
-                          <span className="font-semibold text-gray-800">
+                          <span className="font-semibold text-rose-800">
                             {new Date(activeGame.game_date).toLocaleDateString("ms-MY")}
                           </span>
                         </p>
@@ -489,10 +494,10 @@ export default function LanePage() {
 
                 <div ref={screenshotRef} className="space-y-4">
                   {activeGame?.game_date ? (
-                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm">
-                      <p className="text-sm font-semibold text-gray-800">
+                    <div className="bg-white rounded-lg border border-rose-200 px-4 py-3 shadow-sm">
+                      <p className="text-sm font-semibold text-rose-800">
                         Tarikh Blok:{" "}
-                        <span className="font-bold text-primary">
+                        <span className="font-bold text-pink-600">
                           {new Date(activeGame.game_date).toLocaleDateString("ms-MY")}
                         </span>
                       </p>
@@ -504,7 +509,7 @@ export default function LanePage() {
                       {laneConfigs.map(config => renderLaneSection(config))}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-dashed">
+                    <div className="text-center py-12 text-rose-500 bg-white rounded-lg border border-dashed">
                       Sila pilih game untuk melihat lane
                     </div>
                   )}
@@ -514,8 +519,8 @@ export default function LanePage() {
               {/* Kanan: Drag & Drop List (ADMIN SAHAJA) */}
               {isAdmin && (
                 <div className="lg:col-span-1">
-                  <Card className="sticky top-24 shadow-sm border-gray-200">
-                    <div className="bg-primary text-white p-3 rounded-t-lg">
+                  <Card className="sticky top-24 shadow-sm border-rose-200">
+                    <div className="bg-pink-600 text-white p-3 rounded-t-lg">
                       <h3 className="font-semibold flex items-center gap-2">
                         <Users className="h-4 w-4" /> Senarai Ahli
                       </h3>
@@ -528,12 +533,12 @@ export default function LanePage() {
                             key={m.id}
                             draggable
                             onDragStart={() => handleDragStart(m)}
-                            className="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
+                            className="flex items-center gap-2 p-2 bg-white rounded border border-rose-200 hover:border-red-400 hover:shadow cursor-move transition-all group"
                           >
                             <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate whitespace-nowrap leading-tight">{m.username}</p>
-                              <p className="text-[10px] text-gray-500 truncate whitespace-nowrap">{m.full_name}</p>
+                              <p className="text-[10px] text-rose-500 truncate whitespace-nowrap">{m.full_name}</p>
                             </div>
                           </div>
                         ))}

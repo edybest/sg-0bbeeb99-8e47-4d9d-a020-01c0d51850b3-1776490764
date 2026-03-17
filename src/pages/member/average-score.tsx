@@ -47,7 +47,7 @@ export default function AverageScorePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
       </div>
     );
   }
@@ -241,11 +241,11 @@ export default function AverageScorePage() {
             </Card>
 
             {/* Info Card */}
-            <Card className="mb-6 bg-blue-50 border-blue-200">
+            <Card className="mb-6 bg-pink-50 border-pink-200">
               <CardHeader>
                 <CardTitle className="text-sm">Nota Handicap</CardTitle>
               </CardHeader>
-              <CardContent className="text-xs text-gray-700 space-y-1">
+              <CardContent className="text-xs text-rose-700 space-y-1">
                 <p>• Dikira berdasarkan 3 blok terakhir (Blok Rasmi 10 PIN sahaja)</p>
                 <p>• Belum cukup 3 kali: 0 hcp (perempuan: 25 hcp)</p>
                 <p>• Bawah umur 15: minimum 15 hcp</p>
@@ -257,11 +257,11 @@ export default function AverageScorePage() {
             {/* Player Stats */}
             {loadingData ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
               </div>
             ) : filteredPlayers.length === 0 ? (
               <Card>
-                <CardContent className="py-12 text-center text-gray-500">
+                <CardContent className="py-12 text-center text-rose-500">
                   Tiada pemain dijumpai
                 </CardContent>
               </Card>
@@ -276,7 +276,7 @@ export default function AverageScorePage() {
                       <div className="flex items-start gap-4">
                         {/* Rank */}
                         <div className="text-center min-w-[40px]">
-                          <span className="text-xl font-bold text-gray-700">#{index + 1}</span>
+                          <span className="text-xl font-bold text-rose-700">#{index + 1}</span>
                         </div>
 
                         {/* Avatar & Name */}
@@ -290,7 +290,7 @@ export default function AverageScorePage() {
                               className="rounded-full border-2 border-blue-600"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                            <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">
                               {player.username[0].toUpperCase()}
                             </div>
                           )}
@@ -299,23 +299,23 @@ export default function AverageScorePage() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <Link href={`/member/profile?id=${player.member_id}`}>
-                            <h3 className="font-bold hover:text-blue-600 transition-colors truncate">
+                            <h3 className="font-bold hover:text-pink-600 transition-colors truncate">
                               {player.full_name}
                             </h3>
-                            <p className="text-sm text-gray-600">@{player.username}</p>
+                            <p className="text-sm text-rose-600">@{player.username}</p>
                           </Link>
 
                           {/* Recent 3 Games */}
                           <div className="mt-3 space-y-2">
                             {player.recent_games.length > 0 ? (
                               player.recent_games.map((game, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 rounded p-2">
-                                  <span className="text-gray-600 truncate mr-2">{game.game_name}</span>
+                                <div key={idx} className="flex items-center justify-between text-xs bg-rose-50 rounded p-2">
+                                  <span className="text-rose-600 truncate mr-2">{game.game_name}</span>
                                   <Badge variant="outline">{game.average_score}</Badge>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-xs text-gray-500 italic">Belum join game</p>
+                              <p className="text-xs text-rose-500 italic">Belum join game</p>
                             )}
                           </div>
                         </div>
@@ -323,13 +323,13 @@ export default function AverageScorePage() {
                         {/* Stats */}
                         <div className="text-right space-y-2">
                           <div>
-                            <p className="text-xs text-gray-500">Avg 3 Games</p>
-                            <p className="text-2xl font-bold text-blue-600">
+                            <p className="text-xs text-rose-500">Avg 3 Games</p>
+                            <p className="text-2xl font-bold text-pink-600">
                               {player.average_of_3}
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Handicap</p>
+                            <p className="text-xs text-rose-500">Handicap</p>
                             <Badge className="bg-green-600 text-white">
                               {player.calculated_handicap}
                             </Badge>
@@ -343,11 +343,11 @@ export default function AverageScorePage() {
                                 </>
                               ) : player.recent_games[0].average_score < player.recent_games[1].average_score ? (
                                 <>
-                                  <TrendingDown className="h-3 w-3 text-primary" />
-                                  <span className="text-primary">Turun</span>
+                                  <TrendingDown className="h-3 w-3 text-pink-600" />
+                                  <span className="text-pink-600">Turun</span>
                                 </>
                               ) : (
-                                <span className="text-gray-500">Sama</span>
+                                <span className="text-rose-500">Sama</span>
                               )}
                             </div>
                           )}

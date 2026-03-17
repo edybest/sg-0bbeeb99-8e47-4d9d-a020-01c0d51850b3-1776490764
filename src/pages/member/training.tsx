@@ -436,8 +436,8 @@ export default function TrainingPage() {
   const pinButtons = [
     { value: "X", label: "X", color: "bg-yellow-500 hover:bg-yellow-600" },
     { value: "/", label: "/", color: "bg-blue-500 hover:bg-blue-600" },
-    { value: "-", label: "-", color: "bg-gray-400 hover:bg-gray-500" },
-    { value: "0", label: "0", color: "bg-pink-400 hover:bg-primary" },
+    { value: "-", label: "-", color: "bg-gray-400 hover:bg-rose-500" },
+    { value: "0", label: "0", color: "bg-pink-400 hover:bg-pink-600" },
     { value: "1", label: "1", color: "bg-orange-500 hover:bg-orange-600" },
     { value: "2", label: "2", color: "bg-amber-500 hover:bg-amber-600" },
     { value: "3", label: "3", color: "bg-yellow-500 hover:bg-yellow-600" },
@@ -454,8 +454,8 @@ export default function TrainingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-rose-50">
+        <Loader2 className="h-12 w-12 animate-spin text-pink-600" />
       </div>
     );
   }
@@ -467,9 +467,9 @@ export default function TrainingPage() {
           title="Training - AMBC Club"
           description="Record bowling practice scores"
         />
-        <div className="min-h-screen bg-gray-50 pb-20 md:pb-8">
+        <div className="min-h-screen bg-rose-50 pb-20 md:pb-8">
           {/* Header */}
-          <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+          <header className="bg-white shadow-sm border-b border-rose-200 sticky top-0 z-10">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -480,8 +480,8 @@ export default function TrainingPage() {
                   </Link>
                   <MobileNav />
                   <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-primary">Training</h1>
-                    <p className="text-xs md:text-sm text-gray-600">Practice Scores</p>
+                    <h1 className="text-xl md:text-2xl font-bold text-pink-600">Training</h1>
+                    <p className="text-xs md:text-sm text-rose-600">Practice Scores</p>
                   </div>
                 </div>
               </div>
@@ -493,19 +493,19 @@ export default function TrainingPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-6">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
                     Total Sessions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl md:text-3xl font-bold text-primary">{scores.length}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-pink-600">{scores.length}</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
                     Average
                   </CardTitle>
@@ -517,7 +517,7 @@ export default function TrainingPage() {
 
               <Card className="col-span-2 md:col-span-1">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
                     <Award className="h-4 w-4" />
                     Highest
                   </CardTitle>
@@ -553,7 +553,7 @@ export default function TrainingPage() {
             {/* Add Score Button */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full mb-6 bg-primary hover:bg-pink-600 h-12 text-base md:text-lg">
+                <Button className="w-full mb-6 bg-pink-600 hover:bg-pink-600 h-12 text-base md:text-lg">
                   <Plus className="mr-2 h-5 w-5" />
                   Add Score
                 </Button>
@@ -597,13 +597,13 @@ export default function TrainingPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-base md:text-lg font-semibold">Scorecard</Label>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-rose-600">
                         Frame {currentFrame + 1}, Roll {currentRoll}
                       </div>
                     </div>
 
                     {/* Scorecard Grid */}
-                    <div className="grid grid-cols-5 md:grid-cols-10 gap-2 bg-white p-3 md:p-4 rounded-lg border-2 border-gray-200">
+                    <div className="grid grid-cols-5 md:grid-cols-10 gap-2 bg-white p-3 md:p-4 rounded-lg border-2 border-rose-200">
                       {frames.map((frame, i) => (
                         <div
                           key={i}
@@ -612,24 +612,24 @@ export default function TrainingPage() {
                             setCurrentRoll(1);
                           }}
                           className={`relative border-2 rounded-md p-2 cursor-pointer transition-colors ${
-                            i === currentFrame ? "border-primary bg-pink-50" : "border-gray-300 hover:border-gray-400"
+                            i === currentFrame ? "border-primary bg-pink-50" : "border-rose-300 hover:border-gray-400"
                           }`}
                         >
-                          <div className="text-[10px] md:text-xs font-bold text-center text-gray-600 mb-1">
+                          <div className="text-[10px] md:text-xs font-bold text-center text-rose-600 mb-1">
                             {i + 1}
                           </div>
                           <div className="grid grid-cols-2 gap-1">
-                            <div className="h-8 md:h-10 flex items-center justify-center border border-gray-200 rounded text-sm md:text-base font-bold bg-white relative">
+                            <div className="h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white relative">
                               {frame.roll1 || ""}
                               {frame.split && (
                                 <span className="absolute top-0 right-0 text-[10px] text-orange-600 font-black">⊗</span>
                               )}
                             </div>
-                            <div className="h-8 md:h-10 flex items-center justify-center border border-gray-200 rounded text-sm md:text-base font-bold bg-white">
+                            <div className="h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white">
                               {frame.roll2 || ""}
                             </div>
                             {i === 9 && (
-                              <div className="col-span-2 h-8 md:h-10 flex items-center justify-center border border-gray-200 rounded text-sm md:text-base font-bold bg-white mt-1">
+                              <div className="col-span-2 h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white mt-1">
                                 {frame.roll3 || ""}
                               </div>
                             )}
@@ -665,7 +665,7 @@ export default function TrainingPage() {
                         <Button
                           onClick={clearAllFrames}
                           variant="outline"
-                          className="border-2 border-pink-400 text-primary hover:bg-pink-50 font-semibold transition-all duration-150 active:scale-95 transform"
+                          className="border-2 border-pink-400 text-pink-600 hover:bg-pink-50 font-semibold transition-all duration-150 active:scale-95 transform"
                         >
                           Clear All
                         </Button>
@@ -676,7 +676,7 @@ export default function TrainingPage() {
                           className={`border-2 font-semibold transition-all duration-150 active:scale-95 transform ${
                             frames[currentFrame]?.split 
                               ? "border-orange-500 bg-orange-100 text-orange-700 hover:bg-orange-200" 
-                              : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                              : "border-rose-300 text-rose-600 hover:bg-rose-50"
                           }`}
                           disabled={currentRoll !== 1}
                         >
@@ -686,7 +686,7 @@ export default function TrainingPage() {
                     </div>
 
                     {/* Total Score Display */}
-                    <div className="bg-primary text-white p-4 rounded-lg text-center mt-4">
+                    <div className="bg-pink-600 text-white p-4 rounded-lg text-center mt-4">
                       <div className="text-sm md:text-base font-medium">Total Score</div>
                       <div className="text-4xl md:text-5xl font-black mt-1">{calculateBowlingScore(frames)}</div>
                     </div>
@@ -705,7 +705,7 @@ export default function TrainingPage() {
                   </div>
 
                   {/* Save Button */}
-                  <Button onClick={handleSave} className="w-full bg-primary hover:bg-pink-600 h-12 text-base font-bold">
+                  <Button onClick={handleSave} className="w-full bg-pink-600 hover:bg-pink-600 h-12 text-base font-bold">
                     {editingScore ? "Update Score" : "Save Score"}
                   </Button>
                 </div>
@@ -718,7 +718,7 @@ export default function TrainingPage() {
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
                   Training History
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="text-sm font-normal text-rose-500">
                     ({scores.length} total scores)
                   </span>
                 </CardTitle>
@@ -726,7 +726,7 @@ export default function TrainingPage() {
               <CardContent>
                 {/* Pagination Info */}
                 {scores.length > 0 && (
-                  <div className="mb-4 flex items-center justify-between text-sm text-gray-600">
+                  <div className="mb-4 flex items-center justify-between text-sm text-rose-600">
                     <span>
                       Showing {startIndex + 1}-{Math.min(endIndex, scores.length)} of {scores.length} scores
                     </span>
@@ -737,7 +737,7 @@ export default function TrainingPage() {
                 )}
 
                 {paginatedScores.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-rose-500">
                     <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>No training scores yet. Add your first score!</p>
                   </div>
@@ -774,7 +774,7 @@ export default function TrainingPage() {
                                   variant="outline"
                                   size="icon"
                                   onClick={() => handleDelete(score.id)}
-                                  className="h-8 w-8 text-primary hover:bg-pink-50"
+                                  className="h-8 w-8 text-pink-600 hover:bg-pink-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -825,7 +825,7 @@ export default function TrainingPage() {
                             onClick={() => setCurrentPage(page)}
                             className={`min-w-[40px] transition-all active:scale-95 ${
                               currentPage === page 
-                                ? "bg-primary hover:bg-pink-600 text-white" 
+                                ? "bg-pink-600 hover:bg-pink-600 text-white" 
                                 : ""
                             }`}
                           >

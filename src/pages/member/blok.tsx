@@ -283,7 +283,7 @@ export default function BlokPage() {
                                 {notifications.map((notification, index) =>
               <div
                 key={index}
-                className="text-sm whitespace-pre-line border-l-2 border-pink-400 pl-2">
+                className="text-sm whitespace-pre-line border-l-2 border-red-500 pl-2">
                 
                                         {notification}
                                     </div>
@@ -354,9 +354,9 @@ export default function BlokPage() {
     }
 
     return sortDirection === "asc" ?
-    <ArrowUp className="w-4 h-4 ml-1 text-primary" /> :
+    <ArrowUp className="w-4 h-4 ml-1 text-red-600" /> :
 
-    <ArrowDown className="w-4 h-4 ml-1 text-primary" />;
+    <ArrowDown className="w-4 h-4 ml-1 text-red-600" />;
 
   };
 
@@ -451,7 +451,7 @@ export default function BlokPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.4 + rank * 0.05, type: "spring" }}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-gray-600 border-2 border-gray-300 shadow-sm">
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-rose-600 border-2 border-rose-300 shadow-sm">
             
                         {rank}
                     </motion.div>);
@@ -464,7 +464,7 @@ export default function BlokPage() {
 
     return (
       <span
-        className={`${score >= 200 ? "text-primary font-bold" : ""} ${animatingScores.has(rowId) ? "score-changed" : ""}`
+        className={`${score >= 200 ? "text-red-600 font-bold" : ""} ${animatingScores.has(rowId) ? "score-changed" : ""}`
         }>
         
                 {score}
@@ -476,7 +476,7 @@ export default function BlokPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
                 {/* Header */}
-          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <header className="sticky top-0 z-40 bg-white border-b border-rose-200 shadow-sm">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -484,14 +484,15 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-primary">
+                    className="text-rose-700 hover:text-red-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
 
+
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                    <h1 className="text-xl font-bold text-rose-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-rose-600">Kedudukan Semasa</p>
                   </div>
                 </div>
               </div>
@@ -501,15 +502,15 @@ export default function BlokPage() {
                 <main className="container mx-auto px-4 py-8">
                     <Card className="max-w-md mx-auto">
                         <CardContent className="pt-6 text-center space-y-4">
-                            <div className="text-pink-400 text-5xl">⚠️</div>
+                            <div className="text-red-500 text-5xl">⚠️</div>
                             <h2 className="text-xl font-semibold">Connection Error</h2>
-                            <p className="text-gray-600">{error}</p>
+                            <p className="text-rose-600">{error}</p>
 
-                            <div className="bg-gray-100 p-3 rounded text-xs text-left">
-                                <p className="font-mono text-gray-700 break-all">{error}</p>
+                            <div className="bg-rose-100 p-3 rounded text-xs text-left">
+                                <p className="font-mono text-rose-700 break-all">{error}</p>
                             </div>
 
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-rose-500">
                                 Please check browser console (F12) for more details.
                             </div>
 
@@ -531,7 +532,7 @@ export default function BlokPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
                 {/* Header */}
-          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <header className="sticky top-0 z-40 bg-white border-b border-rose-200 shadow-sm">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -539,14 +540,15 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-primary">
+                    className="text-rose-700 hover:text-red-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
 
+
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                    <h1 className="text-xl font-bold text-rose-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-rose-600">Kedudukan Semasa</p>
                   </div>
                 </div>
               </div>
@@ -556,8 +558,8 @@ export default function BlokPage() {
                 <main className="container mx-auto px-4 py-8">
                     <div className="flex items-center justify-center min-h-[400px]">
                         <div className="text-center space-y-4">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-                            <p className="text-gray-600">Loading games...</p>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto" />
+                            <p className="text-rose-600">Loading games...</p>
                         </div>
                     </div>
                 </main>
@@ -596,7 +598,7 @@ export default function BlokPage() {
 
                 <div className="min-h-screen bg-white">
                     {/* Header */}
-          <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+          <header className="sticky top-0 z-40 bg-white border-b border-rose-200 shadow-sm">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -604,14 +606,15 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-primary">
+                    className="text-rose-700 hover:text-red-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
 
+
                   <div>
-                    <h1 className="text-xl font-bold text-gray-900">Blok Leaderboard</h1>
-                    <p className="text-sm text-gray-600">Kedudukan Semasa</p>
+                    <h1 className="text-xl font-bold text-rose-900">Blok Leaderboard</h1>
+                    <p className="text-sm text-rose-600">Kedudukan Semasa</p>
                   </div>
                 </div>
               </div>
@@ -620,27 +623,27 @@ export default function BlokPage() {
 
                     <main className="container mx-auto px-4 py-6 space-y-6">
                         {/* Game Selection */}
-                        <Card className="bg-white border-gray-200 shadow-md">
-                            <CardHeader className="border-b border-gray-200">
-                                <CardTitle className="text-gray-900">Pilih Game</CardTitle>
-                                <CardDescription className="text-gray-600">
+                        <Card className="bg-white border-rose-200 shadow-md">
+                            <CardHeader className="border-b border-rose-200">
+                                <CardTitle className="text-rose-900">Pilih Game</CardTitle>
+                                <CardDescription className="text-rose-600">
                                     Pilih tarikh untuk melihat kedudukan
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-6">
                                 {loadingGames ? (
                                     <div className="flex justify-center py-8">
-                                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
                                     </div>
                                 ) : games.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">Tiada game tersedia</div>
+                                    <div className="text-center py-8 text-rose-500">Tiada game tersedia</div>
                                 ) : (
                                     <div className="max-w-md mx-auto">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Tarikh & Game</label>
+                                        <label className="block text-sm font-medium text-rose-700 mb-2">Tarikh & Game</label>
                                         <select
                                             value={selectedGame || ""}
                                             onChange={(e) => setSelectedGame(e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 text-gray-900 font-medium transition-colors cursor-pointer appearance-none"
+                                            className="w-full px-4 py-3 border border-rose-300 rounded-lg bg-rose-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-rose-900 font-medium transition-colors cursor-pointer appearance-none"
                                             style={{
                                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                                 backgroundPosition: `right 0.75rem center`,
@@ -684,13 +687,13 @@ export default function BlokPage() {
                         </Card>
 
                         {selectedGame &&
-            <Card className="bg-white border-gray-200 shadow-md overflow-hidden">
-                            <CardHeader className="border-b border-gray-200 bg-gray-50/50">
-                                <CardTitle className="text-gray-900 flex items-center gap-2">
+            <Card className="bg-white border-rose-200 shadow-md overflow-hidden">
+                            <CardHeader className="border-b border-rose-200 bg-rose-50/50">
+                                <CardTitle className="text-rose-900 flex items-center gap-2">
                                     <Trophy className="w-5 h-5 text-yellow-500" />
                                     Leaderboard
                                 </CardTitle>
-                                <CardDescription className="text-gray-600">
+                                <CardDescription className="text-rose-600">
                                     Skor untuk game yang dipilih
                                 </CardDescription>
                             </CardHeader>
@@ -698,11 +701,11 @@ export default function BlokPage() {
                             <CardContent className="p-0">
                                 {loadingLeaderboard ?
                 <div className="flex justify-center items-center py-20">
-                                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                            <span className="ml-3 text-gray-600">Memuatkan skor...</span>
+                                            <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                                            <span className="ml-3 text-rose-600">Memuatkan skor...</span>
                                         </div> :
                 leaderboard.length === 0 ?
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-rose-500">
                                             <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                             <p>Tiada skor untuk game ini</p>
                                         </div> :
@@ -731,10 +734,10 @@ export default function BlokPage() {
                                                                             alt={entry.member.username}
                                                                             width={40}
                                                                             height={40}
-                                                                            className="rounded-full border-2 border-gray-200"
+                                                                            className="rounded-full border-2 border-rose-200"
                                                                         />
                                                                     ) : (
-                                                                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg">
+                                                                        <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg">
                                                                             {entry.member.username[0].toUpperCase()}
                                                                         </div>
                                                                     )}
@@ -743,14 +746,14 @@ export default function BlokPage() {
                                                                 <div className="flex-1 min-w-0">
                                                                     <Link 
                                                                         href={`/member/profile?id=${entry.member.id}`}
-                                                                        className={`font-semibold text-sm truncate hover:text-primary transition-colors block ${
-                                                                            currentUser?.id === entry.member.id ? "font-bold text-primary" : ""
+                                                                        className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
+                                                                            currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                         }`}
                                                                     >
                                                                         {entry.member.username}
                                                                     </Link>
-                                                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                                        <span className="font-bold text-primary" style={{ fontSize: "24px" }}>
+                                                                    <div className="flex items-center gap-2 text-xs text-rose-600">
+                                                                        <span className="font-bold text-red-600" style={{ fontSize: "24px" }}>
                                                                             {entry.overall_score || "-"}
                                                                         </span>
                                                                         <span className="text-gray-400">•</span>
@@ -769,34 +772,34 @@ export default function BlokPage() {
                                                             </div>
 
                                                             {expandedRow === entry.id &&
-                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                        <div className="mt-4 pt-4 border-t border-rose-200 space-y-3">
                                                                     <div className="grid grid-cols-5 gap-2">
                                                                         <div className="text-center">
-                                                                            <div className="text-xs text-gray-500 mb-1">G1</div>
+                                                                            <div className="text-xs text-rose-500 mb-1">G1</div>
                                                                             <div className="text-sm font-semibold">
                                                                                 {formatScore(entry.game1_score, entry.id)}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-center">
-                                                                            <div className="text-xs text-gray-500 mb-1">G2</div>
+                                                                            <div className="text-xs text-rose-500 mb-1">G2</div>
                                                                             <div className="text-sm font-semibold">
                                                                                 {formatScore(entry.game2_score, entry.id)}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-center">
-                                                                            <div className="text-xs text-gray-500 mb-1">G3</div>
+                                                                            <div className="text-xs text-rose-500 mb-1">G3</div>
                                                                             <div className="text-sm font-semibold">
                                                                                 {formatScore(entry.game3_score, entry.id)}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-center">
-                                                                            <div className="text-xs text-gray-500 mb-1">G4</div>
+                                                                            <div className="text-xs text-rose-500 mb-1">G4</div>
                                                                             <div className="text-sm font-semibold">
                                                                                 {formatScore(entry.game4_score, entry.id)}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-center">
-                                                                            <div className="text-xs text-gray-500 mb-1">G5</div>
+                                                                            <div className="text-xs text-rose-500 mb-1">G5</div>
                                                                             <div className="text-sm font-semibold">
                                                                                 {formatScore(entry.game5_score, entry.id)}
                                                                             </div>
@@ -804,16 +807,16 @@ export default function BlokPage() {
                                                                     </div>
 
                                                                     <div className="grid grid-cols-3 gap-3 text-sm">
-                                                                        <div className="bg-gray-50 p-2 rounded">
-                                                                            <div className="text-xs text-gray-500">Handicap</div>
+                                                                        <div className="bg-rose-50 p-2 rounded">
+                                                                            <div className="text-xs text-rose-500">Handicap</div>
                                                                             <div className="font-semibold">{entry.handicap || "-"}</div>
                                                                         </div>
-                                                                        <div className="bg-gray-50 p-2 rounded">
-                                                                            <div className="text-xs text-gray-500">Total Games</div>
+                                                                        <div className="bg-rose-50 p-2 rounded">
+                                                                            <div className="text-xs text-rose-500">Total Games</div>
                                                                             <div className="font-semibold">{entry.total_score || "-"}</div>
                                                                         </div>
-                                                                        <div className="bg-gray-50 p-2 rounded">
-                                                                            <div className="text-xs text-gray-500">Average</div>
+                                                                        <div className="bg-rose-50 p-2 rounded">
+                                                                            <div className="text-xs text-rose-500">Average</div>
                                                                             <div className="font-semibold">
                                                                                 {entry.average_score || "-"}
                                                                             </div>
@@ -830,12 +833,12 @@ export default function BlokPage() {
                                                 <div className="overflow-x-auto">
                                                     <table className="w-full min-w-[1200px]">
                                                         <thead>
-                                                            <tr className="border-b border-gray-200">
+                                                            <tr className="border-b border-rose-200">
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors`}
+                              className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
                               onClick={() => handleSort("rank")}>
                               
-                                                                    <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         #
                                                                         {getSortIcon("rank")}
                                                                     </div>
@@ -844,116 +847,116 @@ export default function BlokPage() {
                                                                 <th
                               className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
                               
-                                                                    <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Avatar
                                                                     </span>
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-gray-50 transition-colors`}
+                              className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
                               onClick={() => handleSort("username")}>
                               
-                                                                    <div className="flex items-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Player
                                                                         {getSortIcon("username")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors`}
+                              className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
                               onClick={() => handleSort("overall_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Overall
                                                                         {getSortIcon("overall_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors`}
+                              className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
                               onClick={() => handleSort("difference")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Diff
                                                                         {getSortIcon("difference")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("game1_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G1
                                                                         {getSortIcon("game1_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("game2_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G2
                                                                         {getSortIcon("game2_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("game3_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G3
                                                                         {getSortIcon("game3_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("game4_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G4
                                                                         {getSortIcon("game4_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("game5_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G5
                                                                         {getSortIcon("game5_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center border-l border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("handicap")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         HCP
                                                                         {getSortIcon("handicap")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("total_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Total
                                                                         {getSortIcon("total_score")}
                                                                     </div>
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
                               onClick={() => handleSort("average_score")}>
                               
-                                                                    <div className="flex items-center justify-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Avg
                                                                         {getSortIcon("average_score")}
                                                                     </div>
@@ -967,7 +970,7 @@ export default function BlokPage() {
                             key={entry.id}
                             className={`border-b transition-all duration-500 ${animatingScores.has(entry.id) ?
                             "bg-yellow-100 animate-pulse" :
-                            "hover:bg-gray-50"}`
+                            "hover:bg-rose-50"}`
                             }>
                             
                                                                     <td
@@ -985,10 +988,10 @@ export default function BlokPage() {
                                                                                 alt={entry.member.username}
                                                                                 width={40}
                                                                                 height={40}
-                                                                                className="rounded-full border-2 border-gray-200 mx-auto"
+                                                                                className="rounded-full border-2 border-rose-200 mx-auto"
                                                                             />
                                                                         ) : (
-                                                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 text-lg mx-auto">
+                                                                            <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg mx-auto">
                                                                                 {entry.member.username[0].toUpperCase()}
                                                                             </div>
                                                                         )}
@@ -999,8 +1002,8 @@ export default function BlokPage() {
                               
                                                                         <Link
                                                                             href={`/member/profile?id=${entry.member.id}`}
-                                                                            className={`font-medium hover:text-primary transition-colors ${
-                                                                                currentUser?.id === entry.member.id ? "font-bold text-primary" : ""
+                                                                            className={`font-medium hover:text-red-600 transition-colors ${
+                                                                                currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
                                                                             }`}
                                                                         >
                                                                             {entry.member.username}
@@ -1008,7 +1011,7 @@ export default function BlokPage() {
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-primary`} style={{ color: "#16a34a" }}>
+                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`} style={{ color: "#16a34a" }}>
                               
                                                                         {entry.overall_score || "-"}
                                                                     </td>
