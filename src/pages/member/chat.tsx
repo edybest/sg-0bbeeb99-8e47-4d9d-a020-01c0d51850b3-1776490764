@@ -35,7 +35,8 @@ import {
 export default function ChatPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { member } = useAuth();
+  const { member, loading: authLoading, isAuthenticated } = useAuth(true, false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
@@ -125,6 +126,18 @@ export default function ChatPage() {
     console.log("=== Starting new chat ===");
     console.log("Target member ID:", memberId);
     console.log("Current user:", member);
+    console.log("Is authenticated:", member !== null);
+    
+    // CRITICAL: Check authentication first
+    if (!member) {
+      toast({
+        title: "Sila Login Dahulu",
+        description: "Session anda telah tamat. Sila login semula.",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
     
     setCreatingChat(true);
     
@@ -135,10 +148,9 @@ export default function ChatPage() {
       if (!roomId) {
         console.error("Failed to create/get chat room - roomId is null");
         
-        // Show more helpful error message
         toast({
           title: "Tidak Dapat Membuat Chat",
-          description: "Sila pastikan anda sudah login dan cuba lagi. Jika masalah berterusan, sila hubungi admin.",
+          description: "Session mungkin telah tamat. Sila refresh page dan cuba lagi.",
           variant: "destructive",
         });
         setCreatingChat(false);
@@ -174,7 +186,7 @@ export default function ChatPage() {
       console.error("Unexpected error in handleStartChat:", error);
       toast({
         title: "Error Tidak Dijangka",
-        description: "Sila cuba lagi atau hubungi admin jika masalah berterusan.",
+        description: "Sila refresh page dan cuba lagi.",
         variant: "destructive",
       });
     } finally {
@@ -208,6 +220,25 @@ export default function ChatPage() {
     m.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Show loading while auth is checking
+  if (authLoading) {
+    return (
+      <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
+        <MemberLayout>
+          <SEO title="Chat - AMBC Club" />
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
+              <p className="text-muted-foreground">
+                Loading chats...
+              </p>
+            </div>
+          </div>
+        </MemberLayout>
+      </PageAccessGuard>
+    );
+  }
+
   if (loading) {
     return (
       <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
@@ -216,7 +247,9 @@ export default function ChatPage() {
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading chats...</p>
+              <p className="text-muted-foreground">
+                Loading chats...
+              </p>
             </div>
           </div>
         </MemberLayout>
@@ -265,6 +298,7 @@ export default function ChatPage() {
                                 variant="ghost"
                                 className="w-full justify-start"
                                 onClick={() => void handleStartChat(m.id)}
+                                disabled={creatingChat}
                               >
                                 <Avatar className="h-8 w-8 mr-3">
                                   <AvatarImage src={m.avatar_url || undefined} />
