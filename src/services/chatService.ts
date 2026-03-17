@@ -66,11 +66,14 @@ export async function ensureLobbyRoom(): Promise<string | null> {
   if (!lobby) return null;
 
   // Ensure current member is participant
-  await supabase
+  const { error: joinError } = await supabase
     .from("chat_participants")
-    .insert({ room_id: lobby.id, member_id: memberId })
-    .onConflict(["room_id", "member_id"])
-    .ignoreDuplicates();
+    .insert({ room_id: lobby.id, member_id: memberId });
+
+  // Ignore unique violation error (23505) if they are already in the room
+  if (joinError && joinError.code !== '23505') {
+    console.error("Error joining lobby:", joinError);
+  }
 
   return lobby.id;
 }
