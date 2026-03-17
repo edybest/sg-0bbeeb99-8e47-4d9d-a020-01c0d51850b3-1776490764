@@ -2137,7 +2137,6 @@ export default function MiniBlokPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
       </MemberLayout>
     </PageAccessGuard>
   );
