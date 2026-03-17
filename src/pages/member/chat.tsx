@@ -117,7 +117,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!selectedRoom?.id || !member?.id) return;
 
-    const channel = subscribeToMessages(selectedRoom.id, (newMsg) => {
+    const unsubscribe = subscribeToMessages(selectedRoom.id, (newMsg) => {
       setMessages((prev) => {
         // Check if message already exists
         if (prev.some(m => m.id === newMsg.id)) return prev;
@@ -149,7 +149,7 @@ export default function ChatPage() {
     });
 
     return () => {
-      channel.unsubscribe();
+      unsubscribe();
     };
   }, [selectedRoom?.id, member?.id]);
 
