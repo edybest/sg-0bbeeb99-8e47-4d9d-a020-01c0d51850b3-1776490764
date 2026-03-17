@@ -165,32 +165,91 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     return [];
   }
 
-  // Get room base info via RPC
+  // First attempt: use optimized RPC
   console.log("🔍 [chatService] Calling RPC: get_member_chat_rooms...");
   
   const { data: rpcRooms, error: rpcError } = await supabase
-    .rpc('get_member_chat_rooms', { p_member_id: memberId });
+    .rpc("get_member_chat_rooms", { p_member_id: memberId });
 
   console.log("🔍 [chatService] RPC result:", { 
     roomCount: rpcRooms?.length || 0,
-    rooms: rpcRooms,
     error: rpcError?.message 
   });
 
-  if (rpcError) {
-    console.error("❌ [chatService] RPC error:", rpcError);
-    return [];
+  let roomIds: string[] = [];
+
+  if (!rpcError && rpcRooms && rpcRooms.length > 0) {
+    roomIds = rpcRooms.map((r: any) => r.room_id);
+  } else {
+    console.log("⚠️ [chatService] RPC failed or returned empty, falling back to direct query...");
+
+    // Fallback: query rooms directly based on chat_participants
+    const { data: fallbackRooms, error: fallbackError } = await supabase
+      .from("chat_rooms")
+      .select(
+        `
+        id,
+        name,
+        type,
+        is_public,
+        last_message_at,
+        participants:chat_participants(
+          id,
+          member_id,
+          is_banned,
+          is_silenced,
+          member:members(id, full_name, avatar_url)
+        )
+      `
+      )
+      .in(
+        "id",
+        supabase
+          .from("chat_participants")
+          .select("room_id")
+          .eq("member_id", memberId) as unknown as string[]
+      );
+
+    // NOTE: Supabase doesn't support subselect in .in() like this on client side,
+    // so instead we do a separate query to get room IDs:
+
+    if (!fallbackRooms && !fallbackError) {
+      // Proper fallback: 2-step query
+      const { data: participantRows, error: participantError } = await supabase
+        .from("chat_participants")
+        .select("room_id")
+        .eq("member_id", memberId);
+
+      if (participantError) {
+        console.error("❌ [chatService] Fallback participants error:", participantError);
+        return [];
+      }
+
+      const ids = (participantRows || []).map((p: any) => p.room_id);
+      console.log("🔍 [chatService] Fallback participant room IDs:", ids);
+
+      if (ids.length === 0) {
+        console.log("⚠️ [chatService] No rooms found for member via participants");
+        return [];
+      }
+
+      roomIds = ids;
+    } else if (fallbackRooms) {
+      // If the earlier attempt actually returned data, use its IDs
+      roomIds = fallbackRooms.map((r: any) => r.id);
+    }
+
+    // If still no roomIds, bail out
+    if (roomIds.length === 0) {
+      console.log("⚠️ [chatService] No room IDs after fallback");
+      return [];
+    }
+
+    // We will not use rpcRooms anymore in this branch
   }
 
-  if (!rpcRooms || rpcRooms.length === 0) {
-    console.log("⚠️ [chatService] No rooms returned from RPC");
-    return [];
-  }
-
-  const roomIds = rpcRooms.map(r => r.room_id);
   console.log("🔍 [chatService] Room IDs to fetch:", roomIds);
 
-  // Fetch full details (participants & last message)
   const { data: roomsData, error: roomsError } = await supabase
     .from("chat_rooms")
     .select(`
@@ -214,16 +273,21 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     error: roomsError?.message 
   });
 
-  if (!roomsData) {
+  if (!roomsData || roomsData.length === 0) {
     console.log("❌ [chatService] No rooms data returned");
     return [];
   }
 
+  // Rebuild rpcRooms map if we have it (for unread_count / flags). If not, default values.
+  const rpcMap = (rpcRooms || []).reduce<Record<string, any>>((acc, r: any) => {
+    acc[r.room_id] = r;
+    return acc;
+  }, {});
+
   const rooms = await Promise.all(
     roomsData.map(async (room: any) => {
-      // Find the RPC data for this room to get unread_count, is_banned, is_silenced
-      const rpcData = rpcRooms.find(r => r.room_id === room.id);
-      
+      const rpcData = rpcMap[room.id];
+
       // Get last message
       const { data: lastMsg } = await supabase
         .from("chat_messages")

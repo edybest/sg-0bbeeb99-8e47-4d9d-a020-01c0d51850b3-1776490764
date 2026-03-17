@@ -76,10 +76,7 @@ export default function ChatPage() {
   useEffect(() => {
     console.log("🎨 [ChatPage] Init useEffect triggered. authLoading:", authLoading, "memberId:", member?.id);
     
-    // Wait for auth to finish loading before fetching chats
     if (authLoading) return;
-    
-    // If auth is done but no member, we can't load chats
     if (!member?.id) {
       console.log("🎨 [ChatPage] No member ID yet, skipping initialization");
       setLoading(false);
@@ -97,6 +94,7 @@ export default function ChatPage() {
         console.log("🎨 [ChatPage] loadRooms completed");
       } catch (error) {
         console.error("❌ [ChatPage] Init error:", error);
+        setLoading(false);
       }
     }
     init();
@@ -170,7 +168,7 @@ export default function ChatPage() {
     });
     
     setRooms(data);
-    console.log("🎨 [ChatPage] loadRooms: State updated");
+    console.log("🎨 [ChatPage] loadRooms: State updated, rooms length now:", data.length);
     
     setLoading(false);
   }
