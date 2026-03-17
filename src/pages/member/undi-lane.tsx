@@ -560,8 +560,6 @@ export default function UndiLanePage() {
         <SEO title="Undi Lane - AMBC Club" description="Sistem undian lane secara rawak" />
 
         <div className="min-h-screen bg-rose-50 flex flex-col pb-20 sm:pb-0">
-          <MemberTopBarNav />
-
           <main className="flex-1 container max-w-lg mx-auto p-4 sm:p-6 lg:p-8 relative">
             {showConfetti ? (
               <div className="fixed inset-0 pointer-events-none z-50">
