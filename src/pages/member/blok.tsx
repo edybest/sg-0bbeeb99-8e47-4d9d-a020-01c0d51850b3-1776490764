@@ -283,7 +283,7 @@ export default function BlokPage() {
                                 {notifications.map((notification, index) =>
               <div
                 key={index}
-                className="text-sm whitespace-pre-line border-l-2 border-red-500 pl-2">
+                className="text-sm whitespace-pre-line border-l-2 border-pink-400 pl-2">
                 
                                         {notification}
                                     </div>
@@ -354,9 +354,9 @@ export default function BlokPage() {
     }
 
     return sortDirection === "asc" ?
-    <ArrowUp className="w-4 h-4 ml-1 text-red-600" /> :
+    <ArrowUp className="w-4 h-4 ml-1 text-primary" /> :
 
-    <ArrowDown className="w-4 h-4 ml-1 text-red-600" />;
+    <ArrowDown className="w-4 h-4 ml-1 text-primary" />;
 
   };
 
@@ -464,7 +464,7 @@ export default function BlokPage() {
 
     return (
       <span
-        className={`${score >= 200 ? "text-red-600 font-bold" : ""} ${animatingScores.has(rowId) ? "score-changed" : ""}`
+        className={`${score >= 200 ? "text-primary font-bold" : ""} ${animatingScores.has(rowId) ? "score-changed" : ""}`
         }>
         
                 {score}
@@ -484,7 +484,7 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-red-600">
+                    className="text-gray-700 hover:text-primary">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -501,7 +501,7 @@ export default function BlokPage() {
                 <main className="container mx-auto px-4 py-8">
                     <Card className="max-w-md mx-auto">
                         <CardContent className="pt-6 text-center space-y-4">
-                            <div className="text-red-500 text-5xl">⚠️</div>
+                            <div className="text-pink-400 text-5xl">⚠️</div>
                             <h2 className="text-xl font-semibold">Connection Error</h2>
                             <p className="text-gray-600">{error}</p>
 
@@ -539,7 +539,7 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-red-600">
+                    className="text-gray-700 hover:text-primary">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -556,7 +556,7 @@ export default function BlokPage() {
                 <main className="container mx-auto px-4 py-8">
                     <div className="flex items-center justify-center min-h-[400px]">
                         <div className="text-center space-y-4">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto" />
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
                             <p className="text-gray-600">Loading games...</p>
                         </div>
                     </div>
@@ -604,7 +604,7 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-gray-700 hover:text-red-600">
+                    className="text-gray-700 hover:text-primary">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -630,7 +630,7 @@ export default function BlokPage() {
                             <CardContent className="p-6">
                                 {loadingGames ? (
                                     <div className="flex justify-center py-8">
-                                        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
                                     </div>
                                 ) : games.length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">Tiada game tersedia</div>
@@ -640,7 +640,7 @@ export default function BlokPage() {
                                         <select
                                             value={selectedGame || ""}
                                             onChange={(e) => setSelectedGame(e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-gray-900 font-medium transition-colors cursor-pointer appearance-none"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 text-gray-900 font-medium transition-colors cursor-pointer appearance-none"
                                             style={{
                                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                                 backgroundPosition: `right 0.75rem center`,
@@ -698,7 +698,7 @@ export default function BlokPage() {
                             <CardContent className="p-0">
                                 {loadingLeaderboard ?
                 <div className="flex justify-center items-center py-20">
-                                            <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
                                             <span className="ml-3 text-gray-600">Memuatkan skor...</span>
                                         </div> :
                 leaderboard.length === 0 ?
@@ -743,14 +743,14 @@ export default function BlokPage() {
                                                                 <div className="flex-1 min-w-0">
                                                                     <Link 
                                                                         href={`/member/profile?id=${entry.member.id}`}
-                                                                        className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
-                                                                            currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                        className={`font-semibold text-sm truncate hover:text-primary transition-colors block ${
+                                                                            currentUser?.id === entry.member.id ? "font-bold text-primary" : ""
                                                                         }`}
                                                                     >
                                                                         {entry.member.username}
                                                                     </Link>
                                                                     <div className="flex items-center gap-2 text-xs text-gray-600">
-                                                                        <span className="font-bold text-red-600" style={{ fontSize: "24px" }}>
+                                                                        <span className="font-bold text-primary" style={{ fontSize: "24px" }}>
                                                                             {entry.overall_score || "-"}
                                                                         </span>
                                                                         <span className="text-gray-400">•</span>
@@ -999,8 +999,8 @@ export default function BlokPage() {
                               
                                                                         <Link
                                                                             href={`/member/profile?id=${entry.member.id}`}
-                                                                            className={`font-medium hover:text-red-600 transition-colors ${
-                                                                                currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
+                                                                            className={`font-medium hover:text-primary transition-colors ${
+                                                                                currentUser?.id === entry.member.id ? "font-bold text-primary" : ""
                                                                             }`}
                                                                         >
                                                                             {entry.member.username}
@@ -1008,7 +1008,7 @@ export default function BlokPage() {
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`} style={{ color: "#16a34a" }}>
+                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-primary`} style={{ color: "#16a34a" }}>
                               
                                                                         {entry.overall_score || "-"}
                                                                     </td>

@@ -440,7 +440,7 @@ export default function ProfilePage() {
 
                         {isOwnProfile && (
                           <div className="pt-4 flex justify-end">
-                            <Button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700">
+                            <Button type="submit" disabled={saving} className="bg-primary hover:bg-pink-600">
                               {saving ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -493,7 +493,7 @@ export default function ProfilePage() {
                               </div>
                               <div className="text-right">
                                 <span className="text-xs text-muted-foreground">Overall</span>
-                                <p className="text-xl font-bold text-red-600">{game.overall_score}</p>
+                                <p className="text-xl font-bold text-primary">{game.overall_score}</p>
                               </div>
                             </div>
                             

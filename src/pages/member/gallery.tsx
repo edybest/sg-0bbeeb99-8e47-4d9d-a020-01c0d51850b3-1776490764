@@ -311,7 +311,7 @@ export default function GalleryPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -662,7 +662,7 @@ export default function GalleryPage() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                <AlertDialogAction onClick={handleDelete} className="bg-primary hover:bg-pink-600">
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
                 </AlertDialogAction>
               </AlertDialogFooter>

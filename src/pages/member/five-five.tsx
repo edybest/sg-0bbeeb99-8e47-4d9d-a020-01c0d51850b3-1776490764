@@ -234,7 +234,7 @@ export default function FiveFivePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -296,7 +296,7 @@ export default function FiveFivePage() {
     <PageAccessGuard pagePath="/member/five-five" requireAuth={true}>
       <>
         <SEO title="FiveFive - AMBC Club" />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-red-900/10">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-pink-800/10">
           <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
@@ -305,7 +305,7 @@ export default function FiveFivePage() {
                   variant="outline"
                   size="icon"
                   onClick={() => router.push("/member")}
-                  className="shrink-0 hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 transition-colors"
+                  className="shrink-0 hover:bg-pink-50 dark:hover:bg-pink-800/20 hover:border-red-300 dark:hover:border-pink-600 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
@@ -335,15 +335,15 @@ export default function FiveFivePage() {
             ) : (
               <div className="space-y-6">
                 {/* Game Selector Card */}
-                <Card className="shadow-lg border-2 border-red-100 dark:border-red-900/30 bg-gradient-to-br from-white to-red-50/30 dark:from-gray-800 dark:to-red-900/10">
+                <Card className="shadow-lg border-2 border-pink-100 dark:border-pink-800/30 bg-gradient-to-br from-white to-pink-50/30 dark:from-gray-800 dark:to-pink-800/10">
                   <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                        <Calendar className="w-5 h-5 text-red-600" />
+                        <Calendar className="w-5 h-5 text-primary" />
                         Pilih Tarikh Game
                       </CardTitle>
                       <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                        <SelectTrigger className="w-full sm:w-72 border-2 hover:border-red-300 dark:hover:border-red-700 transition-colors">
+                        <SelectTrigger className="w-full sm:w-72 border-2 hover:border-red-300 dark:hover:border-pink-600 transition-colors">
                           <SelectValue placeholder="Pilih tarikh..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -387,7 +387,7 @@ export default function FiveFivePage() {
                           >
                             {/* Card Header - Always Visible */}
                             <div 
-                              className="p-4 bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 cursor-pointer"
+                              className="p-4 bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-800/20 dark:to-pink-700/20 cursor-pointer"
                               onClick={() => toggleCard(participant.member_id)}
                             >
                               <div className="flex items-center justify-between">
@@ -470,7 +470,7 @@ export default function FiveFivePage() {
 
                     {/* DESKTOP VIEW - Table Layout */}
                     <Card className="hidden md:block shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
-                      <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700 dark:to-red-800">
+                      <CardHeader className="bg-gradient-to-r from-primary to-pink-600 dark:from-pink-600 dark:to-pink-700">
                         <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
                           <span className="flex items-center gap-2">
                             <Award className="w-5 h-5" />
@@ -555,7 +555,7 @@ export default function FiveFivePage() {
                                   key={participant.member_id}
                                   className={`
                                     ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/30"}
-                                    hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 border-b border-gray-200 dark:border-gray-700
+                                    hover:bg-pink-50 dark:hover:bg-pink-800/20 transition-all duration-200 border-b border-gray-200 dark:border-gray-700
                                   `}
                                 >
                                   <TableCell className="font-semibold text-gray-900 dark:text-white sticky left-0 bg-inherit z-10 shadow-sm">
@@ -610,7 +610,7 @@ export default function FiveFivePage() {
 
                     {/* Summary Card */}
                     {participants.length > 0 && (
-                      <Card className="shadow-xl border-2 border-yellow-300 dark:border-yellow-700 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-red-900/20">
+                      <Card className="shadow-xl border-2 border-yellow-300 dark:border-yellow-700 bg-gradient-to-br from-yellow-50 via-orange-50 to-pink-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-pink-800/20">
                         <CardContent className="p-6">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 dark:bg-gray-800/60 shadow-md">
@@ -625,12 +625,12 @@ export default function FiveFivePage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 dark:bg-gray-800/60 shadow-md">
-                              <div className="p-3 rounded-full bg-red-200 dark:bg-red-800">
-                                <Award className="w-8 h-8 text-red-700 dark:text-red-300" />
+                              <div className="p-3 rounded-full bg-red-200 dark:bg-pink-700">
+                                <Award className="w-8 h-8 text-pink-600 dark:text-red-300" />
                               </div>
                               <div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Jumlah Peserta</p>
-                                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                                <p className="text-3xl font-bold text-primary dark:text-red-400">
                                   {participants.length} Players
                                 </p>
                               </div>

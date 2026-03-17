@@ -437,7 +437,7 @@ export default function TrainingPage() {
     { value: "X", label: "X", color: "bg-yellow-500 hover:bg-yellow-600" },
     { value: "/", label: "/", color: "bg-blue-500 hover:bg-blue-600" },
     { value: "-", label: "-", color: "bg-gray-400 hover:bg-gray-500" },
-    { value: "0", label: "0", color: "bg-red-500 hover:bg-red-600" },
+    { value: "0", label: "0", color: "bg-pink-400 hover:bg-primary" },
     { value: "1", label: "1", color: "bg-orange-500 hover:bg-orange-600" },
     { value: "2", label: "2", color: "bg-amber-500 hover:bg-amber-600" },
     { value: "3", label: "3", color: "bg-yellow-500 hover:bg-yellow-600" },
@@ -455,7 +455,7 @@ export default function TrainingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-red-600" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -480,7 +480,7 @@ export default function TrainingPage() {
                   </Link>
                   <MobileNav />
                   <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-red-600">Training</h1>
+                    <h1 className="text-xl md:text-2xl font-bold text-primary">Training</h1>
                     <p className="text-xs md:text-sm text-gray-600">Practice Scores</p>
                   </div>
                 </div>
@@ -499,7 +499,7 @@ export default function TrainingPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl md:text-3xl font-bold text-red-600">{scores.length}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-primary">{scores.length}</p>
                 </CardContent>
               </Card>
 
@@ -553,7 +553,7 @@ export default function TrainingPage() {
             {/* Add Score Button */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full mb-6 bg-red-600 hover:bg-red-700 h-12 text-base md:text-lg">
+                <Button className="w-full mb-6 bg-primary hover:bg-pink-600 h-12 text-base md:text-lg">
                   <Plus className="mr-2 h-5 w-5" />
                   Add Score
                 </Button>
@@ -612,7 +612,7 @@ export default function TrainingPage() {
                             setCurrentRoll(1);
                           }}
                           className={`relative border-2 rounded-md p-2 cursor-pointer transition-colors ${
-                            i === currentFrame ? "border-red-600 bg-red-50" : "border-gray-300 hover:border-gray-400"
+                            i === currentFrame ? "border-primary bg-pink-50" : "border-gray-300 hover:border-gray-400"
                           }`}
                         >
                           <div className="text-[10px] md:text-xs font-bold text-center text-gray-600 mb-1">
@@ -665,7 +665,7 @@ export default function TrainingPage() {
                         <Button
                           onClick={clearAllFrames}
                           variant="outline"
-                          className="border-2 border-red-500 text-red-600 hover:bg-red-50 font-semibold transition-all duration-150 active:scale-95 transform"
+                          className="border-2 border-pink-400 text-primary hover:bg-pink-50 font-semibold transition-all duration-150 active:scale-95 transform"
                         >
                           Clear All
                         </Button>
@@ -686,7 +686,7 @@ export default function TrainingPage() {
                     </div>
 
                     {/* Total Score Display */}
-                    <div className="bg-red-600 text-white p-4 rounded-lg text-center mt-4">
+                    <div className="bg-primary text-white p-4 rounded-lg text-center mt-4">
                       <div className="text-sm md:text-base font-medium">Total Score</div>
                       <div className="text-4xl md:text-5xl font-black mt-1">{calculateBowlingScore(frames)}</div>
                     </div>
@@ -705,7 +705,7 @@ export default function TrainingPage() {
                   </div>
 
                   {/* Save Button */}
-                  <Button onClick={handleSave} className="w-full bg-red-600 hover:bg-red-700 h-12 text-base font-bold">
+                  <Button onClick={handleSave} className="w-full bg-primary hover:bg-pink-600 h-12 text-base font-bold">
                     {editingScore ? "Update Score" : "Save Score"}
                   </Button>
                 </div>
@@ -774,7 +774,7 @@ export default function TrainingPage() {
                                   variant="outline"
                                   size="icon"
                                   onClick={() => handleDelete(score.id)}
-                                  className="h-8 w-8 text-red-600 hover:bg-red-50"
+                                  className="h-8 w-8 text-primary hover:bg-pink-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -825,7 +825,7 @@ export default function TrainingPage() {
                             onClick={() => setCurrentPage(page)}
                             className={`min-w-[40px] transition-all active:scale-95 ${
                               currentPage === page 
-                                ? "bg-red-600 hover:bg-red-700 text-white" 
+                                ? "bg-primary hover:bg-pink-600 text-white" 
                                 : ""
                             }`}
                           >

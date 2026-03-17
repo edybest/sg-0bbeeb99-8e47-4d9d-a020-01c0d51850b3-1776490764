@@ -47,7 +47,7 @@ export default function AverageScorePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-red-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -343,8 +343,8 @@ export default function AverageScorePage() {
                                 </>
                               ) : player.recent_games[0].average_score < player.recent_games[1].average_score ? (
                                 <>
-                                  <TrendingDown className="h-3 w-3 text-red-600" />
-                                  <span className="text-red-600">Turun</span>
+                                  <TrendingDown className="h-3 w-3 text-primary" />
+                                  <span className="text-primary">Turun</span>
                                 </>
                               ) : (
                                 <span className="text-gray-500">Sama</span>

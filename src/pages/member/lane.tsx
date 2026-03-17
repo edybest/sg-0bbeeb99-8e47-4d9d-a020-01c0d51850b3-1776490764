@@ -303,7 +303,7 @@ export default function LanePage() {
 
     return (
       <div
-        className={`flex items-center px-3 py-2 min-h-[50px] transition-colors ${isAdmin ? "hover:bg-red-50" : ""}`}
+        className={`flex items-center px-3 py-2 min-h-[50px] transition-colors ${isAdmin ? "hover:bg-pink-50" : ""}`}
         onDragOver={isAdmin ? handleDragOver : undefined}
         onDrop={isAdmin ? (e) => handleDrop(e, lanePosition) : undefined}
       >
@@ -322,7 +322,7 @@ export default function LanePage() {
             {isAdmin && (
               <button
                 onClick={() => handleRemoveMember(assignment.member_id)}
-                className="text-gray-400 hover:text-red-600 p-1 shrink-0 ml-1"
+                className="text-gray-400 hover:text-primary p-1 shrink-0 ml-1"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -422,7 +422,7 @@ export default function LanePage() {
                   </Button>
                 </Link>
                 <div>
-                  <h1 className="text-xl font-bold text-red-600">Kedudukan Lane</h1>
+                  <h1 className="text-xl font-bold text-primary">Kedudukan Lane</h1>
                   <p className="text-xs text-gray-600">
                     {isAdmin ? "Admin: Drag & Drop Ahli" : "Lihat kedudukan lane terkini"}
                   </p>
@@ -492,7 +492,7 @@ export default function LanePage() {
                     <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm">
                       <p className="text-sm font-semibold text-gray-800">
                         Tarikh Blok:{" "}
-                        <span className="font-bold text-red-600">
+                        <span className="font-bold text-primary">
                           {new Date(activeGame.game_date).toLocaleDateString("ms-MY")}
                         </span>
                       </p>
@@ -515,11 +515,11 @@ export default function LanePage() {
               {isAdmin && (
                 <div className="lg:col-span-1">
                   <Card className="sticky top-24 shadow-sm border-gray-200">
-                    <div className="bg-red-600 text-white p-3 rounded-t-lg">
+                    <div className="bg-primary text-white p-3 rounded-t-lg">
                       <h3 className="font-semibold flex items-center gap-2">
                         <Users className="h-4 w-4" /> Senarai Ahli
                       </h3>
-                      <p className="text-[10px] text-red-100 mt-1">Drag (Tarik) nama ahli ke dalam kotak Lane di sebelah</p>
+                      <p className="text-[10px] text-pink-100 mt-1">Drag (Tarik) nama ahli ke dalam kotak Lane di sebelah</p>
                     </div>
                     <CardContent className="p-3 max-h-[calc(100vh-200px)] overflow-y-auto">
                       <div className="space-y-1.5">

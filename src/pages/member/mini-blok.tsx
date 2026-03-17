@@ -135,7 +135,7 @@ const GAME_COLORS = [
   "bg-pink-500",
   "bg-cyan-500",
   "bg-yellow-500",
-  "bg-red-500",
+  "bg-pink-400",
   "bg-indigo-500",
   "bg-teal-500",
   "bg-lime-500",
@@ -264,7 +264,7 @@ function PublicSharedView({
                           {stats.overall_score}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                          <span className={stats.differential > 0 ? "text-green-600" : "text-primary"}>
                             {stats.differential > 0 ? "+" : ""}{stats.differential}
                           </span>
                         </TableCell>
@@ -327,7 +327,7 @@ function PublicSharedView({
                             </div>
                             <div>
                               <span className="text-muted-foreground">Diff:</span>
-                              <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
+                              <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-primary"}`}>
                                 {stats.differential > 0 ? "+" : ""}{stats.differential}
                               </span>
                             </div>
@@ -1899,7 +1899,7 @@ export default function MiniBlokPage() {
                                       </div>
                                       <div>
                                         <span className="text-muted-foreground">Diff:</span>
-                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-red-600"}`}>
+                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-primary"}`}>
                                           {stats.differential > 0 ? "+" : ""}{stats.differential}
                                         </span>
                                       </div>
@@ -1986,7 +1986,7 @@ export default function MiniBlokPage() {
                                       {stats.overall_score}
                                     </TableCell>
                                     <TableCell className="text-center">
-                                      <span className={stats.differential > 0 ? "text-green-600" : "text-red-600"}>
+                                      <span className={stats.differential > 0 ? "text-green-600" : "text-primary"}>
                                         {stats.differential > 0 ? "+" : ""}{stats.differential}
                                       </span>
                                     </TableCell>

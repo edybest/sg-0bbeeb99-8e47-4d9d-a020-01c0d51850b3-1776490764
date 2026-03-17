@@ -28,8 +28,8 @@ const categoryConfig = {
   ralat_sistem: {
     label: "Ralat Sistem",
     icon: Bug,
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-primary",
+    bgColor: "bg-pink-50",
     description: "Laporkan masalah atau bug yang anda jumpa",
   },
   pertanyaan_lain: {
@@ -190,7 +190,7 @@ export default function FeedbackPage() {
 
   return (
     <PageAccessGuard pagePath="/member/feedback">
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-50">
         <MemberTopBarNav />
 
         <div className="container mx-auto px-4 py-6 pb-24 max-w-4xl">
@@ -336,7 +336,7 @@ export default function FeedbackPage() {
                         <button
                           type="button"
                           onClick={handleRemoveScreenshot}
-                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                          className="absolute top-2 right-2 p-2 bg-pink-400 text-white rounded-full hover:bg-primary transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
