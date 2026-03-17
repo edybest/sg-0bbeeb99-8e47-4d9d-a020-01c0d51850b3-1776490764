@@ -55,6 +55,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
   getMiniBlokById,
@@ -1093,6 +1094,71 @@ export default function MiniBlokPage() {
       <>
         <SEO title="Shared Mini Blok - AMBC CLUB" description="View-only mini blok tournament shared with public" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="border-b bg-theme-header/90 backdrop-blur sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3 max-w-7xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => router.push('/member/mini-blok')} className="mr-1 h-8 w-8 shrink-0">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div className="leading-tight">
+                  <div className="font-semibold">AMBC CLUB</div>
+                  <div className="text-xs text-muted-foreground">Mini Blok Shared</div>
+                </div>
+              </div>
+
+              {member && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRevokePublicShare}
+                  disabled={submitting}
+                >
+                  {submitting ? "Revoking..." : "Revoke Link"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {publicShared ? (
+            <PublicSharedView
+              shared={publicShared}
+              onBack={() => router.replace("/member/mini-blok")}
+            />
+          ) : (
+            <div className="container mx-auto px-4 py-10 max-w-3xl">
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  No players yet
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  // Only block the main dashboard view if auth is still loading or entries are loading
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+        <BowlingBallLoader />
+      </div>
+    );
+  }
+
+  return (
+    <PageAccessGuard pagePath="/member/mini-blok" requireAuth={true}>
+      <MemberLayout>
+      <SEO title="Mini Blok - AMBC Club" description="Sistem rekod mini blok" />
+      <div className="min-h-screen bg-rose-50 flex flex-col">
+
+        {/* Hero Header */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 pt-8 pb-12 sm:pt-12 sm:pb-16 px-4">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_50%)]"></div>
+          <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.1),transparent_50%)]"></div>
+          
           <div className="relative container mx-auto max-w-6xl z-10">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -1107,22 +1173,81 @@ export default function MiniBlokPage() {
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 tracking-tight drop-shadow-md">
                   Liga Mini Blok 🎳
                 </h1>
-                <p className="text-pink-50 text-lg max-w-xl mx-auto md:mx-0 mb-6">
+                <p className="text-pink-50 text-lg max-w-xl mx-auto md:mx-0">
                   Sistem perlawanan Mini Blok (3 Game). Cipta, kongsi, dan bersaing bersama rakan-rakan!
                 </p>
               </div>
-              
+            </motion.div>
+          </div>
+        </div>
+
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="border-b bg-theme-header/90 backdrop-blur sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3 max-w-7xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="leading-tight">
+                  <div className="font-semibold">AMBC CLUB</div>
+                  <div className="text-xs text-muted-foreground">Mini Blok</div>
+                </div>
+              </div>
+
               {member && (
-                <Button 
-                  onClick={() => setShowCreateDialog(true)} 
-                  size="lg" 
-                  className="bg-white text-pink-600 hover:bg-white/90 shadow-xl"
-                >
+                <Button onClick={() => setShowCreateDialog(true)} size="lg" className="w-full sm:w-auto">
                   <Plus className="h-5 w-5 mr-2" />
                   Create Tournament
                 </Button>
               )}
-            </motion.div>
+            </div>
+          </div>
+
+          <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="search" className="sr-only">Search</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by title or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="week">Past Week</SelectItem>
+                    <SelectItem value="month">Past Month</SelectItem>
+                    <SelectItem value="year">Past Year</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ownership" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tournaments</SelectItem>
+                    <SelectItem value="mine">My Tournaments</SelectItem>
+                    <SelectItem value="shared">Shared With Me</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date-desc">Newest First</SelectItem>
+                    <SelectItem value="date-asc">Oldest First</SelectItem>
+                    <SelectItem value="title">Title (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {entries.length === 0 ? (
@@ -2137,6 +2262,7 @@ export default function MiniBlokPage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
       </MemberLayout>
     </PageAccessGuard>
   );

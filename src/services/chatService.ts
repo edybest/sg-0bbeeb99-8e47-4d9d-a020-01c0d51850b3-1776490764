@@ -64,6 +64,9 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     return [];
   }
 
+  // Extract room IDs from the result
+  const roomIdArray = roomIds.map((r: { room_id: string }) => r.room_id);
+
   // Get full room details
   const { data, error } = await supabase
     .from("chat_rooms")
@@ -74,7 +77,7 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
         member:members(id, full_name, avatar_url)
       )
     `)
-    .in('id', roomIds.map(r => r.room_id))
+    .in('id', roomIdArray)
     .order("last_message_at", { ascending: false });
 
   if (error) {
