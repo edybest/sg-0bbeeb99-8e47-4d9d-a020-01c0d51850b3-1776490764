@@ -55,6 +55,16 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
   const memberId = await getCurrentMemberId();
   if (!memberId) return [];
 
+  // Get room IDs first using RPC
+  const { data: roomIds, error: roomError } = await supabase
+    .rpc('get_member_chat_rooms', { p_member_id: memberId });
+
+  if (roomError || !roomIds || roomIds.length === 0) {
+    console.log("No chat rooms found or error:", roomError);
+    return [];
+  }
+
+  // Get full room details
   const { data, error } = await supabase
     .from("chat_rooms")
     .select(`
@@ -64,11 +74,11 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
         member:members(id, full_name, avatar_url)
       )
     `)
-    .eq("chat_participants.member_id", memberId)
+    .in('id', roomIds.map(r => r.room_id))
     .order("last_message_at", { ascending: false });
 
   if (error) {
-    console.error("Error loading chats:", error);
+    console.error("Error loading chat details:", error);
     return [];
   }
 
