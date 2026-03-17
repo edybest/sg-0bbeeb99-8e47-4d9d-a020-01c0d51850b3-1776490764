@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { MobileNav } from "@/components/member/MobileNav";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 import {
   Trophy,
@@ -569,8 +570,9 @@ export default function BlokPage() {
 
   return (
     <PageAccessGuard pagePath="/member/blok" requireAuth={true}>
-            <>
-                <style jsx global>{`
+      <MemberLayout>
+        <>
+          <style jsx global>{`
           @keyframes scoreChange {
             0% {
               transform: scale(1);
@@ -591,13 +593,13 @@ export default function BlokPage() {
           }
         `}</style>
 
-                <SEO
+          <SEO
           title="Blok Leaderboard - AMBC Club"
           description="View Blok game leaderboard and rankings" />
         
 
-                <div className="min-h-screen bg-white">
-                    {/* Header */}
+          <div className="min-h-screen bg-white">
+              {/* Header */}
           <header className="sticky top-0 z-40 bg-white border-b border-rose-200 shadow-sm">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
@@ -621,85 +623,85 @@ export default function BlokPage() {
             </div>
           </header>
 
-                    <main className="container mx-auto px-4 py-6 space-y-6">
-                        {/* Game Selection */}
-                        <Card className="bg-white border-rose-200 shadow-md">
-                            <CardHeader className="border-b border-rose-200">
-                                <CardTitle className="text-rose-900">Pilih Game</CardTitle>
-                                <CardDescription className="text-rose-600">
-                                    Pilih tarikh untuk melihat kedudukan
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                {loadingGames ? (
-                                    <div className="flex justify-center py-8">
-                                        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-                                    </div>
-                                ) : games.length === 0 ? (
-                                    <div className="text-center py-8 text-rose-500">Tiada game tersedia</div>
-                                ) : (
-                                    <div className="max-w-md mx-auto">
-                                        <label className="block text-sm font-medium text-rose-700 mb-2">Tarikh & Game</label>
-                                        <select
-                                            value={selectedGame || ""}
-                                            onChange={(e) => setSelectedGame(e.target.value)}
-                                            className="w-full px-4 py-3 border border-rose-300 rounded-lg bg-rose-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-rose-900 font-medium transition-colors cursor-pointer appearance-none"
-                                            style={{
-                                                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                                backgroundPosition: `right 0.75rem center`,
-                                                backgroundRepeat: `no-repeat`,
-                                                backgroundSize: `1.5em 1.5em`,
-                                                paddingRight: `2.5rem`
-                                            }}
-                                        >
-                                            <option value="" disabled>-- Sila Pilih Tarikh --</option>
-                                            {games.map((game) => {
-                                                const gameDate = new Date(game.game_date);
-                                                
-                                                // Format dates relatively
-                                                const today = new Date();
-                                                const yesterday = new Date(today);
-                                                yesterday.setDate(yesterday.getDate() - 1);
-                                                
-                                                const isToday = gameDate.toDateString() === today.toDateString();
-                                                const isYesterday = gameDate.toDateString() === yesterday.toDateString();
-                                                
-                                                let prefix = "";
-                                                if (isToday) prefix = "🟢 Hari Ini - ";
-                                                else if (isYesterday) prefix = "🔵 Semalam - ";
-                                                
-                                                const fullDate = gameDate.toLocaleDateString("ms-MY", {
-                                                    day: "2-digit",
-                                                    month: "short",
-                                                    year: "numeric",
-                                                });
-                                                
-                                                return (
-                                                    <option key={game.id} value={game.id}>
-                                                        {prefix}{game.game_name} ({fullDate})
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+              <main className="container mx-auto px-4 py-6 space-y-6">
+                  {/* Game Selection */}
+                  <Card className="bg-white border-rose-200 shadow-md">
+                      <CardHeader className="border-b border-rose-200">
+                          <CardTitle className="text-rose-900">Pilih Game</CardTitle>
+                          <CardDescription className="text-rose-600">
+                              Pilih tarikh untuk melihat kedudukan
+                          </CardDescription>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                          {loadingGames ? (
+                              <div className="flex justify-center py-8">
+                                  <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                              </div>
+                          ) : games.length === 0 ? (
+                              <div className="text-center py-8 text-rose-500">Tiada game tersedia</div>
+                          ) : (
+                              <div className="max-w-md mx-auto">
+                                  <label className="block text-sm font-medium text-rose-700 mb-2">Tarikh & Game</label>
+                                  <select
+                                      value={selectedGame || ""}
+                                      onChange={(e) => setSelectedGame(e.target.value)}
+                                      className="w-full px-4 py-3 border border-rose-300 rounded-lg bg-rose-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-rose-900 font-medium transition-colors cursor-pointer appearance-none"
+                                      style={{
+                                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                                          backgroundPosition: `right 0.75rem center`,
+                                          backgroundRepeat: `no-repeat`,
+                                          backgroundSize: `1.5em 1.5em`,
+                                          paddingRight: `2.5rem`
+                                      }}
+                                  >
+                                      <option value="" disabled>-- Sila Pilih Tarikh --</option>
+                                      {games.map((game) => {
+                                          const gameDate = new Date(game.game_date);
+                                          
+                                          // Format dates relatively
+                                          const today = new Date();
+                                          const yesterday = new Date(today);
+                                          yesterday.setDate(yesterday.getDate() - 1);
+                                          
+                                          const isToday = gameDate.toDateString() === today.toDateString();
+                                          const isYesterday = gameDate.toDateString() === yesterday.toDateString();
+                                          
+                                          let prefix = "";
+                                          if (isToday) prefix = "🟢 Hari Ini - ";
+                                          else if (isYesterday) prefix = "🔵 Semalam - ";
+                                          
+                                          const fullDate = gameDate.toLocaleDateString("ms-MY", {
+                                              day: "2-digit",
+                                              month: "short",
+                                              year: "numeric",
+                                          });
+                                          
+                                          return (
+                                              <option key={game.id} value={game.id}>
+                                                  {prefix}{game.game_name} ({fullDate})
+                                              </option>
+                                          );
+                                      })}
+                                  </select>
+                              </div>
+                          )}
+                      </CardContent>
+                  </Card>
 
-                        {selectedGame &&
-            <Card className="bg-white border-rose-200 shadow-md overflow-hidden">
-                            <CardHeader className="border-b border-rose-200 bg-rose-50/50">
-                                <CardTitle className="text-rose-900 flex items-center gap-2">
-                                    <Trophy className="w-5 h-5 text-yellow-500" />
-                                    Leaderboard
-                                </CardTitle>
-                                <CardDescription className="text-rose-600">
-                                    Skor untuk game yang dipilih
-                                </CardDescription>
-                            </CardHeader>
+                  {selectedGame &&
+          <Card className="bg-white border-rose-200 shadow-md overflow-hidden">
+                          <CardHeader className="border-b border-rose-200 bg-rose-50/50">
+                              <CardTitle className="text-rose-900 flex items-center gap-2">
+                                  <Trophy className="w-5 h-5 text-yellow-500" />
+                                  Leaderboard
+                              </CardTitle>
+                              <CardDescription className="text-rose-600">
+                                  Skor untuk game yang dipilih
+                              </CardDescription>
+                          </CardHeader>
 
-                            <CardContent className="p-0">
-                                {loadingLeaderboard ?
+                          <CardContent className="p-0">
+                              {loadingLeaderboard ?
                 <div className="flex justify-center items-center py-20">
                                             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
                                             <span className="ml-3 text-rose-600">Memuatkan skor...</span>
@@ -1059,10 +1061,11 @@ export default function BlokPage() {
                 }
                                 </CardContent>
                             </Card>
-            }
-                    </main>
-                </div>
-            </>
+          }
+                  </main>
+              </div>
+          </>
+      </MemberLayout>
         </PageAccessGuard>);
 
 }

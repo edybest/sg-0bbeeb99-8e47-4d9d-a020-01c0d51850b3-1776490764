@@ -12,6 +12,7 @@ import { ArrowLeft, Trophy, Crown, Star, Sparkles, Loader2, Award } from "lucide
 import confetti from "canvas-confetti";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 type Champion = {
   year: number;
@@ -147,6 +148,7 @@ export default function HallOfFamePage() {
 
   return (
     <PageAccessGuard pagePath="/member/hall-of-fame" requireAuth={true}>
+      <MemberLayout>
       <>
         <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
         <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
@@ -287,6 +289,7 @@ export default function HallOfFamePage() {
           </main>
         </div>
       </>
+      </MemberLayout>
     </PageAccessGuard>);
 
 }

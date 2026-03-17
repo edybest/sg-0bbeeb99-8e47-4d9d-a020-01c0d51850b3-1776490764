@@ -53,9 +53,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { MobileNav } from "@/components/member/MobileNav";
-import { MemberTopBarNav } from "@/components/member/MemberTopBarNav";
-import { BowlingBallLoader } from "@/components/BowlingBallLoader";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 import {
   getMiniBlokEntries,
   getMiniBlokById,
@@ -1127,15 +1126,8 @@ export default function MiniBlokPage() {
           ) : (
             <div className="container mx-auto px-4 py-10 max-w-3xl">
               <Card>
-                <CardContent className="py-10 text-center">
-                  <Trophy className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
-                  <h2 className="text-xl font-semibold mb-2">Tournament not available</h2>
-                  <p className="text-muted-foreground mb-4">
-                    Link may be invalid, expired, or unauthorized.
-                  </p>
-                  <Button variant="outline" onClick={() => router.replace("/member/mini-blok")}>
-                    Go to Mini Blok
-                  </Button>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  No players yet
                 </CardContent>
               </Card>
             </div>
@@ -1155,8 +1147,9 @@ export default function MiniBlokPage() {
   }
 
   return (
-    <>
-      <SEO title="Mini Blok - AMBC Club" description="Keputusan terkini liga mini blok AMBC Club" />
+    <PageAccessGuard pagePath="/member/mini-blok" requireAuth={true}>
+      <MemberLayout>
+      <SEO title="Mini Blok - AMBC Club" description="Sistem rekod mini blok" />
       <div className="min-h-screen bg-rose-50 flex flex-col">
         <MemberTopBarNav />
 
@@ -1529,747 +1522,747 @@ export default function MiniBlokPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Create Tournament Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create New Tournament</DialogTitle>
-            <DialogDescription>
-              Set up a new mini blok tournament
-            </DialogDescription>
-          </DialogHeader>
+        {/* Create Tournament Dialog */}
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Tournament</DialogTitle>
+              <DialogDescription>
+                Set up a new mini blok tournament
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Tournament Title *</Label>
-              <Input
-                id="title"
-                value={tournamentForm.title}
-                onChange={(e) =>
-                  setTournamentForm({ ...tournamentForm, title: e.target.value })
-                }
-                placeholder="e.g., Blok Suka Suki"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={tournamentForm.location}
-                onChange={(e) =>
-                  setTournamentForm({ ...tournamentForm, location: e.target.value })
-                }
-                placeholder="Daiman Bowl"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={tournamentForm.date}
-                onChange={(e) =>
-                  setTournamentForm({ ...tournamentForm, date: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="total_games">Total Games (1-20)</Label>
-              <Input
-                id="total_games"
-                type="number"
-                min="1"
-                max="20"
-                value={tournamentForm.total_games}
-                onChange={(e) =>
-                  setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
-                }
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowCreateDialog(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCreateTournament} disabled={submitting}>
-              {submitting ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Manage Tournament Dialog */}
-      <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Manage Tournament</span>
-              <div className="flex gap-2">
-                {selectedEntry?.owner_id === member?.id && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => selectedEntry && openShareAccessDialog(selectedEntry)}
-                    >
-                      <Unlock className="h-4 w-4 mr-2" />
-                      Share Access
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => selectedEntry && setDeleteConfirmEntry(selectedEntry.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </>
-                )}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Tournament Title *</Label>
+                <Input
+                  id="title"
+                  value={tournamentForm.title}
+                  onChange={(e) =>
+                    setTournamentForm({ ...tournamentForm, title: e.target.value })
+                  }
+                  placeholder="e.g., Blok Suka Suki"
+                />
               </div>
-            </DialogTitle>
-          </DialogHeader>
 
-          {selectedEntry && (
-            <div className="space-y-6">
-              {/* Tournament Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Tournament Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit_title">Title *</Label>
-                      <Input
-                        id="edit_title"
-                        value={tournamentForm.title}
-                        onChange={(e) =>
-                          setTournamentForm({ ...tournamentForm, title: e.target.value })
-                        }
-                        disabled={!selectedEntry.can_edit}
-                      />
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={tournamentForm.location}
+                  onChange={(e) =>
+                    setTournamentForm({ ...tournamentForm, location: e.target.value })
+                  }
+                  placeholder="Daiman Bowl"
+                />
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="edit_location">Location</Label>
-                      <Input
-                        id="edit_location"
-                        value={tournamentForm.location}
-                        onChange={(e) =>
-                          setTournamentForm({ ...tournamentForm, location: e.target.value })
-                        }
-                        disabled={!selectedEntry.can_edit}
-                      />
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={tournamentForm.date}
+                  onChange={(e) =>
+                    setTournamentForm({ ...tournamentForm, date: e.target.value })
+                  }
+                />
+              </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="edit_date">Date</Label>
-                      <Input
-                        id="edit_date"
-                        type="date"
-                        value={tournamentForm.date}
-                        onChange={(e) =>
-                          setTournamentForm({ ...tournamentForm, date: e.target.value })
-                        }
-                        disabled={!selectedEntry.can_edit}
-                      />
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="total_games">Total Games (1-20)</Label>
+                <Input
+                  id="total_games"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={tournamentForm.total_games}
+                  onChange={(e) =>
+                    setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
+                  }
+                />
+              </div>
+            </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="edit_total_games">Total Games (1-20)</Label>
-                      <Input
-                        id="edit_total_games"
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={tournamentForm.total_games}
-                        onChange={(e) =>
-                          setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
-                        }
-                        disabled={!selectedEntry.can_edit}
-                      />
-                    </div>
-                  </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTournament} disabled={submitting}>
+                {submitting ? "Creating..." : "Create"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-                  {selectedEntry.can_edit && (
-                    <Button onClick={handleUpdateTournament} disabled={submitting}>
-                      {submitting ? "Saving..." : "Save Changes"}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Shared Access */}
-              {selectedEntry.owner_id === member?.id && selectedEntry.shared_with.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Shared With</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {selectedEntry.shared_with.map((access) => (
-                        <div
-                          key={access.id}
-                          className="flex items-center justify-between bg-muted/50 rounded-lg p-3"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Lock className="h-4 w-4 text-muted-foreground" />
-                            <span>Member ID: {access.member_id.substring(0, 8)}...</span>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRevokeAccess(selectedEntry.id, access.member_id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Players Section */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      Players ({selectedEntry.players.length}/48)
-                    </CardTitle>
-                    {selectedEntry.can_edit && selectedEntry.players.length < 48 && (
-                      <Button size="sm" onClick={openAddPlayerDialog}>
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add Player
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Player Form */}
-                  {showPlayerForm && (
-                    <Card className="mb-4 border-primary">
-                      <CardContent className="pt-6 space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="player_name">Player Name *</Label>
-                            <Input
-                              id="player_name"
-                              value={playerForm.player_name}
-                              onChange={(e) =>
-                                setPlayerForm({ ...playerForm, player_name: e.target.value })
-                              }
-                              placeholder="Enter player name"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="handicap">Handicap</Label>
-                            <Input
-                              id="handicap"
-                              type="number"
-                              min="0"
-                              value={playerForm.handicap}
-                              onChange={(e) =>
-                                setPlayerForm({ ...playerForm, handicap: parseInt(e.target.value) || 0 })
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label className="mb-3 block">Game Scores (up to {selectedEntry.num_games} games)</Label>
-                          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
-                            {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => i + 1).map((gameNum) => (
-                              <div key={gameNum} className="space-y-2">
-                                <Label htmlFor={`game_${gameNum}`} className="text-xs">
-                                  Game {gameNum}
-                                </Label>
-                                <Input
-                                  id={`game_${gameNum}`}
-                                  type="number"
-                                  min="0"
-                                  max="300"
-                                  value={playerForm[`game_${gameNum}` as keyof PlayerForm] as number || ""}
-                                  onChange={(e) =>
-                                    setPlayerForm({
-                                      ...playerForm,
-                                      [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
-                                    })
-                                  }
-                                  placeholder="0"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button onClick={handleSavePlayer} disabled={submitting}>
-                            {submitting ? "Saving..." : editingPlayer ? "Update Player" : "Add Player"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setPlayerForm(INITIAL_PLAYER_FORM);
-                              setEditingPlayer(null);
-                              setShowPlayerForm(false);
-                            }}
-                            disabled={submitting}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Players Table */}
-                  {selectedEntry.players.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No players yet. Add your first player to get started.
-                    </div>
-                  ) : (
+        {/* Manage Tournament Dialog */}
+        <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>Manage Tournament</span>
+                <div className="flex gap-2">
+                  {selectedEntry?.owner_id === member?.id && (
                     <>
-                      {/* Mobile View - Expandable Cards */}
-                      <div className="md:hidden space-y-3">
-                        {selectedEntry.players
-                          .sort((a, b) => {
-                            const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
-                            const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
-                            return statsB.overall_score - statsA.overall_score;
-                          })
-                          .map((player, idx) => {
-                            const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
-                            const scores = (player.scores as Record<string, number>) || {};
-                            const isExpanded = expandedScores[player.id];
-
-                            return (
-                              <Card key={player.id} className="overflow-hidden">
-                                <div
-                                  className="p-4 cursor-pointer"
-                                  onClick={() =>
-                                    setExpandedScores((prev) => ({
-                                      ...prev,
-                                      [player.id]: !prev[player.id],
-                                    }))
-                                  }
-                                >
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
-                                        #{idx + 1}
-                                      </Badge>
-                                      <span className="font-semibold">{player.player_name}</span>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-lg font-bold text-pink-600">
-                                        {stats.overall_score}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">
-                                        Avg: {stats.average}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Tap to {isExpanded ? "hide" : "view"} details</span>
-                                    <div className="flex gap-2">
-                                      {selectedEntry.can_edit && (
-                                        <>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              openEditPlayerDialog(player);
-                                            }}
-                                          >
-                                            <Edit2 className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setDeleteConfirmPlayer(player.id);
-                                            }}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {isExpanded && (
-                                  <div className="border-t bg-muted/30 p-4 space-y-3">
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                      <div>
-                                        <span className="text-muted-foreground">Handicap:</span>
-                                        <span className="ml-2 font-semibold">{player.handicap}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Total:</span>
-                                        <span className="ml-2 font-semibold">{stats.total_score}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Average:</span>
-                                        <span className="ml-2 font-semibold">{stats.average}</span>
-                                      </div>
-                                      <div>
-                                        <span className="text-muted-foreground">Diff:</span>
-                                        <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-pink-600"}`}>
-                                          {stats.differential > 0 ? "+" : ""}{stats.differential}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <div>
-                                      <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
-                                      <div className="flex flex-wrap gap-2">
-                                        {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
-                                          const score = scores[`game_${i + 1}`] as number | null;
-                                          return (
-                                            <Badge
-                                              key={i}
-                                              variant="secondary"
-                                              className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-rose-200"}
-                                            >
-                                              G{i + 1}: {score !== null && score > 0 ? score : "-"}
-                                            </Badge>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </Card>
-                            );
-                          })}
-                      </div>
-
-                      {/* Desktop View - Full Table */}
-                      <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12">#</TableHead>
-                              <TableHead>Player</TableHead>
-                              {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
-                                <TableHead key={i} className="text-center">G{i + 1}</TableHead>
-                              ))}
-                              <TableHead className="text-center">HCP</TableHead>
-                              <TableHead className="text-center">Avg</TableHead>
-                              <TableHead className="text-center">Total</TableHead>
-                              <TableHead className="text-center">Overall</TableHead>
-                              <TableHead className="text-center">Diff</TableHead>
-                              {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedEntry.players
-                              .sort((a, b) => {
-                                const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
-                                const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
-                                return statsB.overall_score - statsA.overall_score;
-                              })
-                              .map((player, idx) => {
-                                const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
-                                const scores = (player.scores as Record<string, number>) || {};
-                                return (
-                                  <TableRow key={player.id}>
-                                    <TableCell>
-                                      <Badge variant={idx === 0 ? "default" : "secondary"}>
-                                        {idx + 1}
-                                      </Badge>
-                                    </TableCell>
-                                    <TableCell className="font-semibold">{player.player_name}</TableCell>
-                                    {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
-                                      const score = scores[`game_${i + 1}`] as number | null;
-                                      return (
-                                        <TableCell key={i} className="text-center">
-                                          {score !== null && score > 0 ? (
-                                            <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
-                                              {score}
-                                            </Badge>
-                                          ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                          )}
-                                        </TableCell>
-                                      );
-                                    })}
-                                    <TableCell className="text-center">{player.handicap}</TableCell>
-                                    <TableCell className="text-center font-semibold">{stats.average}</TableCell>
-                                    <TableCell className="text-center">{stats.total_score}</TableCell>
-                                    <TableCell className="text-center font-bold text-pink-600">
-                                      {stats.overall_score}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                      <span className={stats.differential > 0 ? "text-green-600" : "text-pink-600"}>
-                                        {stats.differential > 0 ? "+" : ""}{stats.differential}
-                                      </span>
-                                    </TableCell>
-                                    {selectedEntry.can_edit && (
-                                      <TableCell>
-                                        <div className="flex gap-1">
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => openEditPlayerDialog(player)}
-                                          >
-                                            <Edit2 className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => setDeleteConfirmPlayer(player.id)}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      </TableCell>
-                                    )}
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => selectedEntry && openShareAccessDialog(selectedEntry)}
+                      >
+                        <Unlock className="h-4 w-4 mr-2" />
+                        Share Access
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => selectedEntry && setDeleteConfirmEntry(selectedEntry.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
                     </>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Share Access Dialog */}
-      <Dialog open={showShareAccessDialog} onOpenChange={setShowShareAccessDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share Tournament Access</DialogTitle>
-            <DialogDescription>
-              Allow other members to edit this tournament
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Select Members</Label>
-              <Select
-                value={selectedMemberIds.join(",")}
-                onValueChange={(value) => {
-                  if (value && !selectedMemberIds.includes(value)) {
-                    setSelectedMemberIds([...selectedMemberIds, value]);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose members..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMembers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.full_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedMemberIds.length > 0 && (
-              <div className="space-y-2">
-                <Label>Selected Members ({selectedMemberIds.length})</Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedMemberIds.map((id) => {
-                    const memberObj = availableMembers.find((m) => m.id === id);
-                    return (
-                      <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                        {memberObj?.full_name}
-                        <button
-                          onClick={() => setSelectedMemberIds(selectedMemberIds.filter((m) => m !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
                 </div>
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedEntry && (
+              <div className="space-y-6">
+                {/* Tournament Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Tournament Details</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_title">Title *</Label>
+                        <Input
+                          id="edit_title"
+                          value={tournamentForm.title}
+                          onChange={(e) =>
+                            setTournamentForm({ ...tournamentForm, title: e.target.value })
+                          }
+                          disabled={!selectedEntry.can_edit}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_location">Location</Label>
+                        <Input
+                          id="edit_location"
+                          value={tournamentForm.location}
+                          onChange={(e) =>
+                            setTournamentForm({ ...tournamentForm, location: e.target.value })
+                          }
+                          disabled={!selectedEntry.can_edit}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_date">Date</Label>
+                        <Input
+                          id="edit_date"
+                          type="date"
+                          value={tournamentForm.date}
+                          onChange={(e) =>
+                            setTournamentForm({ ...tournamentForm, date: e.target.value })
+                          }
+                          disabled={!selectedEntry.can_edit}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_total_games">Total Games (1-20)</Label>
+                        <Input
+                          id="edit_total_games"
+                          type="number"
+                          min="1"
+                          max="20"
+                          value={tournamentForm.total_games}
+                          onChange={(e) =>
+                            setTournamentForm({ ...tournamentForm, total_games: parseInt(e.target.value) || 1 })
+                          }
+                          disabled={!selectedEntry.can_edit}
+                        />
+                      </div>
+                    </div>
+
+                    {selectedEntry.can_edit && (
+                      <Button onClick={handleUpdateTournament} disabled={submitting}>
+                        {submitting ? "Saving..." : "Save Changes"}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Shared Access */}
+                {selectedEntry.owner_id === member?.id && selectedEntry.shared_with.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Shared With</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {selectedEntry.shared_with.map((access) => (
+                          <div
+                            key={access.id}
+                            className="flex items-center justify-between bg-muted/50 rounded-lg p-3"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Lock className="h-4 w-4 text-muted-foreground" />
+                              <span>Member ID: {access.member_id.substring(0, 8)}...</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleRevokeAccess(selectedEntry.id, access.member_id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Players Section */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">
+                        Players ({selectedEntry.players.length}/48)
+                      </CardTitle>
+                      {selectedEntry.can_edit && selectedEntry.players.length < 48 && (
+                        <Button size="sm" onClick={openAddPlayerDialog}>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Player
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Player Form */}
+                    {showPlayerForm && (
+                      <Card className="mb-4 border-primary">
+                        <CardContent className="pt-6 space-y-4">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="player_name">Player Name *</Label>
+                              <Input
+                                id="player_name"
+                                value={playerForm.player_name}
+                                onChange={(e) =>
+                                  setPlayerForm({ ...playerForm, player_name: e.target.value })
+                                }
+                                placeholder="Enter player name"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="handicap">Handicap</Label>
+                              <Input
+                                id="handicap"
+                                type="number"
+                                min="0"
+                                value={playerForm.handicap}
+                                onChange={(e) =>
+                                  setPlayerForm({ ...playerForm, handicap: parseInt(e.target.value) || 0 })
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="mb-3 block">Game Scores (up to {selectedEntry.num_games} games)</Label>
+                            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+                              {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => i + 1).map((gameNum) => (
+                                <div key={gameNum} className="space-y-2">
+                                  <Label htmlFor={`game_${gameNum}`} className="text-xs">
+                                    Game {gameNum}
+                                  </Label>
+                                  <Input
+                                    id={`game_${gameNum}`}
+                                    type="number"
+                                    min="0"
+                                    max="300"
+                                    value={playerForm[`game_${gameNum}` as keyof PlayerForm] as number || ""}
+                                    onChange={(e) =>
+                                      setPlayerForm({
+                                        ...playerForm,
+                                        [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
+                                      })
+                                    }
+                                    placeholder="0"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button onClick={handleSavePlayer} disabled={submitting}>
+                              {submitting ? "Saving..." : editingPlayer ? "Update Player" : "Add Player"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setPlayerForm(INITIAL_PLAYER_FORM);
+                                setEditingPlayer(null);
+                                setShowPlayerForm(false);
+                              }}
+                              disabled={submitting}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Players Table */}
+                    {selectedEntry.players.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No players yet. Add your first player to get started.
+                      </div>
+                    ) : (
+                      <>
+                        {/* Mobile View - Expandable Cards */}
+                        <div className="md:hidden space-y-3">
+                          {selectedEntry.players
+                            .sort((a, b) => {
+                              const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                              const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
+                              return statsB.overall_score - statsA.overall_score;
+                            })
+                            .map((player, idx) => {
+                              const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                              const scores = (player.scores as Record<string, number>) || {};
+                              const isExpanded = expandedScores[player.id];
+
+                              return (
+                                <Card key={player.id} className="overflow-hidden">
+                                  <div
+                                    className="p-4 cursor-pointer"
+                                    onClick={() =>
+                                      setExpandedScores((prev) => ({
+                                        ...prev,
+                                        [player.id]: !prev[player.id],
+                                      }))
+                                    }
+                                  >
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                          #{idx + 1}
+                                        </Badge>
+                                        <span className="font-semibold">{player.player_name}</span>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold text-pink-600">
+                                          {stats.overall_score}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                          Avg: {stats.average}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                      <span>Tap to {isExpanded ? "hide" : "view"} details</span>
+                                      <div className="flex gap-2">
+                                        {selectedEntry.can_edit && (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditPlayerDialog(player);
+                                              }}
+                                            >
+                                              <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeleteConfirmPlayer(player.id);
+                                              }}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div className="border-t bg-muted/30 p-4 space-y-3">
+                                      <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                          <span className="text-muted-foreground">Handicap:</span>
+                                          <span className="ml-2 font-semibold">{player.handicap}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">Total:</span>
+                                          <span className="ml-2 font-semibold">{stats.total_score}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">Average:</span>
+                                          <span className="ml-2 font-semibold">{stats.average}</span>
+                                        </div>
+                                        <div>
+                                          <span className="text-muted-foreground">Diff:</span>
+                                          <span className={`ml-2 font-semibold ${stats.differential > 0 ? "text-green-600" : "text-pink-600"}`}>
+                                            {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <div className="text-xs text-muted-foreground mb-2">Game Scores:</div>
+                                        <div className="flex flex-wrap gap-2">
+                                          {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                            const score = scores[`game_${i + 1}`] as number | null;
+                                            return (
+                                              <Badge
+                                                key={i}
+                                                variant="secondary"
+                                                className={score !== null && score > 0 ? `${GAME_COLORS[i]} text-white` : "bg-rose-200"}
+                                              >
+                                                G{i + 1}: {score !== null && score > 0 ? score : "-"}
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </Card>
+                              );
+                            })}
+                        </div>
+
+                        {/* Desktop View - Full Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12">#</TableHead>
+                                <TableHead>Player</TableHead>
+                                {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => (
+                                  <TableHead key={i} className="text-center">G{i + 1}</TableHead>
+                                ))}
+                                <TableHead className="text-center">HCP</TableHead>
+                                <TableHead className="text-center">Avg</TableHead>
+                                <TableHead className="text-center">Total</TableHead>
+                                <TableHead className="text-center">Overall</TableHead>
+                                <TableHead className="text-center">Diff</TableHead>
+                                {selectedEntry.can_edit && <TableHead className="w-24">Actions</TableHead>}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {selectedEntry.players
+                                .sort((a, b) => {
+                                  const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
+                                  const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
+                                  return statsB.overall_score - statsA.overall_score;
+                                })
+                                .map((player, idx) => {
+                                  const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
+                                  const scores = (player.scores as Record<string, number>) || {};
+                                  return (
+                                    <TableRow key={player.id}>
+                                      <TableCell>
+                                        <Badge variant={idx === 0 ? "default" : "secondary"}>
+                                          {idx + 1}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="font-semibold">{player.player_name}</TableCell>
+                                      {Array.from({ length: selectedEntry.num_games || 5 }, (_, i) => {
+                                        const score = scores[`game_${i + 1}`] as number | null;
+                                        return (
+                                          <TableCell key={i} className="text-center">
+                                            {score !== null && score > 0 ? (
+                                              <Badge variant="secondary" className={`${GAME_COLORS[i]} text-white`}>
+                                                {score}
+                                              </Badge>
+                                            ) : (
+                                              <span className="text-muted-foreground">-</span>
+                                            )}
+                                          </TableCell>
+                                        );
+                                      })}
+                                      <TableCell className="text-center">{player.handicap}</TableCell>
+                                      <TableCell className="text-center font-semibold">{stats.average}</TableCell>
+                                      <TableCell className="text-center">{stats.total_score}</TableCell>
+                                      <TableCell className="text-center font-bold text-pink-600">
+                                        {stats.overall_score}
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <span className={stats.differential > 0 ? "text-green-600" : "text-pink-600"}>
+                                          {stats.differential > 0 ? "+" : ""}{stats.differential}
+                                        </span>
+                                      </TableCell>
+                                      {selectedEntry.can_edit && (
+                                        <TableCell>
+                                          <div className="flex gap-1">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => openEditPlayerDialog(player)}
+                                            >
+                                              <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => setDeleteConfirmPlayer(player.id)}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </TableCell>
+                                      )}
+                                    </TableRow>
+                                  );
+                                })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             )}
-          </div>
+          </DialogContent>
+        </Dialog>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowShareAccessDialog(false);
-                setSelectedMemberIds([]);
-              }}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleShareAccess}
-              disabled={submitting || selectedMemberIds.length === 0}
-            >
-              {submitting ? "Sharing..." : `Share with ${selectedMemberIds.length} member(s)`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Share Access Dialog */}
+        <Dialog open={showShareAccessDialog} onOpenChange={setShowShareAccessDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Share Tournament Access</DialogTitle>
+              <DialogDescription>
+                Allow other members to edit this tournament
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Delete Tournament Confirmation */}
-      <Dialog open={deleteConfirmEntry !== null} onOpenChange={() => setDeleteConfirmEntry(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Tournament</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this tournament? This will also delete all players and scores. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmEntry(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteConfirmEntry && handleDeleteTournament(deleteConfirmEntry)}
-            >
-              Delete Tournament
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Members</Label>
+                <Select
+                  value={selectedMemberIds.join(",")}
+                  onValueChange={(value) => {
+                    if (value && !selectedMemberIds.includes(value)) {
+                      setSelectedMemberIds([...selectedMemberIds, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose members..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMembers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-      {/* Delete Player Confirmation */}
-      <Dialog open={deleteConfirmPlayer !== null} onOpenChange={() => setDeleteConfirmPlayer(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Player</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this player? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmPlayer(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteConfirmPlayer && handleDeletePlayer(deleteConfirmPlayer)}
-            >
-              Delete Player
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Share Dialog */}
-      <Dialog open={shareEntry !== null} onOpenChange={() => setShareEntry(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share Tournament</DialogTitle>
-            <DialogDescription>
-              Share this mini blok tournament with others
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <Label className="block">Public view link (guest boleh view)</Label>
-              <Select value={shareMode} onValueChange={(v) => setShareMode(v as "public" | "editable")}>
-                <SelectTrigger className="w-[190px]">
-                  <SelectValue placeholder="Share mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public view</SelectItem>
-                  <SelectItem value="editable">Editable (login)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                readOnly
-                value={
-                  shareEntry
-                    ? (shareMode === "editable"
-                        ? generateShareUrl(shareEntry.id)
-                        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : "")
-                    )
-                    : ""
-                }
-                className="flex-1"
-                placeholder={shareMode === "public" && shareEntry && !shareEntry.share_token ? "Tiada public link lagi..." : ""}
-              />
-              
-              {shareMode === "public" && shareEntry && !shareEntry.share_token ? (
-                <Button onClick={handleGenerateToken} disabled={isGeneratingToken}>
-                  {isGeneratingToken ? "Generating..." : "Generate Public Link"}
-                </Button>
-              ) : (
-                <Button onClick={copyShareUrl} variant="outline" disabled={!shareEntry || (shareMode === "public" && !shareEntry.share_token)}>
-                  {copiedUrl ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
+              {selectedMemberIds.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Selected Members ({selectedMemberIds.length})</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMemberIds.map((id) => {
+                      const memberObj = availableMembers.find((m) => m.id === id);
+                      return (
+                        <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                          {memberObj?.full_name}
+                          <button
+                            onClick={() => setSelectedMemberIds(selectedMemberIds.filter((m) => m !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
-            {shareMode === "public" && shareEntry && !shareEntry.share_token && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Anda perlu "Generate" link ini terlebih dahulu sebelum anda boleh kongsikan dengan public (pelawat tanpa akaun).
-              </p>
-            )}
 
-            <div className="rounded-lg border bg-muted/30 p-3">
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowShareAccessDialog(false);
+                  setSelectedMemberIds([]);
+                }}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleShareAccess}
+                disabled={submitting || selectedMemberIds.length === 0}
+              >
+                {submitting ? "Sharing..." : `Share with ${selectedMemberIds.length} member(s)`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Tournament Confirmation */}
+        <Dialog open={deleteConfirmEntry !== null} onOpenChange={() => setDeleteConfirmEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Tournament</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this tournament? This will also delete all players and scores. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmEntry(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirmEntry && handleDeleteTournament(deleteConfirmEntry)}
+              >
+                Delete Tournament
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Player Confirmation */}
+        <Dialog open={deleteConfirmPlayer !== null} onOpenChange={() => setDeleteConfirmPlayer(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Player</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this player? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirmPlayer(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirmPlayer && handleDeletePlayer(deleteConfirmPlayer)}
+              >
+                Delete Player
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Dialog */}
+        <Dialog open={shareEntry !== null} onOpenChange={() => setShareEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Share Tournament</DialogTitle>
+              <DialogDescription>
+                Share this mini blok tournament with others
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
               <div className="flex items-center justify-between gap-2 mb-2">
-                <Label className="block">Editable link (collaborator)</Label>
-                <Badge variant="secondary">Login required</Badge>
+                <Label className="block">Public view link (guest boleh view)</Label>
+                <Select value={shareMode} onValueChange={(v) => setShareMode(v as "public" | "editable")}>
+                  <SelectTrigger className="w-[190px]">
+                    <SelectValue placeholder="Share mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public view</SelectItem>
+                    <SelectItem value="editable">Editable (login)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Nota: Collaborator mesti sudah diberi akses melalui “Share Access”.
-              </p>
               <div className="flex gap-2">
-                <Input readOnly value={shareEntry ? generateShareUrl(shareEntry.id) : ""} className="flex-1" />
-                <Button onClick={copyEditableLink} variant="outline">
-                  {copiedEditUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
+                <Input
+                  readOnly
+                  value={
+                    shareEntry
+                      ? (shareMode === "editable"
+                          ? generateShareUrl(shareEntry.id)
+                          : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : "")
+                      )
+                      : ""
+                  }
+                  className="flex-1"
+                  placeholder={shareMode === "public" && shareEntry && !shareEntry.share_token ? "Tiada public link lagi..." : ""}
+                />
+                
+                {shareMode === "public" && shareEntry && !shareEntry.share_token ? (
+                  <Button onClick={handleGenerateToken} disabled={isGeneratingToken}>
+                    {isGeneratingToken ? "Generating..." : "Generate Public Link"}
+                  </Button>
+                ) : (
+                  <Button onClick={copyShareUrl} variant="outline" disabled={!shareEntry || (shareMode === "public" && !shareEntry.share_token)}>
+                    {copiedUrl ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
-            </div>
+              {shareMode === "public" && shareEntry && !shareEntry.share_token && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Anda perlu "Generate" link ini terlebih dahulu sebelum anda boleh kongsikan dengan public (pelawat tanpa akaun).
+                </p>
+              )}
 
-            <div>
-              <Label className="mb-2 block">Share to Social Media</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Button onClick={shareToWhatsApp} variant="outline" className="w-full">
-                  WhatsApp
-                </Button>
-                <Button onClick={shareToFacebook} variant="outline" className="w-full">
-                  Facebook
-                </Button>
-                <Button onClick={shareToTwitter} variant="outline" className="w-full">
-                  Twitter
-                </Button>
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <Label className="block">Editable link (collaborator)</Label>
+                  <Badge variant="secondary">Login required</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Nota: Collaborator mesti sudah diberi akses melalui “Share Access”.
+                </p>
+                <div className="flex gap-2">
+                  <Input readOnly value={shareEntry ? generateShareUrl(shareEntry.id) : ""} className="flex-1" />
+                  <Button onClick={copyEditableLink} variant="outline">
+                    {copiedEditUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Label className="mb-2 block">Share to Social Media</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button onClick={shareToWhatsApp} variant="outline" className="w-full">
+                    WhatsApp
+                  </Button>
+                  <Button onClick={shareToFacebook} variant="outline" className="w-full">
+                    Facebook
+                  </Button>
+                  <Button onClick={shareToTwitter} variant="outline" className="w-full">
+                    Twitter
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          </DialogContent>
+        </Dialog>
+      </MemberLayout>
+    </PageAccessGuard>
   );
 }

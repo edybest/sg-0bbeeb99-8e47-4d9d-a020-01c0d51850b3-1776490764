@@ -21,6 +21,7 @@ import { laneService } from "@/services/laneService";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 import Image from "next/image";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 interface SpinResultWithMember {
   id: string;
@@ -555,8 +556,8 @@ export default function UndiLanePage() {
 
   return (
     <PageAccessGuard pagePath="/member/undi-lane" requireAuth={true}>
-      <>
-        <SEO title="Undi Lane - AMBC Club" description="Undian lane bowling secara rawak" />
+      <MemberLayout>
+        <SEO title="Undi Lane - AMBC Club" description="Sistem undian lane secara rawak" />
 
         <div className="min-h-screen bg-rose-50 flex flex-col pb-20 sm:pb-0">
           <MemberTopBarNav />
@@ -874,7 +875,7 @@ export default function UndiLanePage() {
             `}</style>
           </main>
         </div>
-      </>
+      </MemberLayout>
     </PageAccessGuard>
   );
 }

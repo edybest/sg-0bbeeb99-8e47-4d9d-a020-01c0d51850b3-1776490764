@@ -16,6 +16,7 @@ import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 interface Game {
@@ -405,10 +406,10 @@ export default function LanePage() {
 
   return (
     <PageAccessGuard pagePath="/member/lane" requireAuth={true}>
-      <>
+      <MemberLayout>
         <SEO 
           title="Lane Assignment - AMBC Club"
-          description="Kedudukan Lane Ahli"
+          description="Semak pembahagian lane anda"
         />
         <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 pb-20 sm:pb-8">
           {/* Header */}
@@ -551,7 +552,7 @@ export default function LanePage() {
             </div>
           </div>
         </div>
-      </>
+      </MemberLayout>
     </PageAccessGuard>
   );
 }

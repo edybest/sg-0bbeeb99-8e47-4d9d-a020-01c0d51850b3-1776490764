@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 type PlayerStats = {
   member_id: string;
@@ -203,8 +204,8 @@ export default function AverageScorePage() {
 
   return (
     <PageAccessGuard pagePath="/member/average-score" requireAuth={true}>
-      <>
-        <SEO title="Average Score - AMBC Club" description="Player average scores and handicaps" />
+      <MemberLayout>
+        <SEO title="Average Score - AMBC Club" description="Statistik purata skor ahli" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
           {/* Header */}
           <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -360,7 +361,7 @@ export default function AverageScorePage() {
             )}
           </main>
         </div>
-      </>
+      </MemberLayout>
     </PageAccessGuard>
   );
 }

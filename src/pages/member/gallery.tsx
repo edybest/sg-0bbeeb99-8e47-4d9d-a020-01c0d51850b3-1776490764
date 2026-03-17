@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 import {
   getAllAlbums,
   getAlbumWithImages,
@@ -318,8 +319,8 @@ export default function GalleryPage() {
 
   return (
     <PageAccessGuard pagePath="/member/gallery" requireAuth={true}>
-      <>
-        <SEO title="Gallery - AMBC Club" description="Club photo gallery and albums" />
+      <MemberLayout>
+        <SEO title="Gallery - AMBC Club" description="Album foto aktiviti bowling" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
           {/* Header */}
           <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -669,7 +670,7 @@ export default function GalleryPage() {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </>
+      </MemberLayout>
     </PageAccessGuard>
   );
 }
