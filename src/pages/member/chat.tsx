@@ -33,13 +33,15 @@ import {
   type ChatRoomWithDetails,
   type ChatMessageWithSender,
 } from "@/services/chatService";
+import { cn } from "@/lib/utils";
 
 export default function ChatPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { member, loading: authLoading, isAuthenticated } = useAuth(true, false);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const [debugInfo, setDebugInfo] = useState<string>("");
 
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
@@ -52,6 +54,8 @@ export default function ChatPage() {
   const [allMembers, setAllMembers] = useState<Array<{ id: string; full_name: string; avatar_url: string | null }>>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [creatingChat, setCreatingChat] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Load chat rooms
   useEffect(() => {
@@ -77,24 +81,30 @@ export default function ChatPage() {
     if (selectedRoom) {
       void loadMessages(selectedRoom.id);
       void markMessagesAsRead(selectedRoom.id);
-
-      // Subscribe to new messages
-      const unsubscribe = subscribeToMessages(selectedRoom.id, (msg) => {
-        setMessages((prev) => [...prev, msg]);
-        void markMessagesAsRead(selectedRoom.id);
-        scrollToBottom();
-      });
-
-      return () => {
-        unsubscribe();
-      };
     }
   }, [selectedRoom]);
 
   // Auto-scroll to bottom
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Check if user is scrolled to bottom
+  const isScrolledToBottom = () => {
+    if (!messagesContainerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    return scrollHeight - scrollTop - clientHeight < 100;
+  };
+
+  // Handle scroll event
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const isAtBottom = isScrolledToBottom();
+    setShowScrollButton(!isAtBottom);
+    if (isAtBottom) {
+      setUnreadCount(0);
+    }
+  };
 
   // Load all members for new chat dialog
   useEffect(() => {
@@ -102,6 +112,55 @@ export default function ChatPage() {
       void loadAllMembers();
     }
   }, [showNewChat]);
+
+  // Subscribe to new messages
+  useEffect(() => {
+    if (!selectedRoom?.id || !member?.id) return;
+
+    const channel = subscribeToMessages(selectedRoom.id, (newMsg) => {
+      setMessages((prev) => {
+        // Check if message already exists
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        
+        const wasAtBottom = isScrolledToBottom();
+        const isMyMessage = newMsg.sender_id === member.id;
+        
+        // Auto-scroll if user was at bottom OR it's their own message
+        if (wasAtBottom || isMyMessage) {
+          setTimeout(() => scrollToBottom("smooth"), 100);
+        } else {
+          // Show notification for new messages when scrolled up
+          setUnreadCount(c => c + 1);
+          
+          // Play notification sound (optional)
+          if (!isMyMessage) {
+            try {
+              const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZURE=");
+              audio.volume = 0.3;
+              void audio.play();
+            } catch (e) {
+              // Ignore audio errors
+            }
+          }
+        }
+        
+        return [...prev, newMsg];
+      });
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [selectedRoom?.id, member?.id]);
+
+  // Add scroll event listener
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   async function loadRooms() {
     setLoading(true);
@@ -115,8 +174,12 @@ export default function ChatPage() {
   }
 
   async function loadMessages(roomId: string) {
-    const data = await listMessages(roomId, 100);
+    setMessages([]);
+    const data = await listMessages(roomId);
     setMessages(data);
+    
+    // Auto-scroll to bottom on initial load
+    setTimeout(() => scrollToBottom("auto"), 100);
   }
 
   async function loadAllMembers() {
@@ -215,10 +278,6 @@ export default function ChatPage() {
     }
   }
 
-  function scrollToBottom() {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-
   function getOtherMember(room: ChatRoomWithDetails) {
     if (room.type === "group") return null;
     const participants = Array.isArray(room.participants) ? room.participants : [];
@@ -282,7 +341,7 @@ export default function ChatPage() {
     <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
       <MemberLayout>
         <SEO title="Chat - AMBC Club" />
-        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50 dark:from-gray-900 dark:to-gray-800">
           {/* Mobile: Full screen chat */}
           <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] flex">
             {/* Chat List - Hidden when room selected on mobile */}
@@ -424,54 +483,87 @@ export default function ChatPage() {
                   </div>
                 </div>
 
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
-                    {messages.map((msg) => {
-                      const isOwn = msg.sender_id === member?.id;
-                      return (
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
+                  {messages.map((msg) => {
+                    const isMine = msg.sender_id === member?.id;
+                    const senderName = msg.sender?.full_name || "Unknown";
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={cn(
+                          "flex gap-3",
+                          isMine ? "flex-row-reverse" : "flex-row"
+                        )}
+                      >
+                        <Avatar className="h-8 w-8 flex-shrink-0">
+                          <AvatarFallback className="text-xs">
+                            {senderName[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div
-                          key={msg.id}
-                          className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                          className={cn(
+                            "flex flex-col gap-1 max-w-[70%]",
+                            isMine ? "items-end" : "items-start"
+                          )}
                         >
-                          <div className={`flex gap-2 max-w-[80%] ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
-                            {!isOwn && (
-                              <Avatar className="h-8 w-8 flex-shrink-0">
-                                <AvatarImage src={msg.sender.avatar_url || undefined} />
-                                <AvatarFallback className="bg-gradient-to-br from-rose-500 to-pink-500 text-white text-xs">
-                                  {msg.sender.full_name[0]?.toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
+                          <span className="text-xs text-muted-foreground">
+                            {senderName}
+                          </span>
+                          <div
+                            className={cn(
+                              "rounded-lg px-4 py-2",
+                              isMine
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted"
                             )}
-                            <div>
-                              {!isOwn && (
-                                <p className="text-xs text-muted-foreground mb-1 px-3">
-                                  {msg.sender.full_name}
-                                </p>
-                              )}
-                              <Card
-                                className={`p-3 ${
-                                  isOwn
-                                    ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white border-0"
-                                    : "bg-gray-100 dark:bg-gray-700"
-                                }`}
-                              >
-                                <p className="text-sm break-words">{msg.message}</p>
-                                <p className={`text-xs mt-1 ${isOwn ? "text-white/70" : "text-muted-foreground"}`}>
-                                  {new Date(msg.created_at).toLocaleTimeString("en-US", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </p>
-                              </Card>
-                            </div>
+                          >
+                            <p className="text-sm">{msg.message}</p>
                           </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created_at).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                         </div>
-                      );
-                    })}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                  
+                  {/* Scroll to Bottom Button */}
+                  {showScrollButton && (
+                    <button
+                      onClick={() => {
+                        scrollToBottom("smooth");
+                        setUnreadCount(0);
+                      }}
+                      className="fixed bottom-24 right-6 bg-primary text-primary-foreground rounded-full p-3 shadow-lg hover:scale-110 transition-transform z-10"
+                      aria-label="Scroll to bottom"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m18 15-6-6-6 6"/>
+                      </svg>
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                          {unreadCount > 9 ? "9+" : unreadCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
 
                 {/* Message Input */}
                 <div className="p-4 border-t border-rose-100 dark:border-gray-700 bg-white dark:bg-gray-800">
