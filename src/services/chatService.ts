@@ -52,30 +52,59 @@ async function getCurrentMemberId(): Promise<string | null> {
  * Get or ensure Lobby Room exists for all members
  */
 export async function ensureLobbyRoom(): Promise<string | null> {
-  const memberId = await getCurrentMemberId();
-  if (!memberId) return null;
+  try {
+    const memberId = await getCurrentMemberId();
+    if (!memberId) {
+      console.error("No member ID found");
+      return null;
+    }
 
-  // Get Lobby Room
-  const { data: lobby } = await supabase
-    .from("chat_rooms")
-    .select("id")
-    .eq("name", "Lobby AMBC Club")
-    .eq("type", "group")
-    .maybeSingle();
+    // Get lobby room
+    const { data: lobby, error: lobbyError } = await supabase
+      .from("chat_rooms")
+      .select("id")
+      .eq("name", "Lobby AMBC Club")
+      .eq("type", "group")
+      .single();
 
-  if (!lobby) return null;
+    if (lobbyError) {
+      console.error("Error fetching lobby:", lobbyError);
+      return null;
+    }
 
-  // Ensure current member is participant
-  const { error: joinError } = await supabase
-    .from("chat_participants")
-    .insert({ room_id: lobby.id, member_id: memberId });
+    if (!lobby) {
+      console.error("Lobby room not found in database");
+      return null;
+    }
 
-  // Ignore unique violation error (23505) if they are already in the room
-  if (joinError && joinError.code !== '23505') {
-    console.error("Error joining lobby:", joinError);
+    // Check if already a participant
+    const { data: existing } = await supabase
+      .from("chat_participants")
+      .select("id")
+      .eq("room_id", lobby.id)
+      .eq("member_id", memberId)
+      .maybeSingle();
+
+    // If not a participant, join
+    if (!existing) {
+      const { error: joinError } = await supabase
+        .from("chat_participants")
+        .insert({
+          room_id: lobby.id,
+          member_id: memberId,
+        });
+
+      // Ignore duplicate key errors
+      if (joinError && joinError.code !== "23505") {
+        console.error("Error joining lobby:", joinError);
+      }
+    }
+
+    return lobby.id;
+  } catch (error) {
+    console.error("Unexpected error in ensureLobbyRoom:", error);
+    return null;
   }
-
-  return lobby.id;
 }
 
 /**

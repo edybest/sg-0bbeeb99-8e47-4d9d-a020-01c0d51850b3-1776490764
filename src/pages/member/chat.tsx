@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
@@ -39,6 +40,7 @@ export default function ChatPage() {
   const { member, loading: authLoading, isAuthenticated } = useAuth(true, false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomWithDetails | null>(null);
@@ -54,12 +56,18 @@ export default function ChatPage() {
   // Load chat rooms
   useEffect(() => {
     async function init() {
-      // Ensure user is in Lobby Room
-      const lobbyId = await ensureLobbyRoom();
-      console.log("🏛️ Lobby Room ID:", lobbyId);
-      
-      // Then load all chats
-      await loadRooms();
+      try {
+        setDebugInfo("🔄 Loading...");
+        
+        // Ensure user joins lobby
+        const lobbyId = await ensureLobbyRoom();
+        setDebugInfo(`🏛️ Lobby: ${lobbyId ? '✅' : '❌'} | ID: ${lobbyId?.slice(0, 8) || 'none'}`);
+        
+        // Then load all chats
+        await loadRooms();
+      } catch (error) {
+        setDebugInfo(`❌ Error: ${error}`);
+      }
     }
     void init();
   }, []);
@@ -98,7 +106,10 @@ export default function ChatPage() {
   async function loadRooms() {
     setLoading(true);
     const data = await listMyChats();
-    console.log("📋 Loaded rooms:", data);
+    
+    const hasLobby = data.some(r => r.name === 'Lobby AMBC Club');
+    setDebugInfo(prev => `${prev} | 📋 Rooms: ${data.length} | Lobby in list: ${hasLobby ? '✅' : '❌'}`);
+    
     setRooms(data);
     setLoading(false);
   }
