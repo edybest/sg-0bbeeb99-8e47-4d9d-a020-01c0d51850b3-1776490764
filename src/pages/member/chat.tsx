@@ -122,7 +122,10 @@ export default function ChatPage() {
   }
 
   async function handleStartChat(memberId: string) {
-    console.log("Starting chat with member:", memberId);
+    console.log("=== Starting new chat ===");
+    console.log("Target member ID:", memberId);
+    console.log("Current user:", member);
+    
     setCreatingChat(true);
     
     try {
@@ -130,34 +133,48 @@ export default function ChatPage() {
       console.log("Got room ID:", roomId);
       
       if (!roomId) {
-        console.error("Failed to create/get chat room");
+        console.error("Failed to create/get chat room - roomId is null");
+        
+        // Show more helpful error message
         toast({
-          title: "Error",
-          description: "Failed to create chat. Please try again.",
+          title: "Tidak Dapat Membuat Chat",
+          description: "Sila pastikan anda sudah login dan cuba lagi. Jika masalah berterusan, sila hubungi admin.",
           variant: "destructive",
         });
         setCreatingChat(false);
         return;
       }
 
+      console.log("Fetching room details for:", roomId);
       const roomDetails = await getChatRoom(roomId);
-      if (roomDetails) {
-        setSelectedRoom(roomDetails);
-        setShowNewChat(false);
-        // Reload rooms list to include new chat
-        void loadRooms();
-      } else {
+      
+      if (!roomDetails) {
+        console.error("Room created but failed to fetch details");
         toast({
-          title: "Error", 
-          description: "Failed to load chat room. Please try again.",
+          title: "Chat Dibuat",
+          description: "Chat telah dibuat tetapi tidak dapat dipaparkan. Sila refresh page.",
           variant: "destructive",
         });
+        setCreatingChat(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error starting chat:", error);
+
+      console.log("✅ Chat loaded successfully:", roomDetails);
+      setSelectedRoom(roomDetails);
+      setShowNewChat(false);
+      
+      // Reload rooms list to include new chat
+      void loadRooms();
+      
       toast({
-        title: "Error",
-        description: "Failed to create chat. Please try again.",
+        title: "Chat Berjaya Dibuat! 🎉",
+        description: `Anda kini boleh chat dengan ${getRoomName(roomDetails)}`,
+      });
+    } catch (error) {
+      console.error("Unexpected error in handleStartChat:", error);
+      toast({
+        title: "Error Tidak Dijangka",
+        description: "Sila cuba lagi atau hubungi admin jika masalah berterusan.",
         variant: "destructive",
       });
     } finally {
