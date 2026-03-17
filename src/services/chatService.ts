@@ -122,7 +122,7 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
  */
 export async function getOrCreateDirectChat(otherMemberId: string): Promise<string | null> {
   try {
-    // Get current user's member ID
+    // Get current user's session
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       console.error("No authenticated user");
