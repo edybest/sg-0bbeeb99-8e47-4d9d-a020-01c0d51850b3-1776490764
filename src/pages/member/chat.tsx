@@ -49,14 +49,6 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth(true, false);
   
-  console.log("🎨 [ChatPage] Render:", { 
-    hasMember: !!member, 
-    memberId: member?.id,
-    memberEmail: member?.email,
-    authLoading,
-    roomsCount: rooms.length 
-  });
-  
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -72,10 +64,28 @@ export default function ChatPage() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  console.log("🎨 [ChatPage] Render:", { 
+    hasMember: !!member, 
+    memberId: member?.id,
+    memberEmail: member?.email,
+    authLoading,
+    roomsCount: rooms.length 
+  });
+
   // Initialize
   useEffect(() => {
-    console.log("🎨 [ChatPage] Init useEffect triggered");
+    console.log("🎨 [ChatPage] Init useEffect triggered. authLoading:", authLoading, "memberId:", member?.id);
     
+    // Wait for auth to finish loading before fetching chats
+    if (authLoading) return;
+    
+    // If auth is done but no member, we can't load chats
+    if (!member?.id) {
+      console.log("🎨 [ChatPage] No member ID yet, skipping initialization");
+      setLoading(false);
+      return;
+    }
+
     async function init() {
       try {
         console.log("🎨 [ChatPage] Calling ensureLobbyRoom...");
@@ -90,7 +100,7 @@ export default function ChatPage() {
       }
     }
     init();
-  }, []);
+  }, [authLoading, member?.id]);
 
   // Room selection
   useEffect(() => {
