@@ -49,6 +49,14 @@ export default function ChatPage() {
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth(true, false);
   
+  console.log("🎨 [ChatPage] Render:", { 
+    hasMember: !!member, 
+    memberId: member?.id,
+    memberEmail: member?.email,
+    authLoading,
+    roomsCount: rooms.length 
+  });
+  
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -66,12 +74,19 @@ export default function ChatPage() {
 
   // Initialize
   useEffect(() => {
+    console.log("🎨 [ChatPage] Init useEffect triggered");
+    
     async function init() {
       try {
-        await ensureLobbyRoom();
+        console.log("🎨 [ChatPage] Calling ensureLobbyRoom...");
+        const lobbyId = await ensureLobbyRoom();
+        console.log("🎨 [ChatPage] ensureLobbyRoom result:", lobbyId);
+        
+        console.log("🎨 [ChatPage] Calling loadRooms...");
         await loadRooms();
+        console.log("🎨 [ChatPage] loadRooms completed");
       } catch (error) {
-        console.error(error);
+        console.error("❌ [ChatPage] Init error:", error);
       }
     }
     init();
@@ -135,9 +150,18 @@ export default function ChatPage() {
 
   // Loaders
   async function loadRooms() {
+    console.log("🎨 [ChatPage] loadRooms: Starting...");
     setLoading(true);
+    
     const data = await listMyChats();
+    console.log("🎨 [ChatPage] loadRooms: Got data:", { 
+      count: data.length,
+      rooms: data.map(r => ({ id: r.id, name: r.name, type: r.type }))
+    });
+    
     setRooms(data);
+    console.log("🎨 [ChatPage] loadRooms: State updated");
+    
     setLoading(false);
   }
 

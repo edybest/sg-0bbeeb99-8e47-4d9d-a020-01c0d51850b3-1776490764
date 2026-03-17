@@ -48,14 +48,29 @@ export interface ChatMessageWithSender {
  * Get current member's ID from auth
  */
 async function getCurrentMemberId(): Promise<string | null> {
+  console.log("🔍 [chatService] getCurrentMemberId: Starting...");
+  
   const { data: session } = await supabase.auth.getSession();
-  if (!session.session) return null;
+  console.log("🔍 [chatService] Session:", { 
+    hasSession: !!session.session, 
+    userId: session.session?.user?.id 
+  });
+  
+  if (!session.session) {
+    console.log("❌ [chatService] No session found");
+    return null;
+  }
 
-  const { data: member } = await supabase
+  const { data: member, error } = await supabase
     .from("members")
     .select("id")
     .eq("user_id", session.session.user.id)
     .single();
+
+  console.log("🔍 [chatService] Member lookup:", { 
+    memberId: member?.id, 
+    error: error?.message 
+  });
 
   return member?.id || null;
 }
@@ -64,42 +79,74 @@ async function getCurrentMemberId(): Promise<string | null> {
  * Get or ensure Lobby Room exists for all members
  */
 export async function ensureLobbyRoom(): Promise<string | null> {
+  console.log("🔍 [chatService] ensureLobbyRoom: Starting...");
+  
   try {
     const memberId = await getCurrentMemberId();
-    if (!memberId) return null;
+    console.log("🔍 [chatService] Current member ID:", memberId);
+    
+    if (!memberId) {
+      console.log("❌ [chatService] No member ID, cannot ensure lobby");
+      return null;
+    }
 
     // Get lobby room
     const { data: lobby, error: lobbyError } = await supabase
       .from("chat_rooms")
-      .select("id")
+      .select("id, name, type")
       .eq("type", "lobby")
       .eq("is_public", true)
       .limit(1)
       .maybeSingle();
 
-    if (lobbyError || !lobby) return null;
+    console.log("🔍 [chatService] Lobby lookup:", { 
+      lobbyId: lobby?.id,
+      lobbyName: lobby?.name,
+      error: lobbyError?.message 
+    });
+
+    if (lobbyError || !lobby) {
+      console.log("❌ [chatService] Lobby room not found or error");
+      return null;
+    }
 
     // Check if already a participant
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("chat_participants")
       .select("id")
       .eq("room_id", lobby.id)
       .eq("member_id", memberId)
       .maybeSingle();
 
+    console.log("🔍 [chatService] Participant check:", { 
+      exists: !!existing, 
+      participantId: existing?.id,
+      error: existingError?.message 
+    });
+
     // If not a participant, join
     if (!existing) {
-      await supabase
+      console.log("➕ [chatService] Adding member to lobby...");
+      
+      const { error: insertError } = await supabase
         .from("chat_participants")
         .insert({
           room_id: lobby.id,
           member_id: memberId,
         });
+
+      if (insertError) {
+        console.log("❌ [chatService] Failed to add to lobby:", insertError.message);
+      } else {
+        console.log("✅ [chatService] Successfully added to lobby");
+      }
+    } else {
+      console.log("✅ [chatService] Already in lobby");
     }
 
     return lobby.id;
   } catch (error) {
-    console.error("Unexpected error in ensureLobbyRoom:", error);
+    console.error("❌ [chatService] Unexpected error in ensureLobbyRoom:", error);
     return null;
   }
 }
@@ -108,21 +155,43 @@ export async function ensureLobbyRoom(): Promise<string | null> {
  * List all chat rooms for current member
  */
 export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
+  console.log("🔍 [chatService] listMyChats: Starting...");
+  
   const memberId = await getCurrentMemberId();
-  if (!memberId) return [];
+  console.log("🔍 [chatService] Current member ID for listMyChats:", memberId);
+  
+  if (!memberId) {
+    console.log("❌ [chatService] No member ID, returning empty array");
+    return [];
+  }
 
   // Get room base info via RPC
+  console.log("🔍 [chatService] Calling RPC: get_member_chat_rooms...");
+  
   const { data: rpcRooms, error: rpcError } = await supabase
     .rpc('get_member_chat_rooms', { p_member_id: memberId });
 
-  if (rpcError || !rpcRooms || rpcRooms.length === 0) {
+  console.log("🔍 [chatService] RPC result:", { 
+    roomCount: rpcRooms?.length || 0,
+    rooms: rpcRooms,
+    error: rpcError?.message 
+  });
+
+  if (rpcError) {
+    console.error("❌ [chatService] RPC error:", rpcError);
+    return [];
+  }
+
+  if (!rpcRooms || rpcRooms.length === 0) {
+    console.log("⚠️ [chatService] No rooms returned from RPC");
     return [];
   }
 
   const roomIds = rpcRooms.map(r => r.room_id);
+  console.log("🔍 [chatService] Room IDs to fetch:", roomIds);
 
   // Fetch full details (participants & last message)
-  const { data: roomsData } = await supabase
+  const { data: roomsData, error: roomsError } = await supabase
     .from("chat_rooms")
     .select(`
       id,
@@ -140,7 +209,15 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     `)
     .in("id", roomIds);
 
-  if (!roomsData) return [];
+  console.log("🔍 [chatService] Rooms data fetch:", { 
+    count: roomsData?.length || 0,
+    error: roomsError?.message 
+  });
+
+  if (!roomsData) {
+    console.log("❌ [chatService] No rooms data returned");
+    return [];
+  }
 
   const rooms = await Promise.all(
     roomsData.map(async (room: any) => {
@@ -168,13 +245,20 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
   );
 
   // Sort: Lobby Room first, then by last message time
-  return rooms.sort((a, b) => {
+  const sortedRooms = rooms.sort((a, b) => {
     if (a.type === "lobby") return -1;
     if (b.type === "lobby") return 1;
     const aTime = new Date(a.last_message_at || 0).getTime();
     const bTime = new Date(b.last_message_at || 0).getTime();
     return bTime - aTime;
   });
+
+  console.log("✅ [chatService] Final rooms:", { 
+    count: sortedRooms.length,
+    rooms: sortedRooms.map(r => ({ id: r.id, name: r.name, type: r.type }))
+  });
+
+  return sortedRooms;
 }
 
 /**
