@@ -1,286 +1,319 @@
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import Image from "next/image";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SEO } from "@/components/SEO";
-import { ClubLogo } from "@/components/ClubLogo";
-import {
-  Trophy,
-  Target,
-  Users,
-  BarChart3,
-  User,
-  LayoutGrid,
-  Shuffle,
-  Image as ImageIcon,
-} from "lucide-react";
 import Link from "next/link";
-import { useAuth } from "@/hooks/useAuth";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
-import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
-import { NotificationInbox } from "@/components/notifications/NotificationInbox";
-import { MemberLayout } from "@/components/member/MemberLayout";
+import { motion } from "framer-motion";
+import { 
+  Trophy, 
+  Target, 
+  Users, 
+  TrendingUp, 
+  Calendar,
+  Award,
+  Camera,
+  MessageSquare,
+  Sparkles,
+  Star,
+  Crown,
+  Heart
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SEO } from "@/components/SEO";
+import { useAuth } from "@/hooks/useAuth";
+import { MemberLayout } from "@/components/member/MemberLayout";
+import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
+import type { Database } from "@/integrations/supabase/types";
 
-const cardVariants = {
-  hidden: {
-    opacity: 0,
-    y: 20,
-  },
-  visible: (index: number) => ({
+type Member = Database["public"]["Tables"]["members"]["Row"];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
     opacity: 1,
     y: 0,
     transition: {
-      delay: index * 0.1,
-      duration: 0.5,
       type: "spring",
       stiffness: 100,
-    },
-  }),
+      damping: 12
+    }
+  }
 };
 
-const navigationCards = [
+const features = [
   {
-    title: "Blok",
-    description: "Leaderboard & Rankings",
-    href: "/member/blok",
-    icon: Trophy,
-    iconColor: "text-yellow-600",
-    hoverBorder: "hover:border-yellow-600",
+    title: "Training",
+    description: "Record your practice scores",
+    icon: Target,
+    href: "/member/training",
+    gradient: "from-pink-500 to-rose-500",
+    iconColor: "text-pink-600"
   },
   {
-    title: "FiveFive",
-    description: "Prize Distribution",
-    href: "/member/five-five",
-    icon: Target,
-    iconColor: "text-blue-600",
-    hoverBorder: "hover:border-blue-600",
+    title: "Games",
+    description: "View all bowling games",
+    icon: Trophy,
+    href: "/member/blok",
+    gradient: "from-purple-500 to-pink-500",
+    iconColor: "text-purple-600"
+  },
+  {
+    title: "Lane Draw",
+    description: "Random lane assignment",
+    icon: Sparkles,
+    href: "/member/undi-lane",
+    gradient: "from-violet-500 to-purple-500",
+    iconColor: "text-violet-600"
   },
   {
     title: "Hall of Fame",
-    description: "Top Performers",
+    description: "Top performers & achievements",
+    icon: Crown,
     href: "/member/hall-of-fame",
-    icon: Trophy,
-    iconColor: "text-amber-600",
-    hoverBorder: "hover:border-amber-600",
-  },
-  {
-    title: "Undi Lane",
-    description: "Undian Lane Bertuah",
-    href: "/member/undi-lane",
-    icon: Shuffle,
-    iconColor: "text-purple-600",
-    hoverBorder: "hover:border-purple-600",
-  },
-  {
-    title: "Average Score",
-    description: "Purata 3 game terkini",
-    href: "/member/average-score",
-    icon: BarChart3,
-    iconColor: "text-red-600",
-    hoverBorder: "hover:border-red-600",
-  },
-  {
-    title: "Lane",
-    description: "Kedudukan Lane",
-    href: "/member/lane",
-    icon: LayoutGrid,
-    iconColor: "text-orange-500",
-    hoverBorder: "hover:border-orange-500",
+    gradient: "from-amber-500 to-orange-500",
+    iconColor: "text-amber-600"
   },
   {
     title: "Gallery",
-    description: "Photo Albums",
+    description: "Photos & memories",
+    icon: Camera,
     href: "/member/gallery",
-    icon: ImageIcon,
-    iconColor: "text-pink-600",
-    hoverBorder: "hover:border-pink-600",
-  },
-  {
-    title: "Mini Blok",
-    description: "Mini Competition",
-    href: "/member/mini-blok",
-    icon: Trophy,
-    iconColor: "text-indigo-600",
-    hoverBorder: "hover:border-indigo-600",
-  },
-  {
-    title: "Training",
-    description: "Practice Scores",
-    href: "/member/training",
-    icon: Target,
-    iconColor: "text-green-600",
-    hoverBorder: "hover:border-green-600",
+    gradient: "from-blue-500 to-cyan-500",
+    iconColor: "text-blue-600"
   },
   {
     title: "Feedback",
-    description: "Hantar cadangan / aduan",
+    description: "Share your thoughts",
+    icon: MessageSquare,
     href: "/member/feedback",
-    icon: Users,
-    iconColor: "text-sky-600",
-    hoverBorder: "hover:border-sky-600",
+    gradient: "from-green-500 to-emerald-500",
+    iconColor: "text-green-600"
+  }
+];
+
+const statsCards = [
+  {
+    title: "5+5",
+    description: "Quick game format",
+    icon: Star,
+    href: "/member/five-five",
+    color: "bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-950 dark:to-rose-950",
+    iconBg: "bg-pink-500"
   },
+  {
+    title: "Average Score",
+    description: "Track your progress",
+    icon: TrendingUp,
+    href: "/member/average-score",
+    color: "bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-950 dark:to-violet-950",
+    iconBg: "bg-purple-500"
+  },
+  {
+    title: "Mini Blok",
+    description: "Small tournaments",
+    icon: Award,
+    href: "/member/mini-blok",
+    color: "bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-950 dark:to-cyan-950",
+    iconBg: "bg-blue-500"
+  }
 ];
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, loading } = useAuth(false);
+  const { member, loading: authLoading } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
-  if (loading) {
-    return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || authLoading) {
+    return <BowlingBallLoaderOverlay />;
   }
 
-  return (
-    <PageAccessGuard pagePath="/member" requireAuth={false}>
-      <SEO title="Member Dashboard - AMBC Club" description="Dashboard ahli AMBC Club" />
+  const displayName = member?.full_name || member?.username || "Member";
+  const firstName = displayName.split(" ")[0];
 
-      <MemberLayout>
-        <div className="container mx-auto px-4 py-8">
-          <motion.div
+  return (
+    <MemberLayout>
+      <SEO
+        title="Dashboard - AMBC Club"
+        description="Your personal bowling dashboard"
+      />
+
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-purple-950">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden bg-gradient-bowling py-12 sm:py-16">
+          <div className="absolute inset-0 bg-[url('/api/placeholder/1920/400')] opacity-10 mix-blend-overlay" />
+          
+          <motion.div 
+            className="container mx-auto px-4 relative z-10"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Card className="mb-8 bg-theme-welcome text-white border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-2">
-                      {member
-                        ? `Selamat Datang, ${member.full_name || member.username}! 🎳`
-                        : "Selamat Datang ke AMBC Club! 🎳"}
-                    </h2>
+            <div className="text-center text-white">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full mb-4"
+              >
+                <Heart className="h-4 w-4 fill-current" />
+                <span className="text-sm font-medium">Welcome Back!</span>
+              </motion.div>
+              
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold mb-4">
+                Hello, {firstName}! 🎳
+              </h1>
+              
+              <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto">
+                Ready to strike? Let's make today count!
+              </p>
+            </div>
+          </motion.div>
 
-                    {member ? (
-                      <p className="text-red-100">@{member.username}</p>
-                    ) : (
-                      <p className="text-red-100">Sila login untuk akses penuh</p>
-                    )}
+          {/* Decorative Elements */}
+          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+        </div>
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-8 sm:py-12">
+          {/* Quick Stats */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8"
+          >
+            {statsCards.map((stat, index) => (
+              <motion.div key={stat.title} variants={itemVariants}>
+                <Link href={stat.href}>
+                  <Card className={`${stat.color} border-none shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`${stat.iconBg} w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                          <stat.icon className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg text-foreground">
+                            {stat.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {stat.description}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Main Features */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-3xl font-serif font-bold text-gradient-primary">
+                  Quick Access
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  Your bowling essentials
+                </p>
+              </div>
+              <Badge variant="secondary" className="hidden sm:inline-flex">
+                <Sparkles className="h-3 w-3 mr-1" />
+                {features.length} Features
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((feature, index) => (
+                <motion.div key={feature.title} variants={itemVariants}>
+                  <Link href={feature.href}>
+                    <Card className="group elegant-card border-border/50 hover:border-primary/30 bg-card/50 backdrop-blur-sm overflow-hidden">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+                      
+                      <CardHeader className="relative">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl blur-xl group-hover:blur-2xl transition-all duration-300" />
+                            <div className="relative w-14 h-14 bg-gradient-to-br from-background to-muted rounded-xl flex items-center justify-center shadow-medium group-hover:scale-110 transition-transform duration-300">
+                              <feature.icon className={`h-7 w-7 ${feature.iconColor}`} />
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1">
+                            <CardTitle className="text-xl font-semibold group-hover:text-primary transition-colors">
+                              {feature.title}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Profile Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="mt-12"
+          >
+            <Card className="bg-gradient-elegant border-none shadow-large overflow-hidden">
+              <div className="absolute inset-0 bg-[url('/api/placeholder/800/200')] opacity-5 mix-blend-overlay" />
+              
+              <CardContent className="p-8 relative z-10">
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <Users className="h-10 w-10 text-primary" />
                   </div>
-
-                  <ClubLogo size="xl" />
+                  
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="text-2xl font-serif font-bold text-white mb-2">
+                      {displayName}
+                    </h3>
+                    <p className="text-white/80">
+                      AMBC Club Member
+                    </p>
+                  </div>
+                  
+                  <Link href="/member/profile">
+                    <Button size="lg" variant="secondary" className="gap-2 shadow-md hover:shadow-lg">
+                      View Profile
+                      <Users className="h-4 w-4" />
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {navigationCards.map((card, index) => {
-              const Icon = card.icon;
-              return (
-                <motion.div
-                  key={card.href}
-                  custom={index}
-                  initial="hidden"
-                  animate="visible"
-                  variants={cardVariants}
-                >
-                  <Link href={card.href} className="block">
-                    {/* Mobile: Button Style */}
-                    <motion.div 
-                      className="md:hidden"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        variant="outline"
-                        className={`w-full justify-start gap-3 h-auto py-4 px-4 border-2 transition-all ${card.hoverBorder} hover:shadow-md`}
-                      >
-                        <motion.div
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        >
-                          <Icon className={`h-5 w-5 ${card.iconColor}`} />
-                        </motion.div>
-                        <span className="font-semibold">{card.title}</span>
-                      </Button>
-                    </motion.div>
-
-                    {/* Desktop: Card Style */}
-                    <motion.div 
-                      className="hidden md:block"
-                      whileHover={{ scale: 1.02, y: -4 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    >
-                      <Card className={`h-full cursor-pointer hover:shadow-lg border-2 ${card.hoverBorder}`}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div>
-                            <CardTitle className="text-lg font-semibold">{card.title}</CardTitle>
-                            <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
-                          </div>
-                          <motion.div
-                            whileHover={{ scale: 1.2, rotate: 10 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                          >
-                            <Icon className={`h-6 w-6 ${card.iconColor}`} />
-                          </motion.div>
-                        </CardHeader>
-                      </Card>
-                    </motion.div>
-                  </Link>
-                </motion.div>
-              );
-            })}
-
-            {member && (
-              <motion.div
-                custom={navigationCards.length}
-                initial="hidden"
-                animate="visible"
-                variants={cardVariants}
-              >
-                <Link href="/member/profile" className="block">
-                  {/* Mobile: Button Style */}
-                  <motion.div 
-                    className="md:hidden"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-auto py-4 px-4 border-2 transition-all hover:border-red-600 hover:shadow-md"
-                    >
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                      >
-                        <User className="h-5 w-5 text-red-600" />
-                      </motion.div>
-                      <span className="font-semibold">Profile</span>
-                    </Button>
-                  </motion.div>
-
-                  {/* Desktop: Card Style */}
-                  <motion.div 
-                    className="hidden md:block"
-                    whileHover={{ scale: 1.02, y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <Card className="h-full cursor-pointer hover:shadow-lg border-2 hover:border-red-600">
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <div>
-                          <CardTitle className="text-lg font-semibold">Profile</CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Edit profile & rekod game
-                          </p>
-                        </div>
-                        <motion.div
-                          whileHover={{ scale: 1.2, rotate: 10 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                        >
-                          <User className="h-6 w-6 text-red-600" />
-                        </motion.div>
-                      </CardHeader>
-                    </Card>
-                  </motion.div>
-                </Link>
-              </motion.div>
-            )}
-          </div>
         </div>
-      </MemberLayout>
-    </PageAccessGuard>
+      </div>
+    </MemberLayout>
   );
 }

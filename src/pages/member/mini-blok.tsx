@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import { SEO } from "@/components/SEO";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1089,10 +1090,7 @@ export default function MiniBlokPage() {
 
     return (
       <>
-        <Head>
-          <title>Shared Mini Blok - AMBC CLUB</title>
-        </Head>
-
+        <SEO title="Shared Mini Blok - AMBC CLUB" description="View-only mini blok tournament shared with public" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
           <div className="border-b bg-theme-header/90 backdrop-blur sticky top-0 z-40">
             <div className="container mx-auto px-4 py-3 max-w-7xl flex items-center justify-between">
@@ -1100,7 +1098,6 @@ export default function MiniBlokPage() {
                 <Button variant="ghost" size="icon" onClick={() => router.push('/member/mini-blok')} className="mr-1 h-8 w-8 shrink-0">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <img src="/ambc-logo.png" alt="AMBC CLUB" className="h-8 w-8 rounded" />
                 <div className="leading-tight">
                   <div className="font-semibold">AMBC CLUB</div>
                   <div className="text-xs text-muted-foreground">Mini Blok Shared</div>
@@ -1157,33 +1154,27 @@ export default function MiniBlokPage() {
 
   return (
     <>
-      <Head>
-        <title>Mini Blok - AMBC CLUB</title>
-      </Head>
+      <SEO title="Mini Blok - AMBC Club" description="Keputusan terkini liga mini blok AMBC Club" />
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <MemberTopBarNav />
 
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <MemberTopBarNav title="Mini Blok" backTo="/member" />
-        <MobileNav />
-
-        <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-7xl">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                  🎳 Mini Blok
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Multi-player tournament tracker
-                </p>
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+          <div className="border-b bg-theme-header/90 backdrop-blur sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-3 max-w-7xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="leading-tight">
+                  <div className="font-semibold">AMBC CLUB</div>
+                  <div className="text-xs text-muted-foreground">Mini Blok</div>
+                </div>
               </div>
-            </div>
 
-            {member && (
-              <Button onClick={() => setShowCreateDialog(true)} size="lg" className="w-full sm:w-auto">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Tournament
-              </Button>
-            )}
+              {member && (
+                <Button onClick={() => setShowCreateDialog(true)} size="lg" className="w-full sm:w-auto">
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Tournament
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">

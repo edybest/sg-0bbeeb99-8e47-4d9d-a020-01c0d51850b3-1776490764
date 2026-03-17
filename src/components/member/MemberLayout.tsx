@@ -58,7 +58,7 @@ export function MemberLayout({ children }: MemberLayoutProps) {
       {/* Top Navigation */}
       {isTopNav && (
         <div className={navSettings.isFixed ? "sticky top-0 z-50" : ""}>
-          <MemberTopBarNav compact={navSettings.isCompact} />
+          <MemberTopBarNav />
         </div>
       )}
 
@@ -78,14 +78,8 @@ export function MemberLayout({ children }: MemberLayoutProps) {
         <main className={`flex-1 ${isBottomNav ? "pb-20" : ""} ${isSidebarNav ? "" : "container mx-auto"}`}>
           {children}
         </main>
+        <MobileNav />
       </div>
-
-      {/* Bottom Navigation */}
-      {isBottomNav && (
-        <div className={navSettings.isFixed ? "fixed bottom-0 left-0 right-0 z-50" : ""}>
-          <MobileNav compact={navSettings.isCompact} />
-        </div>
-      )}
     </div>
   );
 }
