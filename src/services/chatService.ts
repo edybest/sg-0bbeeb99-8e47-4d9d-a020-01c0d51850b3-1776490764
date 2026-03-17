@@ -49,6 +49,33 @@ async function getCurrentMemberId(): Promise<string | null> {
 }
 
 /**
+ * Get or ensure Lobby Room exists for all members
+ */
+export async function ensureLobbyRoom(): Promise<string | null> {
+  const memberId = await getCurrentMemberId();
+  if (!memberId) return null;
+
+  // Get Lobby Room
+  const { data: lobby } = await supabase
+    .from("chat_rooms")
+    .select("id")
+    .eq("name", "Lobby AMBC Club")
+    .eq("type", "group")
+    .maybeSingle();
+
+  if (!lobby) return null;
+
+  // Ensure current member is participant
+  await supabase
+    .from("chat_participants")
+    .insert({ room_id: lobby.id, member_id: memberId })
+    .onConflict(["room_id", "member_id"])
+    .ignoreDuplicates();
+
+  return lobby.id;
+}
+
+/**
  * List all chat rooms for current member
  */
 export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
@@ -127,7 +154,19 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     })
   );
 
-  return rooms as ChatRoomWithDetails[];
+  // Sort: Lobby Room first, then by last message time
+  const sorted = rooms.sort((a, b) => {
+    // Lobby Room always first
+    if (a.name === "Lobby AMBC Club") return -1;
+    if (b.name === "Lobby AMBC Club") return 1;
+    
+    // Then by last message time
+    const aTime = new Date(a.last_message_at || 0).getTime();
+    const bTime = new Date(b.last_message_at || 0).getTime();
+    return bTime - aTime;
+  });
+
+  return sorted as ChatRoomWithDetails[];
 }
 
 /**

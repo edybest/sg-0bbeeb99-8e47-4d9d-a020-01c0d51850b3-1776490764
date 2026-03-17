@@ -28,6 +28,7 @@ import {
   subscribeToMessages,
   getOrCreateDirectChat,
   listAllMembers,
+  ensureLobbyRoom,
   type ChatRoomWithDetails,
   type ChatMessageWithSender,
 } from "@/services/chatService";
@@ -52,7 +53,13 @@ export default function ChatPage() {
 
   // Load chat rooms
   useEffect(() => {
-    void loadRooms();
+    async function init() {
+      // Ensure user is in Lobby Room
+      await ensureLobbyRoom();
+      // Then load all chats
+      await loadRooms();
+    }
+    void init();
   }, []);
 
   // Load messages when room selected
@@ -344,7 +351,14 @@ export default function ChatPage() {
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-sm truncate">{getRoomName(room)}</h3>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-sm truncate">{getRoomName(room)}</h3>
+                                {room.name === "Lobby AMBC Club" && (
+                                  <Badge variant="secondary" className="text-xs bg-gradient-to-r from-amber-400 to-orange-400 text-white">
+                                    🌟 Public
+                                  </Badge>
+                                )}
+                              </div>
                               {room.unread_count && room.unread_count > 0 ? (
                                 <Badge className="bg-rose-500 text-white ml-2 flex-shrink-0">
                                   {room.unread_count}
