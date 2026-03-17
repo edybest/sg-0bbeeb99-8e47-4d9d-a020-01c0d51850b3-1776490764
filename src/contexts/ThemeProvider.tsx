@@ -9,6 +9,9 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const [themeConfig, setThemeConfig] = React.useState<AppTheme | null>(null);
 
   React.useEffect(() => {
+    // Force light mode
+    document.documentElement.classList.remove('dark');
+    
     // Load initial theme config
     themeService.getTheme().then(setThemeConfig);
 

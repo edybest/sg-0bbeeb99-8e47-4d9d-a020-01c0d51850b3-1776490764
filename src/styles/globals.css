@@ -73,46 +73,8 @@
   }
 
   .dark {
-    /* Dark Mode - Elegant Night Bowling */
-    --background: 340 15% 8%;
-    --foreground: 340 5% 95%;
-
-    --primary: 340 75% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 270 40% 35%;
-    --secondary-foreground: 270 10% 95%;
-
-    --accent: 10 70% 50%;
-    --accent-foreground: 0 0% 100%;
-
-    --muted: 340 10% 15%;
-    --muted-foreground: 340 5% 70%;
-
-    --card: 340 12% 10%;
-    --card-foreground: 340 5% 95%;
-
-    --popover: 340 12% 10%;
-    --popover-foreground: 340 5% 95%;
-
-    --border: 340 15% 20%;
-    --input: 340 15% 18%;
-    --ring: 340 75% 55%;
-
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 150 50% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 30 80% 55%;
-    --warning-foreground: 30 80% 15%;
-
-    --chart-1: 340 75% 55%;
-    --chart-2: 270 40% 45%;
-    --chart-3: 10 70% 50%;
-    --chart-4: 150 50% 45%;
-    --chart-5: 30 80% 55%;
+    /* Dark mode disabled */
+    display: none;
   }
 }
 
