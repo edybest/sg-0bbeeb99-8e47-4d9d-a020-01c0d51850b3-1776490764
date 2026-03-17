@@ -294,6 +294,11 @@ export default function HomePage() {
                 }
 
                 await loadSession(session);
+                
+                // Redirect to member dashboard after loading session
+                if (isMounted) {
+                    await router.push("/member");
+                }
             } catch (error) {
                 console.error("Failed to initialize auth state:", error);
                 if (isMounted) {
@@ -315,7 +320,7 @@ export default function HomePage() {
             isMounted = false;
             subscription.unsubscribe();
         };
-    }, [loadSession]);
+    }, [loadSession, router]);
 
     const visibleNavigationCards = useMemo(() => {
         const isAuthenticated = authState === "authenticated";
