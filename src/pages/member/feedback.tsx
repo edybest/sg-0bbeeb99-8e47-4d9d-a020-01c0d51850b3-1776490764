@@ -16,6 +16,8 @@ import { MessageSquare, Bug, HelpCircle, Send, Upload, X, Check, Clock, CheckCir
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ms } from "date-fns/locale";
+import { MemberLayout } from "@/components/member/MemberLayout";
+import { SEO } from "@/components/SEO";
 
 const categoryConfig = {
   cadangan: {
@@ -190,34 +192,32 @@ export default function FeedbackPage() {
 
   return (
     <PageAccessGuard pagePath="/member/feedback">
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-50">
-        <MemberTopBarNav />
+      <SEO title="Feedback - AMBC Club" description="Hantar maklum balas anda" />
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
+        <MemberLayout>
+          <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-4xl">
+            
+            {/* Hero Header */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-3xl shadow-2xl p-8 sm:p-12 mb-8">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium mb-4">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Suara Anda</span>
+                </div>
+                <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
+                  Feedback 💬
+                </h1>
+                <p className="text-pink-50 text-lg max-w-2xl">
+                  Kongsi cadangan dan maklum balas anda dengan kami
+                </p>
+              </div>
+            </div>
 
-        <div className="container mx-auto px-4 py-6 pb-24 max-w-4xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <h1 className="text-3xl font-bold text-rose-900">Maklum Balas</h1>
-            <p className="text-rose-600 mt-2">
-              Kongsi cadangan, laporkan masalah, atau tanya soalan
-            </p>
-          </motion.div>
-
-          {/* Feedback Form */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Hantar Maklum Balas Baru</CardTitle>
-                <CardDescription>
-                  Pilih kategori dan isi maklumat berkaitan
-                </CardDescription>
+            {/* Feedback Form Card */}
+            <Card className="border-2 border-pink-200 shadow-xl">
+              <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50">
+                <CardTitle className="text-2xl text-rose-900">Hantar Maklum Balas</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -365,14 +365,8 @@ export default function FeedbackPage() {
                 </form>
               </CardContent>
             </Card>
-          </motion.div>
 
-          {/* My Feedback History */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+            {/* My Feedback History */}
             <Card>
               <CardHeader>
                 <CardTitle>Sejarah Maklum Balas Saya</CardTitle>
@@ -470,10 +464,8 @@ export default function FeedbackPage() {
                 )}
               </CardContent>
             </Card>
-          </motion.div>
-        </div>
-
-        <MobileNav />
+          </div>
+        </MemberLayout>
       </div>
     </PageAccessGuard>
   );

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { SEO } from "@/components/SEO";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
-import { MobileNav } from "@/components/member/MobileNav";
+import { MemberLayout } from "@/components/member/MemberLayout";
 import {
   Trophy,
   Target,
@@ -74,6 +74,7 @@ export default function TrainingPage() {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentRoll, setCurrentRoll] = useState(1);
   const [memberId, setMemberId] = useState<string>("");
+  const [showForm, setShowForm] = useState(false);
 
   // Form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -465,391 +466,250 @@ export default function TrainingPage() {
       <>
         <SEO 
           title="Training - AMBC Club"
-          description="Record bowling practice scores"
+          description="Rekod skor latihan bowling anda"
         />
-        <div className="min-h-screen bg-rose-50 pb-20 md:pb-8">
-          {/* Header */}
-          <header className="bg-white shadow-sm border-b border-rose-200 sticky top-0 z-10">
-            <div className="container mx-auto px-4 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Link href="/member">
-                    <Button variant="ghost" size="icon">
-                      <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <MobileNav />
-                  <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-pink-600">Training</h1>
-                    <p className="text-xs md:text-sm text-rose-600">Practice Scores</p>
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
+          <MemberLayout>
+            <div className="container mx-auto px-4 py-6 max-w-4xl">
+              
+              {/* Hero Header */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-3xl shadow-2xl p-8 sm:p-12 mb-8">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium mb-4">
+                    <Target className="w-4 h-4" />
+                    <span>Training Mode</span>
                   </div>
+                  <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
+                    Training Scores 🎯
+                  </h1>
+                  <p className="text-pink-50 text-lg max-w-2xl">
+                    Rekod dan pantau kemajuan latihan bowling anda
+                  </p>
                 </div>
               </div>
-            </div>
-          </header>
 
-          <div className="container mx-auto px-4 py-6 max-w-7xl">
-            {/* Statistics Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Total Sessions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl md:text-3xl font-bold text-pink-600">{scores.length}</p>
-                </CardContent>
-              </Card>
+              {/* Statistics Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Total Sessions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl md:text-3xl font-bold text-pink-600">{scores.length}</p>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    Average
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl md:text-3xl font-bold text-blue-600">{avgScore}</p>
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Average
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl md:text-3xl font-bold text-blue-600">{avgScore}</p>
+                  </CardContent>
+                </Card>
 
-              <Card className="col-span-2 md:col-span-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
-                    <Award className="h-4 w-4" />
-                    Highest
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl md:text-3xl font-bold text-yellow-600">{highScore}</p>
-                </CardContent>
-              </Card>
-            </div>
+                <Card className="col-span-2 md:col-span-1">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs md:text-sm font-medium text-rose-600 flex items-center gap-2">
+                      <Award className="h-4 w-4" />
+                      Highest
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl md:text-3xl font-bold text-yellow-600">{highScore}</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Progress Chart */}
-            {scores.length > 0 && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg">Progress Chart</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64 md:h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="game" />
-                        <YAxis />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="score" stroke="#dc2626" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              {/* Progress Chart */}
+              {scores.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-base md:text-lg">Progress Chart</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64 md:h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="game" />
+                          <YAxis />
+                          <Tooltip />
+                          <Line type="monotone" dataKey="score" stroke="#dc2626" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-            {/* Add Score Button */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full mb-6 bg-pink-600 hover:bg-pink-600 h-12 text-base md:text-lg">
+              {/* Add Score Button */}
+              <div className="mb-6">
+                <Button
+                  onClick={() => setShowForm(true)}
+                  className="w-full sm:w-auto bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  size="lg"
+                >
                   <Plus className="mr-2 h-5 w-5" />
-                  Add Score
+                  Tambah Skor Latihan
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-full md:max-w-4xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
-                <DialogHeader>
-                  <DialogTitle className="text-lg md:text-xl">
-                    {editingScore ? "Edit" : "Add"} Training Score
-                  </DialogTitle>
-                </DialogHeader>
+              </div>
 
-                <div className="space-y-4">
-                  {/* Date & Location */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="date" className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Date
-                      </Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        placeholder="e.g., Daiman Bowl"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
+              {/* Add Score Form */}
+              {showForm && (
+                <Card className="mb-6 border-2 border-pink-200 shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50">
+                    <CardTitle className="text-2xl text-rose-900">Tambah Skor Baru</CardTitle>
+                  </CardHeader>
+                </Card>
+              )}
 
-                  {/* Bowling Scorecard */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base md:text-lg font-semibold">Scorecard</Label>
-                      <div className="text-sm text-rose-600">
-                        Frame {currentFrame + 1}, Roll {currentRoll}
-                      </div>
-                    </div>
-
-                    {/* Scorecard Grid */}
-                    <div className="grid grid-cols-5 md:grid-cols-10 gap-2 bg-white p-3 md:p-4 rounded-lg border-2 border-rose-200">
-                      {frames.map((frame, i) => (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            setCurrentFrame(i);
-                            setCurrentRoll(1);
-                          }}
-                          className={`relative border-2 rounded-md p-2 cursor-pointer transition-colors ${
-                            i === currentFrame ? "border-primary bg-pink-50" : "border-rose-300 hover:border-gray-400"
-                          }`}
-                        >
-                          <div className="text-[10px] md:text-xs font-bold text-center text-rose-600 mb-1">
-                            {i + 1}
-                          </div>
-                          <div className="grid grid-cols-2 gap-1">
-                            <div className="h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white relative">
-                              {frame.roll1 || ""}
-                              {frame.split && (
-                                <span className="absolute top-0 right-0 text-[10px] text-orange-600 font-black">⊗</span>
-                              )}
-                            </div>
-                            <div className="h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white">
-                              {frame.roll2 || ""}
-                            </div>
-                            {i === 9 && (
-                              <div className="col-span-2 h-8 md:h-10 flex items-center justify-center border border-rose-200 rounded text-sm md:text-base font-bold bg-white mt-1">
-                                {frame.roll3 || ""}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Pin Input Buttons */}
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
-                        {availablePinButtons.map((pin) => (
-                          <Button
-                            key={pin.value}
-                            onClick={() => handlePinInput(pin.value)}
-                            className={`${pin.color} text-white font-bold text-xl h-[12vh] sm:h-24 rounded-lg shadow-lg transition-all duration-150 active:scale-95 transform hover:shadow-xl`}
-                          >
-                            {pin.label}
-                          </Button>
-                        ))}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-3">
-                        <Button
-                          onClick={clearCurrentFrame}
-                          variant="outline"
-                          className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold transition-all duration-150 active:scale-95 transform"
-                        >
-                          Clear Frame
-                        </Button>
-                        
-                        <Button
-                          onClick={clearAllFrames}
-                          variant="outline"
-                          className="border-2 border-pink-400 text-pink-600 hover:bg-pink-50 font-semibold transition-all duration-150 active:scale-95 transform"
-                        >
-                          Clear All
-                        </Button>
-
-                        <Button
-                          onClick={toggleSplit}
-                          variant="outline"
-                          className={`border-2 font-semibold transition-all duration-150 active:scale-95 transform ${
-                            frames[currentFrame]?.split 
-                              ? "border-orange-500 bg-orange-100 text-orange-700 hover:bg-orange-200" 
-                              : "border-rose-300 text-rose-600 hover:bg-rose-50"
-                          }`}
-                          disabled={currentRoll !== 1}
-                        >
-                          Split {frames[currentFrame]?.split && "⊗"}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Total Score Display */}
-                    <div className="bg-pink-600 text-white p-4 rounded-lg text-center mt-4">
-                      <div className="text-sm md:text-base font-medium">Total Score</div>
-                      <div className="text-4xl md:text-5xl font-black mt-1">{calculateBowlingScore(frames)}</div>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Add notes about this practice session..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="mt-1 min-h-[80px]"
-                    />
-                  </div>
-
-                  {/* Save Button */}
-                  <Button onClick={handleSave} className="w-full bg-pink-600 hover:bg-pink-600 h-12 text-base font-bold">
-                    {editingScore ? "Update Score" : "Save Score"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            {/* Scores History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Training History
-                  <span className="text-sm font-normal text-rose-500">
-                    ({scores.length} total scores)
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Pagination Info */}
-                {scores.length > 0 && (
-                  <div className="mb-4 flex items-center justify-between text-sm text-rose-600">
-                    <span>
-                      Showing {startIndex + 1}-{Math.min(endIndex, scores.length)} of {scores.length} scores
+              {/* Scores History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Training History
+                    <span className="text-sm font-normal text-rose-500">
+                      ({scores.length} total scores)
                     </span>
-                    <span>
-                      Page {currentPage} of {totalPages}
-                    </span>
-                  </div>
-                )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Pagination Info */}
+                  {scores.length > 0 && (
+                    <div className="mb-4 flex items-center justify-between text-sm text-rose-600">
+                      <span>
+                        Showing {startIndex + 1}-{Math.min(endIndex, scores.length)} of {scores.length} scores
+                      </span>
+                      <span>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                    </div>
+                  )}
 
-                {paginatedScores.length === 0 ? (
-                  <div className="text-center py-12 text-rose-500">
-                    <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No training scores yet. Add your first score!</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[100px]">Date</TableHead>
-                          <TableHead className="hidden md:table-cell">Location</TableHead>
-                          <TableHead className="text-center">Score</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedScores.map((score) => (
-                          <TableRow key={score.id}>
-                            <TableCell className="font-medium">
-                              {new Date(score.training_date).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell">{score.location || "-"}</TableCell>
-                            <TableCell className="text-center font-bold text-lg">{score.total_score}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => handleEdit(score)}
-                                  className="h-8 w-8"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => handleDelete(score.id)}
-                                  className="h-8 w-8 text-pink-600 hover:bg-pink-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                  {paginatedScores.length === 0 ? (
+                    <div className="text-center py-12 text-rose-500">
+                      <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No training scores yet. Add your first score!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Date</TableHead>
+                            <TableHead className="hidden md:table-cell">Location</TableHead>
+                            <TableHead className="text-center">Score</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="mt-6 flex items-center justify-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="transition-all active:scale-95"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        // Show first page, last page, current page, and pages around current
-                        const showPage = 
-                          page === 1 || 
-                          page === totalPages || 
-                          Math.abs(page - currentPage) <= 1;
-                        
-                        if (!showPage) {
-                          // Show ellipsis
-                          if (page === currentPage - 2 || page === currentPage + 2) {
-                            return <span key={page} className="px-2 text-gray-400">...</span>;
-                          }
-                          return null;
-                        }
-
-                        return (
-                          <Button
-                            key={page}
-                            variant={currentPage === page ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(page)}
-                            className={`min-w-[40px] transition-all active:scale-95 ${
-                              currentPage === page 
-                                ? "bg-pink-600 hover:bg-pink-600 text-white" 
-                                : ""
-                            }`}
-                          >
-                            {page}
-                          </Button>
-                        );
-                      })}
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedScores.map((score) => (
+                            <TableRow key={score.id}>
+                              <TableCell className="font-medium">
+                                {new Date(score.training_date).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">{score.location || "-"}</TableCell>
+                              <TableCell className="text-center font-bold text-lg">{score.total_score}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleEdit(score)}
+                                    className="h-8 w-8"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleDelete(score.id)}
+                                    className="h-8 w-8 text-pink-600 hover:bg-pink-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
+                  )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="transition-all active:scale-95"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="transition-all active:scale-95"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Show first page, last page, current page, and pages around current
+                          const showPage = 
+                            page === 1 || 
+                            page === totalPages || 
+                            Math.abs(page - currentPage) <= 1;
+                          
+                          if (!showPage) {
+                            // Show ellipsis
+                            if (page === currentPage - 2 || page === currentPage + 2) {
+                              return <span key={page} className="px-2 text-gray-400">...</span>;
+                            }
+                            return null;
+                          }
+
+                          return (
+                            <Button
+                              key={page}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className={`min-w-[40px] transition-all active:scale-95 ${
+                                currentPage === page 
+                                  ? "bg-pink-600 hover:bg-pink-600 text-white" 
+                                  : ""
+                              }`}
+                            >
+                              {page}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="transition-all active:scale-95"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </MemberLayout>
         </div>
       </>
     </PageAccessGuard>

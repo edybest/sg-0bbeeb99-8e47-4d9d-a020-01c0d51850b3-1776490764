@@ -20,6 +20,7 @@ import { ArrowLeft, User, Save, Loader2, Camera, History, Calendar, Phone, Mail 
 import { useToast } from "@/hooks/use-toast";
 import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
+import { MemberLayout } from "@/components/member/MemberLayout";
 
 type Member = {
   id: string;
@@ -261,273 +262,276 @@ export default function ProfilePage() {
   return (
     <PageAccessGuard pagePath="/member/profile" requireAuth={true}>
       <>
-        <SEO title="Profile - AMBC Club" description="Member profile and statistics" />
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-          {/* Header */}
-          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between px-4">
-              <div className="flex items-center gap-3">
-                <Link href="/member">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <div>
-                  <h1 className="text-lg font-bold">Profile</h1>
-                  <p className="text-xs text-muted-foreground">Maklumat Ahli</p>
+        <SEO title="Profile - AMBC Club" description="Profil ahli AMBC Club" />
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
+          <MemberLayout>
+            <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-4xl">
+              
+              {/* Hero Header */}
+              <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-3xl shadow-2xl p-8 sm:p-12 mb-8">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium mb-4">
+                    <User className="w-4 h-4" />
+                    <span>Maklumat Ahli</span>
+                  </div>
+                  <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
+                    My Profile 👤
+                  </h1>
+                  <p className="text-pink-50 text-lg max-w-2xl">
+                    Kemaskini maklumat peribadi anda
+                  </p>
                 </div>
               </div>
-            </div>
-          </header>
 
-          <main className="container mx-auto px-4 py-6">
-            <Tabs defaultValue="details" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="details">Butiran Diri</TabsTrigger>
-                <TabsTrigger value="history">Sejarah Game</TabsTrigger>
-              </TabsList>
+              <Tabs defaultValue="details" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="details">Butiran Diri</TabsTrigger>
+                  <TabsTrigger value="history">Sejarah Game</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="details">
-                <div className="grid md:grid-cols-3 gap-6">
-                  {/* Avatar Section */}
-                  <Card className="md:col-span-1">
-                    <CardContent className="pt-6 flex flex-col items-center">
-                      <div className="relative mb-4">
-                        {member.avatar_url ? (
-                          isBase64Image(member.avatar_url) ? (
-                            <img
-                              src={member.avatar_url}
-                              alt={member.username}
-                              className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
-                            />
-                          ) : (
-                            <Image
-                              src={member.avatar_url}
-                              alt={member.username}
-                              width={150}
-                              height={150}
-                              className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
-                              unoptimized
-                            />
-                          )
-                        ) : (
-                          <div className="w-[150px] h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-4xl font-bold border-4 border-primary/20 shadow">
-                            {member.username[0].toUpperCase()}
-                          </div>
-                        )}
-                        
-                        {isOwnProfile && (
-                          <Button
-                            size="icon"
-                            className="absolute bottom-0 right-0 rounded-full shadow-lg"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploading}
-                          >
-                            {uploading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                <TabsContent value="details">
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {/* Avatar Section */}
+                    <Card className="md:col-span-1">
+                      <CardContent className="pt-6 flex flex-col items-center">
+                        <div className="relative mb-4">
+                          {member.avatar_url ? (
+                            isBase64Image(member.avatar_url) ? (
+                              <img
+                                src={member.avatar_url}
+                                alt={member.username}
+                                className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
+                              />
                             ) : (
-                              <Camera className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleAvatarUpload}
-                        />
-                      </div>
-                      
-                      <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
-                      <p className="text-rose-500 text-center mb-2">@{member.username}</p>
-                      <Badge variant="outline" className="mb-4">
-                        Handicap: {member.handicap}
-                      </Badge>
-                    </CardContent>
-                  </Card>
+                              <Image
+                                src={member.avatar_url}
+                                alt={member.username}
+                                width={150}
+                                height={150}
+                                className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
+                                unoptimized
+                              />
+                            )
+                          ) : (
+                            <div className="w-[150px] h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-4xl font-bold border-4 border-primary/20 shadow">
+                              {member.username[0].toUpperCase()}
+                            </div>
+                          )}
+                          
+                          {isOwnProfile && (
+                            <Button
+                              size="icon"
+                              className="absolute bottom-0 right-0 rounded-full shadow-lg"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={uploading}
+                            >
+                              {uploading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Camera className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                          />
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
+                        <p className="text-rose-500 text-center mb-2">@{member.username}</p>
+                        <Badge variant="outline" className="mb-4">
+                          Handicap: {member.handicap}
+                        </Badge>
+                      </CardContent>
+                    </Card>
 
-                  {/* Edit Form */}
-                  <Card className="md:col-span-2">
+                    {/* Edit Form */}
+                    <Card className="md:col-span-2">
+                      <CardHeader>
+                        <CardTitle>Maklumat Peribadi</CardTitle>
+                        <CardDescription>
+                          {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleUpdateProfile} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="username">Username</Label>
+                              <Input id="username" value={member.username} disabled />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="email">Email</Label>
+                              <Input id="email" value={member.email || "-"} disabled />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="full_name">Nama Penuh</Label>
+                              <Input 
+                                id="full_name" 
+                                value={member.full_name} 
+                                onChange={(e) => setMember({...member, full_name: e.target.value})}
+                                disabled={!isOwnProfile}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="phone">No. Telefon</Label>
+                              <Input 
+                                id="phone" 
+                                value={member.phone || ""} 
+                                onChange={(e) => setMember({...member, phone: e.target.value})}
+                                placeholder="+60123456789"
+                                disabled={!isOwnProfile}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="sex">Jantina</Label>
+                              <Select 
+                                value={member.sex || "men"} 
+                                onValueChange={(val) => setMember({...member, sex: val})}
+                                disabled={!isOwnProfile}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="men">Lelaki</SelectItem>
+                                  <SelectItem value="women">Perempuan</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="birthday">Tarikh Lahir</Label>
+                              <Input 
+                                id="birthday" 
+                                type="date"
+                                value={member.birthday || ""} 
+                                onChange={(e) => setMember({...member, birthday: e.target.value})}
+                                disabled={!isOwnProfile}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="technique">Teknik Balingan</Label>
+                              <Select 
+                                value={member.technique || "Straight"} 
+                                onValueChange={(val) => setMember({...member, technique: val})}
+                                disabled={!isOwnProfile}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Straight">Straight</SelectItem>
+                                  <SelectItem value="Hook">Hook</SelectItem>
+                                  <SelectItem value="Spinner">Spinner</SelectItem>
+                                  <SelectItem value="Backup">Backup</SelectItem>
+                                  <SelectItem value="Kidal">Kidal</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {isOwnProfile && (
+                            <div className="pt-4 flex justify-end">
+                              <Button type="submit" disabled={saving} className="bg-pink-600 hover:bg-pink-600">
+                                {saving ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Simpan Perubahan
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="history">
+                  <Card>
                     <CardHeader>
-                      <CardTitle>Maklumat Peribadi</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <History className="h-5 w-5" />
+                        Sejarah Permainan
+                      </CardTitle>
                       <CardDescription>
-                        {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
+                        10 game terkini yang disertai
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <form onSubmit={handleUpdateProfile} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
-                            <Input id="username" value={member.username} disabled />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" value={member.email || "-"} disabled />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="full_name">Nama Penuh</Label>
-                            <Input 
-                              id="full_name" 
-                              value={member.full_name} 
-                              onChange={(e) => setMember({...member, full_name: e.target.value})}
-                              disabled={!isOwnProfile}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">No. Telefon</Label>
-                            <Input 
-                              id="phone" 
-                              value={member.phone || ""} 
-                              onChange={(e) => setMember({...member, phone: e.target.value})}
-                              placeholder="+60123456789"
-                              disabled={!isOwnProfile}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="sex">Jantina</Label>
-                            <Select 
-                              value={member.sex || "men"} 
-                              onValueChange={(val) => setMember({...member, sex: val})}
-                              disabled={!isOwnProfile}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="men">Lelaki</SelectItem>
-                                <SelectItem value="women">Perempuan</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="birthday">Tarikh Lahir</Label>
-                            <Input 
-                              id="birthday" 
-                              type="date"
-                              value={member.birthday || ""} 
-                              onChange={(e) => setMember({...member, birthday: e.target.value})}
-                              disabled={!isOwnProfile}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="technique">Teknik Balingan</Label>
-                            <Select 
-                              value={member.technique || "Straight"} 
-                              onValueChange={(val) => setMember({...member, technique: val})}
-                              disabled={!isOwnProfile}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Straight">Straight</SelectItem>
-                                <SelectItem value="Hook">Hook</SelectItem>
-                                <SelectItem value="Spinner">Spinner</SelectItem>
-                                <SelectItem value="Backup">Backup</SelectItem>
-                                <SelectItem value="Kidal">Kidal</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                      {history.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Belum ada rekod permainan.
                         </div>
-
-                        {isOwnProfile && (
-                          <div className="pt-4 flex justify-end">
-                            <Button type="submit" disabled={saving} className="bg-pink-600 hover:bg-pink-600">
-                              {saving ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Saving...
-                                </>
-                              ) : (
-                                <>
-                                  <Save className="mr-2 h-4 w-4" />
-                                  Simpan Perubahan
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        )}
-                      </form>
+                      ) : (
+                        <div className="space-y-4">
+                          {history.map((game) => (
+                            <div 
+                              key={game.id} 
+                              className="border rounded-lg p-4 hover:bg-rose-50 transition-colors"
+                            >
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <h3 className="font-bold">{game.games.game_name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-xs text-muted-foreground">Overall</span>
+                                  <p className="text-xl font-bold text-pink-600">{game.overall_score}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                                <div className="bg-rose-100 rounded p-1">
+                                  <span className="text-xs text-rose-500 block">G1</span>
+                                  <span className="font-medium">{game.game1_score}</span>
+                                </div>
+                                <div className="bg-rose-100 rounded p-1">
+                                  <span className="text-xs text-rose-500 block">G2</span>
+                                  <span className="font-medium">{game.game2_score}</span>
+                                </div>
+                                <div className="bg-rose-100 rounded p-1">
+                                  <span className="text-xs text-rose-500 block">G3</span>
+                                  <span className="font-medium">{game.game3_score}</span>
+                                </div>
+                                <div className="bg-rose-100 rounded p-1">
+                                  <span className="text-xs text-rose-500 block">G4</span>
+                                  <span className="font-medium">{game.game4_score}</span>
+                                </div>
+                                <div className="bg-rose-100 rounded p-1">
+                                  <span className="text-xs text-rose-500 block">G5</span>
+                                  <span className="font-medium">{game.game5_score}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="history">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <History className="h-5 w-5" />
-                      Sejarah Permainan
-                    </CardTitle>
-                    <CardDescription>
-                      10 game terkini yang disertai
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {history.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Belum ada rekod permainan.
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {history.map((game) => (
-                          <div 
-                            key={game.id} 
-                            className="border rounded-lg p-4 hover:bg-rose-50 transition-colors"
-                          >
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <h3 className="font-bold">{game.games.game_name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-xs text-muted-foreground">Overall</span>
-                                <p className="text-xl font-bold text-pink-600">{game.overall_score}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-5 gap-2 text-center text-sm">
-                              <div className="bg-rose-100 rounded p-1">
-                                <span className="text-xs text-rose-500 block">G1</span>
-                                <span className="font-medium">{game.game1_score}</span>
-                              </div>
-                              <div className="bg-rose-100 rounded p-1">
-                                <span className="text-xs text-rose-500 block">G2</span>
-                                <span className="font-medium">{game.game2_score}</span>
-                              </div>
-                              <div className="bg-rose-100 rounded p-1">
-                                <span className="text-xs text-rose-500 block">G3</span>
-                                <span className="font-medium">{game.game3_score}</span>
-                              </div>
-                              <div className="bg-rose-100 rounded p-1">
-                                <span className="text-xs text-rose-500 block">G4</span>
-                                <span className="font-medium">{game.game4_score}</span>
-                              </div>
-                              <div className="bg-rose-100 rounded p-1">
-                                <span className="text-xs text-rose-500 block">G5</span>
-                                <span className="font-medium">{game.game5_score}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </main>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </MemberLayout>
         </div>
       </>
     </PageAccessGuard>
