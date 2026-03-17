@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Home, Trophy, Target, Award, MapPin, Dices, Gamepad2, TrendingUp, Image, MessageSquare, User, Star } from "lucide-react";
+import { Home, Trophy, Target, Award, MapPin, Dices, Gamepad2, TrendingUp, Image, MessageSquare, User, Star, Shuffle, MessageCircle } from "lucide-react";
 
 const menuItems = [
   { href: "/member", icon: Home, label: "Home" },
@@ -10,8 +10,9 @@ const menuItems = [
   { href: "/member/average-score", icon: Target, label: "Train" },
   { href: "/member/undi-lane", icon: Dices, label: "Lane Draw" },
   { href: "/member/lane", icon: MapPin, label: "Lane" },
-  { href: "/member/mini-blok", icon: Gamepad2, label: "Mini Blok" },
-  { href: "/member/training", icon: TrendingUp, label: "Training" },
+  { href: "/member/mini-blok", icon: Gamepad2, label: "Mini" },
+  { href: "/member/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/member/training", icon: TrendingUp, label: "Train" },
   { href: "/member/gallery", icon: Image, label: "Gallery" },
   { href: "/member/feedback", icon: MessageSquare, label: "Feedback" },
   { href: "/member/profile", icon: User, label: "Profile" },
