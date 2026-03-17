@@ -7,6 +7,7 @@ type ChatParticipant = Tables<"chat_participants">;
 
 export interface ChatRoomWithDetails extends ChatRoom {
   participants: Array<{
+    last_read_at: string | null;
     member: {
       id: string;
       full_name: string;
@@ -14,7 +15,7 @@ export interface ChatRoomWithDetails extends ChatRoom {
     };
   }>;
   last_message?: {
-    content: string;
+    message: string;
     created_at: string;
     sender: {
       full_name: string;
@@ -59,6 +60,7 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
     .select(`
       *,
       participants:chat_participants(
+        last_read_at,
         member:members(id, full_name, avatar_url)
       )
     `)
@@ -76,29 +78,43 @@ export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
       // Get last message
       const { data: lastMsg } = await supabase
         .from("chat_messages")
-        .select("content, created_at, sender:members(full_name)")
+        .select("message, created_at, sender:members(full_name)")
         .eq("room_id", room.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      // Get unread count
-      const { count } = await supabase
-        .from("chat_messages")
-        .select("*", { count: "exact", head: true })
-        .eq("room_id", room.id)
-        .neq("sender_id", memberId)
-        .is("read_at", null);
+      // Get unread count based on last_read_at
+      const participant = room.participants.find((p: any) => p.member?.id === memberId);
+      const lastReadAt = participant ? participant.last_read_at : null;
+      
+      let count = 0;
+      if (lastReadAt) {
+        const { count: c } = await supabase
+          .from("chat_messages")
+          .select("*", { count: "exact", head: true })
+          .eq("room_id", room.id)
+          .gt("created_at", lastReadAt)
+          .neq("sender_id", memberId);
+        count = c || 0;
+      } else {
+        const { count: c } = await supabase
+          .from("chat_messages")
+          .select("*", { count: "exact", head: true })
+          .eq("room_id", room.id)
+          .neq("sender_id", memberId);
+        count = c || 0;
+      }
 
       return {
         ...room,
-        last_message: lastMsg || undefined,
-        unread_count: count || 0,
+        last_message: lastMsg as any,
+        unread_count: count,
       };
     })
   );
 
-  return rooms;
+  return rooms as ChatRoomWithDetails[];
 }
 
 /**
@@ -110,15 +126,23 @@ export async function getOrCreateDirectChat(
   const memberId = await getCurrentMemberId();
   if (!memberId) return null;
 
-  const { data, error } = await supabase.rpc("get_or_create_direct_chat", {
-    member1: memberId,
-    member2: otherMemberId,
+  const { data: roomId, error } = await supabase.rpc("get_or_create_direct_chat", {
+    member1_id: memberId,
+    member2_id: otherMemberId,
   });
 
   if (error) {
     console.error("Error getting/creating chat:", error);
     return null;
   }
+
+  if (!roomId) return null;
+
+  const { data } = await supabase
+    .from("chat_rooms")
+    .select("*")
+    .eq("id", roomId)
+    .single();
 
   return data;
 }
@@ -134,6 +158,7 @@ export async function getChatRoom(
     .select(`
       *,
       participants:chat_participants(
+        last_read_at,
         member:members(id, full_name, avatar_url)
       )
     `)
@@ -145,7 +170,7 @@ export async function getChatRoom(
     return null;
   }
 
-  return data;
+  return data as unknown as ChatRoomWithDetails;
 }
 
 /**
@@ -170,7 +195,7 @@ export async function listMessages(
     return [];
   }
 
-  return data || [];
+  return (data || []) as unknown as ChatMessageWithSender[];
 }
 
 /**
@@ -188,7 +213,7 @@ export async function sendMessage(
     .insert({
       room_id: roomId,
       sender_id: memberId,
-      content: content.trim(),
+      message: content.trim(),
     })
     .select()
     .single();
@@ -209,11 +234,10 @@ export async function markMessagesAsRead(roomId: string): Promise<void> {
   if (!memberId) return;
 
   const { error } = await supabase
-    .from("chat_messages")
-    .update({ read_at: new Date().toISOString() })
+    .from("chat_participants")
+    .update({ last_read_at: new Date().toISOString() })
     .eq("room_id", roomId)
-    .neq("sender_id", memberId)
-    .is("read_at", null);
+    .eq("member_id", memberId);
 
   if (error) {
     console.error("Error marking messages as read:", error);
@@ -249,7 +273,7 @@ export function subscribeToMessages(
           .single();
 
         if (data) {
-          callback(data as ChatMessageWithSender);
+          callback(data as unknown as ChatMessageWithSender);
         }
       }
     )
@@ -301,7 +325,7 @@ export async function createGroupChat(
     .single();
 
   if (roomError) {
-    console.error("Error creating group chat:", error);
+    console.error("Error creating group chat:", roomError);
     return null;
   }
 

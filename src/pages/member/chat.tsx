@@ -276,7 +276,7 @@ export default function ChatPage() {
                             </div>
                             {room.last_message ? (
                               <p className="text-xs text-muted-foreground truncate">
-                                {room.last_message.content}
+                                {room.last_message.message}
                               </p>
                             ) : (
                               <p className="text-xs text-muted-foreground italic">No messages yet</p>
@@ -351,7 +351,7 @@ export default function ChatPage() {
                                     : "bg-gray-100 dark:bg-gray-700"
                                 }`}
                               >
-                                <p className="text-sm break-words">{msg.content}</p>
+                                <p className="text-sm break-words">{msg.message}</p>
                                 <p className={`text-xs mt-1 ${isOwn ? "text-white/70" : "text-muted-foreground"}`}>
                                   {new Date(msg.created_at).toLocaleTimeString("en-US", {
                                     hour: "2-digit",
