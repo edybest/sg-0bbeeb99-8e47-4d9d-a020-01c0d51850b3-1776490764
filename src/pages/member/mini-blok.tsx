@@ -1050,7 +1050,7 @@ export default function MiniBlokPage() {
     const url =
       shareMode === "editable"
         ? generateShareUrl(shareEntry.id)
-        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : generateShareUrl(shareEntry.id));
+        : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : "");
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text + "\n\n" + url)}`;
     window.open(whatsappUrl, "_blank");
   }
@@ -2262,6 +2262,7 @@ export default function MiniBlokPage() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
       </MemberLayout>
     </PageAccessGuard>
   );
