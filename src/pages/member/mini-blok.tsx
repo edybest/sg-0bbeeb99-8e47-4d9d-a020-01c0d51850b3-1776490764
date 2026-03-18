@@ -56,6 +56,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMemberDebug } from "@/hooks/useMemberDebug";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { MemberDebugPanel } from "@/components/member/MemberDebugPanel";
 import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 import {
   getMiniBlokEntries,
@@ -378,15 +379,20 @@ function PublicSharedView({
 export default function MiniBlokPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, member, loading: authLoading } = useAuth();
   const { isDebugActive: debugEnabled } = useMemberDebug();
 
   // Mode state
   const isPublicMode = router.pathname === "/public/mini-blok/[token]" || !!router.query.token;
   const publicToken = router.query.token as string;
+  
+  const isRouterReady = router.isReady;
+  const isPublicSharedMode = isPublicMode;
+  const shareToken = publicToken;
+  const entryIdFromQuery = router.query.id as string;
 
   // Data states
-  const [entries, setEntries] = useState<MiniBlokEntry[]>([]);
+  const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Debug state
@@ -405,9 +411,8 @@ export default function MiniBlokPage() {
   const [ownershipFilter, setOwnershipFilter] = useState("all");
   const [sortBy, setSortBy] = useState("date-desc");
   const [expandedEntryPlayers, setExpandedEntryPlayers] = useState<Record<string, boolean>>({});
-  const [expandedEntryPlayerScores, setExpandedEntryPlayerScores] = useState<Record<string, Record<string, boolean>>>(
-    {}
-  );
+  const [expandedEntryPlayerScores, setExpandedEntryPlayerScores] = useState<Record<string, Record<string, boolean>>>({});
+  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -419,6 +424,23 @@ export default function MiniBlokPage() {
     date: new Date().toISOString().split("T")[0],
     total_games: 5,
   });
+
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
+  const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<string | null>(null);
+  const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<any | null>(null);
+  const [playerForm, setPlayerForm] = useState<PlayerForm>(INITIAL_PLAYER_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [shareMode, setShareMode] = useState<"public" | "editable">("public");
+  const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedEditUrl, setCopiedEditUrl] = useState(false);
+  const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
 
   useEffect(() => {
     if (!isRouterReady) return;
@@ -496,11 +518,32 @@ export default function MiniBlokPage() {
       return 0;
     });
 
+  useEffect(() => {
+    setDebugInfo(prev => ({
+      ...prev,
+      filtersApplied: {
+        search: searchQuery,
+        date: dateFilter,
+        ownership: ownershipFilter,
+        sort: sortBy
+      }
+    }));
+  }, [searchQuery, dateFilter, ownershipFilter, sortBy]);
+
   async function loadEntries() {
+    const startTime = Date.now();
     try {
       setLoading(true);
       const data = await getMiniBlokEntries(member?.id);
-      setEntries(data);
+      setEntries(data || []);
+      
+      setDebugInfo(prev => ({
+        ...prev,
+        entriesCount: data?.length || 0,
+        loadingTime: Date.now() - startTime,
+        publicMode: isPublicSharedMode,
+        token: shareToken || ""
+      }));
     } catch (error) {
       console.error("Error loading mini blok entries:", error);
       toast({
@@ -1501,6 +1544,8 @@ export default function MiniBlokPage() {
             </div>
           )}
         </div>
+
+        {debugEnabled && <MemberDebugPanel data={debugInfo} />}
 
         {/* Create Tournament Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
