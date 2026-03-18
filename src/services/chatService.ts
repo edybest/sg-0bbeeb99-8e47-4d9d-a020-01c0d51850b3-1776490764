@@ -216,7 +216,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     if (room.type === "direct" && !displayName) {
       const { data: participants } = await supabase
         .from("chat_participants")
-        .select("member_id, members!inner(full_name)")
+        .select("member_id, members!chat_participants_member_id_fkey(full_name)")
         .eq("room_id", room.id)
         .neq("member_id", memberId)
         .limit(1)
