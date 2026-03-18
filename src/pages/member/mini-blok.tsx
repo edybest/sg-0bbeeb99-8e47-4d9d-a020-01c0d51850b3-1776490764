@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useMemberDebug } from "@/hooks/useMemberDebug";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { BowlingBallLoader } from "@/components/BowlingBallLoader";
@@ -377,50 +378,28 @@ function PublicSharedView({
 export default function MiniBlokPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { member, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { isDebugActive: debugEnabled } = useMemberDebug();
 
-  const [isRouterReady, setIsRouterReady] = useState(false);
+  // Mode state
+  const isPublicMode = router.pathname === "/public/mini-blok/[token]" || !!router.query.token;
+  const publicToken = router.query.token as string;
 
-  useEffect(() => {
-    if (router.isReady) {
-      setIsRouterReady(true);
-    }
-  }, [router.isReady]);
-
-  const shareToken = useMemo(() => {
-    if (!isRouterReady) return null;
-    const raw = router.query.share;
-    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
-  }, [router.query.share, isRouterReady]);
-
-  const entryIdFromQuery = useMemo(() => {
-    if (!isRouterReady) return null;
-    const raw = router.query.entry;
-    return typeof raw === "string" && raw.trim() ? raw.trim() : null;
-  }, [router.query.entry, isRouterReady]);
-
-  const isPublicSharedMode = !!shareToken;
-
-  const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
+  // Data states
+  const [entries, setEntries] = useState<MiniBlokEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [showManageDialog, setShowManageDialog] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState<MiniBlokWithPlayers | null>(null);
-  const [editingPlayer, setEditingPlayer] = useState<any | null>(null);
-  const [playerForm, setPlayerForm] = useState<PlayerForm>(INITIAL_PLAYER_FORM);
-  const [submitting, setSubmitting] = useState(false);
-  const [deleteConfirmEntry, setDeleteConfirmEntry] = useState<string | null>(null);
-  const [deleteConfirmPlayer, setDeleteConfirmPlayer] = useState<string | null>(null);
-  const [shareEntry, setShareEntry] = useState<MiniBlokWithPlayers | null>(null);
-  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
-  const [shareAccessEntry, setShareAccessEntry] = useState<MiniBlokWithPlayers | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedEditUrl, setCopiedEditUrl] = useState(false);
-  const [shareMode, setShareMode] = useState<"public" | "editable">("public");
-  const [showShareAccessDialog, setShowShareAccessDialog] = useState(false);
-  const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
-  const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
+  
+  // Debug state
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({
+    entriesCount: 0,
+    loadingTime: 0,
+    publicMode: false,
+    token: "",
+    filtersApplied: {}
+  });
 
+  // UI states
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [ownershipFilter, setOwnershipFilter] = useState("all");
