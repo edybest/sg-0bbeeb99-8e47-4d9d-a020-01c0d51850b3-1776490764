@@ -379,8 +379,8 @@ function PublicSharedView({
 export default function MiniBlokPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, member, loading: authLoading } = useAuth();
-  const { isDebugActive: debugEnabled } = useMemberDebug();
+  const { member, loading: authLoading } = useAuth();
+  const { debugEnabled } = useMemberDebug();
 
   // Mode state
   const isPublicMode = router.pathname === "/public/mini-blok/[token]" || !!router.query.token;
@@ -1545,7 +1545,17 @@ export default function MiniBlokPage() {
           )}
         </div>
 
-        {debugEnabled && <MemberDebugPanel data={debugInfo} />}
+        {debugEnabled && (
+          <MemberDebugPanel 
+            memberInfo={{
+              id: member?.id,
+              email: member?.email,
+              username: member?.username,
+              isAdmin: member?.is_admin
+            }}
+            extra={debugInfo} 
+          />
+        )}
 
         {/* Create Tournament Dialog */}
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
