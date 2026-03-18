@@ -56,30 +56,14 @@ export interface ChatRoomSummary {
  * Get current member's ID from auth
  */
 async function getCurrentMemberId(): Promise<string | null> {
-  console.log("🔍 [chatService] getCurrentMemberId: Starting...");
-  
   const { data: session } = await supabase.auth.getSession();
-  console.log("🔍 [chatService] Session:", { 
-    hasSession: !!session.session, 
-    userId: session.session?.user?.id 
-  });
-  
-  if (!session.session) {
-    console.log("❌ [chatService] No session found");
-    return null;
-  }
+  if (!session.session) return null;
 
-  const { data: member, error } = await supabase
+  const { data: member } = await supabase
     .from("members")
     .select("id")
     .eq("user_id", session.session.user.id)
-    .single();
-
-  console.log("🔍 [chatService] Member lookup:", { 
-    memberId: member?.id, 
-    userId: session.session.user.id,
-    error: error?.message 
-  });
+    .maybeSingle();
 
   return member?.id || null;
 }
@@ -166,15 +150,44 @@ export async function ensureLobbyRoom(): Promise<string | null> {
 export async function listMyChats(): Promise<ChatRoomSummary[]> {
   console.log("🔍 [chatService] listMyChats: starting");
 
-  const memberId = await getCurrentMemberId();
-  if (!memberId) {
-    console.warn("[chatService] listMyChats: no current memberId");
+  // Get current session and member ID with detailed logging
+  const { data: session, error: sessionError } = await supabase.auth.getSession();
+  console.log("🔍 [chatService] Session check:", { 
+    hasSession: !!session.session, 
+    userId: session.session?.user?.id,
+    email: session.session?.user?.email,
+    sessionError: sessionError?.message
+  });
+
+  if (!session.session) {
+    console.warn("❌ [chatService] No active session found");
     return [];
   }
 
-  console.log("🔍 [chatService] listMyChats: current memberId", { memberId });
+  const userId = session.session.user.id;
+  console.log("🔍 [chatService] Looking up member for user_id:", userId);
 
-  // Test 1: Simple query tanpa RLS - untuk debug
+  // Get member ID
+  const { data: member, error: memberError } = await supabase
+    .from("members")
+    .select("id, full_name")
+    .eq("user_id", userId)
+    .single();
+
+  console.log("🔍 [chatService] Member lookup result:", { 
+    memberId: member?.id,
+    memberName: member?.full_name,
+    memberError: memberError?.message 
+  });
+
+  if (!member || memberError) {
+    console.error("❌ [chatService] Member not found for user_id:", userId, memberError);
+    return [];
+  }
+
+  const memberId = member.id;
+
+  // Test 1: Simple query without joins for debugging
   const { data: testData, error: testError } = await supabase
     .from("chat_participants")
     .select("room_id, member_id")
@@ -187,7 +200,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     testData: testData
   });
 
-  // Query menggunakan struktur yang sama seperti SQL test yang berjaya
+  // Main query with joins
   const { data, error } = await supabase
     .from("chat_participants")
     .select(`
@@ -201,7 +214,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     `)
     .eq("member_id", memberId);
 
-  console.log("🔍 [chatService] Query result:", { 
+  console.log("🔍 [chatService] Main query result:", { 
     success: !error, 
     dataCount: data?.length || 0,
     error: error?.message,
@@ -209,12 +222,12 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
   });
 
   if (error) {
-    console.error("[chatService] listMyChats: error querying", error);
+    console.error("❌ [chatService] Query error:", error);
     return [];
   }
 
   if (!data || data.length === 0) {
-    console.warn("[chatService] listMyChats: no rooms found");
+    console.warn("⚠️ [chatService] No rooms found for member:", memberId);
     return [];
   }
 
@@ -229,13 +242,21 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
 
     // For direct chats without a name, fetch the other participant's name
     if (room.type === "direct" && !displayName) {
-      const { data: participants } = await supabase
+      console.log("🔍 [chatService] Fetching direct chat participant name for room:", room.id);
+      
+      const { data: participants, error: partError } = await supabase
         .from("chat_participants")
         .select("member_id, members!chat_participants_member_id_fkey(full_name)")
         .eq("room_id", room.id)
         .neq("member_id", memberId)
         .limit(1)
         .maybeSingle();
+
+      console.log("🔍 [chatService] Participant lookup:", {
+        success: !partError,
+        participantName: participants?.members ? (participants.members as { full_name: string }).full_name : null,
+        error: partError?.message
+      });
 
       if (participants?.members) {
         displayName = (participants.members as { full_name: string }).full_name;
@@ -265,10 +286,11 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     return 0;
   });
 
-  console.log("✅ [chatService] listMyChats: result", {
+  console.log("✅ [chatService] listMyChats: SUCCESS", {
     memberId,
+    memberName: member.full_name,
     roomsCount: rooms.length,
-    roomNames: rooms.map((r) => r.name),
+    rooms: rooms.map((r) => ({ id: r.id, name: r.name, type: r.type }))
   });
 
   return rooms;
