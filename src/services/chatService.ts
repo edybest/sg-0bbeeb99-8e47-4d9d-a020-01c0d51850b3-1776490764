@@ -367,6 +367,52 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
   console.log("🔍 [getChatRoom] Fetching room:", roomId);
   
   try {
+    // First, let's verify we have a valid session and member
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) {
+      console.error("❌ [getChatRoom] No active session");
+      return null;
+    }
+
+    const { data: member } = await supabase
+      .from("members")
+      .select("id, full_name")
+      .eq("user_id", session.session.user.id)
+      .maybeSingle();
+
+    if (!member) {
+      console.error("❌ [getChatRoom] No member found for user");
+      return null;
+    }
+
+    console.log("🔍 [getChatRoom] Current member:", { id: member.id, name: member.full_name });
+
+    // Check if user is a participant first
+    const { data: participant, error: participantError } = await supabase
+      .from("chat_participants")
+      .select("id, is_banned, is_silenced")
+      .eq("room_id", roomId)
+      .eq("member_id", member.id)
+      .maybeSingle();
+
+    console.log("🔍 [getChatRoom] Participant check:", { 
+      isParticipant: !!participant, 
+      participantId: participant?.id,
+      isBanned: participant?.is_banned,
+      isSilenced: participant?.is_silenced,
+      error: participantError?.message 
+    });
+
+    if (participantError) {
+      console.error("❌ [getChatRoom] Error checking participant:", participantError);
+    }
+
+    if (!participant) {
+      console.warn("⚠️ [getChatRoom] User is not a participant in this room");
+      return null;
+    }
+
+    // Now fetch the room details
     const { data, error } = await supabase
       .from("chat_rooms")
       .select(`
@@ -384,26 +430,66 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
         )
       `)
       .eq("id", roomId)
-      .single();
+      .maybeSingle();
+
+    console.log("🔍 [getChatRoom] Room query result:", { 
+      success: !error,
+      hasData: !!data,
+      roomId: data?.id,
+      roomName: data?.name,
+      roomType: data?.type,
+      participantsCount: data?.participants?.length,
+      error: error?.message,
+      errorCode: error?.code,
+      errorDetails: error
+    });
 
     if (error) {
-      console.error("❌ [getChatRoom] Error:", error);
+      console.error("❌ [getChatRoom] Query error:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       return null;
     }
 
     if (!data) {
-      console.warn("⚠️ [getChatRoom] No data returned for room:", roomId);
+      console.warn("⚠️ [getChatRoom] No data returned (RLS might be blocking)");
+      
+      // Try a simpler query to see if RLS is the issue
+      const { data: simpleData, error: simpleError } = await supabase
+        .from("chat_rooms")
+        .select("id, name, type")
+        .eq("id", roomId)
+        .maybeSingle();
+      
+      console.log("🔍 [getChatRoom] Simple query test:", {
+        success: !simpleError,
+        hasData: !!simpleData,
+        error: simpleError?.message
+      });
+      
       return null;
     }
 
+    // Add the participant's ban/silence status to the room object
+    const roomWithStatus: ChatRoomWithDetails = {
+      ...data,
+      is_banned: participant.is_banned,
+      is_silenced: participant.is_silenced,
+    } as ChatRoomWithDetails;
+
     console.log("✅ [getChatRoom] Successfully fetched room:", {
-      id: data.id,
-      name: data.name,
-      type: data.type,
-      participantsCount: data.participants?.length || 0
+      id: roomWithStatus.id,
+      name: roomWithStatus.name,
+      type: roomWithStatus.type,
+      participantsCount: roomWithStatus.participants?.length || 0,
+      userIsBanned: roomWithStatus.is_banned,
+      userIsSilenced: roomWithStatus.is_silenced
     });
 
-    return data as unknown as ChatRoomWithDetails;
+    return roomWithStatus;
   } catch (error) {
     console.error("❌ [getChatRoom] Unexpected error:", error);
     return null;

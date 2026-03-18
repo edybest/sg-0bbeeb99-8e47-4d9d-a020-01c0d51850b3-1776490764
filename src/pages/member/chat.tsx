@@ -416,9 +416,13 @@ export default function ChatPage() {
         await markMessagesAsRead(full.id);
       } else {
         console.error("❌ [handleSelectRoom] Failed to get full room data");
+        
+        // Check browser console for detailed error logs
+        console.error("❌ Please check the console logs above for detailed error information");
+        
         toast({ 
           title: "Error", 
-          description: "Gagal memuat maklumat room. Cuba lagi.", 
+          description: "Gagal memuat maklumat room. Sila check browser console (F12) untuk maklumat lanjut.", 
           variant: "destructive" 
         });
       }
@@ -426,7 +430,7 @@ export default function ChatPage() {
       console.error("❌ [handleSelectRoom] Error:", error);
       toast({ 
         title: "Error", 
-        description: "Ada masalah semasa memuat room. Cuba lagi.", 
+        description: `Ada masalah: ${error instanceof Error ? error.message : String(error)}`, 
         variant: "destructive" 
       });
     }
