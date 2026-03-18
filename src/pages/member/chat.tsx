@@ -212,6 +212,15 @@ export default function ChatPage() {
     }
   }
 
+  async function handleSelectRoom(room: ChatRoomSummary) {
+    const full = await getChatRoom(room.id);
+    if (full) {
+      setSelectedRoom(full);
+      await loadMessages(full.id);
+      await markMessagesAsRead(full.id);
+    }
+  }
+
   // Admin Actions
   async function handleToggleSilence(participant: ChatParticipant) {
     if (!selectedRoom) return;
@@ -265,6 +274,12 @@ export default function ChatPage() {
     if (room.type === "lobby" || room.type === "group") return null;
     const other = getOtherMember(room);
     return other?.avatar_url;
+  }
+
+  function getSidebarRoomName(room: ChatRoomSummary) {
+    if (room.type === "lobby") return "Lobby AMBC Club";
+    if (room.name.toLowerCase().includes("lobby")) return room.name;
+    return room.name || "Chat";
   }
 
   const isAdmin = member?.is_admin === true;
@@ -333,27 +348,23 @@ export default function ChatPage() {
                 {rooms.map(room => (
                   <button
                     key={room.id}
-                    onClick={() => setSelectedRoom(room)}
+                    onClick={() => void handleSelectRoom(room)}
                     className={cn(
                       "w-full p-4 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 transition-colors text-left",
                       selectedRoom?.id === room.id && "bg-rose-50 dark:bg-gray-700"
                     )}
                   >
                     <Avatar className="h-12 w-12 flex-shrink-0">
-                      <AvatarImage src={getRoomAvatar(room) || undefined} />
                       <AvatarFallback className="bg-rose-100 text-rose-600">
-                        {room.type !== 'direct' ? <Users className="h-5 w-5" /> : getRoomName(room)[0]}
+                        {room.type !== "direct" ? <Users className="h-5 w-5" /> : getSidebarRoomName(room)[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-1">
-                        <h3 className="font-semibold truncate">{getRoomName(room)}</h3>
-                        {room.unread_count ? (
-                          <Badge className="bg-rose-500">{room.unread_count}</Badge>
-                        ) : null}
+                        <h3 className="font-semibold truncate">{getSidebarRoomName(room)}</h3>
                       </div>
                       <p className="text-sm text-gray-500 truncate">
-                        {room.last_message?.message || "Tiada mesej"}
+                        {room.last_message_at ? "Ada mesej sebelum ini" : "Tiada mesej"}
                       </p>
                     </div>
                   </button>
