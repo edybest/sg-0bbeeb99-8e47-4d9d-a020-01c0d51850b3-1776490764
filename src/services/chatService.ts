@@ -523,18 +523,94 @@ export async function listMessages(roomId: string, limit = 100): Promise<ChatMes
  * Send a message
  */
 export async function sendMessage(roomId: string, content: string): Promise<boolean> {
-  const memberId = await getCurrentMemberId();
-  if (!memberId) return false;
+  console.log("📤 [sendMessage] Starting...", { roomId, contentLength: content.length });
+  
+  try {
+    const memberId = await getCurrentMemberId();
+    console.log("📤 [sendMessage] Member ID:", memberId);
+    
+    if (!memberId) {
+      console.error("❌ [sendMessage] No member ID found");
+      return false;
+    }
 
-  const { error } = await supabase
-    .from("chat_messages")
-    .insert({
-      room_id: roomId,
-      sender_id: memberId,
-      message: content.trim(),
+    // Check if member is participant and not silenced/banned
+    const { data: participant, error: participantError } = await supabase
+      .from("chat_participants")
+      .select("id, is_banned, is_silenced")
+      .eq("room_id", roomId)
+      .eq("member_id", memberId)
+      .maybeSingle();
+
+    console.log("📤 [sendMessage] Participant check:", {
+      hasParticipant: !!participant,
+      isBanned: participant?.is_banned,
+      isSilenced: participant?.is_silenced,
+      error: participantError?.message
     });
 
-  return !error;
+    if (!participant) {
+      console.error("❌ [sendMessage] User is not a participant in this room");
+      return false;
+    }
+
+    if (participant.is_banned) {
+      console.error("❌ [sendMessage] User is banned from this room");
+      return false;
+    }
+
+    if (participant.is_silenced) {
+      console.error("❌ [sendMessage] User is silenced in this room");
+      return false;
+    }
+
+    console.log("📤 [sendMessage] Inserting message...");
+    const { data: insertedMessage, error } = await supabase
+      .from("chat_messages")
+      .insert({
+        room_id: roomId,
+        sender_id: memberId,
+        message: content.trim(),
+      })
+      .select()
+      .single();
+
+    console.log("📤 [sendMessage] Insert result:", {
+      success: !error,
+      messageId: insertedMessage?.id,
+      error: error?.message,
+      errorCode: error?.code,
+      errorDetails: error
+    });
+
+    if (error) {
+      console.error("❌ [sendMessage] Insert error:", error);
+      return false;
+    }
+
+    // Verify message was actually saved
+    const { data: verifyMessage, error: verifyError } = await supabase
+      .from("chat_messages")
+      .select("id, message, sender_id, created_at")
+      .eq("id", insertedMessage.id)
+      .maybeSingle();
+
+    console.log("📤 [sendMessage] Verification result:", {
+      found: !!verifyMessage,
+      messageId: verifyMessage?.id,
+      error: verifyError?.message
+    });
+
+    if (!verifyMessage) {
+      console.warn("⚠️ [sendMessage] Message inserted but cannot be read back - RLS issue?");
+    }
+
+    console.log("✅ [sendMessage] Success!");
+    return true;
+  } catch (error) {
+    console.error("❌ [sendMessage] Unexpected error:", error);
+    return false;
+  }
 }
 
 /**

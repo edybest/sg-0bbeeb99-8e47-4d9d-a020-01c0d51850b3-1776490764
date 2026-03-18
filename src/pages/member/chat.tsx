@@ -378,12 +378,37 @@ export default function ChatPage() {
     e.preventDefault();
     if (!newMessage.trim() || !selectedRoom || sending) return;
 
+    console.log("📨 [handleSend] Sending message...", {
+      roomId: selectedRoom.id,
+      messageLength: newMessage.trim().length
+    });
+
     setSending(true);
     const success = await sendMessage(selectedRoom.id, newMessage);
+    
+    console.log("📨 [handleSend] Send result:", { success });
+    
     if (success) {
       setNewMessage("");
+      
+      // Force reload messages to ensure we see the new message
+      console.log("🔄 [handleSend] Reloading messages...");
+      setTimeout(async () => {
+        await loadMessages(selectedRoom.id);
+      }, 500);
+      
+      toast({ 
+        title: "Berjaya", 
+        description: "Mesej dihantar", 
+        variant: "default" 
+      });
     } else {
-      toast({ title: "Error", description: "Gagal menghantar mesej", variant: "destructive" });
+      console.error("❌ [handleSend] Failed to send message");
+      toast({ 
+        title: "Error", 
+        description: "Gagal menghantar mesej. Cuba lagi.", 
+        variant: "destructive" 
+      });
     }
     setSending(false);
   }
