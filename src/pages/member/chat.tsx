@@ -69,7 +69,7 @@ export default function ChatPage() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // NEW: Debug state
+  // NEW: Debug state - now toggleable
   const [debugInfo, setDebugInfo] = useState<{
     step: string;
     sessionInfo: any;
@@ -85,7 +85,7 @@ export default function ChatPage() {
     errors: [],
     timestamp: new Date().toISOString()
   });
-  const [showDebugPanel, setShowDebugPanel] = useState(true); // Always show for now
+  const [showDebugPanel, setShowDebugPanel] = useState(false); // Changed to false by default
 
   console.log("🎨 [ChatPage] Render:", { 
     hasMember: !!member, 
@@ -526,8 +526,20 @@ export default function ChatPage() {
       <MemberLayout>
         <SEO title="Chat - AMBC Club" />
         
-        {/* DEBUG PANEL - Always visible untuk diagnostic */}
-        {showDebugPanel && (
+        {/* FLOATING DEBUG TOGGLE BUTTON */}
+        {debugEnabled && (
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="fixed bottom-20 right-4 z-50 bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2"
+            title={showDebugPanel ? "Hide Debug Panel" : "Show Debug Panel"}
+          >
+            <AlertCircle className="h-5 w-5" />
+            {!showDebugPanel && <span className="text-xs font-semibold">Debug</span>}
+          </button>
+        )}
+
+        {/* DEBUG PANEL - Now toggleable */}
+        {debugEnabled && showDebugPanel && (
           <div className="fixed top-16 left-0 right-0 z-50 bg-yellow-50 border-b-2 border-yellow-400 shadow-lg max-h-[40vh] overflow-auto">
             <div className="max-w-7xl mx-auto p-4">
               <div className="flex items-center justify-between mb-3">

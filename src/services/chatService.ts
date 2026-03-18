@@ -150,101 +150,129 @@ export async function ensureLobbyRoom(): Promise<string | null> {
 export async function listMyChats(): Promise<ChatRoomSummary[]> {
   console.log("🔍 [chatService] listMyChats: starting");
 
-  // Get current session and member ID with detailed logging
-  const { data: session, error: sessionError } = await supabase.auth.getSession();
-  console.log("🔍 [chatService] Session check:", { 
-    hasSession: !!session.session, 
-    userId: session.session?.user?.id,
-    email: session.session?.user?.email,
-    sessionError: sessionError?.message
-  });
+  try {
+    // Get current session and member ID with detailed logging
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    console.log("🔍 [chatService] Session check:", { 
+      hasSession: !!session.session, 
+      userId: session.session?.user?.id,
+      email: session.session?.user?.email,
+      sessionError: sessionError?.message
+    });
 
-  if (!session.session) {
-    console.warn("❌ [chatService] No active session found");
+    if (!session.session) {
+      console.warn("❌ [chatService] No active session found");
+      return [];
+    }
+
+    const userId = session.session.user.id;
+    console.log("🔍 [chatService] Looking up member for user_id:", userId);
+
+    // Get member ID
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .select("id, full_name, user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    console.log("🔍 [chatService] Member lookup result:", { 
+      memberId: member?.id,
+      memberName: member?.full_name,
+      memberUserId: member?.user_id,
+      memberError: memberError?.message,
+      memberErrorDetails: memberError 
+    });
+
+    if (!member || memberError) {
+      console.error("❌ [chatService] Member not found for user_id:", userId, memberError);
+      return [];
+    }
+
+    const memberId = member.id;
+    console.log("🔍 [chatService] Using member_id:", memberId);
+
+    // PRIMARY APPROACH: Query from chat_participants (most reliable with RLS)
+    const { data, error } = await supabase
+      .from("chat_participants")
+      .select(`
+        room_id,
+        chat_rooms!inner (
+          id,
+          name,
+          type,
+          last_message_at
+        )
+      `)
+      .eq("member_id", memberId);
+
+    console.log("🔍 [chatService] Primary query result:", { 
+      success: !error, 
+      dataCount: data?.length || 0,
+      error: error?.message,
+      errorDetails: error,
+      rawData: data
+    });
+
+    if (error) {
+      console.error("❌ [chatService] Primary query error:", error);
+      
+      // FALLBACK: Try alternative approach
+      console.log("🔄 [chatService] Attempting fallback query...");
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("chat_rooms")
+        .select(`
+          id,
+          name,
+          type,
+          last_message_at,
+          participants:chat_participants!inner(member_id)
+        `)
+        .eq("participants.member_id", memberId);
+
+      console.log("🔍 [chatService] Fallback query result:", {
+        success: !fallbackError,
+        count: fallbackData?.length || 0,
+        error: fallbackError?.message
+      });
+
+      if (fallbackError || !fallbackData) {
+        console.error("❌ [chatService] Both queries failed");
+        return [];
+      }
+
+      // Use fallback data
+      return processChatRooms(fallbackData.map(room => ({
+        room_id: room.id,
+        chat_rooms: {
+          id: room.id,
+          name: room.name,
+          type: room.type,
+          last_message_at: room.last_message_at
+        }
+      })), memberId);
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("⚠️ [chatService] No rooms found for member:", memberId);
+      console.warn("⚠️ [chatService] This might indicate RLS blocking or no chat_participants records");
+      return [];
+    }
+
+    // Process results
+    return processChatRooms(data, memberId);
+  } catch (error) {
+    console.error("❌ [chatService] Unexpected error in listMyChats:", error);
     return [];
   }
+}
 
-  const userId = session.session.user.id;
-  console.log("🔍 [chatService] Looking up member for user_id:", userId);
-
-  // Get member ID
-  const { data: member, error: memberError } = await supabase
-    .from("members")
-    .select("id, full_name, user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  console.log("🔍 [chatService] Member lookup result:", { 
-    memberId: member?.id,
-    memberName: member?.full_name,
-    memberUserId: member?.user_id,
-    memberError: memberError?.message,
-    memberErrorDetails: memberError 
-  });
-
-  if (!member || memberError) {
-    console.error("❌ [chatService] Member not found for user_id:", userId, memberError);
-    return [];
-  }
-
-  const memberId = member.id;
-  console.log("🔍 [chatService] Using member_id:", memberId);
-
-  // Try ALTERNATIVE approach: Direct query to chat_rooms with RLS
-  console.log("🔍 [chatService] Attempting alternative query approach...");
-  
-  const { data: alternativeData, error: alternativeError } = await supabase
-    .from("chat_rooms")
-    .select(`
-      id,
-      name,
-      type,
-      last_message_at,
-      participants:chat_participants!inner(member_id)
-    `)
-    .eq("participants.member_id", memberId);
-
-  console.log("🔍 [chatService] Alternative query (chat_rooms first):", {
-    success: !alternativeError,
-    count: alternativeData?.length || 0,
-    error: alternativeError?.message,
-    data: alternativeData
-  });
-
-  // Original approach: Query from chat_participants
-  const { data, error } = await supabase
-    .from("chat_participants")
-    .select(`
-      room_id,
-      chat_rooms!inner (
-        id,
-        name,
-        type,
-        last_message_at
-      )
-    `)
-    .eq("member_id", memberId);
-
-  console.log("🔍 [chatService] Original query (chat_participants first):", { 
-    success: !error, 
-    dataCount: data?.length || 0,
-    error: error?.message,
-    errorDetails: error,
-    rawData: data
-  });
-
-  if (error) {
-    console.error("❌ [chatService] Query error:", error);
-    return [];
-  }
-
-  if (!data || data.length === 0) {
-    console.warn("⚠️ [chatService] No rooms found for member:", memberId);
-    console.warn("⚠️ [chatService] This might be RLS blocking or no chat_participants records");
-    return [];
-  }
-
-  // Process results
+/**
+ * Helper function to process chat room data
+ */
+async function processChatRooms(
+  data: Array<{ room_id: string; chat_rooms: any }>, 
+  memberId: string
+): Promise<ChatRoomSummary[]> {
   const roomsMap = new Map<string, ChatRoomSummary>();
 
   for (const row of data) {
@@ -299,9 +327,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     return 0;
   });
 
-  console.log("✅ [chatService] listMyChats: SUCCESS", {
-    memberId,
-    memberName: member.full_name,
+  console.log("✅ [chatService] processChatRooms: SUCCESS", {
     roomsCount: rooms.length,
     rooms: rooms.map((r) => ({ id: r.id, name: r.name, type: r.type }))
   });
