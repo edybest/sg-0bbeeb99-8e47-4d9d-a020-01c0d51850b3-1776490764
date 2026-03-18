@@ -426,7 +426,7 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
           member_id,
           is_banned,
           is_silenced,
-          member:members(id, full_name, avatar_url)
+          member:members!chat_participants_member_id_fkey(id, full_name, avatar_url)
         )
       `)
       .eq("id", roomId)
