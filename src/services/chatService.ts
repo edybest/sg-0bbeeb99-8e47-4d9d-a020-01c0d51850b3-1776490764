@@ -170,14 +170,16 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
   // Get member ID
   const { data: member, error: memberError } = await supabase
     .from("members")
-    .select("id, full_name")
+    .select("id, full_name, user_id")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   console.log("🔍 [chatService] Member lookup result:", { 
     memberId: member?.id,
     memberName: member?.full_name,
-    memberError: memberError?.message 
+    memberUserId: member?.user_id,
+    memberError: memberError?.message,
+    memberErrorDetails: memberError 
   });
 
   if (!member || memberError) {
@@ -186,21 +188,30 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
   }
 
   const memberId = member.id;
+  console.log("🔍 [chatService] Using member_id:", memberId);
 
-  // Test 1: Simple query without joins for debugging
-  const { data: testData, error: testError } = await supabase
-    .from("chat_participants")
-    .select("room_id, member_id")
-    .eq("member_id", memberId);
+  // Try ALTERNATIVE approach: Direct query to chat_rooms with RLS
+  console.log("🔍 [chatService] Attempting alternative query approach...");
+  
+  const { data: alternativeData, error: alternativeError } = await supabase
+    .from("chat_rooms")
+    .select(`
+      id,
+      name,
+      type,
+      last_message_at,
+      participants:chat_participants!inner(member_id)
+    `)
+    .eq("participants.member_id", memberId);
 
-  console.log("🔍 [chatService] TEST Query (no joins):", { 
-    testSuccess: !testError, 
-    testCount: testData?.length || 0,
-    testError: testError?.message,
-    testData: testData
+  console.log("🔍 [chatService] Alternative query (chat_rooms first):", {
+    success: !alternativeError,
+    count: alternativeData?.length || 0,
+    error: alternativeError?.message,
+    data: alternativeData
   });
 
-  // Main query with joins
+  // Original approach: Query from chat_participants
   const { data, error } = await supabase
     .from("chat_participants")
     .select(`
@@ -214,10 +225,11 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     `)
     .eq("member_id", memberId);
 
-  console.log("🔍 [chatService] Main query result:", { 
+  console.log("🔍 [chatService] Original query (chat_participants first):", { 
     success: !error, 
     dataCount: data?.length || 0,
     error: error?.message,
+    errorDetails: error,
     rawData: data
   });
 
@@ -228,6 +240,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
 
   if (!data || data.length === 0) {
     console.warn("⚠️ [chatService] No rooms found for member:", memberId);
+    console.warn("⚠️ [chatService] This might be RLS blocking or no chat_participants records");
     return [];
   }
 
