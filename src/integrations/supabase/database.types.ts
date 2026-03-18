@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1321,6 +1321,12 @@ export type Database = {
       get_or_create_direct_chat: {
         Args: { member1_id: string; member2_id: string }
         Returns: string
+      }
+      get_user_chat_rooms: {
+        Args: { user_uuid: string }
+        Returns: {
+          room_id: string
+        }[]
       }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }

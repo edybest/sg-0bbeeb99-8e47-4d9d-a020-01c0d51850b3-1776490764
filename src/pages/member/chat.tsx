@@ -355,9 +355,22 @@ export default function ChatPage() {
   }
 
   async function loadMessages(roomId: string) {
-    const data = await listMessages(roomId);
-    setMessages(data);
-    setTimeout(() => scrollToBottom("auto"), 100);
+    console.log("💬 [loadMessages] Loading messages for room:", roomId);
+    
+    try {
+      const data = await listMessages(roomId);
+      console.log("💬 [loadMessages] Got messages:", data.length);
+      setMessages(data);
+      setTimeout(() => scrollToBottom("auto"), 100);
+    } catch (error) {
+      console.error("❌ [loadMessages] Error:", error);
+      toast({ 
+        title: "Error", 
+        description: "Gagal memuat mesej. Cuba refresh halaman.", 
+        variant: "destructive" 
+      });
+      setMessages([]);
+    }
   }
 
   // Actions
@@ -390,11 +403,32 @@ export default function ChatPage() {
   }
 
   async function handleSelectRoom(room: ChatRoomSummary) {
-    const full = await getChatRoom(room.id);
-    if (full) {
-      setSelectedRoom(full);
-      await loadMessages(full.id);
-      await markMessagesAsRead(full.id);
+    console.log("🎯 [handleSelectRoom] Selecting room:", room);
+    
+    try {
+      const full = await getChatRoom(room.id);
+      console.log("🎯 [handleSelectRoom] Got full room data:", full);
+      
+      if (full) {
+        setSelectedRoom(full);
+        console.log("🎯 [handleSelectRoom] Loading messages for room:", full.id);
+        await loadMessages(full.id);
+        await markMessagesAsRead(full.id);
+      } else {
+        console.error("❌ [handleSelectRoom] Failed to get full room data");
+        toast({ 
+          title: "Error", 
+          description: "Gagal memuat maklumat room. Cuba lagi.", 
+          variant: "destructive" 
+        });
+      }
+    } catch (error) {
+      console.error("❌ [handleSelectRoom] Error:", error);
+      toast({ 
+        title: "Error", 
+        description: "Ada masalah semasa memuat room. Cuba lagi.", 
+        variant: "destructive" 
+      });
     }
   }
 
