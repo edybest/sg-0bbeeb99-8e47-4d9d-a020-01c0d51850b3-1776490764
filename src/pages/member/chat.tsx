@@ -40,19 +40,23 @@ import {
   adminDeleteMessage,
   type ChatRoomWithDetails,
   type ChatMessageWithSender,
-  type ChatParticipant
+  type ChatParticipant,
+  type ChatRoomSummary,
 } from "@/services/chatService";
 import { cn } from "@/lib/utils";
+import { useMemberDebug } from "@/hooks/useMemberDebug";
+import { MemberDebugPanel } from "@/components/member/MemberDebugPanel";
 
 export default function ChatPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { member, loading: authLoading } = useAuth(true, false);
+  const { debugEnabled } = useMemberDebug();
   
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
 
-  const [rooms, setRooms] = useState<ChatRoomWithDetails[]>([]);
+  const [rooms, setRooms] = useState<ChatRoomSummary[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomWithDetails | null>(null);
   const [messages, setMessages] = useState<ChatMessageWithSender[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -273,10 +277,23 @@ export default function ChatPage() {
           <div className="flex h-screen items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
           </div>
+          {debugEnabled && (
+            <MemberDebugPanel
+              memberInfo={{
+                id: member?.id ?? null,
+                email: (member as any)?.email ?? null,
+                username: (member as any)?.username ?? null,
+                isAdmin: member?.is_admin ?? false,
+              }}
+              extra={{ phase: "loading" }}
+            />
+          )}
         </MemberLayout>
       </PageAccessGuard>
     );
   }
+
+  const lobbyExists = rooms.some((r) => r.type === "lobby" || r.name.toLowerCase().includes("lobby"));
 
   return (
     <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
@@ -478,6 +495,23 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+        {debugEnabled && (
+          <MemberDebugPanel
+            memberInfo={{
+              id: member?.id ?? undefined,
+              email: member?.email ?? undefined,
+              username: (member as any)?.username ?? undefined,
+              isAdmin: (member as any)?.is_admin ?? undefined,
+            }}
+            extra={{
+              roomsCount: rooms.length,
+              roomNames: rooms.map((r) => r.name),
+              lobbyExists,
+              hasSelectedRoom: !!selectedRoom,
+              selectedRoomId: selectedRoom?.id ?? null,
+            }}
+          />
+        )}
       </MemberLayout>
     </PageAccessGuard>
   );

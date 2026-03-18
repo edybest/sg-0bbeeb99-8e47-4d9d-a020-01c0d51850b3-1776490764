@@ -31,6 +31,7 @@ import { pageAccessService, type AccessLevel } from "@/services/pageAccessServic
 import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
 import { ThemeSettingsPanel } from "@/components/admin/ThemeSettingsPanel";
 import { navLayoutService, type NavigationSettings, type NavPosition } from "@/services/navLayoutService";
+import { debugService } from "@/services/debugService";
 
 type FiveFivePrizeConfig = {
   id: string;
@@ -114,6 +115,9 @@ export function ClubSettings() {
 
   const [activeTab, setActiveTab] = useState<ClubSettingsTab>("general");
 
+  const [memberDebugEnabled, setMemberDebugEnabled] = useState<boolean>(false);
+  const [loadingMemberDebug, setLoadingMemberDebug] = useState<boolean>(false);
+
   const moreTabLabel = useMemo(() => {
     const def = MORE_TABS.find((t) => t.value === activeTab);
     return def?.label || "More";
@@ -126,7 +130,20 @@ export function ClubSettings() {
     loadStats();
     loadPageAccessSettings();
     loadNavigationSettings();
+    loadMemberDebugSetting();
   }, []);
+
+  const loadMemberDebugSetting = async () => {
+    try {
+      setLoadingMemberDebug(true);
+      const enabled = await debugService.getMemberDebugEnabled();
+      setMemberDebugEnabled(enabled);
+    } catch (error) {
+      console.error("Error loading member debug setting:", error);
+    } finally {
+      setLoadingMemberDebug(false);
+    }
+  };
 
   const loadNavigationSettings = async () => {
     try {
@@ -1122,83 +1139,57 @@ export function ClubSettings() {
                 </ul>
               </div>
 
-              {loadingPageAccess ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>Memuatkan tetapan page access...</p>
-                </div>
-              ) : pageAccessList.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p>Tiada page access settings dijumpai</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pageAccessList.map((page) => (
-                    <div
-                      key={page.id}
-                      className={`rounded-lg border p-4 transition-colors ${page.is_enabled ? "bg-white" : "bg-gray-50 opacity-60"}`}
-                    >
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="mb-1 flex items-center gap-3">
-                            <h4 className="text-base font-semibold">{page.page_name}</h4>
-                            {!page.is_enabled && (
-                              <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-600">Disabled</span>
-                            )}
-                          </div>
-                          <p className="font-mono text-sm text-muted-foreground">{page.page_path}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex flex-col items-end gap-1">
-                            <Label htmlFor={`access-${page.id}`} className="text-xs text-muted-foreground">
-                              Access Level
-                            </Label>
-                            <Select
-                              value={page.access_level}
-                              onValueChange={(value: AccessLevel) => handleAccessLevelChange(page.id, value)}
-                              disabled={!page.is_enabled}
-                            >
-                              <SelectTrigger id={`access-${page.id}`} className="w-[140px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="public">
-                                  <span className="flex items-center gap-2">🌐 Public</span>
-                                </SelectItem>
-                                <SelectItem value="member">
-                                  <span className="flex items-center gap-2">🔒 Member</span>
-                                </SelectItem>
-                                <SelectItem value="admin">
-                                  <span className="flex items-center gap-2">👑 Admin</span>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col items-center gap-1">
-                            <Label htmlFor={`enabled-${page.id}`} className="text-xs text-muted-foreground">
-                              Enable
-                            </Label>
-                            <Switch id={`enabled-${page.id}`} checked={page.is_enabled} onCheckedChange={(checked) => handlePageToggle(page.id, checked)} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 border-t pt-2 text-xs text-muted-foreground">
-                        <span>Current Access:</span>
-                        {page.access_level === "public" && (
-                          <span className="rounded bg-green-100 px-2 py-0.5 text-green-800">🌐 Semua orang</span>
-                        )}
-                        {page.access_level === "member" && (
-                          <span className="rounded bg-blue-100 px-2 py-0.5 text-blue-800">🔒 Member + Admin</span>
-                        )}
-                        {page.access_level === "admin" && (
-                          <span className="rounded bg-purple-100 px-2 py-0.5 text-purple-800">👑 Admin sahaja</span>
-                        )}
-                        {!page.is_enabled && <span className="rounded bg-gray-200 px-2 py-0.5 text-gray-600">⛔ Disabled</span>}
-                      </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Member Debug Mode</CardTitle>
+                  <CardDescription>
+                    Enable temporary debug overlay for member pages (for troubleshooting only)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between space-x-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="member-debug-switch" className="text-base font-semibold">
+                        Enable Member Debug Mode
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        When enabled, member pages will show extra diagnostic information at the bottom of the screen.
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <Switch
+                      id="member-debug-switch"
+                      checked={memberDebugEnabled}
+                      disabled={loadingMemberDebug}
+                      onCheckedChange={async (checked) => {
+                        setMemberDebugEnabled(checked);
+                        const ok = await debugService.setMemberDebugEnabled(checked);
+                        if (!ok) {
+                          setMemberDebugEnabled(!checked);
+                          toast({
+                            title: "❌ Ralat",
+                            description: "Gagal mengemas kini Member Debug Mode",
+                            variant: "destructive",
+                          });
+                        } else {
+                          window.dispatchEvent(
+                            new CustomEvent("member-debug-updated", {
+                              detail: { enabled: checked },
+                            })
+                          );
+                          toast({
+                            title: "✅ Berjaya!",
+                            description: `Member Debug Mode telah ${checked ? "dihidupkan" : "dimatikan"}.`,
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    Gunakan hanya semasa debug. Panel debug akan memaparkan ID member dan maklumat teknikal lain
+                    yang tidak sepatutnya dikongsi secara umum.
+                  </div>
+                </CardContent>
+              </Card>
             </CardContent>
           </Card>
         </TabsContent>

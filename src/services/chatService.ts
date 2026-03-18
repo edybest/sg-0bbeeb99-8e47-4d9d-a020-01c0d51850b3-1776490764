@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 export interface ChatParticipant {
   id: string;
@@ -42,6 +43,13 @@ export interface ChatMessageWithSender {
     full_name: string;
     avatar_url: string | null;
   };
+}
+
+export interface ChatRoomSummary {
+  id: string;
+  name: string;
+  type: string | null;
+  last_message_at: string | null;
 }
 
 /**
@@ -154,110 +162,86 @@ export async function ensureLobbyRoom(): Promise<string | null> {
 /**
  * List all chat rooms for current member
  */
-export async function listMyChats(): Promise<ChatRoomWithDetails[]> {
-  console.log("🔍 [chatService] listMyChats: Starting...");
+export async function listMyChats(): Promise<ChatRoomSummary[]> {
+  console.log("🔍 [chatService] listMyChats: starting");
 
+  // 1) Dapatkan member_id semasa
   const memberId = await getCurrentMemberId();
-  console.log("🔍 [chatService] Current member ID for listMyChats:", memberId);
-
   if (!memberId) {
-    console.log("❌ [chatService] No member ID, returning empty array");
+    console.warn("[chatService] listMyChats: no current memberId");
     return [];
   }
 
-  // Direct, simple query: get all rooms where this member is a participant
-  const { data: roomsData, error: roomsError } = await supabase
-    .from("chat_rooms")
+  console.log("🔍 [chatService] listMyChats: current memberId", { memberId });
+
+  // 2) Query ikut schema:
+  //    chat_participants.member_id = current member
+  //    join chat_rooms untuk nama & type
+  const { data, error } = await supabase
+    .from("chat_participants")
     .select(
       `
-      id,
-      name,
-      type,
-      is_public,
-      last_message_at,
-      participants:chat_participants(
+      chat_rooms (
         id,
-        member_id,
-        is_banned,
-        is_silenced,
-        member:members(id, full_name, avatar_url)
+        name,
+        type,
+        last_message_at
       )
     `
     )
-    .in(
-      "id",
-      (
-        await supabase
-          .from("chat_participants")
-          .select("room_id")
-          .eq("member_id", memberId)
-      ).data?.map((p: { room_id: string }) => p.room_id) || []
-    );
+    .eq("member_id", memberId);
 
-  console.log("🔍 [chatService] Direct rooms query:", {
-    count: roomsData?.length || 0,
-    error: roomsError?.message,
-  });
-
-  if (roomsError) {
-    console.error("❌ [chatService] roomsError:", roomsError);
+  if (error) {
+    console.error("[chatService] listMyChats: error querying chat_participants", error);
     return [];
   }
 
-  if (!roomsData || roomsData.length === 0) {
-    console.log("⚠️ [chatService] No rooms found for member via direct query");
-    return [];
-  }
+  type RawRow = {
+    chat_rooms: {
+      id: string;
+      name: string | null;
+      type: string | null;
+      last_message_at: string | null;
+    } | null;
+  };
 
-  // Get last message for each room (optional but nice)
-  const rooms = await Promise.all(
-    roomsData.map(async (room: any) => {
-      const { data: lastMsg } = await supabase
-        .from("chat_messages")
-        .select(
-          `
-          message,
-          created_at,
-          sender:members(full_name)
-        `
-        )
-        .eq("room_id", room.id)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  const rows = (data as RawRow[]) ?? [];
 
+  const rooms: ChatRoomSummary[] = rows
+    .filter((row) => row.chat_rooms !== null)
+    .map((row) => {
+      const r = row.chat_rooms as NonNullable<RawRow["chat_rooms"]>;
       return {
-        ...room,
-        unread_count: 0,
-        is_banned:
-          room.participants?.find(
-            (p: any) => p.member_id === memberId && p.is_banned,
-          )?.is_banned || false,
-        is_silenced:
-          room.participants?.find(
-            (p: any) => p.member_id === memberId && p.is_silenced,
-          )?.is_silenced || false,
-        last_message: lastMsg as any,
-      } as ChatRoomWithDetails;
-    }),
-  );
+        id: r.id,
+        name: r.name ?? "Untitled",
+        type: r.type,
+        last_message_at: r.last_message_at,
+      };
+    });
 
-  // Sort: Lobby first, then by last message time desc
-  const sortedRooms = rooms.sort((a, b) => {
-    if (a.type === "lobby") return -1;
-    if (b.type === "lobby") return 1;
-    const aTime = new Date(a.last_message_at || 0).getTime();
-    const bTime = new Date(b.last_message_at || 0).getTime();
-    return bTime - aTime;
+  console.log("✅ [chatService] listMyChats: result", {
+    memberId,
+    roomsCount: rooms.length,
+    roomNames: rooms.map((r) => r.name),
   });
 
-  console.log("✅ [chatService] Final rooms:", {
-    count: sortedRooms.length,
-    rooms: sortedRooms.map((r) => ({ id: r.id, name: r.name, type: r.type })),
+  // 3) Susun: lobby dulu, kemudian ikut last_message_at desc
+  const sorted = [...rooms].sort((a, b) => {
+    if (a.type === "lobby" && b.type !== "lobby") return -1;
+    if (a.type !== "lobby" && b.type === "lobby") return 1;
+
+    if (a.last_message_at && b.last_message_at) {
+      const da = new Date(a.last_message_at).getTime();
+      const db = new Date(b.last_message_at).getTime();
+      return db - da;
+    }
+
+    if (a.last_message_at) return -1;
+    if (b.last_message_at) return 1;
+    return 0;
   });
 
-  return sortedRooms;
+  return sorted;
 }
 
 /**
