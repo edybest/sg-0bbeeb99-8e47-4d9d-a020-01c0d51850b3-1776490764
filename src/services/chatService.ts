@@ -364,28 +364,50 @@ export async function getOrCreateDirectChat(otherMemberId: string): Promise<stri
  * Get chat room details
  */
 export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails | null> {
-  const { data, error } = await supabase
-    .from("chat_rooms")
-    .select(`
-      id,
-      name,
-      type,
-      is_public,
-      last_message_at,
-      participants:chat_participants(
+  console.log("🔍 [getChatRoom] Fetching room:", roomId);
+  
+  try {
+    const { data, error } = await supabase
+      .from("chat_rooms")
+      .select(`
         id,
-        member_id,
-        is_banned,
-        is_silenced,
-        member:members(id, full_name, avatar_url)
-      )
-    `)
-    .eq("id", roomId)
-    .single();
+        name,
+        type,
+        is_public,
+        last_message_at,
+        participants:chat_participants(
+          id,
+          member_id,
+          is_banned,
+          is_silenced,
+          member:members(id, full_name, avatar_url)
+        )
+      `)
+      .eq("id", roomId)
+      .single();
 
-  if (error) return null;
+    if (error) {
+      console.error("❌ [getChatRoom] Error:", error);
+      return null;
+    }
 
-  return data as unknown as ChatRoomWithDetails;
+    if (!data) {
+      console.warn("⚠️ [getChatRoom] No data returned for room:", roomId);
+      return null;
+    }
+
+    console.log("✅ [getChatRoom] Successfully fetched room:", {
+      id: data.id,
+      name: data.name,
+      type: data.type,
+      participantsCount: data.participants?.length || 0
+    });
+
+    return data as unknown as ChatRoomWithDetails;
+  } catch (error) {
+    console.error("❌ [getChatRoom] Unexpected error:", error);
+    return null;
+  }
 }
 
 /**
