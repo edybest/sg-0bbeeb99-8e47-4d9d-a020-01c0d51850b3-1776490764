@@ -185,7 +185,13 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
         id,
         name,
         type,
-        last_message_at
+        last_message_at,
+        chat_participants (
+          member_id,
+          members (
+            full_name
+          )
+        )
       )
     `
     )
@@ -202,18 +208,33 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
       name: string | null;
       type: string | null;
       last_message_at: string | null;
+      chat_participants: {
+        member_id: string;
+        members: { full_name: string } | null;
+      }[];
     } | null;
   };
 
-  const rows = (data as RawRow[]) ?? [];
+  const rows = (data as unknown as RawRow[]) ?? [];
 
   const rooms: ChatRoomSummary[] = rows
     .filter((row) => row.chat_rooms !== null)
     .map((row) => {
       const r = row.chat_rooms as NonNullable<RawRow["chat_rooms"]>;
+      
+      let derivedName = r.name;
+      
+      // Jika bilik jenis direct, cari nama participant yang BUKAN diri sendiri
+      if (r.type === "direct" && Array.isArray(r.chat_participants)) {
+        const otherParticipant = r.chat_participants.find((p) => p.member_id !== memberId);
+        if (otherParticipant && otherParticipant.members?.full_name) {
+          derivedName = otherParticipant.members.full_name;
+        }
+      }
+
       return {
         id: r.id,
-        name: r.name ?? "Untitled",
+        name: derivedName ?? (r.type === "direct" ? "Direct Chat" : "Untitled"),
         type: r.type,
         last_message_at: r.last_message_at,
       };
