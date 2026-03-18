@@ -500,23 +500,48 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
  * List messages
  */
 export async function listMessages(roomId: string, limit = 100): Promise<ChatMessageWithSender[]> {
-  const { data, error } = await supabase
-    .from("chat_messages")
-    .select(`
-      id,
-      room_id,
-      message,
-      created_at,
-      sender_id,
-      sender:members(id, full_name, avatar_url)
-    `)
-    .eq("room_id", roomId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+  console.log("📬 [listMessages] Starting...", { roomId, limit });
+  
+  try {
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select(`
+        id,
+        room_id,
+        message,
+        created_at,
+        sender_id,
+        sender:members!chat_messages_sender_id_fkey(id, full_name, avatar_url)
+      `)
+      .eq("room_id", roomId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(limit);
 
-  if (error) return [];
-  return data as unknown as ChatMessageWithSender[];
+    console.log("📬 [listMessages] Query result:", {
+      success: !error,
+      messageCount: data?.length || 0,
+      error: error?.message,
+      errorCode: error?.code,
+      errorDetails: error
+    });
+
+    if (error) {
+      console.error("❌ [listMessages] Query error:", error);
+      return [];
+    }
+
+    if (!data) {
+      console.warn("⚠️ [listMessages] No data returned");
+      return [];
+    }
+
+    console.log("✅ [listMessages] Successfully loaded messages:", data.length);
+    return data as unknown as ChatMessageWithSender[];
+  } catch (error) {
+    console.error("❌ [listMessages] Unexpected error:", error);
+    return [];
+  }
 }
 
 /**
@@ -631,6 +656,8 @@ export async function markMessagesAsRead(roomId: string): Promise<void> {
  * Subscribe to new messages
  */
 export function subscribeToMessages(roomId: string, callback: (message: ChatMessageWithSender) => void) {
+  console.log("🔔 [subscribeToMessages] Setting up subscription for room:", roomId);
+  
   const channel = supabase
     .channel(`room:${roomId}`)
     .on(
@@ -642,7 +669,9 @@ export function subscribeToMessages(roomId: string, callback: (message: ChatMess
         filter: `room_id=eq.${roomId}`,
       },
       async (payload) => {
-        const { data } = await supabase
+        console.log("🔔 [subscribeToMessages] New message received:", payload.new);
+        
+        const { data, error } = await supabase
           .from("chat_messages")
           .select(`
             id,
@@ -650,17 +679,31 @@ export function subscribeToMessages(roomId: string, callback: (message: ChatMess
             message,
             created_at,
             sender_id,
-            sender:members(id, full_name, avatar_url)
+            sender:members!chat_messages_sender_id_fkey(id, full_name, avatar_url)
           `)
           .eq("id", payload.new.id)
           .single();
 
-        if (data) callback(data as unknown as ChatMessageWithSender);
+        console.log("🔔 [subscribeToMessages] Fetched message details:", {
+          success: !error,
+          hasData: !!data,
+          error: error?.message
+        });
+
+        if (data) {
+          console.log("✅ [subscribeToMessages] Calling callback with new message");
+          callback(data as unknown as ChatMessageWithSender);
+        } else {
+          console.error("❌ [subscribeToMessages] Failed to fetch message details");
+        }
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log("🔔 [subscribeToMessages] Subscription status:", status);
+    });
 
   return () => {
+    console.log("🔔 [subscribeToMessages] Unsubscribing from room:", roomId);
     void supabase.removeChannel(channel);
   };
 }
