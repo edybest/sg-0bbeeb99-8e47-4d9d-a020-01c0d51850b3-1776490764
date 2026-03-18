@@ -7,7 +7,7 @@ const menuItems = [
   { href: "/member/blok", icon: Trophy, label: "Game" },
   { href: "/member/five-five", icon: Star, label: "5+5" },
   { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame" },
-  { href: "/member/average-score", icon: Target, label: "Train" },
+  { href: "/member/average-score", icon: Target, label: "Average" },
   { href: "/member/undi-lane", icon: Dices, label: "Lane Draw" },
   { href: "/member/lane", icon: MapPin, label: "Lane" },
   { href: "/member/mini-blok", icon: Gamepad2, label: "Mini" },
