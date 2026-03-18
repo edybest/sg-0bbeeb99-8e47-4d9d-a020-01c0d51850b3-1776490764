@@ -77,6 +77,7 @@ async function getCurrentMemberId(): Promise<string | null> {
 
   console.log("🔍 [chatService] Member lookup:", { 
     memberId: member?.id, 
+    userId: session.session.user.id,
     error: error?.message 
   });
 
@@ -173,6 +174,19 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
 
   console.log("🔍 [chatService] listMyChats: current memberId", { memberId });
 
+  // Test 1: Simple query tanpa RLS - untuk debug
+  const { data: testData, error: testError } = await supabase
+    .from("chat_participants")
+    .select("room_id, member_id")
+    .eq("member_id", memberId);
+
+  console.log("🔍 [chatService] TEST Query (no joins):", { 
+    testSuccess: !testError, 
+    testCount: testData?.length || 0,
+    testError: testError?.message,
+    testData: testData
+  });
+
   // Query menggunakan struktur yang sama seperti SQL test yang berjaya
   const { data, error } = await supabase
     .from("chat_participants")
@@ -190,7 +204,8 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
   console.log("🔍 [chatService] Query result:", { 
     success: !error, 
     dataCount: data?.length || 0,
-    error: error?.message 
+    error: error?.message,
+    rawData: data
   });
 
   if (error) {
