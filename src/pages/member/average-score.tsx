@@ -36,6 +36,7 @@ export default function AverageScorePage() {
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingData, setLoading] = useState(true);
+  const [sortMode, setSortMode] = useState<"username" | "score">("score");
 
   useEffect(() => {
     loadPlayerStats();
@@ -188,18 +189,27 @@ export default function AverageScorePage() {
   }
 
   function filterPlayers() {
-    if (!searchQuery) {
-      setFilteredPlayers(players);
-      return;
+    let filtered = players;
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = players.filter(
+        (p) =>
+          p.username.toLowerCase().includes(query) ||
+          p.full_name.toLowerCase().includes(query)
+      );
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = players.filter(
-      (p) =>
-        p.username.toLowerCase().includes(query) ||
-        p.full_name.toLowerCase().includes(query)
-    );
-    setFilteredPlayers(filtered);
+    // Apply sorting based on sortMode
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortMode === "username") {
+        return a.username.localeCompare(b.username); // A to Z
+      }
+      // Default: sort by score (highest first)
+      return b.average_of_3 - a.average_of_3;
+    });
+
+    setFilteredPlayers(sorted);
   }
 
   return (
@@ -237,6 +247,30 @@ export default function AverageScorePage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sort Mode Toggle */}
+            <Card className="mb-6">
+              <CardContent className="p-4">
+                <div className="flex gap-2">
+                  <Button
+                    variant={sortMode === "score" ? "default" : "outline"}
+                    onClick={() => setSortMode("score")}
+                    className={sortMode === "score" ? "bg-pink-600 hover:bg-pink-700" : ""}
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Skor
+                  </Button>
+                  <Button
+                    variant={sortMode === "username" ? "default" : "outline"}
+                    onClick={() => setSortMode("username")}
+                    className={sortMode === "username" ? "bg-pink-600 hover:bg-pink-700" : ""}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Username
+                  </Button>
                 </div>
               </CardContent>
             </Card>
