@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown } from "lucide-react";
+import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
@@ -161,13 +161,13 @@ export default function AverageScorePage() {
       return isFemale ? 25 : 0; // Female bowlers get max 25 hcp
     }
 
-    // Check if last game was more than 3 months ago
+    // Check if last game was more than 1 month ago
     const lastGameDate = new Date(recentGames[0].game_date);
     const monthsAgo = Math.floor(
       (Date.now() - lastGameDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
     );
 
-    if (monthsAgo > 3) {
+    if (monthsAgo > 1) {
       return isFemale ? 25 : 0; // Reset to 0, except females get 25
     }
 
@@ -250,7 +250,8 @@ export default function AverageScorePage() {
                 <p>• Dikira berdasarkan 3 blok terakhir (Blok Rasmi 10 PIN sahaja)</p>
                 <p>• Belum cukup 3 kali: 0 hcp (perempuan: 25 hcp)</p>
                 <p>• Bawah umur 15: minimum 15 hcp</p>
-                <p>• Lebih 3 bulan tidak join: 0 hcp (perempuan: 25 hcp)</p>
+                <p>• Bawah umur 15: minimum 15 hcp</p>
+                <p>• Lebih 1 bulan tidak join: 0 hcp (perempuan: 25 hcp)</p>
                 <p>• Formula: (200 - purata) × 0.8</p>
               </CardContent>
             </Card>
