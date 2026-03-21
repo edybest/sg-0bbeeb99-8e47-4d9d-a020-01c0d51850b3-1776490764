@@ -298,31 +298,8 @@ export default function FiveFivePage() {
       <MemberLayout>
         <>
           <SEO title="FiveFive - AMBC Club" />
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/30   ">
-            <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
-              {/* Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-                <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => router.push("/member")}
-                    className="shrink-0 hover:bg-pink-50  hover:border-red-300  transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-rose-900  flex items-center gap-2">
-                      <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
-                      FiveFive
-                    </h1>
-                    <p className="text-xs sm:text-sm text-rose-600  mt-1">
-                      Prize Per Game - Juara Setiap Game
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+          <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
+            <main className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
               {loadingData && !selectedGameId ? (
                 <div className="space-y-4">
                   <Skeleton className="h-12 w-full rounded-xl" />
@@ -645,7 +622,7 @@ export default function FiveFivePage() {
                   )}
                 </div>
               )}
-            </div>
+            </main>
           </div>
         </>
       </MemberLayout>

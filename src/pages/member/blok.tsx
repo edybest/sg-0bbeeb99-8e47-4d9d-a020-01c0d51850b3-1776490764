@@ -475,9 +475,9 @@ export default function BlokPage() {
 
   if (error && !loadingGames) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
                 {/* Header */}
-          <header className="sticky top-0 z-40 bg-white border-b border-rose-200 shadow-sm">
+          <header className="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg sticky top-0 z-40">
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -485,7 +485,7 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-rose-700 hover:text-red-600">
+                    className="text-white hover:bg-white/20">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -548,8 +548,8 @@ export default function BlokPage() {
 
 
                   <div>
-                    <h1 className="text-xl font-bold text-rose-900">Blok Leaderboard</h1>
-                    <p className="text-sm text-rose-600">Kedudukan Semasa</p>
+                    <h1 className="text-2xl font-bold">Blok Leaderboard</h1>
+                    <p className="text-sm text-yellow-100">Kedudukan Semasa</p>
                   </div>
                 </div>
               </div>
