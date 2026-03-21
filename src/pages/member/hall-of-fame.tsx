@@ -13,6 +13,7 @@ import confetti from "canvas-confetti";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type Champion = {
   year: number;
@@ -214,76 +215,71 @@ export default function HallOfFamePage() {
               </Card> :
 
             <div className="space-y-4">
-                {filteredChampions.map((champion, index) =>
-              <Card
-                key={`${champion.game_name}-${index}`}
-                className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-rose-200">
-                
+                {filteredChampions.map((champion, index) => (
+                  <Card
+                    key={`${champion.game_name}-${index}`}
+                    className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-rose-200"
+                  >
                     <CardContent className="p-6">
-                      <div className="flex items-center gap-4">
-                        {/* Trophy Icon */}
+                      <div className="flex items-start gap-4">
+                        {/* Avatar - Now on LEFT */}
+                        <Avatar className="w-16 h-16 flex-shrink-0 border-2 border-pink-200">
+                          <AvatarImage src={champion.winner.avatar_url || ""} />
+                          <AvatarFallback className="bg-gradient-to-br from-pink-100 to-pink-200 text-pink-700 font-semibold text-xl">
+                            {champion.winner.full_name?.charAt(0) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        {/* Trophy Icon - Now in CENTER (where avatar was) */}
                         <div className="flex-shrink-0">
-                          <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-pink-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                            <Trophy className="h-8 w-8 text-white" />
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-lg">
+                            <Trophy className="w-6 h-6 text-white" />
                           </div>
                         </div>
 
-                        {/* Champion Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className="bg-pink-500 text-white">
-                              {champion.year}
-                            </Badge>
-                            <h3 className="font-bold text-lg text-rose-800">
-                              {champion.game_name}
-                            </h3>
-                          </div>
-                          <p className="text-sm text-rose-600 mb-3">
-                            {new Date(champion.game_date).toLocaleDateString("ms-MY", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric"
-                        })}
-                          </p>
-
-                          <div className="flex items-center gap-3">
-                            <Link href={`/member/profile?id=${champion.winner.id}`}>
-                              {champion.winner.avatar_url ?
-                          <Image
-                            src={champion.winner.avatar_url}
-                            alt={champion.winner.username}
-                            width={48}
-                            height={48}
-                            className="rounded-full border-2 border-pink-300 shadow-md" /> :
-
-
-                          <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                                  {champion.winner.username[0].toUpperCase()}
-                                </div>
-                          }
-                            </Link>
-                            <div>
-                              <Link href={`/member/profile?id=${champion.winner.id}`}>
-                                <p className="font-bold text-lg hover:text-pink-600 transition-colors">
-                                  {champion.winner.full_name}
-                                </p>
-                                <p className="text-sm text-rose-600">@{champion.winner.username}</p>
-                              </Link>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Name and Username */}
+                          <div className="mb-2">
+                            {/* Name */}
+                            <div className="font-bold text-lg">
+                              {champion.winner.full_name || "Pemain"}
+                            </div>
+                            {/* Username */}
+                            <div className="text-sm text-gray-500">
+                              @{champion.winner.username || "username"}
                             </div>
                           </div>
-                        </div>
 
-                        {/* Score */}
-                        <div className="text-right">
-                          <p className="text-sm text-rose-500 mb-1">Score</p>
-                          <p className="text-3xl font-bold text-pink-600">
-                            {champion.winner.overall_score}
-                          </p>
+                          {/* Game Info */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="bg-pink-100 text-pink-700">
+                                {champion.year}
+                              </Badge>
+                              <span className="text-sm font-medium">{champion.game_name}</span>
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(champion.game_date).toLocaleDateString("ms-MY", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric"
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Score */}
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className="text-xs text-gray-500">Score</span>
+                            <span className="text-2xl font-bold text-pink-600">
+                              {champion.winner.overall_score}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-              )}
+                ))}
               </div>
             }
           </main>
