@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown, AlertCircle } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 
@@ -31,7 +30,6 @@ type PlayerStats = {
 
 export default function AverageScorePage() {
   const router = useRouter();
-  const { member, loading, isAuthenticated } = useAuth(false);
   const [players, setPlayers] = useState<PlayerStats[]>([]);
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,14 +43,6 @@ export default function AverageScorePage() {
   useEffect(() => {
     filterPlayers();
   }, [searchQuery, players]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-      </div>
-    );
-  }
 
   async function loadPlayerStats() {
     try {
@@ -213,7 +203,11 @@ export default function AverageScorePage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/average-score" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/average-score"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <SEO title="Average Score - AMBC Club" description="Statistik purata skor ahli" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
