@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Tesseract from "tesseract.js";
 import formidable from "formidable";
 import fs from "fs";
+import os from "os";
 
 export const config = {
   api: {
@@ -218,6 +219,7 @@ export default async function handler(
     console.log("\n🎯 ===== TESSERACT OCR START =====");
     
     const form = formidable({
+      uploadDir: os.tmpdir(),
       maxFileSize: 10 * 1024 * 1024,
       keepExtensions: true,
     });

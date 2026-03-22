@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import fs from "fs";
+import os from "os";
 import Papa from "papaparse";
 
 export const config = {
@@ -110,7 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const form = formidable({
-      uploadDir: "./uploads",
+      uploadDir: os.tmpdir(),
       keepExtensions: true,
       maxFileSize: 5 * 1024 * 1024, // 5MB
     });

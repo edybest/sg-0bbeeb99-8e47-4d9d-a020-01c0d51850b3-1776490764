@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
-import { Trophy, Calendar, TrendingUp, ArrowLeft, Loader2, Award, DollarSign, ChevronDown, ChevronUp, Upload } from "lucide-react";
+import { Trophy, Calendar, TrendingUp, ArrowLeft, Award, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
@@ -70,92 +70,6 @@ export default function FiveFivePage() {
   const [participants, setParticipants] = useState<FiveFiveParticipant[]>([]);
   const [selectedGame, setSelectedGame] = useState<GameWithDate | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingCsv, setUploadingCsv] = useState(false);
-
-  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedGameId) return;
-
-    setUploadingCsv(true);
-    try {
-      const { data: allMembers } = await supabase.from("members").select("id, username, full_name");
-      
-      const formData = new FormData();
-      formData.append("csv", file);
-      formData.append("members", JSON.stringify(allMembers || []));
-
-      const res = await fetch("/api/parse-score-csv", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error || "Gagal memproses CSV");
-
-      const scores = data.scores || [];
-      let added = 0;
-      let updated = 0;
-      let unmatched = 0;
-
-      for (const score of scores) {
-        if (!score.matchedMember) {
-          unmatched++;
-          continue;
-        }
-        
-        const memberId = score.matchedMember.id;
-        
-        const { data: existing } = await supabase
-          .from("game_players")
-          .select("id")
-          .eq("game_id", selectedGameId)
-          .eq("member_id", memberId)
-          .maybeSingle();
-
-        const payload = {
-          game1_score: score.scores.game1 ?? null,
-          game2_score: score.scores.game2 ?? null,
-          game3_score: score.scores.game3 ?? null,
-          game4_score: score.scores.game4 ?? null,
-          game5_score: score.scores.game5 ?? null,
-          is_fivefive: true,
-          ...(score.handicap !== undefined && { handicap: score.handicap })
-        };
-
-        if (existing) {
-          await supabase.from("game_players").update(payload).eq("id", existing.id);
-          updated++;
-        } else {
-          await supabase.from("game_players").insert({
-            game_id: selectedGameId,
-            member_id: memberId,
-            ...payload
-          });
-          added++;
-        }
-      }
-      
-      toast({
-        title: "CSV Diproses",
-        description: `${added} pemain ditambah, ${updated} dikemaskini. ${unmatched > 0 ? `${unmatched} nama tidak dijumpai.` : ''}`,
-      });
-      
-      // Refresh the rankings
-      calculateRankingsAndPrizes(selectedGameId);
-
-    } catch (err: any) {
-      toast({
-        title: "Ralat CSV",
-        description: err.message,
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingCsv(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   const toggleCard = (memberId: string) => {
     const newExpanded = new Set(expandedCards);
@@ -464,31 +378,6 @@ export default function FiveFivePage() {
                               ))}
                             </SelectContent>
                           </Select>
-
-                          {member?.is_admin && (
-                            <>
-                              <input 
-                                type="file" 
-                                accept=".csv" 
-                                className="hidden" 
-                                ref={fileInputRef} 
-                                onChange={handleCsvUpload} 
-                              />
-                              <Button 
-                                variant="outline" 
-                                className="border-pink-200 text-pink-700 hover:bg-pink-50"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploadingCsv || !selectedGameId}
-                              >
-                                {uploadingCsv ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Upload className="w-4 h-4 mr-2" />
-                                )}
-                                Upload CSV
-                              </Button>
-                            </>
-                          )}
                         </div>
                       </div>
                     </CardHeader>

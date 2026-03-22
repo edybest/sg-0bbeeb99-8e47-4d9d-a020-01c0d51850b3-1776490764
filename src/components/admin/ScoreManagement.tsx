@@ -438,9 +438,10 @@ export function ScoreManagement() {
     let currentPlayers = players;
 
     if (missingScores.length > 0) {
-      const missingMembers = missingScores.map(s => ({ member_id: s.matchedMember!.id, is_fivefive: false }));
       try {
-         await gameService.addPlayersToGameWithFiveFive(selectedGameId, missingMembers);
+         for (const score of missingScores) {
+           await gameService.addPlayerToGame(selectedGameId, score.matchedMember!.id);
+         }
          const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
          currentPlayers = updatedPlayers as unknown as GamePlayer[];
          setPlayers(currentPlayers);
@@ -651,9 +652,10 @@ export function ScoreManagement() {
     let currentPlayers = players;
 
     if (missingScores.length > 0) {
-      const missingMembers = missingScores.map(s => ({ member_id: s.matchedMember!.id, is_fivefive: false }));
       try {
-         await gameService.addPlayersToGameWithFiveFive(selectedGameId, missingMembers);
+         for (const score of missingScores) {
+           await gameService.addPlayerToGame(selectedGameId, score.matchedMember!.id);
+         }
          const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
          currentPlayers = updatedPlayers as unknown as GamePlayer[];
          setPlayers(currentPlayers);
