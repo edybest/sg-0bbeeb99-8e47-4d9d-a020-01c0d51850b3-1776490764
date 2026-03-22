@@ -465,7 +465,7 @@ export default function FiveFivePage() {
                             </SelectContent>
                           </Select>
 
-                          {member?.role === 'admin' && (
+                          {member?.is_admin && (
                             <>
                               <input 
                                 type="file" 
