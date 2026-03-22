@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Loader2, ChevronDown, CalendarDays } from "lucide-react";
 import confetti from "canvas-confetti";
-import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -19,6 +18,20 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+
+function formatDate(value?: string | null): string {
+  if (!value) return "";
+  try {
+    const date = new Date(value);
+    return date.toLocaleDateString("ms-MY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
 
 type ChampionWin = {
   game_id: string;
@@ -39,7 +52,6 @@ type Champion = {
 
 export default function HallOfFamePage() {
   const router = useRouter();
-  const { loading } = useAuth(false);
 
   const [champions, setChampions] = useState<Champion[]>([]);
   const [selectedYear, setSelectedYear] = useState<string>("all");
@@ -77,14 +89,6 @@ export default function HallOfFamePage() {
 
     frame();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-      </div>
-    );
-  }
 
   async function loadChampions() {
     try {
@@ -188,7 +192,11 @@ export default function HallOfFamePage() {
       : champions.filter((c) => c.year.toString() === selectedYear);
 
   return (
-    <PageAccessGuard pagePath="/member/hall-of-fame" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/hall-of-fame"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <>
           <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
@@ -303,38 +311,41 @@ export default function HallOfFamePage() {
                               </span>
                             </div>
 
-                            {/* List of winning dates with links to Blok */}
-                            <div className="mt-3 space-y-2">
-                              {champion.wins
-                                .slice()
-                                .sort(
-                                  (a, b) =>
-                                    new Date(b.game_date).getTime() -
-                                    new Date(a.game_date).getTime()
-                                )
-                                .map((win) => (
-                                  <Link
-                                    key={win.game_id}
-                                    href={{
-                                      pathname: "/member/blok",
-                                      query: { gameId: win.game_id },
-                                    }}
-                                    className="flex items-center gap-2 text-sm text-pink-700 hover:text-pink-900"
+                            {/* Wins dropdown */}
+                            {champion.wins.length > 0 && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 flex items-center gap-2"
                                   >
-                                    <span className="inline-flex items-center gap-1">
-                                      <Trophy className="w-4 h-4 text-yellow-500" />
-                                      {new Date(win.game_date).toLocaleDateString("ms-MY", {
-                                        day: "numeric",
-                                        month: "long",
-                                        year: "numeric",
-                                      })}
+                                    <CalendarDays className="h-4 w-4" />
+                                    <span>
+                                      Tarikh juara ({champion.total_champ})
                                     </span>
-                                    <span className="text-xs text-gray-500">
-                                      ({win.game_name}) · Skor {win.overall_score}
-                                    </span>
-                                  </Link>
-                                ))}
-                            </div>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  {champion.wins.map((win) => (
+                                    <DropdownMenuItem key={win.game_id} asChild>
+                                      <Link
+                                        href={{
+                                          pathname: "/member/blok",
+                                          query: { gameId: win.game_id },
+                                        }}
+                                        className="flex w-full items-center justify-between"
+                                      >
+                                        <span>{formatDate(win.game_date)}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          Lihat Blok
+                                        </span>
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
                         </div>
                       </CardContent>

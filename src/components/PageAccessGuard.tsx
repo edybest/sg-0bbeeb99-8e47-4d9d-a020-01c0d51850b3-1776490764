@@ -7,9 +7,15 @@ interface PageAccessGuardProps {
   children: React.ReactNode;
   pagePath: string;
   requireAuth?: boolean;
+  renderLoading?: () => JSX.Element | null;
 }
 
-export function PageAccessGuard({ children, pagePath, requireAuth = false }: PageAccessGuardProps) {
+export function PageAccessGuard({
+  children,
+  pagePath,
+  requireAuth = false,
+  renderLoading,
+}: PageAccessGuardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -90,6 +96,10 @@ export function PageAccessGuard({ children, pagePath, requireAuth = false }: Pag
   };
 
   if (loading) {
+    if (renderLoading) {
+      return renderLoading();
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <BowlingBallLoader />

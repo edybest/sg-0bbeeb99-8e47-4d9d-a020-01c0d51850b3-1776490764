@@ -232,13 +232,7 @@ export default function FiveFivePage() {
     }
   }, [selectedGameId]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-      </div>
-    );
-  }
+  // Auth loading state is handled by PageAccessGuard; we do not block the whole page here.
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -294,7 +288,11 @@ export default function FiveFivePage() {
   };
 
   return (
-    <PageAccessGuard pagePath="/member/five-five" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/five-five"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <>
           <SEO title="FiveFive - AMBC Club" />
