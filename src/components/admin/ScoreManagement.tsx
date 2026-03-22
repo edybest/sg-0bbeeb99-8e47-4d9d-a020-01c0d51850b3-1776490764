@@ -247,6 +247,37 @@ export function ScoreManagement() {
     }
   }
 
+  async function handleSaveAll() {
+    const playerIds = Object.keys(editingScores);
+    if (playerIds.length === 0) return;
+
+    setSaving("all");
+    try {
+      const promises = playerIds.map(playerId => {
+        const updates = editingScores[playerId];
+        return gameService.updatePlayerScores(playerId, {
+          game1_score: updates.game1_score,
+          game2_score: updates.game2_score,
+          game3_score: updates.game3_score,
+          game4_score: updates.game4_score,
+          game5_score: updates.game5_score,
+          handicap: updates.handicap
+        });
+      });
+
+      await Promise.all(promises);
+
+      await loadGamePlayers(selectedGameId);
+      
+      setEditingScores({});
+    } catch (error) {
+      console.error("Error saving all scores:", error);
+      alert("Gagal menyimpan semua skor");
+    } finally {
+      setSaving(null);
+    }
+  }
+
   function getPlayerScore(player: GamePlayer, field: keyof GamePlayer): number {
     const editing = editingScores[player.id];
     if (editing && field in editing) {
@@ -399,7 +430,7 @@ export function ScoreManagement() {
     if (!player) return;
 
     setEditingScores(prev => {
-      const updated = { ...(prev[player!.id] || player!) };
+      const updated = { ...(prev[player.id] || player) };
       if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
       if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
       if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
@@ -412,11 +443,11 @@ export function ScoreManagement() {
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
 
-      return { ...prev, [player!.id]: updated };
+      return { ...prev, [player.id]: updated };
     });
 
     // Scroll to player
-    const playerElement = document.getElementById(`player-${player!.id}`);
+    const playerElement = document.getElementById(`player-${player.id}`);
     if (playerElement) {
       playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
       playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
@@ -718,6 +749,20 @@ export function ScoreManagement() {
           <p className="text-gray-600 mt-1">Edit player scores for games</p>
         </div>
         <div className="flex gap-2">
+          {Object.keys(editingScores).length > 0 && (
+            <Button
+              onClick={handleSaveAll}
+              disabled={saving === "all"}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {saving === "all" ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save All ({Object.keys(editingScores).length})
+            </Button>
+          )}
           <Button
             onClick={() => setShowUploadModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
