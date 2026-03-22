@@ -60,9 +60,12 @@ export default function HallOfFamePage() {
 
   useEffect(() => {
     void loadChampions();
+  }, []);
 
-    // Confetti celebration on page load
-    const duration = 3000;
+  useEffect(() => {
+    if (!champions.length) return;
+
+    const duration = 1200;
     const end = Date.now() + duration;
 
     const frame = () => {
@@ -88,7 +91,7 @@ export default function HallOfFamePage() {
     };
 
     frame();
-  }, []);
+  }, [champions.length]);
 
   async function loadChampions() {
     try {

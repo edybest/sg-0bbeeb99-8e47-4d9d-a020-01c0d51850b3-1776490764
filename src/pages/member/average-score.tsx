@@ -48,85 +48,120 @@ export default function AverageScorePage() {
     try {
       setLoading(true);
 
-      // CRITICAL: Get only NON-ADMIN members (players only)
-      // Use eq(false) to explicitly exclude is_admin = true
-      const { data: members, error: membersError } = await supabase
-        .from("members")
-        .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
-        .eq("is_admin", false);
+      // Single joined query: get all non-admin members' official Blok games
+      const { data, error } = await supabase
+        .from("game_players")
+        .select(`
+          member_id,
+          average_score,
+          games!inner (
+            game_name,
+            game_date,
+            game_type
+          ),
+          members!inner (
+            id,
+            username,
+            full_name,
+            avatar_url,
+            sex,
+            birthday,
+            is_admin
+          )
+        `)
+        .eq("games.game_type", "Blok Rasmi 10 PIN")
+        .eq("members.is_admin", false);
 
-      if (membersError) {
-        console.error("Members fetch error:", membersError);
-        throw membersError;
+      if (error) {
+        console.error("AverageScore - game_players joined fetch error:", error);
+        throw error;
       }
 
-      console.log("AverageScore - Members fetched:", members?.length || 0);
-      console.log("AverageScore - Sample members:", members?.slice(0, 3).map((m: any) => ({ 
-        username: m.username, 
-        is_admin: m.is_admin 
-      })));
+      type Row = {
+        member_id: string;
+        average_score: number | null;
+        games: {
+          game_name: string;
+          game_date: string;
+          game_type: string;
+        } | null;
+        members: {
+          id: string;
+          username: string;
+          full_name: string;
+          avatar_url: string | null;
+          sex: string | null;
+          birthday: string | null;
+          is_admin: boolean | null;
+        } | null;
+      };
 
-      // DEFENSIVE: Double-check filter on client side (in case of data inconsistency)
-      const playersOnly = (members || []).filter((m: any) => m.is_admin !== true);
+      const statsMap = new Map<string, PlayerStats>();
 
-      console.log("AverageScore - After defensive filter:", playersOnly.length);
+      (data as Row[] | null | undefined || []).forEach((row) => {
+        const member = row.members;
+        const game = row.games;
 
-      const statsPromises = playersOnly.map(async (member) => {
-        // Get all official Blok games for this member
-        const { data: allGames } = await supabase
-          .from("game_players")
-          .select(`
-            average_score,
-            games!inner (
-              game_name,
-              game_date,
-              game_type
-            )
-          `)
-          .eq("member_id", member.id)
-          .eq("games.game_type", "Blok Rasmi 10 PIN");
+        if (!member || !game) return;
 
-        // Sort by date in JavaScript and take last 3
-        const sortedGames = (allGames || [])
-          .sort((a: any, b: any) => {
-            const dateA = new Date(a.games.game_date).getTime();
-            const dateB = new Date(b.games.game_date).getTime();
-            return dateB - dateA; // Descending order (newest first)
-          })
-          .slice(0, 3);
+        // Defensive: skip admin if any slip through
+        if (member.is_admin) return;
 
-        const games = sortedGames.map((g: any) => ({
-          game_name: g.games.game_name,
-          game_date: g.games.game_date,
-          average_score: g.average_score
-        }));
+        let player = statsMap.get(member.id);
+        if (!player) {
+          player = {
+            member_id: member.id,
+            username: member.username,
+            full_name: member.full_name,
+            avatar_url: member.avatar_url,
+            sex: member.sex,
+            birthday: member.birthday,
+            recent_games: [],
+            average_of_3: 0,
+            calculated_handicap: 0,
+          };
+          statsMap.set(member.id, player);
+        }
 
-        // Calculate average of 3 recent games
-        const avgOf3 = games.length > 0
-          ? Math.round(games.reduce((sum, g) => sum + g.average_score, 0) / games.length)
-          : 0;
+        player.recent_games.push({
+          game_name: game.game_name,
+          game_date: game.game_date,
+          average_score: row.average_score ?? 0,
+        });
+      });
 
-        // Calculate handicap based on requirements
-        const handicap = calculateHandicap(member, games, avgOf3);
+      const stats: PlayerStats[] = Array.from(statsMap.values()).map((player) => {
+        const sortedGames = [...player.recent_games].sort((a, b) => {
+          const dateA = new Date(a.game_date).getTime();
+          const dateB = new Date(b.game_date).getTime();
+          return dateB - dateA;
+        }).slice(0, 3);
+
+        const avgOf3 =
+          sortedGames.length > 0
+            ? Math.round(
+                sortedGames.reduce((sum, g) => sum + g.average_score, 0) /
+                  sortedGames.length
+              )
+            : 0;
+
+        const handicap = calculateHandicap(
+          { sex: player.sex, birthday: player.birthday } as any,
+          sortedGames as any[],
+          avgOf3
+        );
 
         return {
-          member_id: member.id,
-          username: member.username,
-          full_name: member.full_name,
-          avatar_url: member.avatar_url,
-          sex: member.sex,
-          birthday: member.birthday,
-          recent_games: games,
+          ...player,
+          recent_games: sortedGames,
           average_of_3: avgOf3,
-          calculated_handicap: handicap
+          calculated_handicap: handicap,
         };
       });
 
-      const stats = await Promise.all(statsPromises);
-      
       // Sort by average score (highest first)
       stats.sort((a, b) => b.average_of_3 - a.average_of_3);
-      
+
       setPlayers(stats);
       setFilteredPlayers(stats);
     } catch (error) {
