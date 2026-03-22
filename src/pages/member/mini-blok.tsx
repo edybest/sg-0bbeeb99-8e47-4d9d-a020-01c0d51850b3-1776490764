@@ -1170,7 +1170,11 @@ export default function MiniBlokPage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/mini-blok" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/mini-blok"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <MemberLayout>
       <SEO title="Mini Blok - AMBC Club" description="Sistem rekod mini blok" />
       <div className="min-h-screen bg-rose-50 flex flex-col">

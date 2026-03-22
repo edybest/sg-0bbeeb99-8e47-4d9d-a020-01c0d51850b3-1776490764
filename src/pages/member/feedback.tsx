@@ -190,7 +190,11 @@ export default function FeedbackPage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/feedback">
+    <PageAccessGuard
+      pagePath="/member/feedback"
+      requireAuth
+      renderLoading={() => null}
+    >
       <SEO title="Feedback - AMBC Club" description="Hantar maklum balas anda" />
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
         <MemberLayout>

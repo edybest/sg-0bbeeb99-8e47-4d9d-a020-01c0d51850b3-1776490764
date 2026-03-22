@@ -318,7 +318,11 @@ export default function GalleryPage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/gallery" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/gallery"
+      requireAuth
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <SEO title="Gallery - AMBC Club" description="Album foto aktiviti bowling" />
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">

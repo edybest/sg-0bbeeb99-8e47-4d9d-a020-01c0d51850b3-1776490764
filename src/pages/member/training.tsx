@@ -462,7 +462,11 @@ export default function TrainingPage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/training" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/training"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <>
         <SEO 
           title="Training - AMBC Club"

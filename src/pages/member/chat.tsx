@@ -526,7 +526,7 @@ export default function ChatPage() {
 
   if (authLoading || loading) {
     return (
-      <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
+      <PageAccessGuard pagePath="/member/chat" requireAuth={true} renderLoading={() => null}>
         <MemberLayout>
           <SEO title="Chat - AMBC Club" />
           <div className="flex h-screen items-center justify-center">
@@ -551,7 +551,7 @@ export default function ChatPage() {
   const lobbyExists = rooms.some((r) => r.type === "lobby" || r.name.toLowerCase().includes("lobby"));
 
   return (
-    <PageAccessGuard pagePath="/member/chat" requireAuth={true}>
+    <PageAccessGuard pagePath="/member/chat" requireAuth={true} renderLoading={() => null}>
       <MemberLayout>
         <SEO title="Chat - AMBC Club" />
         

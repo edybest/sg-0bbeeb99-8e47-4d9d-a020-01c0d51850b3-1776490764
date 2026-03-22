@@ -260,7 +260,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/profile" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/profile"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <>
         <SEO title="Profile - AMBC Club" description="Profil ahli AMBC Club" />
         <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">

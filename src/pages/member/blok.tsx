@@ -591,7 +591,11 @@ export default function BlokPage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/blok" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/blok"
+      requireAuth
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <>
           <style jsx global>{`
@@ -1088,6 +1092,6 @@ export default function BlokPage() {
               </div>
           </>
       </MemberLayout>
-        </PageAccessGuard>);
+    </PageAccessGuard>);
 
 }

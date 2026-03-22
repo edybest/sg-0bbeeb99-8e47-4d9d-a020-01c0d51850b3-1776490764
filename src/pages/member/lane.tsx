@@ -405,7 +405,11 @@ export default function LanePage() {
   }
 
   return (
-    <PageAccessGuard pagePath="/member/lane" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/lane"
+      requireAuth
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <SEO 
           title="Lane Assignment - AMBC Club"

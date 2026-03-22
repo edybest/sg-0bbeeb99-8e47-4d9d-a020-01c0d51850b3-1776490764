@@ -553,7 +553,11 @@ export default function UndiLanePage() {
   const isPastGame = selectedGame ? new Date(selectedGame.game_date).setHours(0, 0, 0, 0) < today.getTime() : false;
 
   return (
-    <PageAccessGuard pagePath="/member/undi-lane" requireAuth={true}>
+    <PageAccessGuard
+      pagePath="/member/undi-lane"
+      requireAuth={true}
+      renderLoading={() => null}
+    >
       <MemberLayout>
         <SEO title="Undi Lane - AMBC Club" description="Sistem undian lane secara rawak" />
 
