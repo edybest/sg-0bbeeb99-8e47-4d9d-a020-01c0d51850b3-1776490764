@@ -232,7 +232,9 @@ export default function FiveFivePage() {
             }
           }
           
-          const prizePerPlayer = numPlayers > 0 ? totalPrizeForGroup / numPlayers : 0;
+          const exactPrizePerPlayer = numPlayers > 0 ? totalPrizeForGroup / numPlayers : 0;
+          // Bundarkan ke RM0.50 terdekat ke bawah (cth: 45.33 -> 45.00, 45.83 -> 45.50)
+          const prizePerPlayer = Math.floor(exactPrizePerPlayer * 2) / 2;
 
           group.players.forEach((player) => {
             const originalPlayer = participantsWithRankings.find((p) => p.member_id === player.member_id);
