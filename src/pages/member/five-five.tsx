@@ -56,6 +56,9 @@ interface GameWithDate {
   game_format: string | null;
 }
 
+// Default prize structure for Five-Five per game (can be adjusted later)
+const FIVE_FIVE_GAME_PRIZES: number[] = [50, 30, 20, 10, 5];
+
 export default function FiveFivePage() {
   const router = useRouter();
   const { member, loading, isAuthenticated } = useAuth(false);
@@ -208,8 +211,8 @@ export default function FiveFivePage() {
           if (originalPlayer) {
             (originalPlayer[rankKey] as number) = currentRank;
 
-            if (currentRank <= prizes.length) {
-              (originalPlayer[prizeKey] as number) = prizes[currentRank - 1] || 0;
+            if (currentRank <= FIVE_FIVE_GAME_PRIZES.length) {
+              (originalPlayer[prizeKey] as number) = FIVE_FIVE_GAME_PRIZES[currentRank - 1] || 0;
             }
           }
 
