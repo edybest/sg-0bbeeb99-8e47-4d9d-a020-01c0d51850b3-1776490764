@@ -70,7 +70,7 @@ export function GameManagement() {
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [selectedGameForPlayer, setSelectedGameForPlayer] = useState<string | null>(null);
   const [availableMembers, setAvailableMembers] = useState<Array<{ id: string; username: string; full_name: string }>>([]);
-  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [newPlayerFiveFive, setNewPlayerFiveFive] = useState(false);
 
   useEffect(() => {
@@ -235,35 +235,45 @@ export function GameManagement() {
 
   const handleOpenAddPlayer = async (gameId: string) => {
     setSelectedGameForPlayer(gameId);
-    setSelectedMemberId("");
+    setSelectedMemberIds([]);
     setNewPlayerFiveFive(false);
     setShowAddPlayer(true);
     await loadAvailableMembers(gameId);
   };
 
   const handleAddPlayer = async () => {
-    if (!selectedGameForPlayer || !selectedMemberId) {
+    if (!selectedGameForPlayer || selectedMemberIds.length === 0) {
       toast({
         title: "Ralat",
-        description: "Sila pilih ahli",
+        description: "Sila pilih sekurang-kurangnya seorang ahli",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      await gameService.addPlayerToGame(selectedGameForPlayer, selectedMemberId, newPlayerFiveFive);
+      const players = selectedMemberIds.map((memberId) => ({
+        member_id: memberId,
+        is_fivefive: newPlayerFiveFive,
+      }));
+
+      const result = await gameService.addPlayersToGameWithFiveFive(
+        selectedGameForPlayer,
+        players
+      );
+
       toast({
         title: "Berjaya",
-        description: "Pemain telah ditambah ke permainan",
+        description: result?.message || "Pemain telah ditambah ke permainan",
       });
+
       setShowAddPlayer(false);
       setSelectedGameForPlayer(null);
-      setSelectedMemberId("");
+      setSelectedMemberIds([]);
       setNewPlayerFiveFive(false);
       loadGames();
     } catch (error) {
-      console.error("Error adding player:", error);
+      console.error("Error adding players:", error);
       toast({
         title: "Ralat",
         description: "Gagal menambah pemain",
@@ -628,7 +638,7 @@ export function GameManagement() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Pilih Ahli</label>
+                <label className="text-sm font-medium">Pilih Ahli (boleh pilih ramai)</label>
                 {loadingMembers ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
@@ -638,19 +648,40 @@ export function GameManagement() {
                     Semua ahli sudah didaftarkan dalam permainan ini
                   </p>
                 ) : (
-                  <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih ahli..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableMembers.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.username} ({member.full_name})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="max-h-64 overflow-y-auto rounded-md border p-2 space-y-1">
+                    {availableMembers.map((member) => {
+                      const checked = selectedMemberIds.includes(member.id);
+                      return (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMemberIds((prev) =>
+                              prev.includes(member.id)
+                                ? prev.filter((id) => id !== member.id)
+                                : [...prev, member.id]
+                            );
+                          }}
+                          className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-muted ${
+                            checked ? "bg-muted" : ""
+                          }`}
+                        >
+                          <span>
+                            {member.username} ({member.full_name})
+                          </span>
+                          <span
+                            className={`h-4 w-4 rounded border ${
+                              checked ? "bg-pink-600 border-pink-600" : "border-muted-foreground/40"
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  {selectedMemberIds.length} ahli dipilih
+                </p>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
@@ -662,7 +693,7 @@ export function GameManagement() {
                   htmlFor="add-fivefive"
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Main Five-Five ⭐
+                  Main Five-Five ⭐ (aplikasi kepada semua yang dipilih)
                 </label>
               </div>
             </div>
@@ -672,9 +703,9 @@ export function GameManagement() {
               </Button>
               <Button
                 onClick={handleAddPlayer}
-                disabled={!selectedMemberId || loadingMembers}
+                disabled={selectedMemberIds.length === 0 || loadingMembers}
               >
-                Tambah Pemain
+                Tambah {selectedMemberIds.length > 0 ? `${selectedMemberIds.length} Pemain` : "Pemain"}
               </Button>
             </DialogFooter>
           </DialogContent>
