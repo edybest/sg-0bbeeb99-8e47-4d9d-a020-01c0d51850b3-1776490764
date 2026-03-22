@@ -118,21 +118,25 @@ class GameService {
         }
       }
 
-      // Get all active members
+      // Get all members (removed is_active filter since column doesn't exist)
       const { data: allMembers, error: membersError } = await supabase
         .from("members")
         .select("id, username, full_name")
-        .eq("is_active", true)
         .order("username");
 
       if (membersError) throw membersError;
 
       // Filter out members already in the game (client-side filtering)
       const availableMembers: Array<{ id: string; username: string; full_name: string }> = [];
+      
       if (allMembers) {
         for (const member of allMembers) {
           if (!existingMemberIds.includes(member.id)) {
-            availableMembers.push(member);
+            availableMembers.push({
+              id: member.id,
+              username: member.username,
+              full_name: member.full_name
+            });
           }
         }
       }
