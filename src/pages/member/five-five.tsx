@@ -22,6 +22,16 @@ type Game = Tables<"games">;
 interface FiveFiveParticipant {
   member_id: string;
   username: string;
+  // handicap info
+  handicap: number;
+  per_game_handicap: number;
+  // raw scores (before handicap)
+  raw_game1_score: number;
+  raw_game2_score: number;
+  raw_game3_score: number;
+  raw_game4_score: number;
+  raw_game5_score: number;
+  // adjusted scores (after handicap)
   game1_score: number;
   game2_score: number;
   game3_score: number;
@@ -132,32 +142,31 @@ export default function FiveFivePage() {
         return;
       }
 
-      const playerCount = playersData.length;
-      const { data: prizeConfig, error: prizeError } = await supabase
-        .from("fivefive_prizes")
-        .select("*")
-        .eq("player_count", playerCount)
-        .maybeSingle();
-
-      if (prizeError) throw prizeError;
-
-      const prizes: number[] = Array.isArray(prizeConfig?.prizes)
-        ? prizeConfig.prizes.map(Number)
-        : [];
-
-      // Apply handicap bonus: +5 pins per game if member has handicap > 0
       const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => {
         const memberHandicap = player.members?.handicap ?? 0;
         const perGameHandicap = memberHandicap > 0 ? Math.floor(memberHandicap / 5) : 0;
 
+        const rawGame1 = player.game1_score || 0;
+        const rawGame2 = player.game2_score || 0;
+        const rawGame3 = player.game3_score || 0;
+        const rawGame4 = player.game4_score || 0;
+        const rawGame5 = player.game5_score || 0;
+
         return {
           member_id: player.member_id,
           username: player.members?.username || "Unknown",
-          game1_score: (player.game1_score || 0) + perGameHandicap,
-          game2_score: (player.game2_score || 0) + perGameHandicap,
-          game3_score: (player.game3_score || 0) + perGameHandicap,
-          game4_score: (player.game4_score || 0) + perGameHandicap,
-          game5_score: (player.game5_score || 0) + perGameHandicap,
+          handicap: memberHandicap,
+          per_game_handicap: perGameHandicap,
+          raw_game1_score: rawGame1,
+          raw_game2_score: rawGame2,
+          raw_game3_score: rawGame3,
+          raw_game4_score: rawGame4,
+          raw_game5_score: rawGame5,
+          game1_score: rawGame1 + perGameHandicap,
+          game2_score: rawGame2 + perGameHandicap,
+          game3_score: rawGame3 + perGameHandicap,
+          game4_score: rawGame4 + perGameHandicap,
+          game5_score: rawGame5 + perGameHandicap,
           game1_rank: 0,
           game2_rank: 0,
           game3_rank: 0,
@@ -375,7 +384,7 @@ export default function FiveFivePage() {
                               >
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-2">
+                                    <div className="flex items-center gap-2 mb-1">
                                       <Badge variant="outline" className="text-xs">
                                         #{index + 1}
                                       </Badge>
@@ -383,6 +392,21 @@ export default function FiveFivePage() {
                                         {participant.username}
                                       </h3>
                                     </div>
+
+                                    {participant.handicap > 0 && (
+                                      <p className="text-xs text-rose-700  mb-2">
+                                        Handicap:{" "}
+                                        <span className="font-semibold">
+                                          {participant.handicap}
+                                        </span>{" "}
+                                        (
+                                        <span className="font-semibold">
+                                          +{participant.per_game_handicap}
+                                        </span>{" "}
+                                        / game)
+                                      </p>
+                                    )}
+
                                     <div className="flex items-center gap-2">
                                       <DollarSign className="w-5 h-5 text-yellow-600" />
                                       <span className="text-2xl font-bold text-yellow-700 ">
@@ -408,10 +432,15 @@ export default function FiveFivePage() {
                               {isExpanded && (
                                 <CardContent className="p-4 space-y-3">
                                   {[1, 2, 3, 4, 5].map((gameNum) => {
+                                    const rawKey = `raw_game${gameNum}_score` as keyof FiveFiveParticipant;
                                     const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
                                     const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
                                     const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
                                     
+                                    const rawScore = participant[rawKey] as number;
+                                    const finalScore = participant[scoreKey] as number;
+                                    const addedHcp = participant.per_game_handicap;
+
                                     return (
                                       <div
                                         key={gameNum}
@@ -425,21 +454,41 @@ export default function FiveFivePage() {
                                             {getRankDisplay(participant[rankKey] as number)}
                                           </span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-3 gap-3 text-xs sm:text-sm">
                                           <div>
-                                            <p className="text-xs text-rose-600 ">Score</p>
-                                            <p className="text-xl font-bold text-rose-900 ">
-                                              {participant[scoreKey]}
+                                            <p className="text-[10px] uppercase tracking-wide text-rose-600 ">
+                                              Score Asal
+                                            </p>
+                                            <p className="text-base font-semibold text-rose-900 ">
+                                              {rawScore}
                                             </p>
                                           </div>
                                           <div>
-                                            <p className="text-xs text-rose-600 ">Prize</p>
-                                            <p className="text-xl font-bold text-green-600 ">
-                                              {(participant[prizeKey] as number) > 0
-                                                ? formatCurrency(participant[prizeKey] as number)
-                                                : "-"}
+                                            <p className="text-[10px] uppercase tracking-wide text-rose-600 ">
+                                              Handicap / Game
+                                            </p>
+                                            <p className="text-base font-semibold text-rose-900 ">
+                                              +{addedHcp}
                                             </p>
                                           </div>
+                                          <div>
+                                            <p className="text-[10px] uppercase tracking-wide text-rose-600 ">
+                                              Score Akhir
+                                            </p>
+                                            <p className="text-base font-bold text-rose-900 ">
+                                              {finalScore}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <div className="mt-2 flex justify-between items-center">
+                                          <p className="text-[10px] uppercase tracking-wide text-rose-600 ">
+                                            Prize
+                                          </p>
+                                          <p className="text-sm font-bold text-green-600 ">
+                                            {(participant[prizeKey] as number) > 0
+                                              ? formatCurrency(participant[prizeKey] as number)
+                                              : "-"}
+                                          </p>
                                         </div>
                                       </div>
                                     );
@@ -542,9 +591,16 @@ export default function FiveFivePage() {
                                     `}
                                   >
                                     <TableCell className="font-semibold text-rose-900  sticky left-0 bg-inherit z-10 shadow-sm">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-gray-400  text-sm">#{index + 1}</span>
-                                        {participant.username}
+                                      <div className="flex flex-col gap-0.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-gray-400  text-sm">#{index + 1}</span>
+                                          <span>{participant.username}</span>
+                                        </div>
+                                        {participant.handicap > 0 && (
+                                          <span className="text-[11px] text-rose-600 ">
+                                            HC: {participant.handicap} (+{participant.per_game_handicap}/gm)
+                                          </span>
+                                        )}
                                       </div>
                                     </TableCell>
 
