@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
@@ -67,7 +65,6 @@ export function GameManagement() {
   });
 
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
 
   // Add Player states
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -409,73 +406,42 @@ export function GameManagement() {
                       {game.players && game.players.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {game.players.map((player) => (
-                            <Popover
-                              key={player.id}
-                              open={openPopoverId === player.id}
-                              onOpenChange={(open) => {
-                                setOpenPopoverId(open ? player.id : null);
-                              }}
-                            >
-                              <PopoverTrigger asChild>
-                                <Badge
-                                  variant={player.is_fivefive ? "default" : "secondary"}
-                                  className={`cursor-pointer hover:scale-105 transition-all ${
-                                    player.is_fivefive
-                                      ? "bg-pink-500 hover:bg-pink-600"
-                                      : ""
-                                  }`}
-                                >
-                                  {player.username || "Unknown"}
-                                  {player.is_fivefive && " ⭐"}
-                                </Badge>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-48 p-2"
-                                side="top"
-                                align="center"
+                            <div key={player.id} className="flex items-center gap-1">
+                              <Badge
+                                variant={player.is_fivefive ? "default" : "secondary"}
+                                className={`cursor-pointer hover:scale-105 transition-all ${
+                                  player.is_fivefive
+                                    ? "bg-pink-500 hover:bg-pink-600 text-white"
+                                    : ""
+                                }`}
+                                onClick={() => handleToggleFiveFive(player.id, !!player.is_fivefive)}
+                                title="Klik untuk toggle status Five-Five"
                               >
-                                <div className="flex flex-col gap-1">
+                                {player.username || "Unknown"}
+                                {player.is_fivefive && " ⭐"}
+                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
                                   <Button
+                                    type="button"
                                     variant="ghost"
-                                    size="sm"
-                                    className="justify-start"
-                                    onClick={() => {
-                                      handleToggleFiveFive(player.id, player.is_fivefive);
-                                      setOpenPopoverId(null);
-                                    }}
-                                  >
-                                    {player.is_fivefive ? (
-                                      <>
-                                        <Star className="w-4 h-4 mr-2 fill-pink-500 text-pink-500" />
-                                        Five-Five ON
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Star className="w-4 h-4 mr-2" />
-                                        Five-Five OFF
-                                      </>
-                                    )}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => {
+                                    size="icon"
+                                    className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() =>
                                       setDeletePlayerDialog({
                                         open: true,
                                         playerId: player.id,
                                         playerName: player.username || "Unknown",
                                         gameId: game.id,
-                                      });
-                                      setOpenPopoverId(null);
-                                    }}
+                                      })
+                                    }
                                   >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Buang Pemain
+                                    <Trash2 className="w-3 h-3" />
                                   </Button>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                                </TooltipTrigger>
+                                <TooltipContent>Buang Pemain</TooltipContent>
+                              </Tooltip>
+                            </div>
                           ))}
                         </div>
                       ) : (
