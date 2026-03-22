@@ -128,12 +128,13 @@ export default function FiveFivePage() {
         .select(`
           member_id,
           is_fivefive,
+          handicap,
           game1_score,
           game2_score,
           game3_score,
           game4_score,
           game5_score,
-          members!inner(username, handicap)
+          members!inner(username)
         `)
         .eq("game_id", gameId)
         .eq("is_fivefive", true);
@@ -158,7 +159,7 @@ export default function FiveFivePage() {
       }
 
       const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => {
-        const memberHandicap = player.members?.handicap ?? 0;
+        const memberHandicap = player.handicap ?? 0;
         const perGameHandicap = memberHandicap > 0 ? Math.floor(memberHandicap / 5) : 0;
 
         const rawGame1 = player.game1_score || 0;
