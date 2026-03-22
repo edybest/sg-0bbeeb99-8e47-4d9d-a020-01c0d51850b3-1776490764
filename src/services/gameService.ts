@@ -111,7 +111,7 @@ class GameService {
 
       if (playersError) throw playersError;
 
-      const existingMemberIds = existingPlayers?.map(p => p.member_id) || [];
+      const existingMemberIds: string[] = (existingPlayers || []).map((p: any) => p.member_id);
 
       // Get all active members
       const { data: allMembers, error: membersError } = await supabase
@@ -124,7 +124,7 @@ class GameService {
 
       // Filter out members already in the game (client-side filtering)
       const availableMembers = (allMembers || []).filter(
-        member => !existingMemberIds.includes(member.id)
+        (member: any) => !existingMemberIds.includes(member.id)
       );
 
       return availableMembers as Array<{ id: string; username: string; full_name: string }>;
