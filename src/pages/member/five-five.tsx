@@ -119,7 +119,7 @@ export default function FiveFivePage() {
           game3_score,
           game4_score,
           game5_score,
-          members!inner(username)
+          members!inner(username, handicap)
         `)
         .eq("game_id", gameId)
         .eq("is_fivefive", true);
@@ -145,26 +145,32 @@ export default function FiveFivePage() {
         ? prizeConfig.prizes.map(Number)
         : [];
 
-      const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => ({
-        member_id: player.member_id,
-        username: player.members?.username || "Unknown",
-        game1_score: player.game1_score || 0,
-        game2_score: player.game2_score || 0,
-        game3_score: player.game3_score || 0,
-        game4_score: player.game4_score || 0,
-        game5_score: player.game5_score || 0,
-        game1_rank: 0,
-        game2_rank: 0,
-        game3_rank: 0,
-        game4_rank: 0,
-        game5_rank: 0,
-        game1_prize: 0,
-        game2_prize: 0,
-        game3_prize: 0,
-        game4_prize: 0,
-        game5_prize: 0,
-        total_prize: 0,
-      }));
+      // Apply handicap bonus: +5 pins per game if member has handicap > 0
+      const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => {
+        const hasHandicap = (player.members?.handicap ?? 0) > 0;
+        const bonus = hasHandicap ? 5 : 0;
+
+        return {
+          member_id: player.member_id,
+          username: player.members?.username || "Unknown",
+          game1_score: (player.game1_score || 0) + bonus,
+          game2_score: (player.game2_score || 0) + bonus,
+          game3_score: (player.game3_score || 0) + bonus,
+          game4_score: (player.game4_score || 0) + bonus,
+          game5_score: (player.game5_score || 0) + bonus,
+          game1_rank: 0,
+          game2_rank: 0,
+          game3_rank: 0,
+          game4_rank: 0,
+          game5_rank: 0,
+          game1_prize: 0,
+          game2_prize: 0,
+          game3_prize: 0,
+          game4_prize: 0,
+          game5_prize: 0,
+          total_prize: 0,
+        };
+      });
 
       for (let gameNum = 1; gameNum <= 5; gameNum++) {
         const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
