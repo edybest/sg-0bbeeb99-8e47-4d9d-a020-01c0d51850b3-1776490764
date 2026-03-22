@@ -1,36 +1,65 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Trophy, Target } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
 
-type GameRow = Database["public"]["Tables"]["games"]["Row"];
-type Game = GameRow & {
-  players?: { member_name: string; is_five_five: boolean }[];
+type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
   five_five_count?: number;
+  players?: Array<{
+    id: string;
+    member_id: string;
+    member_name: string;
+    is_fivefive: boolean;
+  }>;
 };
 
-type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
+const ITEMS_PER_PAGE = 10;
 
 export function GameManagement() {
   const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Create/Edit Game Dialog
+  const [isGameDialogOpen, setIsGameDialogOpen] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [gameForm, setGameForm] = useState({
     game_name: "",
-    game_date: new Date().toISOString().split("T")[0],
-    game_type: "BLOK",
+    game_date: "",
+    game_type: "BLOK" as "BLOK" | "MINI_BLOK" | "UNDI_LANE",
+  });
+
+  // Delete Game Dialog
+  const [deleteGameDialog, setDeleteGameDialog] = useState<{ open: boolean; game: Game | null }>({
+    open: false,
+    game: null,
+  });
+
+  // Delete Player Dialog
+  const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
+    open: boolean;
+    playerId: string | null;
+    playerName: string;
+    gameId: string | null;
+  }>({
+    open: false,
+    playerId: null,
+    playerName: "",
+    gameId: null,
   });
 
   useEffect(() => {
@@ -40,38 +69,8 @@ export function GameManagement() {
   const loadGames = async () => {
     try {
       setLoading(true);
-
-      // Fetch games and their players in a single joined query
-      const { data: gamesData, error: gamesError } = await supabase
-        .from("games")
-        .select(`
-          *,
-          game_players (
-            is_fivefive,
-            members (
-              full_name
-            )
-          )
-        `)
-        .order("game_date", { ascending: false });
-
-      if (gamesError) throw gamesError;
-
-      const gamesWithPlayers = (gamesData || []).map((game: any) => {
-        const players = (game.game_players || []).map((gp: any) => ({
-          member_name: gp.members?.full_name || "Unknown",
-          is_five_five: gp.is_fivefive || false
-        }));
-
-        return {
-          ...game,
-          players,
-          player_count: players.length,
-          five_five_count: players.filter((p: any) => p.is_five_five).length
-        };
-      });
-
-      setGames(gamesWithPlayers as Game[]);
+      const data = await gameService.listGamesWithPlayers();
+      setGames(data as any);
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
@@ -84,127 +83,158 @@ export function GameManagement() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleCreateGame = () => {
+    setEditingGame(null);
+    setGameForm({
+      game_name: "",
+      game_date: new Date().toISOString().split("T")[0],
+      game_type: "BLOK",
+    });
+    setIsGameDialogOpen(true);
+  };
+
+  const handleEditGame = (game: Game) => {
+    setEditingGame(game);
+    setGameForm({
+      game_name: game.game_name,
+      game_date: game.game_date,
+      game_type: game.game_type as "BLOK" | "MINI_BLOK" | "UNDI_LANE",
+    });
+    setIsGameDialogOpen(true);
+  };
+
+  const handleSaveGame = async () => {
     try {
-      setSaving(true);
-      const year = new Date(formData.game_date).getFullYear();
+      if (!gameForm.game_name.trim()) {
+        toast({
+          title: "Ralat",
+          description: "Sila masukkan nama permainan",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const gameData: GameInsert = {
-        game_name: formData.game_name,
-        game_date: formData.game_date,
-        game_type: formData.game_type,
-        year: year,
-      };
-
-      if (editingId) {
-        const { error } = await supabase
-          .from("games")
-          .update(gameData)
-          .eq("id", editingId);
-
-        if (error) throw error;
-
+      if (editingGame) {
+        await gameService.updateGame(editingGame.id, gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan berjaya dikemaskini",
+          description: "Permainan telah dikemaskini",
         });
       } else {
-        const { error } = await supabase
-          .from("games")
-          .insert([gameData]);
-
-        if (error) throw error;
-
+        await gameService.createGame(gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan baru berjaya ditambah",
+          description: "Permainan baharu telah dicipta",
         });
       }
 
-      setFormData({
-        game_name: "",
-        game_date: new Date().toISOString().split("T")[0],
-        game_type: "BLOK",
-      });
-      setEditingId(null);
+      setIsGameDialogOpen(false);
       loadGames();
     } catch (error) {
       console.error("Error saving game:", error);
       toast({
         title: "Ralat",
-        description: "Gagal menyimpan permainan",
+        description: editingGame ? "Gagal mengemaskini permainan" : "Gagal mencipta permainan",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleEdit = (game: Game) => {
-    setEditingId(game.id);
-    setFormData({
-      game_name: game.game_name,
-      game_date: game.game_date,
-      game_type: game.game_type || "BLOK",
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFormData({
-      game_name: "",
-      game_date: new Date().toISOString().split("T")[0],
-      game_type: "BLOK",
-    });
-  };
-
-  const handleDelete = async () => {
-    if (!deleteId) return;
+  const handleDeleteGame = async () => {
+    if (!deleteGameDialog.game) return;
 
     try {
-      setSaving(true);
-      const { error } = await supabase
-        .from("games")
-        .delete()
-        .eq("id", deleteId);
-
-      if (error) throw error;
-
+      await gameService.deleteGame(deleteGameDialog.game.id);
       toast({
         title: "Berjaya",
-        description: "Permainan berjaya dipadamkan",
+        description: "Permainan telah dipadam",
       });
-
+      setDeleteGameDialog({ open: false, game: null });
       loadGames();
     } catch (error) {
       console.error("Error deleting game:", error);
       toast({
         title: "Ralat",
-        description: "Gagal memadamkan permainan",
+        description: "Gagal memadam permainan",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
-      setDeleteId(null);
+    }
+  };
+
+  const handleToggleFiveFive = async (playerId: string, currentStatus: boolean) => {
+    try {
+      await gameService.updatePlayerFiveFiveStatus(playerId, !currentStatus);
+      toast({
+        title: "Berjaya",
+        description: `Status Five-Five telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
+      loadGames();
+    } catch (error) {
+      console.error("Error updating Five-Five status:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini status Five-Five",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePlayer = async () => {
+    if (!deletePlayerDialog.playerId || !deletePlayerDialog.gameId) return;
+
+    try {
+      await gameService.deletePlayerFromGameById(deletePlayerDialog.playerId);
+      toast({
+        title: "Berjaya",
+        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`,
+      });
+      setDeletePlayerDialog({ open: false, playerId: null, playerName: "", gameId: null });
+      loadGames();
+    } catch (error) {
+      console.error("Error deleting player:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal membuang pemain",
+        variant: "destructive",
+      });
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = {
+    return date.toLocaleDateString("ms-MY", {
+      weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
-      weekday: "long"
-    };
-    return date.toLocaleDateString("ms-MY", options);
+    });
+  };
+
+  const gameTypeLabels = {
+    BLOK: "Blok",
+    MINI_BLOK: "Mini Blok",
+    UNDI_LANE: "Undi Lane",
+  };
+
+  const gameTypeColors = {
+    BLOK: "bg-blue-500",
+    MINI_BLOK: "bg-green-500",
+    UNDI_LANE: "bg-purple-500",
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(games.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentGames = games.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
       </div>
     );
@@ -212,203 +242,330 @@ export function GameManagement() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            {editingId ? "Kemaskini Permainan" : "Tambah Permainan Baru"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="game_name">Nama Permainan</Label>
-                <Input
-                  id="game_name"
-                  type="text"
-                  placeholder="Cth: Blok 1, Friendly Match"
-                  value={formData.game_name}
-                  onChange={(e) => setFormData({ ...formData, game_name: e.target.value })}
-                  required
-                />
-              </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Pengurusan Permainan</h2>
+          <p className="text-muted-foreground">Urus permainan dan pemain</p>
+        </div>
+        <Button onClick={handleCreateGame} className="bg-pink-600 hover:bg-pink-700">
+          <Plus className="w-4 h-4 mr-2" />
+          Tambah Permainan
+        </Button>
+      </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="game_date">Tarikh Permainan</Label>
-                <Input
-                  id="game_date"
-                  type="date"
-                  value={formData.game_date}
-                  onChange={(e) => setFormData({ ...formData, game_date: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="game_type">Jenis Permainan</Label>
-                <Input
-                  id="game_type"
-                  type="text"
-                  placeholder="Cth: BLOK, LIGA"
-                  value={formData.game_type}
-                  onChange={(e) => setFormData({ ...formData, game_type: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {editingId ? "Kemaskini" : "Tambah"} Permainan
-                  </>
-                )}
-              </Button>
-              {editingId && (
-                <Button type="button" variant="outline" onClick={handleCancelEdit}>
-                  Batal
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
-            Senarai Permainan & Pemain
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {games.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Tiada permainan lagi
-              </p>
-            ) : (
-              games.map((game) => (
-                <Card key={game.id} className="overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      <div className="flex-1 space-y-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="default" className="text-sm">
-                            {game.game_name}
-                          </Badge>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {game.game_type}
+      {games.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-center">
+              Belum ada permainan dijadualkan.
+              <br />
+              Klik butang di atas untuk tambah permainan baharu.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="grid gap-4">
+            {currentGames.map((game) => (
+              <motion.div
+                key={game.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-xl">{game.game_name}</CardTitle>
+                          <Badge className={`${gameTypeColors[game.game_type]} text-white`}>
+                            {gameTypeLabels[game.game_type]}
                           </Badge>
                         </div>
-
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CardDescription className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span>{formatDate(game.game_date)}</span>
-                        </div>
-
-                        {/* Player Statistics */}
-                        <div className="flex items-center gap-4 text-sm bg-gray-50 p-2 rounded-md">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Target className="w-4 h-4 text-pink-600" />
-                            <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
-                          </div>
-                        </div>
-
-                        {/* Players List */}
-                        {game.players && game.players.length > 0 ? (
-                          <div className="space-y-2 mt-4">
-                            <p className="text-sm font-medium text-muted-foreground border-b pb-1">Senarai Pemain Terlibat:</p>
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {game.players.map((player, idx) => (
-                                <Badge
-                                  key={idx}
-                                  variant="outline"
-                                  className={`px-3 py-1 text-sm font-normal ${
-                                    player.is_five_five 
-                                      ? "bg-pink-50 text-pink-700 border-pink-300 shadow-sm" 
-                                      : "bg-gray-50 text-gray-700"
-                                  }`}
-                                >
-                                  {player.member_name}
-                                  {player.is_five_five && (
-                                    <span className="ml-1.5" title="Main Five-Five">⭐</span>
-                                  )}
-                                </Badge>
-                              ))}
-                            </div>
-                            {game.five_five_count && game.five_five_count > 0 ? (
-                              <p className="text-xs text-muted-foreground mt-2 italic">
-                                * Bintang (⭐) menunjukkan pemain menyertai Five-Five
-                              </p>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic mt-2">Belum ada pemain didaftarkan untuk permainan ini.</p>
-                        )}
+                          {formatDate(game.game_date)}
+                        </CardDescription>
                       </div>
-
                       <div className="flex gap-2">
                         <Button
-                          size="sm"
                           variant="outline"
-                          onClick={() => handleEdit(game)}
+                          size="sm"
+                          onClick={() => handleEditGame(game)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          size="sm"
                           variant="outline"
-                          onClick={() => setDeleteId(game.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          size="sm"
+                          onClick={() => setDeleteGameDialog({ open: true, game })}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Statistics */}
+                    <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-blue-600" />
+                        <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-pink-600" />
+                        <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
+                      </div>
+                    </div>
+
+                    {/* Players List */}
+                    {game.players && game.players.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm">Senarai Pemain Terlibat:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {game.players.map((player) => (
+                            <TooltipProvider key={player.id}>
+                              <div className="group relative">
+                                <Badge
+                                  variant={player.is_fivefive ? "default" : "secondary"}
+                                  className={`${
+                                    player.is_fivefive
+                                      ? "bg-pink-100 text-pink-900 border-pink-300 hover:bg-pink-200 shadow-sm"
+                                      : "bg-muted hover:bg-muted/80"
+                                  } cursor-pointer transition-all px-3 py-1.5`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span>{player.member_name}</span>
+                                    {player.is_fivefive && (
+                                      <Tooltip>
+                                        <TooltipTrigger>
+                                          <Star className="w-3.5 h-3.5 fill-pink-600 text-pink-600" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>Main Five-Five</TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                </Badge>
+                                
+                                {/* Player Actions (shown on hover) */}
+                                <div className="absolute -top-10 left-0 hidden group-hover:flex gap-1 bg-white border rounded-md shadow-lg p-1 z-10">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2"
+                                          onClick={() => handleToggleFiveFive(player.id, player.is_fivefive)}
+                                        >
+                                          <Star className={`w-3.5 h-3.5 ${player.is_fivefive ? "fill-pink-600 text-pink-600" : ""}`} />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {player.is_fivefive ? "Nyahaktif Five-Five" : "Aktifkan Five-Five"}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2 text-destructive hover:text-destructive"
+                                          onClick={() =>
+                                            setDeletePlayerDialog({
+                                              open: true,
+                                              playerId: player.id,
+                                              playerName: player.member_name,
+                                              gameId: game.id,
+                                            })
+                                          }
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Buang pemain</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                              </div>
+                            </TooltipProvider>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          * Bintang (⭐) menunjukkan pemain menyertai Five-Five. Hover pada nama untuk edit/delete.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Belum ada pemain didaftarkan untuk permainan ini.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
-              ))
-            )}
+              </motion.div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => goToPage(page)}
+                    className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}
+                  >
+                    {page}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          <p className="text-sm text-center text-muted-foreground">
+            Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada {games.length} permainan
+          </p>
+        </>
+      )}
+
+      {/* Create/Edit Game Dialog */}
+      <Dialog open={isGameDialogOpen} onOpenChange={setIsGameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingGame ? "Edit Permainan" : "Tambah Permainan Baharu"}</DialogTitle>
+            <DialogDescription>
+              {editingGame
+                ? "Kemaskini maklumat permainan"
+                : "Isikan maklumat untuk permainan baharu"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="game_name">Nama Permainan</Label>
+              <Input
+                id="game_name"
+                placeholder="Contoh: Blok 1"
+                value={gameForm.game_name}
+                onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="game_date">Tarikh Permainan</Label>
+              <Input
+                id="game_date"
+                type="date"
+                value={gameForm.game_date}
+                onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="game_type">Jenis Permainan</Label>
+              <Select
+                value={gameForm.game_type}
+                onValueChange={(value: "BLOK" | "MINI_BLOK" | "UNDI_LANE") =>
+                  setGameForm({ ...gameForm, game_type: value })
+                }
+              >
+                <SelectTrigger id="game_type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BLOK">Blok</SelectItem>
+                  <SelectItem value="MINI_BLOK">Mini Blok</SelectItem>
+                  <SelectItem value="UNDI_LANE">Undi Lane</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsGameDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button onClick={handleSaveGame} className="bg-pink-600 hover:bg-pink-700">
+              {editingGame ? "Kemaskini" : "Tambah"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Game Confirmation */}
+      <AlertDialog open={deleteGameDialog.open} onOpenChange={(open) => setDeleteGameDialog({ open, game: null })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Adakah anda pasti?</AlertDialogTitle>
+            <AlertDialogTitle>Padam Permainan?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini tidak boleh dibatalkan. Ini akan memadamkan permainan dan semua skor/pemain yang berkaitan secara kekal.
+              Adakah anda pasti mahu memadam permainan <strong>{deleteGameDialog.game?.game_name}</strong>?
+              <br />
+              <br />
+              Tindakan ini akan turut membuang semua pemain yang didaftarkan untuk permainan ini dan tidak boleh dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
-              disabled={saving}
+              onClick={handleDeleteGame}
+              className="bg-destructive hover:bg-destructive/90"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Memadamkan...
-                </>
-              ) : (
-                "Padam"
-              )}
+              Padam
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Player Confirmation */}
+      <AlertDialog
+        open={deletePlayerDialog.open}
+        onOpenChange={(open) =>
+          setDeletePlayerDialog({ open, playerId: null, playerName: "", gameId: null })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buang Pemain?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Adakah anda pasti mahu membuang <strong>{deletePlayerDialog.playerName}</strong> dari permainan ini?
+              <br />
+              <br />
+              Tindakan ini tidak boleh dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePlayer}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Buang
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

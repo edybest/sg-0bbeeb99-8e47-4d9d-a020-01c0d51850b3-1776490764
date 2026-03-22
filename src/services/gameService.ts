@@ -33,6 +33,65 @@ type GamePlayer = {
 };
 
 class GameService {
+  // List games with players
+  async listGamesWithPlayers() {
+    const { data, error } = await supabase
+      .from("games")
+      .select(`
+        *,
+        game_players (
+          id,
+          member_id,
+          is_fivefive,
+          members (
+            full_name
+          )
+        )
+      `)
+      .order("game_date", { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((game) => {
+      const players = Array.isArray(game.game_players)
+        ? game.game_players.map((gp: any) => ({
+            id: gp.id,
+            member_id: gp.member_id,
+            member_name: gp.members?.full_name || "Unknown",
+            is_fivefive: gp.is_fivefive,
+          }))
+        : [];
+
+      return {
+        ...game,
+        player_count: players.length,
+        five_five_count: players.filter((p) => p.is_fivefive).length,
+        players,
+      };
+    });
+  }
+
+  // Update player's Five-Five status
+  async updatePlayerFiveFiveStatus(playerId: string, isFiveFive: boolean) {
+    const { data, error } = await supabase
+      .from("game_players")
+      .update({ is_fivefive: isFiveFive })
+      .eq("id", playerId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Delete a player from a game by game_player ID
+  async deletePlayerFromGameById(playerId: string) {
+    const { error } = await supabase.from("game_players").delete().eq("id", playerId);
+
+    if (error) throw error;
+    return true;
+  }
+
   // Get all games
   async getAllGames() {
     const { data, error } = await supabase
