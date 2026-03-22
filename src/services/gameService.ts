@@ -119,7 +119,7 @@ class GameService {
           .from("members")
           .select("id, username, full_name")
           .eq("is_active", true)
-          .not("id", "in", `(${existingMemberIds.join(",")})`)
+          .not("id", "in", existingMemberIds)
           .order("username");
           
         if (error) throw error;
