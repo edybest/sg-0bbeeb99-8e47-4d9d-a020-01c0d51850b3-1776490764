@@ -89,7 +89,18 @@ export function GameManagement() {
     try {
       setLoading(true);
       const data = await gameService.listGamesWithPlayers();
-      setGames(data as any);
+      
+      // Sort players alphabetically A-Z for each game
+      const formattedGames = (data as any[]).map(game => ({
+        ...game,
+        players: game.players?.sort((a: any, b: any) => {
+          const nameA = (a.username || a.full_name || "").toLowerCase();
+          const nameB = (b.username || b.full_name || "").toLowerCase();
+          return nameA.localeCompare(nameB, 'ms-MY');
+        }) || []
+      }));
+      
+      setGames(formattedGames);
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
@@ -106,7 +117,15 @@ export function GameManagement() {
     try {
       setLoadingMembers(true);
       const data = await gameService.getAvailableMembersForGame(gameId);
-      setAvailableMembers(data || []);
+      
+      // Sort available members alphabetically A-Z
+      const sortedMembers = (data || []).sort((a: any, b: any) => {
+        const nameA = (a.username || a.full_name || "").toLowerCase();
+        const nameB = (b.username || b.full_name || "").toLowerCase();
+        return nameA.localeCompare(nameB, 'ms-MY');
+      });
+      
+      setAvailableMembers(sortedMembers);
     } catch (error) {
       console.error("Error loading available members:", error);
       toast({
