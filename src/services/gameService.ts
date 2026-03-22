@@ -114,21 +114,26 @@ class GameService {
       const existingMemberIds = existingPlayers?.map(p => p.member_id) || [];
 
       // Get all active members not in this game
-      // Use any to bypass TS excessively deep instantiation error with .not()
-      let query: any = supabase
-        .from("members")
-        .select("id, username, full_name")
-        .eq("is_active", true)
-        .order("username");
-
       if (existingMemberIds.length > 0) {
-        query = query.not("id", "in", `(${existingMemberIds.join(",")})`);
+        const { data, error } = await supabase
+          .from("members")
+          .select("id, username, full_name")
+          .eq("is_active", true)
+          .not("id", "in", `(${existingMemberIds.join(",")})`)
+          .order("username");
+          
+        if (error) throw error;
+        return data as Array<{ id: string; username: string; full_name: string }>;
+      } else {
+        const { data, error } = await supabase
+          .from("members")
+          .select("id, username, full_name")
+          .eq("is_active", true)
+          .order("username");
+          
+        if (error) throw error;
+        return data as Array<{ id: string; username: string; full_name: string }>;
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      return data;
     } catch (error) {
       console.error("Error fetching available members:", error);
       throw error;
