@@ -137,8 +137,21 @@ export function ScoreManagement() {
     try {
       setLoading(true);
       const data = await gameService.getGamePlayers(gameId);
-      setPlayers(data as unknown as GamePlayer[]);
-      setFilteredPlayers(data as unknown as GamePlayer[]);
+      
+      const playersData = data as unknown as GamePlayer[];
+      const sortedData = [...playersData].sort((a, b) => {
+        if (a.overall_score !== b.overall_score) return b.overall_score - a.overall_score;
+        if (a.game5_score !== b.game5_score) return b.game5_score - a.game5_score;
+        if (a.game4_score !== b.game4_score) return b.game4_score - a.game4_score;
+        if (a.game3_score !== b.game3_score) return b.game3_score - a.game3_score;
+        if (a.game2_score !== b.game2_score) return b.game2_score - a.game2_score;
+        return b.game1_score - a.game1_score;
+      });
+
+      setPlayers(sortedData);
+      setFilteredPlayers(sortedData);
+      setSortField("rank");
+      setSortDirection("asc");
     } catch (error) {
       console.error("Error loading players:", error);
     } finally {
@@ -166,26 +179,42 @@ export function ScoreManagement() {
     setSortDirection(newDirection);
 
     const sorted = [...filteredPlayers].sort((a, b) => {
-      let aValue: number | string;
-      let bValue: number | string;
+      if (field === "rank" || field === "overall_score" || field === "total_score") {
+        const mult = newDirection === "asc" ? -1 : 1;
+        
+        const pA = field === "rank" ? getPlayerScore(a, "overall_score") : getPlayerScore(a, field as keyof GamePlayer);
+        const pB = field === "rank" ? getPlayerScore(b, "overall_score") : getPlayerScore(b, field as keyof GamePlayer);
+        
+        if (pA !== pB) return (pA - pB) * mult;
 
-      if (field === "rank") {
-        aValue = filteredPlayers.indexOf(a);
-        bValue = filteredPlayers.indexOf(b);
-      } else if (field === "username") {
-        aValue = a.members.username.toLowerCase();
-        bValue = b.members.username.toLowerCase();
-      } else if (field === "fullname") {
-        aValue = a.members.full_name.toLowerCase();
-        bValue = b.members.full_name.toLowerCase();
-      } else {
-        aValue = getPlayerScore(a, field as keyof GamePlayer);
-        bValue = getPlayerScore(b, field as keyof GamePlayer);
-      }
+        const g5A = getPlayerScore(a, "game5_score");
+        const g5B = getPlayerScore(b, "game5_score");
+        if (g5A !== g5B) return (g5A - g5B) * mult;
 
-      if (newDirection === "asc") {
-        return aValue > bValue ? 1 : -1;
+        const g4A = getPlayerScore(a, "game4_score");
+        const g4B = getPlayerScore(b, "game4_score");
+        if (g4A !== g4B) return (g4A - g4B) * mult;
+
+        const g3A = getPlayerScore(a, "game3_score");
+        const g3B = getPlayerScore(b, "game3_score");
+        if (g3A !== g3B) return (g3A - g3B) * mult;
+
+        const g2A = getPlayerScore(a, "game2_score");
+        const g2B = getPlayerScore(b, "game2_score");
+        if (g2A !== g2B) return (g2A - g2B) * mult;
+
+        const g1A = getPlayerScore(a, "game1_score");
+        const g1B = getPlayerScore(b, "game1_score");
+        return (g1A - g1B) * mult;
+      } else if (field === "username" || field === "fullname") {
+        const aValue = field === "username" ? a.members.username.toLowerCase() : a.members.full_name.toLowerCase();
+        const bValue = field === "username" ? b.members.username.toLowerCase() : b.members.full_name.toLowerCase();
+        if (newDirection === "asc") return aValue > bValue ? 1 : -1;
+        return aValue < bValue ? 1 : -1;
       } else {
+        const aValue = getPlayerScore(a, field as keyof GamePlayer);
+        const bValue = getPlayerScore(b, field as keyof GamePlayer);
+        if (newDirection === "asc") return aValue > bValue ? 1 : -1;
         return aValue < bValue ? 1 : -1;
       }
     });
@@ -874,13 +903,11 @@ export function ScoreManagement() {
                             {ocrResult.error || "Gagal mengesan text dari gambar"}
                           </p>
                           <div className="space-y-2 text-sm text-red-800">
-                            <p className="font-medium">Sila cuba:</p>
+                            <p className="font-medium">Pastikan gambar ada labels:</p>
                             <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>Upload gambar dengan kualiti lebih tinggi</li>
-                              <li>Pastikan text jelas dan tidak kabur</li>
-                              <li>Gunakan lighting yang baik (no shadows)</li>
-                              <li>Crop gambar untuk show score table sahaja</li>
-                              <li>Gunakan format: Name:, G1:, G2:, etc.</li>
+                              <li><code className="bg-red-100 px-1 rounded">Name:</code> atau <code className="bg-red-100 px-1 rounded">Player:</code></li>
+                              <li><code className="bg-red-100 px-1 rounded">G1:</code>, <code className="bg-red-100 px-1 rounded">G2:</code>, <code className="bg-red-100 px-1 rounded">G3:</code>, etc.</li>
+                              <li><code className="bg-red-100 px-1 rounded">HCP:</code> atau <code className="bg-red-100 px-1 rounded">Handicap:</code></li>
                             </ul>
                           </div>
                           <div className="flex gap-2 mt-4">
