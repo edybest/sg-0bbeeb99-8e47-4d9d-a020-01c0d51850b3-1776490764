@@ -312,376 +312,378 @@ export function GameManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Pengurusan Permainan</h2>
-          <p className="text-muted-foreground">Urus permainan dan pemain</p>
-        </div>
-        <Button onClick={handleCreateGame} className="bg-pink-600 hover:bg-pink-700">
-          <Plus className="w-4 h-4 mr-2" />
-          Tambah Permainan
-        </Button>
-      </div>
-
-      {games.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center">
-              Belum ada permainan dijadualkan.
-              <br />
-              Klik butang di atas untuk tambah permainan baharu.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid gap-4">
-            {currentGames.map((game) => (
-              <motion.div
-                key={game.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Trophy className="h-5 w-5 text-pink-600" />
-                        <CardTitle className="text-lg">{game.game_name}</CardTitle>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatDate(game.game_date)}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {game.game_type === "BLOK" ? "BLOK" : game.game_type === "MINI_BLOK" ? "MINI BLOK" : "UNDI LANE"}
-                      </Badge>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenAddPlayer(game.id)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Tambah Pemain</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditGame(game)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit Permainan</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Statistics */}
-                    <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Target className="w-5 h-5 text-pink-600" />
-                        <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
-                      </div>
-                    </div>
-
-                    {/* Players List */}
-                    {game.players && game.players.length > 0 ? (
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-sm">Senarai Pemain Terlibat:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {game.players.map((player) => (
-                            <HoverCard key={player.id}>
-                              <HoverCardTrigger asChild>
-                                <Badge
-                                  variant={player.is_fivefive ? "default" : "secondary"}
-                                  className={`cursor-pointer transition-all ${
-                                    player.is_fivefive
-                                      ? "bg-pink-100 text-pink-700 border-pink-300 hover:bg-pink-200"
-                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                  }`}
-                                >
-                                  {player.username || player.full_name || player.member_name || "Tanpa Nama"}
-                                  {player.is_fivefive && " ⭐"}
-                                </Badge>
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-auto p-2" side="top">
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={player.is_fivefive ? "text-pink-600 border-pink-200 bg-pink-50" : ""}
-                                    onClick={() => handleToggleFiveFive(player.id, player.is_fivefive)}
-                                  >
-                                    <Star className={`w-4 h-4 mr-2 ${player.is_fivefive ? "fill-current" : ""}`} />
-                                    {player.is_fivefive ? "Batal Five-Five" : "Set Five-Five"}
-                                  </Button>
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setDeletePlayerDialog({
-                                      open: true,
-                                      playerId: player.id,
-                                      playerName: player.username || player.full_name || player.member_name,
-                                      gameId: game.id
-                                    })}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
-                          ))}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          * Bintang (⭐) menunjukkan pemain menyertai Five-Five. Hover pada nama untuk edit/delete.
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Belum ada pemain didaftarkan untuk permainan ini.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Pengurusan Permainan</h2>
+            <p className="text-muted-foreground">Urus permainan dan pemain</p>
           </div>
+          <Button onClick={handleCreateGame} className="bg-pink-600 hover:bg-pink-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Permainan
+          </Button>
+        </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              
-              <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => goToPage(page)}
-                    className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}
-                  >
-                    {page}
-                  </Button>
-                ))}
+        {games.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-center">
+                Belum ada permainan dijadualkan.
+                <br />
+                Klik butang di atas untuk tambah permainan baharu.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid gap-4">
+              {currentGames.map((game) => (
+                <motion.div
+                  key={game.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-5 w-5 text-pink-600" />
+                          <CardTitle className="text-lg">{game.game_name}</CardTitle>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{formatDate(game.game_date)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {game.game_type === "BLOK" ? "BLOK" : game.game_type === "MINI_BLOK" ? "MINI BLOK" : "UNDI LANE"}
+                        </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenAddPlayer(game.id)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Tambah Pemain</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditGame(game)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Permainan</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Statistics */}
+                      <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Target className="w-5 h-5 text-pink-600" />
+                          <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
+                        </div>
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ? (
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm">Senarai Pemain Terlibat:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {game.players.map((player) => (
+                              <HoverCard key={player.id}>
+                                <HoverCardTrigger asChild>
+                                  <Badge
+                                    variant={player.is_fivefive ? "default" : "secondary"}
+                                    className={`cursor-pointer transition-all ${
+                                      player.is_fivefive
+                                        ? "bg-pink-100 text-pink-700 border-pink-300 hover:bg-pink-200"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                                  >
+                                    {player.username || player.full_name || player.member_name || "Tanpa Nama"}
+                                    {player.is_fivefive && " ⭐"}
+                                  </Badge>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-auto p-2" side="top">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className={player.is_fivefive ? "text-pink-600 border-pink-200 bg-pink-50" : ""}
+                                      onClick={() => handleToggleFiveFive(player.id, player.is_fivefive)}
+                                    >
+                                      <Star className={`w-4 h-4 mr-2 ${player.is_fivefive ? "fill-current" : ""}`} />
+                                      {player.is_fivefive ? "Batal Five-Five" : "Set Five-Five"}
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => setDeletePlayerDialog({
+                                        open: true,
+                                        playerId: player.id,
+                                        playerName: player.username || player.full_name || player.member_name,
+                                        gameId: game.id
+                                      })}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            * Bintang (⭐) menunjukkan pemain menyertai Five-Five. Hover pada nama untuk edit/delete.
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => goToPage(page)}
+                      className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
+            <p className="text-sm text-center text-muted-foreground">
+              Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada {games.length} permainan
+            </p>
+          </>
+        )}
+
+        {/* Create/Edit Game Dialog */}
+        <Dialog open={isGameDialogOpen} onOpenChange={setIsGameDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingGame ? "Edit Permainan" : "Tambah Permainan Baharu"}</DialogTitle>
+              <DialogDescription>
+                {editingGame
+                  ? "Kemaskini maklumat permainan"
+                  : "Isikan maklumat untuk permainan baharu"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="game_name">Nama Permainan</Label>
+                <Input
+                  id="game_name"
+                  placeholder="Contoh: Blok 1"
+                  value={gameForm.game_name}
+                  onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
+                />
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+              <div className="space-y-2">
+                <Label htmlFor="game_date">Tarikh Permainan</Label>
+                <Input
+                  id="game_date"
+                  type="date"
+                  value={gameForm.game_date}
+                  onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
+                />
+              </div>
 
-          <p className="text-sm text-center text-muted-foreground">
-            Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada {games.length} permainan
-          </p>
-        </>
-      )}
-
-      {/* Create/Edit Game Dialog */}
-      <Dialog open={isGameDialogOpen} onOpenChange={setIsGameDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingGame ? "Edit Permainan" : "Tambah Permainan Baharu"}</DialogTitle>
-            <DialogDescription>
-              {editingGame
-                ? "Kemaskini maklumat permainan"
-                : "Isikan maklumat untuk permainan baharu"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="game_name">Nama Permainan</Label>
-              <Input
-                id="game_name"
-                placeholder="Contoh: Blok 1"
-                value={gameForm.game_name}
-                onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="game_date">Tarikh Permainan</Label>
-              <Input
-                id="game_date"
-                type="date"
-                value={gameForm.game_date}
-                onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="game_type">Jenis Permainan</Label>
-              <Select
-                value={gameForm.game_type}
-                onValueChange={(value: "BLOK" | "MINI_BLOK" | "UNDI_LANE") =>
-                  setGameForm({ ...gameForm, game_type: value })
-                }
-              >
-                <SelectTrigger id="game_type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BLOK">Blok</SelectItem>
-                  <SelectItem value="MINI_BLOK">Mini Blok</SelectItem>
-                  <SelectItem value="UNDI_LANE">Undi Lane</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGameDialogOpen(false)}>
-              Batal
-            </Button>
-            <Button onClick={handleSaveGame} className="bg-pink-600 hover:bg-pink-700">
-              {editingGame ? "Kemaskini" : "Tambah"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Game Confirmation */}
-      <AlertDialog open={deleteGameDialog.open} onOpenChange={(open) => setDeleteGameDialog({ open, game: null })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Padam Permainan?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Adakah anda pasti mahu memadam permainan <strong>{deleteGameDialog.game?.game_name}</strong>?
-              <br />
-              <br />
-              Tindakan ini akan turut membuang semua pemain yang didaftarkan untuk permainan ini dan tidak boleh dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteGame}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Padam
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Player Confirmation */}
-      <AlertDialog
-        open={deletePlayerDialog.open}
-        onOpenChange={(open) =>
-          setDeletePlayerDialog({ open, playerId: null, playerName: "", gameId: null })
-        }
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Buang Pemain?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Adakah anda pasti mahu membuang <strong>{deletePlayerDialog.playerName}</strong> dari permainan ini?
-              <br />
-              <br />
-              Tindakan ini tidak boleh dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePlayer}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Buang
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Add Player Dialog */}
-      <Dialog open={showAddPlayer} onOpenChange={setShowAddPlayer}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Tambah Pemain ke Permainan</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Pilih Ahli</label>
-              {loadingMembers ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
-                </div>
-              ) : availableMembers.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  Semua ahli sudah didaftarkan dalam permainan ini
-                </p>
-              ) : (
-                <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih ahli..." />
+              <div className="space-y-2">
+                <Label htmlFor="game_type">Jenis Permainan</Label>
+                <Select
+                  value={gameForm.game_type}
+                  onValueChange={(value: "BLOK" | "MINI_BLOK" | "UNDI_LANE") =>
+                    setGameForm({ ...gameForm, game_type: value })
+                  }
+                >
+                  <SelectTrigger id="game_type">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.username} ({member.full_name})
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="BLOK">Blok</SelectItem>
+                    <SelectItem value="MINI_BLOK">Mini Blok</SelectItem>
+                    <SelectItem value="UNDI_LANE">Undi Lane</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="add-fivefive"
-                checked={newPlayerFiveFive}
-                onCheckedChange={setNewPlayerFiveFive}
-              />
-              <label
-                htmlFor="add-fivefive"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsGameDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button onClick={handleSaveGame} className="bg-pink-600 hover:bg-pink-700">
+                {editingGame ? "Kemaskini" : "Tambah"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Game Confirmation */}
+        <AlertDialog open={deleteGameDialog.open} onOpenChange={(open) => setDeleteGameDialog({ open, game: null })}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Padam Permainan?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Adakah anda pasti mahu memadam permainan <strong>{deleteGameDialog.game?.game_name}</strong>?
+                <br />
+                <br />
+                Tindakan ini akan turut membuang semua pemain yang didaftarkan untuk permainan ini dan tidak boleh dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteGame}
+                className="bg-destructive hover:bg-destructive/90"
               >
-                Main Five-Five ⭐
-              </label>
+                Padam
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Player Confirmation */}
+        <AlertDialog
+          open={deletePlayerDialog.open}
+          onOpenChange={(open) =>
+            setDeletePlayerDialog({ open, playerId: null, playerName: "", gameId: null })
+          }
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Buang Pemain?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Adakah anda pasti mahu membuang <strong>{deletePlayerDialog.playerName}</strong> dari permainan ini?
+                <br />
+                <br />
+                Tindakan ini tidak boleh dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePlayer}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Buang
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Add Player Dialog */}
+        <Dialog open={showAddPlayer} onOpenChange={setShowAddPlayer}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Pemain ke Permainan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Pilih Ahli</label>
+                {loadingMembers ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
+                  </div>
+                ) : availableMembers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    Semua ahli sudah didaftarkan dalam permainan ini
+                  </p>
+                ) : (
+                  <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih ahli..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.username} ({member.full_name})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="add-fivefive"
+                  checked={newPlayerFiveFive}
+                  onCheckedChange={setNewPlayerFiveFive}
+                />
+                <label
+                  htmlFor="add-fivefive"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Main Five-Five ⭐
+                </label>
+              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddPlayer(false)}>
-              Batal
-            </Button>
-            <Button
-              onClick={handleAddPlayer}
-              disabled={!selectedMemberId || loadingMembers}
-            >
-              Tambah Pemain
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddPlayer(false)}>
+                Batal
+              </Button>
+              <Button
+                onClick={handleAddPlayer}
+                disabled={!selectedMemberId || loadingMembers}
+              >
+                Tambah Pemain
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
