@@ -257,7 +257,19 @@ export default function FiveFivePage() {
           participant.game5_prize;
       });
 
-      participantsWithRankings.sort((a, b) => b.total_prize - a.total_prize);
+      participantsWithRankings.sort((a, b) => {
+        if (b.total_prize !== a.total_prize) return b.total_prize - a.total_prize;
+        
+        const totalA = a.game1_score + a.game2_score + a.game3_score + a.game4_score + a.game5_score;
+        const totalB = b.game1_score + b.game2_score + b.game3_score + b.game4_score + b.game5_score;
+        if (totalA !== totalB) return totalB - totalA;
+        
+        if (a.game5_score !== b.game5_score) return b.game5_score - a.game5_score;
+        if (a.game4_score !== b.game4_score) return b.game4_score - a.game4_score;
+        if (a.game3_score !== b.game3_score) return b.game3_score - a.game3_score;
+        if (a.game2_score !== b.game2_score) return b.game2_score - a.game2_score;
+        return b.game1_score - a.game1_score;
+      });
 
       setParticipants(participantsWithRankings);
     } catch (err) {
