@@ -375,17 +375,31 @@ export function ScoreManagement() {
     }
   }
 
-  function handleApplyParsedScore(parsedScore: ParsedScore) {
+  async function handleApplyParsedScore(parsedScore: ParsedScore) {
     if (!parsedScore.matchedMember) return;
 
-    const player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    let player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    let currentPlayers = players;
+
     if (!player) {
-      alert("Player tidak dijumpai dalam game ini");
-      return;
+      try {
+        await gameService.addPlayerToGame(selectedGameId, parsedScore.matchedMember!.id);
+        const updatedData = await gameService.getGamePlayers(selectedGameId);
+        currentPlayers = updatedData as unknown as GamePlayer[];
+        setPlayers(currentPlayers);
+        setFilteredPlayers(currentPlayers);
+        player = currentPlayers.find(p => p.member_id === parsedScore.matchedMember!.id);
+      } catch (err) {
+        console.error(err);
+        alert("Gagal menambah pemain baru ke dalam perlawanan");
+        return;
+      }
     }
 
+    if (!player) return;
+
     setEditingScores(prev => {
-      const updated = { ...player };
+      const updated = { ...(prev[player!.id] || player!) };
       if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
       if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
       if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
@@ -398,11 +412,11 @@ export function ScoreManagement() {
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
 
-      return { ...prev, [player.id]: updated };
+      return { ...prev, [player!.id]: updated };
     });
 
     // Scroll to player
-    const playerElement = document.getElementById(`player-${player.id}`);
+    const playerElement = document.getElementById(`player-${player!.id}`);
     if (playerElement) {
       playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
       playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
@@ -412,20 +426,58 @@ export function ScoreManagement() {
     }
   }
 
-  function handleApplyAllScores() {
+  async function handleApplyAllScores() {
     const highConfidenceScores = parsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
     
     if (highConfidenceScores.length === 0) {
       alert("Tiada score dengan confidence tinggi (≥80%) untuk apply automatically.");
       return;
     }
+
+    const missingScores = highConfidenceScores.filter(s => !players.some(p => p.member_id === s.matchedMember!.id));
+    let currentPlayers = players;
+
+    if (missingScores.length > 0) {
+      const missingMembers = missingScores.map(s => ({ member_id: s.matchedMember!.id, is_fivefive: false }));
+      try {
+         await gameService.addPlayersToGameWithFiveFive(selectedGameId, missingMembers);
+         const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
+         currentPlayers = updatedPlayers as unknown as GamePlayer[];
+         setPlayers(currentPlayers);
+         setFilteredPlayers(currentPlayers);
+      } catch (err) {
+         console.error(err);
+         alert("Gagal menambah pemain baru ke dalam perlawanan.");
+         return;
+      }
+    }
     
-    highConfidenceScores.forEach(score => {
-      handleApplyParsedScore(score);
+    setEditingScores(prev => {
+      const next = { ...prev };
+      highConfidenceScores.forEach(score => {
+        const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
+        if (!player) return;
+
+        const updated = { ...(next[player.id] || player) };
+        if (score.scores.game1 !== undefined) updated.game1_score = score.scores.game1;
+        if (score.scores.game2 !== undefined) updated.game2_score = score.scores.game2;
+        if (score.scores.game3 !== undefined) updated.game3_score = score.scores.game3;
+        if (score.scores.game4 !== undefined) updated.game4_score = score.scores.game4;
+        if (score.scores.game5 !== undefined) updated.game5_score = score.scores.game5;
+        if (score.handicap !== undefined) updated.handicap = score.handicap;
+
+        const total = updated.game1_score + updated.game2_score + updated.game3_score + 
+                      updated.game4_score + updated.game5_score;
+        updated.total_score = total;
+        updated.overall_score = total + updated.handicap;
+
+        next[player.id] = updated;
+      });
+      return next;
     });
     
     setShowUploadModal(false);
-    alert(`${highConfidenceScores.length} skor telah diisi. Sila semak dan simpan.`);
+    alert(`${highConfidenceScores.length} skor (termasuk pemain baru) telah diisi. Sila semak dan simpan.`);
   }
 
   function resetUpload() {
@@ -537,17 +589,31 @@ export function ScoreManagement() {
     }
   }
 
-  function handleApplyCsvScore(parsedScore: ParsedScore) {
+  async function handleApplyCsvScore(parsedScore: ParsedScore) {
     if (!parsedScore.matchedMember) return;
 
-    const player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    let player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
+    let currentPlayers = players;
+
     if (!player) {
-      alert("Player not found in this game");
-      return;
+      try {
+        await gameService.addPlayerToGame(selectedGameId, parsedScore.matchedMember!.id);
+        const updatedData = await gameService.getGamePlayers(selectedGameId);
+        currentPlayers = updatedData as unknown as GamePlayer[];
+        setPlayers(currentPlayers);
+        setFilteredPlayers(currentPlayers);
+        player = currentPlayers.find(p => p.member_id === parsedScore.matchedMember!.id);
+      } catch (err) {
+        console.error(err);
+        alert("Gagal menambah pemain baru ke dalam perlawanan");
+        return;
+      }
     }
 
+    if (!player) return;
+
     setEditingScores(prev => {
-      const updated = { ...player };
+      const updated = { ...(prev[player!.id] || player!) };
       if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
       if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
       if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
@@ -560,10 +626,10 @@ export function ScoreManagement() {
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
 
-      return { ...prev, [player.id]: updated };
+      return { ...prev, [player!.id]: updated };
     });
 
-    const playerElement = document.getElementById(`player-${player.id}`);
+    const playerElement = document.getElementById(`player-${player!.id}`);
     if (playerElement) {
       playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
       playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
@@ -573,20 +639,58 @@ export function ScoreManagement() {
     }
   }
 
-  function handleApplyAllCsvScores() {
+  async function handleApplyAllCsvScores() {
     const highConfidenceScores = csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
     
     if (highConfidenceScores.length === 0) {
       alert("No scores with high confidence (≥80%) to apply automatically.");
       return;
     }
+
+    const missingScores = highConfidenceScores.filter(s => !players.some(p => p.member_id === s.matchedMember!.id));
+    let currentPlayers = players;
+
+    if (missingScores.length > 0) {
+      const missingMembers = missingScores.map(s => ({ member_id: s.matchedMember!.id, is_fivefive: false }));
+      try {
+         await gameService.addPlayersToGameWithFiveFive(selectedGameId, missingMembers);
+         const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
+         currentPlayers = updatedPlayers as unknown as GamePlayer[];
+         setPlayers(currentPlayers);
+         setFilteredPlayers(currentPlayers);
+      } catch (err) {
+         console.error(err);
+         alert("Gagal menambah pemain baru ke dalam perlawanan.");
+         return;
+      }
+    }
     
-    highConfidenceScores.forEach(score => {
-      handleApplyCsvScore(score);
+    setEditingScores(prev => {
+      const next = { ...prev };
+      highConfidenceScores.forEach(score => {
+        const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
+        if (!player) return;
+
+        const updated = { ...(next[player.id] || player) };
+        if (score.scores.game1 !== undefined) updated.game1_score = score.scores.game1;
+        if (score.scores.game2 !== undefined) updated.game2_score = score.scores.game2;
+        if (score.scores.game3 !== undefined) updated.game3_score = score.scores.game3;
+        if (score.scores.game4 !== undefined) updated.game4_score = score.scores.game4;
+        if (score.scores.game5 !== undefined) updated.game5_score = score.scores.game5;
+        if (score.handicap !== undefined) updated.handicap = score.handicap;
+
+        const total = updated.game1_score + updated.game2_score + updated.game3_score + 
+                      updated.game4_score + updated.game5_score;
+        updated.total_score = total;
+        updated.overall_score = total + updated.handicap;
+
+        next[player.id] = updated;
+      });
+      return next;
     });
     
     setShowCsvModal(false);
-    alert(`${highConfidenceScores.length} scores have been filled. Please review and save.`);
+    alert(`${highConfidenceScores.length} skor (termasuk pemain baru) telah diisi. Sila semak dan simpan.`);
   }
 
   function resetCsvUpload() {
@@ -908,8 +1012,13 @@ export function ScoreManagement() {
                                           <p className="text-sm text-gray-600">
                                             → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
                                           </p>
-                                          <div className="mt-1">
+                                          <div className="mt-1 flex items-center gap-2">
                                             {getConfidenceBadge(score.matchConfidence)}
+                                            {!players.some(p => p.member_id === score.matchedMember!.id) && (
+                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
+                                                + New Player
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       ) : (
@@ -1173,8 +1282,13 @@ Eby,168,116,153,152,176,18</pre>
                                   <p className="text-sm text-gray-600">
                                     → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
                                   </p>
-                                  <div className="mt-1">
+                                  <div className="mt-1 flex items-center gap-2">
                                     {getConfidenceBadge(score.matchConfidence)}
+                                    {!players.some(p => p.member_id === score.matchedMember!.id) && (
+                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
+                                        + New Player
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               ) : (
