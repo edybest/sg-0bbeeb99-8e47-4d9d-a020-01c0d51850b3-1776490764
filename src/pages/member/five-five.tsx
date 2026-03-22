@@ -147,17 +147,17 @@ export default function FiveFivePage() {
 
       // Apply handicap bonus: +5 pins per game if member has handicap > 0
       const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => {
-        const hasHandicap = (player.members?.handicap ?? 0) > 0;
-        const bonus = hasHandicap ? 5 : 0;
+        const memberHandicap = player.members?.handicap ?? 0;
+        const perGameHandicap = memberHandicap > 0 ? Math.floor(memberHandicap / 5) : 0;
 
         return {
           member_id: player.member_id,
           username: player.members?.username || "Unknown",
-          game1_score: (player.game1_score || 0) + bonus,
-          game2_score: (player.game2_score || 0) + bonus,
-          game3_score: (player.game3_score || 0) + bonus,
-          game4_score: (player.game4_score || 0) + bonus,
-          game5_score: (player.game5_score || 0) + bonus,
+          game1_score: (player.game1_score || 0) + perGameHandicap,
+          game2_score: (player.game2_score || 0) + perGameHandicap,
+          game3_score: (player.game3_score || 0) + perGameHandicap,
+          game4_score: (player.game4_score || 0) + perGameHandicap,
+          game5_score: (player.game5_score || 0) + perGameHandicap,
           game1_rank: 0,
           game2_rank: 0,
           game3_rank: 0,
