@@ -33,45 +33,57 @@ type GamePlayer = {
 };
 
 class GameService {
-  // List games with players
+  /**
+   * List all games with their players and statistics
+   */
   async listGamesWithPlayers() {
-    const { data, error } = await supabase
-      .from("games")
-      .select(`
-        *,
-        game_players (
-          id,
-          member_id,
-          is_fivefive,
-          members (
-            full_name,
-            username
+    try {
+      const { data: games, error } = await supabase
+        .from("games")
+        .select(`
+          *,
+          game_players (
+            id,
+            member_id,
+            is_fivefive,
+            members (
+              id,
+              username,
+              full_name
+            )
           )
-        )
-      `)
-      .order("game_date", { ascending: false });
+        `)
+        .order("game_date", { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error("Error fetching games:", error);
+        throw error;
+      }
 
-    return (data || []).map((game) => {
-      const players = Array.isArray(game.game_players)
-        ? game.game_players.map((gp: any) => ({
-            id: gp.id,
-            member_id: gp.member_id,
-            member_name: gp.members?.full_name || gp.members?.username || "Unknown",
-            username: gp.members?.username,
-            full_name: gp.members?.full_name,
-            is_fivefive: gp.is_fivefive,
-          }))
-        : [];
+      const gamesWithStats = (games || []).map((game) => {
+        const gamePlayers = game.game_players || [];
+        const players = gamePlayers.map((gp: any) => ({
+          id: gp.id,
+          member_id: gp.member_id,
+          member_name: gp.members?.username || "Unknown",
+          is_fivefive: gp.is_fivefive,
+          username: gp.members?.username,
+          full_name: gp.members?.full_name,
+        }));
 
-      return {
-        ...game,
-        player_count: players.length,
-        five_five_count: players.filter((p) => p.is_fivefive).length,
-        players,
-      };
-    });
+        return {
+          ...game,
+          players,
+          player_count: players.length,
+          five_five_count: players.filter((p: any) => p.is_fivefive).length,
+        };
+      });
+
+      return gamesWithStats;
+    } catch (error) {
+      console.error("Error in listGamesWithPlayers:", error);
+      throw error;
+    }
   }
 
   // Update player's Five-Five status
