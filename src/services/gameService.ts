@@ -44,7 +44,8 @@ class GameService {
           member_id,
           is_fivefive,
           members (
-            full_name
+            full_name,
+            username
           )
         )
       `)
@@ -57,7 +58,9 @@ class GameService {
         ? game.game_players.map((gp: any) => ({
             id: gp.id,
             member_id: gp.member_id,
-            member_name: gp.members?.full_name || "Unknown",
+            member_name: gp.members?.full_name || gp.members?.username || "Unknown",
+            username: gp.members?.username,
+            full_name: gp.members?.full_name,
             is_fivefive: gp.is_fivefive,
           }))
         : [];
@@ -85,11 +88,84 @@ class GameService {
   }
 
   // Delete a player from a game by game_player ID
-  async deletePlayerFromGameById(playerId: string) {
-    const { error } = await supabase.from("game_players").delete().eq("id", playerId);
+  async deletePlayerFromGameById(playerId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from("game_players")
+      .delete()
+      .eq("id", playerId);
 
     if (error) throw error;
     return true;
+  }
+
+  /**
+   * Get available members for a game (members not already in the game)
+   */
+  async getAvailableMembersForGame(gameId: string) {
+    try {
+      // Get all members already in this game
+      const { data: existingPlayers, error: playersError } = await supabase
+        .from("game_players")
+        .select("member_id")
+        .eq("game_id", gameId);
+
+      if (playersError) throw playersError;
+
+      const existingMemberIds = existingPlayers?.map(p => p.member_id) || [];
+
+      // Get all active members not in this game
+      // Use any to bypass TS excessively deep instantiation error with .not()
+      let query: any = supabase
+        .from("members")
+        .select("id, username, full_name")
+        .eq("is_active", true)
+        .order("username");
+
+      if (existingMemberIds.length > 0) {
+        query = query.not("id", "in", `(${existingMemberIds.join(",")})`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error fetching available members:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a player to an existing game
+   */
+  async addPlayerToGame(gameId: string, memberId: string, isFiveFive: boolean = false) {
+    try {
+      // Get member details
+      const { data: member, error: memberError } = await supabase
+        .from("members")
+        .select("username, full_name")
+        .eq("id", memberId)
+        .single();
+
+      if (memberError) throw memberError;
+
+      // Insert player
+      const { error: insertError } = await supabase
+        .from("game_players")
+        .insert({
+          game_id: gameId,
+          member_id: memberId,
+          username: member.username,
+          full_name: member.full_name,
+          is_fivefive: isFiveFive,
+        });
+
+      if (insertError) throw insertError;
+      return true;
+    } catch (error) {
+      console.error("Error adding player to game:", error);
+      throw error;
+    }
   }
 
   // Get all games

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, Star, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
@@ -23,6 +24,8 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
     member_id: string;
     member_name: string;
     is_fivefive: boolean;
+    username?: string;
+    full_name?: string;
   }>;
 };
 
@@ -62,6 +65,18 @@ export function GameManagement() {
     gameId: null,
   });
 
+  const [deletePlayer, setDeletePlayer] = useState<{ playerId: string | null; playerName: string; gameId: string | null }>({
+    playerId: null, playerName: "", gameId: null
+  });
+
+  // Add Player states
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [selectedGameForPlayer, setSelectedGameForPlayer] = useState<string | null>(null);
+  const [availableMembers, setAvailableMembers] = useState<Array<{ id: string; username: string; full_name: string }>>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [newPlayerFiveFive, setNewPlayerFiveFive] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   useEffect(() => {
     loadGames();
   }, []);
@@ -80,6 +95,23 @@ export function GameManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAvailableMembers = async (gameId: string) => {
+    try {
+      setLoadingMembers(true);
+      const data = await gameService.getAvailableMembersForGame(gameId);
+      setAvailableMembers(data || []);
+    } catch (error) {
+      console.error("Error loading available members:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memuatkan senarai ahli",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -180,21 +212,60 @@ export function GameManagement() {
   };
 
   const handleDeletePlayer = async () => {
-    if (!deletePlayerDialog.playerId || !deletePlayerDialog.gameId) return;
+    if (!deletePlayer.playerId) return;
 
     try {
-      await gameService.deletePlayerFromGameById(deletePlayerDialog.playerId);
+      await gameService.deletePlayerFromGameById(deletePlayer.playerId);
       toast({
         title: "Berjaya",
-        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`,
+        description: `${deletePlayer.playerName} telah dibuang dari permainan`,
       });
-      setDeletePlayerDialog({ open: false, playerId: null, playerName: "", gameId: null });
+      setDeletePlayer({ playerId: null, playerName: "", gameId: null });
       loadGames();
     } catch (error) {
       console.error("Error deleting player:", error);
       toast({
         title: "Ralat",
         description: "Gagal membuang pemain",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOpenAddPlayer = async (gameId: string) => {
+    setSelectedGameForPlayer(gameId);
+    setSelectedMemberId("");
+    setNewPlayerFiveFive(false);
+    setShowAddPlayer(true);
+    await loadAvailableMembers(gameId);
+  };
+
+  const handleAddPlayer = async () => {
+    if (!selectedGameForPlayer || !selectedMemberId) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih ahli",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await gameService.addPlayerToGame(selectedGameForPlayer, selectedMemberId, newPlayerFiveFive);
+      toast({
+        title: "Berjaya",
+        description: "Pemain telah ditambah ke permainan",
+      });
+      setShowAddPlayer(false);
+      setSelectedGameForPlayer(null);
+      setSelectedMemberId("");
+      setNewPlayerFiveFive(false);
+      loadGames();
+    } catch (error) {
+      console.error("Error adding player:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal menambah pemain",
         variant: "destructive",
       });
     }
@@ -275,36 +346,45 @@ export function GameManagement() {
                 transition={{ duration: 0.3 }}
               >
                 <Card>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-xl">{game.game_name}</CardTitle>
-                          <Badge className={`${gameTypeColors[game.game_type]} text-white`}>
-                            {gameTypeLabels[game.game_type]}
-                          </Badge>
-                        </div>
-                        <CardDescription className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          {formatDate(game.game_date)}
-                        </CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-pink-600" />
+                        <CardTitle className="text-lg">{game.game_name}</CardTitle>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditGame(game)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeleteGameDialog({ open: true, game })}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(game.game_date)}</span>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {game.game_type === "BLOK" ? "BLOK" : game.game_type === "MINI_BLOK" ? "MINI BLOK" : "UNDI LANE"}
+                      </Badge>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAddPlayer(game.id)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Tambah Pemain</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditGame(game)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit Permainan</TooltipContent>
+                      </Tooltip>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -326,74 +406,46 @@ export function GameManagement() {
                         <h4 className="font-semibold text-sm">Senarai Pemain Terlibat:</h4>
                         <div className="flex flex-wrap gap-2">
                           {game.players.map((player) => (
-                            <TooltipProvider key={player.id}>
-                              <div className="group relative">
+                            <HoverCard key={player.id}>
+                              <HoverCardTrigger asChild>
                                 <Badge
                                   variant={player.is_fivefive ? "default" : "secondary"}
-                                  className={`${
+                                  className={`cursor-pointer transition-all ${
                                     player.is_fivefive
-                                      ? "bg-pink-100 text-pink-900 border-pink-300 hover:bg-pink-200 shadow-sm"
-                                      : "bg-muted hover:bg-muted/80"
-                                  } cursor-pointer transition-all px-3 py-1.5`}
+                                      ? "bg-pink-100 text-pink-700 border-pink-300 hover:bg-pink-200"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span>{player.member_name}</span>
-                                    {player.is_fivefive && (
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <Star className="w-3.5 h-3.5 fill-pink-600 text-pink-600" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>Main Five-Five</TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                  </div>
+                                  {player.username || player.full_name || player.member_name || "Tanpa Nama"}
+                                  {player.is_fivefive && " ⭐"}
                                 </Badge>
-                                
-                                {/* Player Actions (shown on hover) */}
-                                <div className="absolute -top-10 left-0 hidden group-hover:flex gap-1 bg-white border rounded-md shadow-lg p-1 z-10">
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 px-2"
-                                          onClick={() => handleToggleFiveFive(player.id, player.is_fivefive)}
-                                        >
-                                          <Star className={`w-3.5 h-3.5 ${player.is_fivefive ? "fill-pink-600 text-pink-600" : ""}`} />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        {player.is_fivefive ? "Nyahaktif Five-Five" : "Aktifkan Five-Five"}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-7 px-2 text-destructive hover:text-destructive"
-                                          onClick={() =>
-                                            setDeletePlayerDialog({
-                                              open: true,
-                                              playerId: player.id,
-                                              playerName: player.member_name,
-                                              gameId: game.id,
-                                            })
-                                          }
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Buang pemain</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-auto p-2" side="top">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={player.is_fivefive ? "text-pink-600 border-pink-200 bg-pink-50" : ""}
+                                    onClick={() => handleToggleFiveFive(player.id, player.is_fivefive)}
+                                  >
+                                    <Star className={`w-4 h-4 mr-2 ${player.is_fivefive ? "fill-current" : ""}`} />
+                                    {player.is_fivefive ? "Batal Five-Five" : "Set Five-Five"}
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setDeletePlayerDialog({
+                                      open: true,
+                                      playerId: player.id,
+                                      playerName: player.username || player.full_name || player.member_name,
+                                      gameId: game.id
+                                    })}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
                                 </div>
-                              </div>
-                            </TooltipProvider>
+                              </HoverCardContent>
+                            </HoverCard>
                           ))}
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
@@ -570,6 +622,66 @@ export function GameManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Player Dialog */}
+      <Dialog open={showAddPlayer} onOpenChange={setShowAddPlayer}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Pemain ke Permainan</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Pilih Ahli</label>
+              {loadingMembers ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
+                </div>
+              ) : availableMembers.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Semua ahli sudah didaftarkan dalam permainan ini
+                </p>
+              ) : (
+                <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih ahli..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMembers.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.username} ({member.full_name})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="add-fivefive"
+                checked={newPlayerFiveFive}
+                onCheckedChange={setNewPlayerFiveFive}
+              />
+              <label
+                htmlFor="add-fivefive"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Main Five-Five ⭐
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddPlayer(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={handleAddPlayer}
+              disabled={!selectedMemberId || loadingMembers}
+            >
+              Tambah Pemain
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
