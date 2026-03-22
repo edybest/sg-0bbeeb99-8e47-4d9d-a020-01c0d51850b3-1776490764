@@ -139,23 +139,12 @@ class GameService {
    */
   async addPlayerToGame(gameId: string, memberId: string, isFiveFive: boolean = false) {
     try {
-      // Get member details
-      const { data: member, error: memberError } = await supabase
-        .from("members")
-        .select("username, full_name")
-        .eq("id", memberId)
-        .single();
-
-      if (memberError) throw memberError;
-
       // Insert player
       const { error: insertError } = await supabase
         .from("game_players")
         .insert({
           game_id: gameId,
           member_id: memberId,
-          username: member.username,
-          full_name: member.full_name,
           is_fivefive: isFiveFive,
         });
 
