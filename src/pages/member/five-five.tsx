@@ -206,30 +206,43 @@ export default function FiveFivePage() {
           (a, b) => (b[scoreKey] as number) - (a[scoreKey] as number)
         );
 
-        let currentRank = 1;
-        let previousScore = -1;
-        let playersAtSameRank = 0;
-
-        sortedByGame.forEach((player, index) => {
+        const scoreGroups: { score: number; players: FiveFiveParticipant[] }[] = [];
+        
+        sortedByGame.forEach((player) => {
           const score = player[scoreKey] as number;
-
-          if (score === previousScore) {
-            playersAtSameRank++;
+          const lastGroup = scoreGroups[scoreGroups.length - 1];
+          if (lastGroup && lastGroup.score === score) {
+            lastGroup.players.push(player);
           } else {
-            currentRank = index + 1;
-            playersAtSameRank = 0;
+            scoreGroups.push({ score, players: [player] });
           }
+        });
 
-          const originalPlayer = participantsWithRankings.find((p) => p.member_id === player.member_id);
-          if (originalPlayer) {
-            (originalPlayer[rankKey] as number) = currentRank;
+        let currentRankOffset = 0;
 
-            if (currentRank <= gamePrizes.length) {
-              (originalPlayer[prizeKey] as number) = gamePrizes[currentRank - 1] || 0;
+        scoreGroups.forEach((group) => {
+          const numPlayers = group.players.length;
+          const rankForGroup = currentRankOffset + 1;
+          
+          let totalPrizeForGroup = 0;
+          for (let i = 0; i < numPlayers; i++) {
+            const prizeIndex = currentRankOffset + i;
+            if (prizeIndex < gamePrizes.length) {
+              totalPrizeForGroup += gamePrizes[prizeIndex];
             }
           }
+          
+          const prizePerPlayer = numPlayers > 0 ? totalPrizeForGroup / numPlayers : 0;
 
-          previousScore = score;
+          group.players.forEach((player) => {
+            const originalPlayer = participantsWithRankings.find((p) => p.member_id === player.member_id);
+            if (originalPlayer) {
+              (originalPlayer[rankKey] as number) = rankForGroup;
+              (originalPlayer[prizeKey] as number) = prizePerPlayer;
+            }
+          });
+
+          currentRankOffset += numPlayers;
         });
       }
 
