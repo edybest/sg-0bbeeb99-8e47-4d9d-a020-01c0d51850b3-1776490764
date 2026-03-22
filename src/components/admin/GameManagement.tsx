@@ -66,9 +66,6 @@ export function GameManagement() {
     gameId: null,
   });
 
-  const [deletePlayer, setDeletePlayer] = useState<{ playerId: string | null; playerName: string }>({
-    playerId: null, playerName: ""
-  });
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
 
@@ -214,15 +211,20 @@ export function GameManagement() {
   };
 
   const handleDeletePlayer = async () => {
-    if (!deletePlayer.playerId) return;
+    if (!deletePlayerDialog.playerId) return;
 
     try {
-      await gameService.deletePlayerFromGameById(deletePlayer.playerId);
+      await gameService.deletePlayerFromGameById(deletePlayerDialog.playerId);
       toast({
         title: "Berjaya",
-        description: `${deletePlayer.playerName} telah dibuang dari permainan`,
+        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`,
       });
-      setDeletePlayer({ playerId: null, playerName: "" });
+      setDeletePlayerDialog({
+        open: false,
+        playerId: null,
+        playerName: "",
+        gameId: null,
+      });
       loadGames();
     } catch (error) {
       console.error("Error deleting player:", error);
@@ -438,7 +440,7 @@ export function GameManagement() {
                                     size="sm"
                                     className="justify-start"
                                     onClick={() => {
-                                      handleToggleFiveFive(player.id, !player.is_fivefive);
+                                      handleToggleFiveFive(player.id, player.is_fivefive);
                                       setOpenPopoverId(null);
                                     }}
                                   >
@@ -459,9 +461,11 @@ export function GameManagement() {
                                     size="sm"
                                     className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                                     onClick={() => {
-                                      setDeletePlayer({
+                                      setDeletePlayerDialog({
+                                        open: true,
                                         playerId: player.id,
                                         playerName: player.username || "Unknown",
+                                        gameId: game.id,
                                       });
                                       setOpenPopoverId(null);
                                     }}
@@ -620,7 +624,12 @@ export function GameManagement() {
         <AlertDialog
           open={deletePlayerDialog.open}
           onOpenChange={(open) =>
-            setDeletePlayerDialog({ open, playerId: null, playerName: "", gameId: null })
+            setDeletePlayerDialog({
+              open,
+              playerId: null,
+              playerName: "",
+              gameId: null,
+            })
           }
         >
           <AlertDialogContent>
