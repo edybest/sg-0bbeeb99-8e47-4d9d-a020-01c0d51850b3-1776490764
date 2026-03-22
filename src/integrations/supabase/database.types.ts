@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -15,6 +15,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      blok_games: {
+        Row: {
+          created_at: string | null
+          game_date: string
+          id: string
+          member_id: string | null
+          member_name: string
+          score_1: number
+          score_2: number
+          score_3: number
+          total_score: number | null
+          updated_at: string | null
+          winner: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_date?: string
+          id?: string
+          member_id?: string | null
+          member_name: string
+          score_1?: number
+          score_2?: number
+          score_3?: number
+          total_score?: number | null
+          updated_at?: string | null
+          winner?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_date?: string
+          id?: string
+          member_id?: string | null
+          member_name?: string
+          score_1?: number
+          score_2?: number
+          score_3?: number
+          total_score?: number | null
+          updated_at?: string | null
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blok_games_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           created_at: string | null
