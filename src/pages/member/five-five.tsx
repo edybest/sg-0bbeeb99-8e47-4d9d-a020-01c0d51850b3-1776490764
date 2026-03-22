@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { fivefiveService } from "@/services/fivefiveService";
 
 type Member = Tables<"members">;
 type Game = Tables<"games">;
@@ -145,6 +146,17 @@ export default function FiveFivePage() {
         return;
       }
 
+      // Fetch dynamic prize configuration based on the number of players
+      let gamePrizes: number[] = [];
+      try {
+        const prizeConfig = await fivefiveService.getPrizeConfiguration(playersData.length);
+        if (prizeConfig && prizeConfig.prizes) {
+          gamePrizes = prizeConfig.prizes;
+        }
+      } catch (e) {
+        console.error("Error loading prize config, using empty fallback", e);
+      }
+
       const participantsWithRankings: FiveFiveParticipant[] = playersData.map((player) => {
         const memberHandicap = player.members?.handicap ?? 0;
         const perGameHandicap = memberHandicap > 0 ? Math.floor(memberHandicap / 5) : 0;
@@ -211,8 +223,8 @@ export default function FiveFivePage() {
           if (originalPlayer) {
             (originalPlayer[rankKey] as number) = currentRank;
 
-            if (currentRank <= FIVE_FIVE_GAME_PRIZES.length) {
-              (originalPlayer[prizeKey] as number) = FIVE_FIVE_GAME_PRIZES[currentRank - 1] || 0;
+            if (currentRank <= gamePrizes.length) {
+              (originalPlayer[prizeKey] as number) = gamePrizes[currentRank - 1] || 0;
             }
           }
 
