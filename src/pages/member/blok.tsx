@@ -184,8 +184,30 @@ export default function BlokPage() {
       const gameList = data ?? [];
       setGames(gameList);
 
+      const query = router.query as { [key: string]: string | string[] | undefined };
+      const urlGameId =
+        typeof query.gameId === "string" ? query.gameId : undefined;
+      const urlDate =
+        typeof query.date === "string" ? query.date : undefined;
+
       if (gameList.length > 0) {
-        setSelectedGame((current) => current ?? gameList[0].id);
+        setSelectedGame((current) => {
+          // 1. Jika ada gameId dalam URL dan wujud dalam senarai, guna itu
+          if (urlGameId && gameList.some((g) => g.id === urlGameId)) {
+            return urlGameId;
+          }
+
+          // 2. Jika ada tarikh dalam URL dan padan dengan game_date, guna game itu
+          if (urlDate) {
+            const matched = gameList.find((g) => g.game_date === urlDate);
+            if (matched) {
+              return matched.id;
+            }
+          }
+
+          // 3. Kalau tiada apa-apa, kekalkan nilai sedia ada atau ambil game pertama
+          return current ?? gameList[0].id;
+        });
       } else {
         setSelectedGame(null);
       }

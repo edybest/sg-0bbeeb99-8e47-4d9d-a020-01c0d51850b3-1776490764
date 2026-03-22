@@ -14,6 +14,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
@@ -416,42 +424,49 @@ export function GameManagement() {
                       {game.players && game.players.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                           {game.players.map((player) => (
-                            <div key={player.id} className="flex items-center gap-1">
-                              <Badge
-                                variant={player.is_fivefive ? "default" : "secondary"}
-                                className={`cursor-pointer hover:scale-105 transition-all ${
-                                  player.is_fivefive
-                                    ? "bg-pink-500 hover:bg-pink-600 text-white"
-                                    : ""
-                                }`}
-                                onClick={() => handleToggleFiveFive(player.id, !!player.is_fivefive)}
-                                title="Klik untuk toggle status Five-Five"
-                              >
-                                {player.username || "Unknown"}
-                                {player.is_fivefive && " ⭐"}
-                              </Badge>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() =>
-                                      setDeletePlayerDialog({
-                                        open: true,
-                                        playerId: player.id,
-                                        playerName: player.username || "Unknown",
-                                        gameId: game.id,
-                                      })
-                                    }
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Buang Pemain</TooltipContent>
-                              </Tooltip>
-                            </div>
+                            <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                                  variant={player.is_fivefive ? "default" : "secondary"}
+                                  className={`cursor-pointer hover:scale-105 transition-all ${
+                                    player.is_fivefive
+                                      ? "bg-pink-500 hover:bg-pink-600 text-white"
+                                      : ""
+                                  }`}
+                                >
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleToggleFiveFive(player.id, !!player.is_fivefive)
+                                  }
+                                >
+                                  {player.is_fivefive
+                                    ? "Nyahaktifkan Five-Five"
+                                    : "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() =>
+                                    setDeletePlayerDialog({
+                                      open: true,
+                                      playerId: player.id,
+                                      playerName: player.username || player.full_name || "Pemain",
+                                      gameId: game.id,
+                                    })
+                                  }
+                                >
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           ))}
                         </div>
                       ) : (
