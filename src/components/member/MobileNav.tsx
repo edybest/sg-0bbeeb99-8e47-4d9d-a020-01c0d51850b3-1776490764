@@ -4,7 +4,7 @@ import { Home, Trophy, Target, Award, MapPin, Dices, Gamepad2, TrendingUp, Image
 
 const menuItems = [
   { href: "/member", icon: Home, label: "Home" },
-  { href: "/member/blok", icon: Trophy, label: "Game" },
+  { href: "/member/blok", icon: Trophy, label: "Blok" },
   { href: "/member/five-five", icon: Star, label: "5+5" },
   { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame" },
   { href: "/member/average-score", icon: Target, label: "Average" },
