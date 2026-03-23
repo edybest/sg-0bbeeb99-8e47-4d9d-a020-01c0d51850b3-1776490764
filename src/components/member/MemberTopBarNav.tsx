@@ -32,7 +32,7 @@ export function MemberTopBarNav() {
         <div className="flex items-center gap-4">
           <Link href="/member" className="flex items-center gap-3 group">
    
-            <span className="font-serif font-bold text-xl sm:inline-block bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent tracking-tight drop-shadow-sm">
+            <span className="font-serif font-bold text-xl sm:inline-block bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent tracking-tight drop-shadow-xl">
               AMBC
             </span>
           </Link>
