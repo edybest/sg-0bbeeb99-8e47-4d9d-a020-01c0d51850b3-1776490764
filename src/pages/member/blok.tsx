@@ -840,7 +840,7 @@ export default function BlokPage() {
                                                                             <div className="font-semibold">{entry.handicap || "-"}</div>
                                                                         </div>
                                                                         <div className="bg-rose-50 p-2 rounded">
-                                                                            <div className="text-xs text-rose-500">Total Games</div>
+                                                                            <div className="text-xs text-rose-500">Total</div>
                                                                             <div className="font-semibold">{entry.total_score || "-"}</div>
                                                                         </div>
                                                                         <div className="bg-rose-50 p-2 rounded">
