@@ -83,6 +83,11 @@
     @apply border-border;
   }
   
+  /* Remove Tailwind preflight's default height: auto for images */
+  img {
+    height: unset;
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
