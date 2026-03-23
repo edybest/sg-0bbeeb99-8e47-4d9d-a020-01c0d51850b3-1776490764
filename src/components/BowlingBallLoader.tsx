@@ -80,8 +80,8 @@ export function BowlingBallLoaderOverlay() {
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="flex flex-col items-center gap-3 sm:gap-4">
-        <BowlingBallLoader size="lg" />
-        <p className="text-sm sm:text-base md:text-lg font-medium text-muted-foreground animate-pulse text-center">
+        <BowlingBallLoader size="sm" />
+        <p className="text-sm sm:text-base md:text-sm font-medium text-muted-foreground animate-pulse text-center">
           Loading...
         </p>
       </div>
