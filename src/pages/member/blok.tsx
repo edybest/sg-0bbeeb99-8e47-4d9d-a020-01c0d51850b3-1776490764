@@ -20,8 +20,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  ChevronRight
-} from "lucide-react";
+  ChevronRight } from
+"lucide-react";
 
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -86,23 +86,23 @@ const STICKY_LEFT = {
 };
 
 function sortData(
-  data: LeaderboardEntry[],
-  field: SortField,
-  direction: SortDirection
-): LeaderboardEntry[] {
+data: LeaderboardEntry[],
+field: SortField,
+direction: SortDirection)
+: LeaderboardEntry[] {
   return [...data].sort((a, b) => {
     const aValue = field === "username" ? a.member.username.toLowerCase() : a[field];
     const bValue = field === "username" ? b.member.username.toLowerCase() : b[field];
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return direction === "asc"
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue);
+      return direction === "asc" ?
+      aValue.localeCompare(bValue) :
+      bValue.localeCompare(aValue);
     }
 
-    return direction === "asc"
-      ? Number(aValue) - Number(bValue)
-      : Number(bValue) - Number(aValue);
+    return direction === "asc" ?
+    Number(aValue) - Number(bValue) :
+    Number(bValue) - Number(aValue);
   });
 }
 
@@ -184,11 +184,11 @@ export default function BlokPage() {
       const gameList = data ?? [];
       setGames(gameList);
 
-      const query = router.query as { [key: string]: string | string[] | undefined };
+      const query = router.query as {[key: string]: string | string[] | undefined;};
       const urlGameId =
-        typeof query.gameId === "string" ? query.gameId : undefined;
+      typeof query.gameId === "string" ? query.gameId : undefined;
       const urlDate =
-        typeof query.date === "string" ? query.date : undefined;
+      typeof query.date === "string" ? query.date : undefined;
 
       if (gameList.length > 0) {
         setSelectedGame((current) => {
@@ -392,35 +392,35 @@ export default function BlokPage() {
             animate={{
               scale: [0, 1.2, 1],
               rotate: [180, 360, 0],
-              y: [0, -3, 0],
+              y: [0, -3, 0]
             }}
             transition={{
               type: "spring",
               stiffness: 200,
               damping: 10,
-              duration: 0.8,
+              duration: 0.8
             }}
-            className="relative"
-          >
+            className="relative">
+            
             <motion.div
               animate={{
                 rotate: [0, -10, 10, -10, 0],
                 boxShadow: [
-                  "0 0 20px rgba(234,179,8,0.3)",
-                  "0 0 40px rgba(234,179,8,0.6)",
-                  "0 0 20px rgba(234,179,8,0.3)",
-                ],
+                "0 0 20px rgba(234,179,8,0.3)",
+                "0 0 40px rgba(234,179,8,0.6)",
+                "0 0 20px rgba(234,179,8,0.3)"]
+
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="rounded-full"
-            >
+              className="rounded-full">
+              
               <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
             </motion.div>
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10"
-            />
+              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10" />
+            
           </motion.div>);
 
 
@@ -504,10 +504,10 @@ export default function BlokPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.push("/member")}
-                    className="text-white hover:bg-white/20">
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/member")}
+                  className="text-white hover:bg-white/20">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -560,10 +560,10 @@ export default function BlokPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.push("/member")}
-                    className="text-rose-700 hover:text-red-600">
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/member")}
+                  className="text-rose-700 hover:text-red-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -594,8 +594,8 @@ export default function BlokPage() {
     <PageAccessGuard
       pagePath="/member/blok"
       requireAuth
-      renderLoading={() => null}
-    >
+      renderLoading={() => null}>
+      
       <MemberLayout>
         <>
           <style jsx global>{`
@@ -620,8 +620,8 @@ export default function BlokPage() {
         `}</style>
 
           <SEO
-          title="Blok Leaderboard - AMBC Club"
-          description="View Blok game leaderboard and rankings" />
+            title="Blok Leaderboard - AMBC Club"
+            description="View Blok game leaderboard and rankings" />
         
 
           <div className="min-h-screen bg-white">
@@ -631,10 +631,10 @@ export default function BlokPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.push("/member")}
-                    className="text-rose-700 hover:text-red-600">
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => router.push("/member")}
+                      className="text-rose-700 hover:text-red-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -659,63 +659,63 @@ export default function BlokPage() {
                           </CardDescription>
                       </CardHeader>
                       <CardContent className="p-6">
-                          {loadingGames ? (
-                              <div className="flex justify-center py-8">
+                          {loadingGames ?
+                  <div className="flex justify-center py-8">
                                   <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-                              </div>
-                          ) : games.length === 0 ? (
-                              <div className="text-center py-8 text-rose-500">Tiada game tersedia</div>
-                          ) : (
-                              <div className="max-w-md mx-auto">
+                              </div> :
+                  games.length === 0 ?
+                  <div className="text-center py-8 text-rose-500">Tiada game tersedia</div> :
+
+                  <div className="max-w-md mx-auto">
                                   <label className="block text-sm font-medium text-rose-700 mb-2">Tarikh & Game</label>
                                   <select
-                                      value={selectedGame || ""}
-                                      onChange={(e) => setSelectedGame(e.target.value)}
-                                      className="w-full px-4 py-3 border border-rose-300 rounded-lg bg-rose-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-rose-900 font-medium transition-colors cursor-pointer appearance-none"
-                                      style={{
-                                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                          backgroundPosition: `right 0.75rem center`,
-                                          backgroundRepeat: `no-repeat`,
-                                          backgroundSize: `1.5em 1.5em`,
-                                          paddingRight: `2.5rem`
-                                      }}
-                                  >
+                      value={selectedGame || ""}
+                      onChange={(e) => setSelectedGame(e.target.value)}
+                      className="w-full px-4 py-3 border border-rose-300 rounded-lg bg-rose-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-rose-900 font-medium transition-colors cursor-pointer appearance-none"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: `right 0.75rem center`,
+                        backgroundRepeat: `no-repeat`,
+                        backgroundSize: `1.5em 1.5em`,
+                        paddingRight: `2.5rem`
+                      }}>
+                      
                                       <option value="" disabled>-- Sila Pilih Tarikh --</option>
                                       {games.map((game) => {
-                                          const gameDate = new Date(game.game_date);
-                                          
-                                          // Format dates relatively
-                                          const today = new Date();
-                                          const yesterday = new Date(today);
-                                          yesterday.setDate(yesterday.getDate() - 1);
-                                          
-                                          const isToday = gameDate.toDateString() === today.toDateString();
-                                          const isYesterday = gameDate.toDateString() === yesterday.toDateString();
-                                          
-                                          let prefix = "";
-                                          if (isToday) prefix = "🟢 Hari Ini - ";
-                                          else if (isYesterday) prefix = "🔵 Semalam - ";
-                                          
-                                          const fullDate = gameDate.toLocaleDateString("ms-MY", {
-                                              day: "2-digit",
-                                              month: "short",
-                                              year: "numeric",
-                                          });
-                                          
-                                          return (
-                                              <option key={game.id} value={game.id}>
+                        const gameDate = new Date(game.game_date);
+
+                        // Format dates relatively
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        const isToday = gameDate.toDateString() === today.toDateString();
+                        const isYesterday = gameDate.toDateString() === yesterday.toDateString();
+
+                        let prefix = "";
+                        if (isToday) prefix = "🟢 Hari Ini - ";else
+                        if (isYesterday) prefix = "🔵 Semalam - ";
+
+                        const fullDate = gameDate.toLocaleDateString("ms-MY", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric"
+                        });
+
+                        return (
+                          <option key={game.id} value={game.id}>
                                                   {prefix}{game.game_name} ({fullDate})
-                                              </option>
-                                          );
-                                      })}
+                                              </option>);
+
+                      })}
                                   </select>
                               </div>
-                          )}
+                  }
                       </CardContent>
                   </Card>
 
                   {selectedGame &&
-          <Card className="bg-white border-rose-200 shadow-md overflow-hidden">
+              <Card className="bg-white border-rose-200 shadow-md overflow-hidden">
                           <CardHeader className="border-b border-rose-200 bg-rose-50/50">
                               <CardTitle className="text-rose-900 flex items-center gap-2">
                                   <Trophy className="w-5 h-5 text-yellow-500" />
@@ -728,79 +728,79 @@ export default function BlokPage() {
 
                           <CardContent className="p-0">
                               {loadingLeaderboard ?
-                <div className="flex justify-center items-center py-20">
+                  <div className="flex justify-center items-center py-20">
                                             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
                                             <span className="ml-3 text-rose-600">Memuatkan skor...</span>
                                         </div> :
-                leaderboard.length === 0 ?
-                <div className="text-center py-20 text-rose-500">
+                  leaderboard.length === 0 ?
+                  <div className="text-center py-20 text-rose-500">
                                             <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                             <p>Tiada skor untuk game ini</p>
                                         </div> :
 
-                <>
+                  <>
                                             <div className="block md:hidden space-y-2 p-2">
                                                 {leaderboard.map((entry) =>
-                    <Card
-                      key={entry.id}
-                      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${animatingScores.has(entry.id) ?
-                      "animate-pulse bg-yellow-50 border-yellow-400 border-2" :
-                      ""}`
-                      }
-                      onClick={() =>
-                      setExpandedRow((current) => current === entry.id ? null : entry.id)
-                      }>
+                      <Card
+                        key={entry.id}
+                        className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${animatingScores.has(entry.id) ?
+                        "animate-pulse bg-yellow-50 border-yellow-400 border-2" :
+                        ""}`
+                        }
+                        onClick={() =>
+                        setExpandedRow((current) => current === entry.id ? null : entry.id)
+                        }>
                       
                                                         <CardContent className="p-4">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
 
                                                                 <div className="flex-shrink-0">
-                                                                    {entry.member.avatar_url ? (
-                                                                        <Image
-                                                                            src={entry.member.avatar_url}
-                                                                            alt={entry.member.username}
-                                                                            width={40}
-                                                                            height={40}
-                                                                            className="rounded-full border-2 border-rose-200"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg">
+                                                                    {entry.member.avatar_url ?
+                              <Image
+                                src={entry.member.avatar_url}
+                                alt={entry.member.username}
+                                width={40}
+                                height={40}
+                                className="rounded-full border-2 border-rose-200" /> :
+
+
+                              <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg">
                                                                             {entry.member.username[0].toUpperCase()}
                                                                         </div>
-                                                                    )}
+                              }
                                                                 </div>
 
                                                                 <div className="flex-1 min-w-0">
-                                                                    <Link 
-                                                                        href={`/member/profile?id=${entry.member.id}`}
-                                                                        className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
-                                                                            currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
-                                                                        }`}
-                                                                    >
+                                                                    <Link
+                                href={`/member/profile?id=${entry.member.id}`}
+                                className={`font-semibold text-sm truncate hover:text-red-600 transition-colors block ${
+                                currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""}`
+                                }>
+                                
                                                                         {entry.member.username}
                                                                     </Link>
                                                                     <div className="flex items-center gap-2 text-xs text-rose-600">
-                                                                        <span className="font-bold text-red-600" style={{ fontSize: "24px" }}>
+                                                                        <span className="font-bold text-red-600" style={{ fontSize: "24px", color: "#16a34a" }}>
                                                                             {entry.overall_score || "-"}
                                                                         </span>
                                                                         <span className="text-gray-400">•</span>
                                                                         <span>
                                                                             {entry.difference > 0 ?
-                                `+${entry.difference}` :
-                                entry.difference}
+                                  `+${entry.difference}` :
+                                  entry.difference}
                                                                         </span>
                                                                     </div>
                                                                 </div>
 
                                                                 <ChevronRight
-                            className={`w-5 h-5 text-gray-400 transition-transform ${expandedRow === entry.id ? "rotate-90" : ""}`
-                            } />
+                              className={`w-5 h-5 text-gray-400 transition-transform ${expandedRow === entry.id ? "rotate-90" : ""}`
+                              } />
                           
                                                             </div>
 
                                                             {expandedRow === entry.id &&
-                        <div className="mt-4 pt-4 border-t border-rose-200 space-y-3">
+                          <div className="mt-4 pt-4 border-t border-rose-200 space-y-3">
                                                                     <div className="grid grid-cols-5 gap-2">
                                                                         <div className="text-center">
                                                                             <div className="text-xs text-rose-500 mb-1">G1</div>
@@ -851,10 +851,10 @@ export default function BlokPage() {
                                                                         </div>
                                                                     </div>
                                                                 </div>
-                        }
+                          }
                                                         </CardContent>
                                                     </Card>
-                    )}
+                      )}
                                             </div>
 
                                             <div className="hidden md:block">
@@ -863,8 +863,8 @@ export default function BlokPage() {
                                                         <thead>
                                                             <tr className="border-b border-rose-200">
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
-                              onClick={() => handleSort("rank")}>
+                                className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
+                                onClick={() => handleSort("rank")}>
                               
                                                                     <div className="flex items-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         #
@@ -873,7 +873,7 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
+                                className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
                               
                                                                     <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Avatar
@@ -881,8 +881,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
-                              onClick={() => handleSort("username")}>
+                                className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-rose-50 transition-colors`}
+                                onClick={() => handleSort("username")}>
                               
                                                                     <div className="flex items-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Player
@@ -891,8 +891,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
-                              onClick={() => handleSort("overall_score")}>
+                                className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
+                                onClick={() => handleSort("overall_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Overall
@@ -901,8 +901,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
-                              onClick={() => handleSort("difference")}>
+                                className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors`}
+                                onClick={() => handleSort("difference")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Diff
@@ -911,8 +911,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("game1_score")}>
+                                className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("game1_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G1
@@ -921,8 +921,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("game2_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("game2_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G2
@@ -931,8 +931,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("game3_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("game3_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G3
@@ -941,8 +941,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("game4_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("game4_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G4
@@ -951,8 +951,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("game5_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("game5_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         G5
@@ -961,8 +961,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("handicap")}>
+                                className="px-3 py-3 text-center border-l border-rose-200 cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("handicap")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         HCP
@@ -971,8 +971,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("total_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("total_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Total
@@ -981,8 +981,8 @@ export default function BlokPage() {
                                                                 </th>
 
                                                                 <th
-                              className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
-                              onClick={() => handleSort("average_score")}>
+                                className="px-3 py-3 text-center cursor-pointer hover:bg-rose-50 transition-colors"
+                                onClick={() => handleSort("average_score")}>
                               
                                                                     <div className="flex items-center justify-center text-xs font-semibold text-rose-700 uppercase tracking-wider">
                                                                         Avg
@@ -994,15 +994,15 @@ export default function BlokPage() {
 
                                                         <tbody>
                                                             {leaderboard.map((entry) =>
-                          <tr
-                            key={entry.id}
-                            className={`border-b transition-all duration-500 ${animatingScores.has(entry.id) ?
-                            "bg-yellow-100 animate-pulse" :
-                            "hover:bg-rose-50"}`
-                            }>
+                            <tr
+                              key={entry.id}
+                              className={`border-b transition-all duration-500 ${animatingScores.has(entry.id) ?
+                              "bg-yellow-100 animate-pulse" :
+                              "hover:bg-rose-50"}`
+                              }>
                             
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.rank} z-10 bg-white px-4 py-4 whitespace-nowrap text-center`}>
+                                className={`sticky ${STICKY_LEFT.rank} z-10 bg-white px-4 py-4 whitespace-nowrap text-center`}>
                               
                                                                         <div className="flex items-center justify-center">
                                                                             {getRankDisplay(entry.rank)}
@@ -1010,46 +1010,46 @@ export default function BlokPage() {
                                                                     </td>
 
                                                                     <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
-                                                                        {entry.member.avatar_url ? (
-                                                                            <Image
-                                                                                src={entry.member.avatar_url}
-                                                                                alt={entry.member.username}
-                                                                                width={40}
-                                                                                height={40}
-                                                                                className="rounded-full border-2 border-rose-200 mx-auto"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg mx-auto">
+                                                                        {entry.member.avatar_url ?
+                                <Image
+                                  src={entry.member.avatar_url}
+                                  alt={entry.member.username}
+                                  width={40}
+                                  height={40}
+                                  className="rounded-full border-2 border-rose-200 mx-auto" /> :
+
+
+                                <div className="w-10 h-10 rounded-full bg-rose-200 flex items-center justify-center font-bold text-rose-600 text-lg mx-auto">
                                                                                 {entry.member.username[0].toUpperCase()}
                                                                             </div>
-                                                                        )}
+                                }
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
+                                className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
                               
                                                                         <Link
-                                                                            href={`/member/profile?id=${entry.member.id}`}
-                                                                            className={`font-medium hover:text-red-600 transition-colors ${
-                                                                                currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""
-                                                                            }`}
-                                                                        >
+                                  href={`/member/profile?id=${entry.member.id}`}
+                                  className={`font-medium hover:text-red-600 transition-colors ${
+                                  currentUser?.id === entry.member.id ? "font-bold text-red-600" : ""}`
+                                  }>
+                                  
                                                                             {entry.member.username}
                                                                         </Link>
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`} style={{ color: "#16a34a" }}>
+                                className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-red-600`} style={{ color: "#16a34a" }}>
                               
                                                                         {entry.overall_score || "-"}
                                                                     </td>
 
                                                                     <td
-                              className={`sticky ${STICKY_LEFT.diff} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold`}>
+                                className={`sticky ${STICKY_LEFT.diff} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold`}>
                               
                                                                         {entry.difference > 0 ?
-                              `+${entry.difference}` :
-                              entry.difference}
+                                `+${entry.difference}` :
+                                entry.difference}
                                                                     </td>
 
                                                                     <td className="px-3 py-4 whitespace-nowrap text-center border-l border-gray-100">
@@ -1078,16 +1078,16 @@ export default function BlokPage() {
                                                                         {entry.average_score || "-"}
                                                                     </td>
                                                                 </tr>
-                          )}
+                            )}
                                                         </tbody>
                                                     </table>
                                                 </div>
                                             </div>
                                         </>
-                }
+                  }
                                 </CardContent>
                             </Card>
-          }
+              }
                   </main>
               </div>
           </>
