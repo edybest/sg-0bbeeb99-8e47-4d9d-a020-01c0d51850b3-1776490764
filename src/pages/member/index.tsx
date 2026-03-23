@@ -133,12 +133,12 @@ export default function MemberDashboard() {
   const navigationCards: NavigationCard[] = [
   {
     title: "Blok",
-    description: "Lihat kedudukan liga blok",
+    description: "Lihat kedudukan blok",
     href: "/member/blok",
     icon: Trophy,
     gradient: "from-rose-400 to-pink-500",
     iconColor: "text-rose-100",
-    badgeText: "Liga",
+    badgeText: "Game",
     badgeColor: "bg-rose-100 text-rose-700"
   },
   {
@@ -148,7 +148,7 @@ export default function MemberDashboard() {
     icon: Star,
     gradient: "from-purple-400 to-pink-500",
     iconColor: "text-purple-100",
-    badgeText: "Popular",
+    badgeText: "5-5",
     badgeColor: "bg-purple-100 text-purple-700"
   },
   {
@@ -166,7 +166,7 @@ export default function MemberDashboard() {
     icon: Award,
     gradient: "from-amber-400 to-orange-500",
     iconColor: "text-amber-100",
-    badgeText: "Trending",
+    badgeText: "Juara",
     badgeColor: "bg-amber-100 text-amber-700"
   },
   {
@@ -192,7 +192,7 @@ export default function MemberDashboard() {
     icon: Shuffle,
     gradient: "from-violet-400 to-purple-500",
     iconColor: "text-violet-100",
-    badgeText: "Fun",
+    badgeText: "",
     badgeColor: "bg-violet-100 text-violet-700"
   },
   {
