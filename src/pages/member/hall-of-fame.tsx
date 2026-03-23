@@ -119,7 +119,7 @@ export default function HallOfFamePage() {
           )
         `
         )
-        .eq("game_type", "Blok Rasmi 10 PIN")
+        .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
         .order("game_date", { ascending: false });
 
       if (error) throw error;
