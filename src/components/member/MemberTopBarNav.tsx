@@ -33,7 +33,7 @@ export function MemberTopBarNav() {
           <Link href="/member" className="flex items-center gap-3 group">
    
             <span className="font-serif font-bold text-xl sm:inline-block bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
-              AMBC Club
+              AMBC
             </span>
           </Link>
         </div>
