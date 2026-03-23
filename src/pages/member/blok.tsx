@@ -760,8 +760,8 @@ export default function BlokPage() {
                               <Image
                                 src={entry.member.avatar_url}
                                 alt={entry.member.username}
-                                width={40}
-                                height={40}
+                                width={60}
+                                height={60}
                                 className="rounded-full border-2 border-rose-200" /> :
 
 
