@@ -781,7 +781,7 @@ export default function BlokPage() {
                                                                         {entry.member.username}
                                                                     </Link>
                                                                     <div className="flex items-center gap-2 text-xs text-rose-600">
-                                                                        <span className="font-bold text-red-600" style={{ fontSize: "24px", color: "#16a34a" }}>
+                                                                        <span className="font-bold text-red-600" style={{ fontSize: "18px", color: "#16a34a" }}>
                                                                             {entry.overall_score || "-"}
                                                                         </span>
                                                                         <span className="text-gray-400">•</span>
