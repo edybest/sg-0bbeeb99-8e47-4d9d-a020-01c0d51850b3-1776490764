@@ -32,7 +32,7 @@ export function MemberTopBarNav() {
         <div className="flex items-center gap-4">
           <Link href="/member" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold italic shadow-soft group-hover:shadow-medium transition-all group-hover:scale-105">
-              <span className="drop-shadow-sm">A</span>
+              <span className="drop-shadow-sm">AMBC</span>
             </div>
             <span className="font-serif font-bold text-xl hidden sm:inline-block bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
               AMBC Club
