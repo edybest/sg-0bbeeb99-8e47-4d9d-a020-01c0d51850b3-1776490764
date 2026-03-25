@@ -97,7 +97,7 @@ export default function HallOfFamePage() {
     try {
       setLoadingChampions(true);
 
-      // Ambil semua game BLOK rasmi beserta pemain
+      // LANGKAH 1: Ambil semua game BLOK rasmi beserta skor pemain SAHAJA (tanpa join jadual members yang berat)
       const { data: games, error } = await supabase
         .from("games")
         .select(
@@ -107,15 +107,8 @@ export default function HallOfFamePage() {
           game_date,
           year,
           game_players!inner (
-            id,
             member_id,
-            overall_score,
-            members (
-              id,
-              username,
-              full_name,
-              avatar_url
-            )
+            overall_score
           )
         `
         )
@@ -124,9 +117,11 @@ export default function HallOfFamePage() {
 
       if (error) throw error;
 
-      // Kumpul juara per game, kemudian group ikut (tahun + member)
       const championMap = new Map<string, Champion>();
+      const winnerMemberIds = new Set<string>();
+      const gameWinners: { game: any; winner: any }[] = [];
 
+      // Kenal pasti pemenang untuk setiap perlawanan
       (games || []).forEach((game: any) => {
         const players = game.game_players || [];
         if (!players.length) return;
@@ -138,17 +133,37 @@ export default function HallOfFamePage() {
           return currentScore > maxScore ? player : max;
         }, players[0]);
 
-        const member = topPlayer.members;
+        gameWinners.push({ game, winner: topPlayer });
+        winnerMemberIds.add(topPlayer.member_id);
+      });
+
+      // LANGKAH 2: Ambil profil ahli HANYA untuk pemenang (menjimatkan masa & data)
+      let memberMap = new Map<string, any>();
+      
+      if (winnerMemberIds.size > 0) {
+        const { data: membersData, error: membersError } = await supabase
+          .from("members")
+          .select("id, username, full_name, avatar_url")
+          .in("id", Array.from(winnerMemberIds));
+
+        if (membersError) throw membersError;
+        
+        memberMap = new Map((membersData || []).map(m => [m.id, m]));
+      }
+
+      // LANGKAH 3: Gabungkan data pemenang dengan profil mereka
+      gameWinners.forEach(({ game, winner }) => {
+        const member = memberMap.get(winner.member_id);
         if (!member) return;
 
-        const year: number = game.year;
+        const year: number = game.year || new Date(game.game_date).getFullYear();
         const key = `${year}-${member.id}`;
 
         const win: ChampionWin = {
           game_id: game.id as string,
           game_name: game.game_name as string,
           game_date: game.game_date as string,
-          overall_score: topPlayer.overall_score ?? 0,
+          overall_score: winner.overall_score ?? 0,
         };
 
         if (!championMap.has(key)) {
