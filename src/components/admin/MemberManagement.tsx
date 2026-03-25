@@ -212,6 +212,7 @@ export function MemberManagement() {
 
       let successCount = 0;
       let failCount = 0;
+      const failReasons: string[] = [];
 
       for (let i = 0; i < toProcess.length; i++) {
         const row = toProcess[i];
@@ -224,7 +225,7 @@ export function MemberManagement() {
         let fullName = (firstName + ' ' + lastName).trim();
         if (!fullName) fullName = username;
 
-        let rawPhone = row['phone'] || '';
+        const rawPhone = row['phone'] || '';
         let phone = formatPhoneNumber(rawPhone);
         if (phone === "+60" || !phone) phone = "+60000000000";
 
@@ -259,14 +260,19 @@ export function MemberManagement() {
             }),
           });
 
+          const data = await response.json();
+
           if (response.ok) {
             successCount++;
           } else {
             failCount++;
-            console.error(`Failed to create ${username}:`, await response.json());
+            const errorMsg = data.details || data.error || "Ralat tidak diketahui";
+            failReasons.push(`${username}: ${errorMsg}`);
+            console.error(`Failed to create ${username}:`, data);
           }
-        } catch (err) {
+        } catch (err: any) {
           failCount++;
+          failReasons.push(`${username}: ${err.message}`);
           console.error(`Error creating ${username}:`, err);
         }
 
@@ -275,8 +281,26 @@ export function MemberManagement() {
 
       toast({
         title: "Selesai Muat Naik CSV",
-        description: `Berjaya: ${successCount}, Gagal: ${failCount}`,
-        duration: 5000,
+        description: (
+          <div className="mt-2 space-y-2">
+            <p>Berjaya: {successCount} | Gagal: {failCount}</p>
+            {failReasons.length > 0 && (
+              <div className="max-h-32 overflow-y-auto bg-red-50 text-red-800 p-2 rounded text-xs">
+                <p className="font-bold mb-1">Punca Kegagalan:</p>
+                <ul className="list-disc pl-4">
+                  {failReasons.slice(0, 10).map((r, idx) => (
+                    <li key={idx}>{r}</li>
+                  ))}
+                  {failReasons.length > 10 && (
+                    <li>...dan {failReasons.length - 10} lagi</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        ),
+        duration: 10000, // Show longer so user can read
+        variant: failCount > 0 ? "destructive" : "default"
       });
 
       await loadMembers();
