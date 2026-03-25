@@ -174,6 +174,23 @@ export const authService = {
     }
   },
 
+  // Admin verify member manually
+  async adminVerifyMember(memberId: string): Promise<{ error: AuthError | null }> {
+    try {
+      const { error } = await supabase
+        .from('members')
+        .update({ is_verified: true })
+        .eq('id', memberId);
+
+      if (error) {
+        return { error: { message: error.message, code: error.code } };
+      }
+      return { error: null };
+    } catch (error) {
+      return { error: { message: "An unexpected error occurred during admin verification" } };
+    }
+  },
+
   // Listen to auth state changes
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(callback);
