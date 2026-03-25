@@ -20,8 +20,16 @@ type CSVScoreData = {
     game5?: number;
   };
   handicap?: number;
+  fivefive?: boolean;
+  date?: string;
   confidence: number;
 };
+
+function parseBoolean(value: any): boolean {
+  if (!value) return false;
+  const str = String(value).toLowerCase().trim();
+  return ['yes', 'y', '1', 'true', 'ya'].includes(str);
+}
 
 function normalizeColumnName(col: string): string {
   const normalized = col.toLowerCase().trim();
@@ -38,6 +46,10 @@ function normalizeColumnName(col: string): string {
   
   // Handicap columns
   if (normalized.match(/^(hcp|handicap|hdcp)$/)) return "handicap";
+
+  // Extra columns
+  if (normalized.match(/^(fivefive|five-five|55|five_five)$/)) return "fivefive";
+  if (normalized.match(/^(date|tarikh)$/)) return "date";
   
   return col;
 }
@@ -175,6 +187,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
 
       const handicap = parseNumber(row.handicap);
+      const fivefive = parseBoolean(row.fivefive);
+      
+      let date = row.date ? String(row.date).trim() : undefined;
+      if (date) {
+        // convert yyyy/mm/dd to yyyy-mm-dd
+        date = date.replace(/\//g, '-');
+      }
 
       // Check if at least one score is present
       const hasScores = Object.values(scores).some(s => s !== undefined);
@@ -191,6 +210,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: name.trim(),
         scores,
         handicap,
+        fivefive,
+        date,
         confidence: match?.confidence || 0,
       };
 

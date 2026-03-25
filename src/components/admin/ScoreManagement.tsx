@@ -50,6 +50,8 @@ type ParsedScore = {
     game5?: number;
   };
   handicap?: number;
+  fivefive?: boolean;
+  date?: string;
   confidence: number;
   matchedMember?: Member;
   matchConfidence?: number;
@@ -653,28 +655,72 @@ export function ScoreManagement() {
   async function handleApplyCsvScore(parsedScore: ParsedScore) {
     if (!parsedScore.matchedMember) return;
 
-    let player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
-    let currentPlayers = players;
+    let targetGameId = selectedGameId;
+
+    if (parsedScore.date) {
+      const existingGame = games.find(g => g.game_date === parsedScore.date);
+      if (existingGame) {
+        targetGameId = existingGame.id;
+        if (targetGameId !== selectedGameId) {
+          setSelectedGameId(targetGameId);
+        }
+      } else {
+        try {
+          const newGame = await gameService.createGame({
+            game_name: "10 PIN",
+            game_type: "BLOK",
+            game_date: parsedScore.date,
+            year: new Date(parsedScore.date).getFullYear()
+          });
+          targetGameId = newGame.id;
+          
+          const updatedGames = await gameService.getAllGames();
+          setGames(updatedGames as unknown as Game[]);
+          setSelectedGameId(targetGameId);
+        } catch (err) {
+          console.error("Failed to create game:", err);
+          alert("Gagal mencipta permainan baru.");
+          return;
+        }
+      }
+    }
+
+    if (!targetGameId) {
+      alert("Sila pilih perlawanan (game) terlebih dahulu.");
+      return;
+    }
+
+    let currentPlayers = targetGameId === selectedGameId ? players : [];
+    if (targetGameId !== selectedGameId) {
+      const data = await gameService.getGamePlayers(targetGameId);
+      currentPlayers = data as unknown as GamePlayer[];
+    }
+
+    let player = currentPlayers.find(p => p.member_id === parsedScore.matchedMember!.id);
 
     if (!player) {
       try {
-        await gameService.addPlayerToGame(selectedGameId, parsedScore.matchedMember!.id);
-        const updatedData = await gameService.getGamePlayers(selectedGameId);
+        await gameService.addPlayerToGame(targetGameId, parsedScore.matchedMember!.id, !!parsedScore.fivefive);
+        const updatedData = await gameService.getGamePlayers(targetGameId);
         currentPlayers = updatedData as unknown as GamePlayer[];
-        setPlayers(currentPlayers);
-        setFilteredPlayers(currentPlayers);
         player = currentPlayers.find(p => p.member_id === parsedScore.matchedMember!.id);
       } catch (err) {
         console.error(err);
         alert("Gagal menambah pemain baru ke dalam perlawanan");
         return;
       }
+    } else if (parsedScore.fivefive) {
+      await gameService.updatePlayerFiveFiveStatus(player.id, true);
     }
+    
+    setPlayers(currentPlayers);
+    setFilteredPlayers(currentPlayers);
 
     if (!player) return;
 
     setEditingScores(prev => {
-      const updated = { ...(prev[player!.id] || player!) };
+      const next = targetGameId === selectedGameId ? { ...prev } : {};
+      const updated = { ...(next[player!.id] || player!) };
       if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
       if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
       if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
@@ -687,17 +733,20 @@ export function ScoreManagement() {
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
 
-      return { ...prev, [player!.id]: updated };
+      next[player!.id] = updated;
+      return next;
     });
 
-    const playerElement = document.getElementById(`player-${player!.id}`);
-    if (playerElement) {
-      playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
-      setTimeout(() => {
-        playerElement.classList.remove("ring-4", "ring-green-500", "ring-opacity-50");
-      }, 2000);
-    }
+    setTimeout(() => {
+      const playerElement = document.getElementById(`player-${player!.id}`);
+      if (playerElement) {
+        playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
+        setTimeout(() => {
+          playerElement.classList.remove("ring-4", "ring-green-500", "ring-opacity-50");
+        }, 2000);
+      }
+    }, 100);
   }
 
   async function handleApplyAllCsvScores() {
@@ -708,18 +757,55 @@ export function ScoreManagement() {
       return;
     }
 
-    const missingScores = highConfidenceScores.filter(s => !players.some(p => p.member_id === s.matchedMember!.id));
-    let currentPlayers = players;
+    let targetGameId = selectedGameId;
+    const firstDate = highConfidenceScores.find(s => s.date)?.date;
+
+    if (firstDate) {
+      const existingGame = games.find(g => g.game_date === firstDate);
+      if (existingGame) {
+        targetGameId = existingGame.id;
+        setSelectedGameId(targetGameId);
+      } else {
+        try {
+          const newGame = await gameService.createGame({
+            game_name: "10 PIN",
+            game_type: "BLOK",
+            game_date: firstDate,
+            year: new Date(firstDate).getFullYear()
+          });
+          targetGameId = newGame.id;
+          
+          const updatedGames = await gameService.getAllGames();
+          setGames(updatedGames as unknown as Game[]);
+          setSelectedGameId(targetGameId);
+        } catch (err) {
+          console.error("Failed to create game:", err);
+          alert("Gagal mencipta permainan baru untuk tarikh " + firstDate);
+          return;
+        }
+      }
+    }
+
+    if (!targetGameId) {
+      alert("Sila pilih perlawanan (game) terlebih dahulu atau pastikan CSV mempunyai lajur date.");
+      return;
+    }
+
+    let currentPlayers = targetGameId === selectedGameId ? players : [];
+    if (targetGameId !== selectedGameId) {
+      const data = await gameService.getGamePlayers(targetGameId);
+      currentPlayers = data as unknown as GamePlayer[];
+    }
+
+    const missingScores = highConfidenceScores.filter(s => !currentPlayers.some(p => p.member_id === s.matchedMember!.id));
 
     if (missingScores.length > 0) {
       try {
          for (const score of missingScores) {
-           await gameService.addPlayerToGame(selectedGameId, score.matchedMember!.id);
+           await gameService.addPlayerToGame(targetGameId, score.matchedMember!.id, !!score.fivefive);
          }
-         const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
+         const updatedPlayers = await gameService.getGamePlayers(targetGameId);
          currentPlayers = updatedPlayers as unknown as GamePlayer[];
-         setPlayers(currentPlayers);
-         setFilteredPlayers(currentPlayers);
       } catch (err) {
          console.error(err);
          alert("Gagal menambah pemain baru ke dalam perlawanan.");
@@ -727,8 +813,20 @@ export function ScoreManagement() {
       }
     }
     
+    if (targetGameId !== selectedGameId || missingScores.length > 0) {
+      setPlayers(currentPlayers);
+      setFilteredPlayers(currentPlayers);
+    }
+    
+    for (const score of highConfidenceScores) {
+       const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
+       if (player && score.fivefive) {
+           await gameService.updatePlayerFiveFiveStatus(player.id, true);
+       }
+    }
+
     setEditingScores(prev => {
-      const next = { ...prev };
+      const next = targetGameId === selectedGameId ? { ...prev } : {};
       highConfidenceScores.forEach(score => {
         const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
         if (!player) return;
@@ -752,7 +850,7 @@ export function ScoreManagement() {
     });
     
     setShowCsvModal(false);
-    alert(`${highConfidenceScores.length} skor (termasuk pemain baru) telah diisi. Sila semak dan simpan.`);
+    alert(`${highConfidenceScores.length} skor telah diisi. Sila semak jadual dan klik Save All.`);
   }
 
   function resetCsvUpload() {
@@ -1093,6 +1191,16 @@ export function ScoreManagement() {
                                                 + New Player
                                               </span>
                                             )}
+                                            {score.fivefive && (
+                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-purple-100 text-purple-700">
+                                                Five-Five
+                                              </span>
+                                            )}
+                                            {score.date && (
+                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-gray-100 text-gray-700">
+                                                {score.date}
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       ) : (
@@ -1216,12 +1324,14 @@ export function ScoreManagement() {
                     <li><code className="bg-blue-100 px-1 rounded">g4</code> / <code className="bg-blue-100 px-1 rounded">game4</code> - Game 4 score</li>
                     <li><code className="bg-blue-100 px-1 rounded">g5</code> / <code className="bg-blue-100 px-1 rounded">game5</code> - Game 5 score</li>
                     <li><code className="bg-blue-100 px-1 rounded">hcp</code> / <code className="bg-blue-100 px-1 rounded">handicap</code> - Handicap (optional)</li>
+                    <li><code className="bg-blue-100 px-1 rounded">fivefive</code> - Five-Five (Optional: yes/no)</li>
+                    <li><code className="bg-blue-100 px-1 rounded">date</code> - Date (Optional: yyyy/mm/dd)</li>
                   </ul>
                   <p className="mt-2"><strong>Example CSV:</strong></p>
                   <pre className="bg-blue-100 p-2 rounded text-xs overflow-x-auto">
-name,g1,g2,g3,g4,g5,hcp
-HL,190,159,199,215,166,24
-Eby,168,116,153,152,176,18</pre>
+name,date,g1,g2,g3,g4,g5,hcp,fivefive
+HL,2026/03/24,190,159,199,215,166,24,yes
+Eby,,168,116,153,152,176,18,no</pre>
                 </div>
               </div>
 
@@ -1361,6 +1471,16 @@ Eby,168,116,153,152,176,18</pre>
                                     {!players.some(p => p.member_id === score.matchedMember!.id) && (
                                       <span className="px-2 py-1 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
                                         + New Player
+                                      </span>
+                                    )}
+                                    {score.fivefive && (
+                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-purple-100 text-purple-700">
+                                        Five-Five
+                                      </span>
+                                    )}
+                                    {score.date && (
+                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-gray-100 text-gray-700">
+                                        {score.date}
                                       </span>
                                     )}
                                   </div>
