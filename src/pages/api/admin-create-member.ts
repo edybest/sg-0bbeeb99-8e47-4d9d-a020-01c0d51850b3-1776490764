@@ -1,9 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
 /**
  * Admin API to create member with auth user
  * Creates auth user first, then member record with proper user_id link
@@ -12,6 +9,10 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Read env vars inside handler to ensure we get the freshest values
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -77,10 +78,14 @@ export default async function handler(
       console.log("User already exists:", userExists.id);
       userId = userExists.id;
     } else {
-      // Step 2: Create auth user (no password - will use WhatsApp login)
+      // Step 2: Create auth user with a random secure password
+      // They will login via WhatsApp OTP anyway, but Supabase requires a password for email users sometimes
+      const randomPassword = Math.random().toString(36).slice(-10) + "A1!";
+      
       console.log("Step 2: Creating new auth user...");
       const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
+        password: randomPassword,
         email_confirm: true, // Auto-confirm email
         user_metadata: {
           full_name: memberData.full_name,
