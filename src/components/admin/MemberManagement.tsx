@@ -14,6 +14,7 @@ import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert, Pl
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
+import { useRef } from "react";
 
 type Member = {
   id: string;
@@ -56,6 +57,10 @@ export function MemberManagement() {
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
+  const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper function to check if avatar is base64
   const isBase64Image = (url: string | null) => {
@@ -160,6 +165,134 @@ export function MemberManagement() {
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     const formatted = formatPhoneNumber(e.target.value);
     setFormData({ ...formData, phone: formatted });
+  }
+
+  const parseCSV = (csvText: string) => {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    
+    return lines.slice(1).map(line => {
+      const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => {
+        row[h] = values[i] || '';
+      });
+      return row;
+    });
+  };
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingCsv(true);
+    try {
+      const text = await file.text();
+      const rows = parseCSV(text);
+      
+      const toProcess = rows.filter(r => {
+        const name = r['name'] || r['player'] || '';
+        return name.length > 0;
+      });
+
+      if (toProcess.length === 0) {
+        toast({
+          title: "Format Tidak Sah",
+          description: "Sila pastikan CSV anda mempunyai lajur 'name' atau 'player'.",
+          variant: "destructive"
+        });
+        setIsUploadingCsv(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      setCsvProgress({ current: 0, total: toProcess.length });
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < toProcess.length; i++) {
+        const row = toProcess[i];
+        
+        const username = row['name'] || row['player'] || '';
+        const email = row['email'] || `${username.replace(/\s+/g, '').toLowerCase()}@ambc.club`;
+        
+        const firstName = row['firstname'] || '';
+        const lastName = row['lastname'] || '';
+        let fullName = (firstName + ' ' + lastName).trim();
+        if (!fullName) fullName = username;
+
+        let rawPhone = row['phone'] || '';
+        let phone = formatPhoneNumber(rawPhone);
+        if (phone === "+60" || !phone) phone = "+60000000000";
+
+        let birthday = row['birthday'] || row['dob'] || '0001-01-01';
+        birthday = birthday.replace(/\//g, '-');
+
+        const rawSex = row['jantina'] || row['sex'];
+        let sex = 'men';
+        if (rawSex === '1' || rawSex?.toLowerCase() === 'female' || rawSex?.toLowerCase() === 'perempuan' || rawSex?.toLowerCase() === 'f') {
+          sex = 'women';
+        }
+
+        const bowlingTechnique = row['teknik bowling'] || row['teknik'] || '';
+        const handicap = parseInt(row['handicap'] || row['hcp']) || 0;
+
+        try {
+          const response = await fetch("/api/admin-create-member", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: email,
+              memberData: {
+                username: username,
+                full_name: fullName,
+                phone: phone,
+                birthday: birthday,
+                sex: sex,
+                bowling_technique: bowlingTechnique || null,
+                handicap: handicap,
+                avatar_url: null,
+              },
+            }),
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error(`Failed to create ${username}:`, await response.json());
+          }
+        } catch (err) {
+          failCount++;
+          console.error(`Error creating ${username}:`, err);
+        }
+
+        setCsvProgress({ current: i + 1, total: toProcess.length });
+      }
+
+      toast({
+        title: "Selesai Muat Naik CSV",
+        description: `Berjaya: ${successCount}, Gagal: ${failCount}`,
+        duration: 5000,
+      });
+
+      await loadMembers();
+    } catch (error: any) {
+      console.error("Error parsing CSV:", error);
+      toast({
+        title: "Ralat CSV",
+        description: "Gagal membaca fail CSV. Sila semak format.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingCsv(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   }
 
   async function handleManualVerify(memberId: string, username: string) {
@@ -417,10 +550,32 @@ export function MemberManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Member Management</h2>
           <p className="text-gray-600 mt-1">Manage club members and their profiles</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add Member
-        </Button>
+        <div className="flex gap-2">
+          <input 
+            type="file" 
+            accept=".csv" 
+            className="hidden" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+          />
+          <Button 
+            onClick={() => fileInputRef.current?.click()} 
+            variant="outline" 
+            className="border-gray-300 text-gray-700 hover:bg-gray-100"
+            disabled={isUploadingCsv}
+          >
+            {isUploadingCsv ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {isUploadingCsv ? `Muat Naik... (${csvProgress.current}/${csvProgress.total})` : "Upload CSV"}
+          </Button>
+          <Button onClick={() => setDialogOpen(true)} className="bg-red-600 hover:bg-red-700 text-white">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter */}
