@@ -55,60 +55,71 @@ export default function AverageScorePage() {
         .eq("game_type", "Blok Rasmi 10 PIN")
         .order("game_date", { ascending: false });
 
-      if (gamesError) throw gamesError;
+      if (gamesError) {
+        console.error("Error loading games:", gamesError);
+        throw gamesError;
+      }
 
-      // STEP 2: Ambil data game_players untuk ahli bukan admin
-      const { data, error } = await supabase
+      console.log("All BLOK games:", allBlokGames);
+
+      // STEP 2: Ambil data game_players dengan join ke games dan members
+      const { data: gamePlayersData, error: playersError } = await supabase
         .from("game_players")
         .select(`
           member_id,
           overall_score,
+          game_id,
           games!inner (
             id,
             game_name,
             game_date,
             game_type
-          ),
-          members!inner (
-            id,
-            username,
-            full_name,
-            avatar_url,
-            sex,
-            birthday,
-            is_admin
           )
         `)
-        .eq("games.game_type", "Blok Rasmi 10 PIN")
-        .eq("members.is_admin", false);
+        .eq("games.game_type", "Blok Rasmi 10 PIN");
 
-      if (error) throw error;
+      if (playersError) {
+        console.error("Error loading game players:", playersError);
+        throw playersError;
+      }
 
-      type Row = {
+      console.log("Game players data:", gamePlayersData);
+
+      // STEP 3: Ambil data members yang bukan admin
+      const { data: membersData, error: membersError } = await supabase
+        .from("members")
+        .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
+        .eq("is_admin", false);
+
+      if (membersError) {
+        console.error("Error loading members:", membersError);
+        throw membersError;
+      }
+
+      console.log("Members data:", membersData);
+
+      // Create a map of members for quick lookup
+      const membersMap = new Map(
+        (membersData || []).map(m => [m.id, m])
+      );
+
+      type GamePlayerRow = {
         member_id: string;
         overall_score: number | null;
+        game_id: string;
         games: {
           id: string;
           game_name: string;
           game_date: string;
           game_type: string;
         } | null;
-        members: {
-          id: string;
-          username: string;
-          full_name: string;
-          avatar_url: string | null;
-          sex: string | null;
-          birthday: string | null;
-          is_admin: boolean | null;
-        } | null;
       };
 
       const statsMap = new Map<string, PlayerStats>();
 
-      (data as Row[] || []).forEach((row) => {
-        const member = row.members;
+      (gamePlayersData as GamePlayerRow[] || []).forEach((row) => {
         const game = row.games;
+        const member = membersMap.get(row.member_id);
 
         if (!member || !game || member.is_admin) return;
 
@@ -135,7 +146,9 @@ export default function AverageScorePage() {
         });
       });
 
-      // STEP 3: Kira handicap untuk setiap pemain
+      console.log("Stats map:", statsMap);
+
+      // STEP 4: Kira handicap untuk setiap pemain
       const stats: PlayerStats[] = [];
       
       for (const player of Array.from(statsMap.values())) {
