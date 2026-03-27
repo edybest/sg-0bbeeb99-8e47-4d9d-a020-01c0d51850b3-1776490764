@@ -382,14 +382,11 @@ export default function MiniBlokPage() {
   const { member, loading: authLoading } = useAuth();
   const { debugEnabled } = useMemberDebug();
 
-  // Mode state
-  const isPublicMode = router.pathname === "/public/mini-blok/[token]" || !!router.query.token;
-  const publicToken = router.query.token as string;
-  
+  // CRITICAL FIX: Detect share mode from query parameter
+  const shareToken = (router.query.share as string) || null;
+  const entryIdFromQuery = (router.query.id as string) || null;
+  const isPublicSharedMode = !!shareToken;
   const isRouterReady = router.isReady;
-  const isPublicSharedMode = isPublicMode;
-  const shareToken = publicToken;
-  const entryIdFromQuery = router.query.id as string;
 
   // Data states
   const [entries, setEntries] = useState<MiniBlokWithPlayers[]>([]);
@@ -442,13 +439,26 @@ export default function MiniBlokPage() {
   const [copiedEditUrl, setCopiedEditUrl] = useState(false);
   const [publicShared, setPublicShared] = useState<MiniBlokPublicShared | null>(null);
 
+  // CRITICAL FIX: Load data based on mode
   useEffect(() => {
     if (!isRouterReady) return;
-    if (isPublicSharedMode) return;
-    // For non-shared mode, we wait for auth to finish before loading entries
-    if (authLoading) return;
+    
+    // Public shared mode - load shared tournament for guests
+    if (isPublicSharedMode && shareToken) {
+      console.log("🌐 Public share mode detected, loading shared tournament...", { shareToken });
+      loadPublicShared(shareToken);
+      return; // Don't load regular entries
+    }
+    
+    // Regular mode - wait for auth then load user's tournaments
+    if (authLoading) {
+      console.log("⏳ Waiting for auth to complete...");
+      return;
+    }
+    
+    console.log("👤 Loading user tournaments...", { memberId: member?.id });
     loadEntries();
-  }, [isRouterReady, isPublicSharedMode, member?.id, authLoading]);
+  }, [isRouterReady, isPublicSharedMode, shareToken, authLoading, member?.id]);
 
   useEffect(() => {
     if (!isRouterReady) return;
@@ -474,49 +484,58 @@ export default function MiniBlokPage() {
     }
   }
 
-  const filteredAndSortedEntries = entries
-    .filter((entry) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchTitle = entry.title?.toLowerCase().includes(query);
-        const matchLocation = entry.location?.toLowerCase().includes(query);
-        if (!matchTitle && !matchLocation) return false;
-      }
-
-      if (dateFilter !== "all") {
-        const entryDate = new Date(entry.date);
-        const now = new Date();
-
-        if (dateFilter === "week") {
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          if (entryDate < weekAgo) return false;
-        } else if (dateFilter === "month") {
-          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-          if (entryDate < monthAgo) return false;
-        } else if (dateFilter === "year") {
-          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          if (entryDate < yearAgo) return false;
+  // Optimize: Skip expensive filtering for public shared mode
+  const filteredAndSortedEntries = useMemo(() => {
+    // Skip filtering for public shared mode - no entries to show
+    if (isPublicSharedMode) return [];
+    
+    // Skip filtering if no entries
+    if (entries.length === 0) return [];
+    
+    return entries
+      .filter((entry) => {
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchTitle = entry.title?.toLowerCase().includes(query);
+          const matchLocation = entry.location?.toLowerCase().includes(query);
+          if (!matchTitle && !matchLocation) return false;
         }
-      }
 
-      if (ownershipFilter === "mine") {
-        if (entry.owner_id !== member?.id) return false;
-      } else if (ownershipFilter === "shared") {
-        if (entry.owner_id === member?.id) return false;
-      }
+        if (dateFilter !== "all") {
+          const entryDate = new Date(entry.date);
+          const now = new Date();
 
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === "date-desc") {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortBy === "date-asc") {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else if (sortBy === "title") {
-        return (a.title || "").localeCompare(b.title || "");
-      }
-      return 0;
-    });
+          if (dateFilter === "week") {
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            if (entryDate < weekAgo) return false;
+          } else if (dateFilter === "month") {
+            const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+            if (entryDate < monthAgo) return false;
+          } else if (dateFilter === "year") {
+            const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+            if (entryDate < yearAgo) return false;
+          }
+        }
+
+        if (ownershipFilter === "mine") {
+          if (entry.owner_id !== member?.id) return false;
+        } else if (ownershipFilter === "shared") {
+          if (entry.owner_id === member?.id) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === "date-desc") {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        } else if (sortBy === "date-asc") {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        } else if (sortBy === "title") {
+          return (a.title || "").localeCompare(b.title || "");
+        }
+        return 0;
+      });
+  }, [entries, searchQuery, dateFilter, ownershipFilter, sortBy, member?.id, isPublicSharedMode]);
 
   useEffect(() => {
     setDebugInfo(prev => ({
@@ -1226,55 +1245,58 @@ export default function MiniBlokPage() {
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Label htmlFor="search" className="sr-only">Search</Label>
-                <Input
-                  id="search"
-                  placeholder="Search by title or location..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
-                <Select value={dateFilter} onValueChange={setDateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Date" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="week">Past Week</SelectItem>
-                    <SelectItem value="month">Past Month</SelectItem>
-                    <SelectItem value="year">Past Year</SelectItem>
-                  </SelectContent>
-                </Select>
+          {/* Search and Filters - Only show for logged-in users viewing their tournaments */}
+          {!isPublicSharedMode && member && entries.length > 0 && (
+            <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="search" className="sr-only">Search</Label>
+                  <Input
+                    id="search"
+                    placeholder="Search by title or location..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
+                  <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="week">Past Week</SelectItem>
+                      <SelectItem value="month">Past Month</SelectItem>
+                      <SelectItem value="year">Past Year</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Ownership" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tournaments</SelectItem>
-                    <SelectItem value="mine">My Tournaments</SelectItem>
-                    <SelectItem value="shared">Shared With Me</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select value={ownershipFilter} onValueChange={setOwnershipFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ownership" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Tournaments</SelectItem>
+                      <SelectItem value="mine">My Tournaments</SelectItem>
+                      <SelectItem value="shared">Shared With Me</SelectItem>
+                    </SelectContent>
+                  </Select>
 
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date-desc">Newest First</SelectItem>
-                    <SelectItem value="date-asc">Oldest First</SelectItem>
-                    <SelectItem value="title">Title (A-Z)</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date-desc">Newest First</SelectItem>
+                      <SelectItem value="date-asc">Oldest First</SelectItem>
+                      <SelectItem value="title">Title (A-Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {entries.length === 0 ? (
             <Card>
