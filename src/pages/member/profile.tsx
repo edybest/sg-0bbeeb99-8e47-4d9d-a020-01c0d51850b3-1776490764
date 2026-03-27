@@ -76,12 +76,44 @@ export default function ProfilePage() {
     return url.startsWith("data:image/");
   };
 
-  const formatBirthday = (birthday: string | null) => {
+  // Privacy helper functions
+  const canViewSensitiveData = () => {
+    // Admin or viewing own profile
+    return currentMember?.is_admin || isOwnProfile;
+  };
+
+  const maskPhone = (phone: string | null) => {
+    if (!phone || canViewSensitiveData()) return phone || "-";
+    // Mask phone: +60123456789 -> +601****6789
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length < 4) return "***-***-****";
+    return `${phone.substring(0, 4)}****${phone.substring(phone.length - 4)}`;
+  };
+
+  const maskEmail = (email: string | null) => {
+    if (!email || canViewSensitiveData()) return email || "-";
+    // Mask email: user@example.com -> u***@****.com
+    const [username, domain] = email.split("@");
+    if (!domain) return "***@****.com";
+    return `${username[0]}***@****.${domain.split(".").pop()}`;
+  };
+
+  const formatBirthday = (birthday: string | null, showYear: boolean = true) => {
     if (!birthday) return "Not set";
     const date = new Date(birthday);
+    
+    // Hide year from others
+    if (!showYear && !canViewSensitiveData()) {
+      return date.toLocaleDateString("en-MY", {
+        day: "2-digit",
+        month: "short",
+      });
+    }
+    
     return date.toLocaleDateString("en-MY", {
       day: "2-digit",
       month: "short",
+      year: "numeric",
     });
   };
 
@@ -372,7 +404,11 @@ export default function ProfilePage() {
                             
                             <div className="space-y-2">
                               <Label htmlFor="email">Email</Label>
-                              <Input id="email" value={member.email || "-"} disabled />
+                              <Input 
+                                id="email" 
+                                value={maskEmail(member.email)} 
+                                disabled={!isOwnProfile}
+                              />
                             </div>
 
                             <div className="space-y-2">
@@ -389,7 +425,7 @@ export default function ProfilePage() {
                               <Label htmlFor="phone">No. Telefon</Label>
                               <Input 
                                 id="phone" 
-                                value={member.phone || ""} 
+                                value={isOwnProfile ? (member.phone || "") : maskPhone(member.phone)} 
                                 onChange={(e) => setMember({...member, phone: e.target.value})}
                                 placeholder="+60123456789"
                                 disabled={!isOwnProfile}
@@ -417,8 +453,8 @@ export default function ProfilePage() {
                               <Label htmlFor="birthday">Tarikh Lahir</Label>
                               <Input 
                                 id="birthday" 
-                                type="date"
-                                value={member.birthday || ""} 
+                                type={isOwnProfile ? "date" : "text"}
+                                value={isOwnProfile ? (member.birthday || "") : formatBirthday(member.birthday, false)} 
                                 onChange={(e) => setMember({...member, birthday: e.target.value})}
                                 disabled={!isOwnProfile}
                               />
