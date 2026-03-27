@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown, AlertCircle } from "lucide-react";
+import { ArrowLeft, Search, TrendingUp, Target, Award, Loader2, BarChart3, TrendingDown, AlertCircle, Calendar } from "lucide-react";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 
@@ -34,7 +34,7 @@ export default function AverageScorePage() {
   const [filteredPlayers, setFilteredPlayers] = useState<PlayerStats[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingData, setLoading] = useState(true);
-  const [sortMode, setSortMode] = useState<"username" | "score">("score");
+  const [sortMode, setSortMode] = useState<"username" | "score">("username");
 
   useEffect(() => {
     loadPlayerStats();
@@ -48,7 +48,8 @@ export default function AverageScorePage() {
     try {
       setLoading(true);
 
-      // STEP 1: Ambil semua game BLOK beserta game_players (like Hall of Fame approach)
+      // STEP 1: Ambil games yang layak untuk handicap (exclude 9 PIN dan 369)
+      // Filter menggunakan NOT ILIKE untuk exclude pattern
       const { data: games, error } = await supabase
         .from("games")
         .select(`
@@ -61,14 +62,18 @@ export default function AverageScorePage() {
           )
         `)
         .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
-        .order("game_date", { ascending: false });
+        .not("game_name", "ilike", "%9 pin%")
+        .not("game_name", "ilike", "%9pin%")
+        .not("game_name", "ilike", "%369%")
+        .order("game_date", { ascending: false })
+        .limit(100); // Limit untuk performance
 
       if (error) {
         console.error("Error loading games:", error);
         throw error;
       }
 
-      console.log("Games with players:", games);
+      console.log(`Loaded ${games?.length || 0} eligible BLOK games`);
 
       // STEP 2: Collect unique member IDs
       const memberIds = new Set<string>();
@@ -81,21 +86,29 @@ export default function AverageScorePage() {
         });
       });
 
-      console.log("Unique member IDs:", Array.from(memberIds));
+      if (memberIds.size === 0) {
+        console.log("No players found in games");
+        setPlayers([]);
+        setFilteredPlayers([]);
+        return;
+      }
 
-      // STEP 3: Fetch member details for those IDs (non-admin only)
+      console.log(`Found ${memberIds.size} unique players`);
+
+      // STEP 3: Fetch member details (non-admin only) dengan order by username
       const { data: membersData, error: membersError } = await supabase
         .from("members")
-        .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
+        .select("id, username, full_name, avatar_url, sex, birthday")
         .in("id", Array.from(memberIds))
-        .eq("is_admin", false);
+        .eq("is_admin", false)
+        .order("username", { ascending: true });
 
       if (membersError) {
         console.error("Error loading members:", membersError);
         throw membersError;
       }
 
-      console.log("Members data:", membersData);
+      console.log(`Loaded ${membersData?.length || 0} members`);
 
       // Create a map of members for quick lookup
       const membersMap = new Map(
@@ -110,7 +123,7 @@ export default function AverageScorePage() {
         
         players.forEach((playerData: any) => {
           const member = membersMap.get(playerData.member_id);
-          if (!member) return; // Skip if admin or not found
+          if (!member) return;
 
           let player = statsMap.get(member.id);
           if (!player) {
@@ -136,7 +149,7 @@ export default function AverageScorePage() {
         });
       });
 
-      console.log("Stats map:", statsMap);
+      console.log(`Built stats for ${statsMap.size} players`);
 
       // STEP 5: Kira handicap untuk setiap pemain
       const stats: PlayerStats[] = [];
@@ -160,7 +173,7 @@ export default function AverageScorePage() {
           player.member_id,
           player.sex,
           last3Games,
-          [],
+          games || [],
           avgOf3
         );
 
@@ -172,8 +185,8 @@ export default function AverageScorePage() {
         });
       }
 
-      // Sort by average score (highest first)
-      stats.sort((a, b) => b.average_of_3 - a.average_of_3);
+      // Sort by username (ascending) as default
+      stats.sort((a, b) => a.username.localeCompare(b.username));
 
       setPlayers(stats);
       setFilteredPlayers(stats);
@@ -188,7 +201,7 @@ export default function AverageScorePage() {
     memberId: string,
     sex: string | null,
     last3Games: { game_date: string; overall_score: number }[],
-    allBlokGames: { id: string; game_date: string }[],
+    allBlokGames: any[],
     avgScore: number
   ): Promise<number> {
     // SYARAT 1: Mesti ada 3 BLOK terkini
@@ -281,6 +294,14 @@ export default function AverageScorePage() {
     setFilteredPlayers(sorted);
   }
 
+  function formatDate(dateString: string) {
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
   return (
     <PageAccessGuard
       pagePath="/member/average-score"
@@ -329,20 +350,20 @@ export default function AverageScorePage() {
               <CardContent className="p-4">
                 <div className="flex gap-2">
                   <Button
-                    variant={sortMode === "score" ? "default" : "outline"}
-                    onClick={() => setSortMode("score")}
-                    className={sortMode === "score" ? "bg-pink-600 hover:bg-pink-700" : ""}
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Skor
-                  </Button>
-                  <Button
                     variant={sortMode === "username" ? "default" : "outline"}
                     onClick={() => setSortMode("username")}
                     className={sortMode === "username" ? "bg-pink-600 hover:bg-pink-700" : ""}
                   >
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Username
+                  </Button>
+                  <Button
+                    variant={sortMode === "score" ? "default" : "outline"}
+                    onClick={() => setSortMode("score")}
+                    className={sortMode === "score" ? "bg-pink-600 hover:bg-pink-700" : ""}
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Skor
                   </Button>
                 </div>
               </CardContent>
@@ -358,6 +379,7 @@ export default function AverageScorePage() {
                 <p>• Dikira berdasarkan 3 BLOK terakhir yang ahli sertai</p>
                 <p>• Kurang dari 3 BLOK → handicap = 0</p>
                 <p>• Tidak sertai 5 BLOK berturut-turut → handicap = 0</p>
+                <p className="font-semibold text-red-600">• Game 9 PIN dan 369 TIDAK dikira untuk handicap</p>
                 
                 <p className="font-semibold mt-3">Kiraan Handicap (Lelaki):</p>
                 <p>• Total score 750-799 → handicap 15</p>
@@ -431,8 +453,14 @@ export default function AverageScorePage() {
                             {player.recent_games.length > 0 ? (
                               player.recent_games.map((game, idx) => (
                                 <div key={idx} className="flex items-center justify-between text-xs bg-rose-50 rounded p-2">
-                                  <span className="text-rose-600 truncate mr-2">{game.game_name}</span>
-                                  <Badge variant="outline">{game.overall_score}</Badge>
+                                  <div className="flex-1 min-w-0 mr-2">
+                                    <p className="text-rose-600 truncate font-medium">{game.game_name}</p>
+                                    <p className="text-rose-400 flex items-center gap-1 mt-0.5">
+                                      <Calendar className="h-3 w-3" />
+                                      {formatDate(game.game_date)}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="flex-shrink-0">{game.overall_score}</Badge>
                                 </div>
                               ))
                             ) : (
