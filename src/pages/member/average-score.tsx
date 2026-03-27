@@ -52,7 +52,7 @@ export default function AverageScorePage() {
       const { data: allBlokGames, error: gamesError } = await supabase
         .from("games")
         .select("id, game_date")
-        .eq("game_type", "Blok Rasmi 10 PIN")
+        .eq("game_type", "Blok")
         .order("game_date", { ascending: false });
 
       if (gamesError) throw gamesError;
