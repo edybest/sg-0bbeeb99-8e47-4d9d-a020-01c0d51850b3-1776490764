@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, ShieldAlert, Plus, Upload } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Search, Loader2, ShieldCheck, Plus, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
