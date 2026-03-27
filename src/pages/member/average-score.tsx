@@ -52,7 +52,7 @@ export default function AverageScorePage() {
       const { data: allBlokGames, error: gamesError } = await supabase
         .from("games")
         .select("id, game_date")
-        .eq("game_type", "BLOK")
+        .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
         .order("game_date", { ascending: false });
 
       if (gamesError) throw gamesError;
@@ -79,7 +79,7 @@ export default function AverageScorePage() {
             is_admin
           )
         `)
-        .eq("games.game_type", "BLOK")
+        .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
         .eq("members.is_admin", false);
 
       if (error) throw error;
