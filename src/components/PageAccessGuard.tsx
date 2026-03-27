@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { pageAccessService } from "@/services/pageAccessService";
 import { BowlingBallLoader } from "@/components/BowlingBallLoader";
@@ -19,38 +19,81 @@ export function PageAccessGuard({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
-  const [checking, setChecking] = useState(false);
+  const checkingRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     // Wait for router to be ready so query params are available
     if (!router.isReady) return;
 
     // Prevent multiple simultaneous checks
-    if (checking) return;
+    if (checkingRef.current) return;
     
     checkAccess();
-  }, [pagePath, router.isReady]); // Only re-run when pagePath changes or router is ready
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [pagePath, router.isReady, router.query.share]);
 
   const checkAccess = async () => {
     // Prevent concurrent checks
-    if (checking) return;
+    if (checkingRef.current) {
+      console.log("⏸️ Access check already in progress");
+      return;
+    }
     
-    setChecking(true);
+    checkingRef.current = true;
+
+    // Set timeout to prevent hanging forever (8 seconds)
+    timeoutRef.current = setTimeout(() => {
+      console.error("⏱️ Page access check timeout - allowing access (fail open)");
+      setHasAccess(true);
+      setLoading(false);
+      checkingRef.current = false;
+    }, 8000);
     
     try {
       // Bypass access check for public share links
       if (router.pathname === "/member/mini-blok" && router.query.share) {
         console.log("🔓 Allowing public access to shared Mini Blok");
+        clearTimeout(timeoutRef.current);
         setHasAccess(true);
+        setLoading(false);
+        checkingRef.current = false;
         return;
       }
 
-      // Get user role
-      const userRole = await pageAccessService.getUserRole();
+      // Get user role with timeout
+      const userRole = await Promise.race([
+        pageAccessService.getUserRole(),
+        new Promise<"guest">((resolve) => 
+          setTimeout(() => {
+            console.warn("⏱️ getUserRole timeout, defaulting to guest");
+            resolve("guest");
+          }, 5000)
+        )
+      ]);
       
-      // Check page access
-      const accessCheck = await pageAccessService.checkPageAccess(pagePath, userRole);
+      // Check page access with timeout
+      const accessCheck = await Promise.race([
+        pageAccessService.checkPageAccess(pagePath, userRole),
+        new Promise<{ hasAccess: boolean; isEnabled: boolean; accessLevel: string }>((resolve) => 
+          setTimeout(() => {
+            console.warn("⏱️ checkPageAccess timeout, allowing access");
+            resolve({ hasAccess: true, isEnabled: true, accessLevel: "public" });
+          }, 5000)
+        )
+      ]);
       
+      // Clear timeout since we got a response
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
       console.log("🔐 Page Access Check:", {
         pagePath,
         userRole,
@@ -87,11 +130,15 @@ export function PageAccessGuard({
       setHasAccess(true);
     } catch (error) {
       console.error("Error checking page access:", error);
+      // Clear timeout on error
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       // On error, allow access (fail open for better UX)
       setHasAccess(true);
     } finally {
       setLoading(false);
-      setChecking(false);
+      checkingRef.current = false;
     }
   };
 
