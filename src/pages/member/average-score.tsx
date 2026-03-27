@@ -22,7 +22,7 @@ type PlayerStats = {
   recent_games: {
     game_name: string;
     game_date: string;
-    average_score: number;
+    overall_score: number;
   }[];
   average_of_3: number;
   calculated_handicap: number;
@@ -42,19 +42,29 @@ export default function AverageScorePage() {
 
   useEffect(() => {
     filterPlayers();
-  }, [searchQuery, players]);
+  }, [searchQuery, players, sortMode]);
 
   async function loadPlayerStats() {
     try {
       setLoading(true);
 
-      // Single joined query: get all non-admin members' official Blok games
+      // STEP 1: Ambil semua game BLOK (untuk semak kehadiran)
+      const { data: allBlokGames, error: gamesError } = await supabase
+        .from("games")
+        .select("id, game_date")
+        .eq("game_type", "Blok Rasmi 10 PIN")
+        .order("game_date", { ascending: false });
+
+      if (gamesError) throw gamesError;
+
+      // STEP 2: Ambil data game_players untuk ahli bukan admin
       const { data, error } = await supabase
         .from("game_players")
         .select(`
           member_id,
-          average_score,
+          overall_score,
           games!inner (
+            id,
             game_name,
             game_date,
             game_type
@@ -72,15 +82,13 @@ export default function AverageScorePage() {
         .eq("games.game_type", "Blok Rasmi 10 PIN")
         .eq("members.is_admin", false);
 
-      if (error) {
-        console.error("AverageScore - game_players joined fetch error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       type Row = {
         member_id: string;
-        average_score: number | null;
+        overall_score: number | null;
         games: {
+          id: string;
           game_name: string;
           game_date: string;
           game_type: string;
@@ -98,14 +106,11 @@ export default function AverageScorePage() {
 
       const statsMap = new Map<string, PlayerStats>();
 
-      (data as Row[] | null | undefined || []).forEach((row) => {
+      (data as Row[] || []).forEach((row) => {
         const member = row.members;
         const game = row.games;
 
-        if (!member || !game) return;
-
-        // Defensive: skip admin if any slip through
-        if (member.is_admin) return;
+        if (!member || !game || member.is_admin) return;
 
         let player = statsMap.get(member.id);
         if (!player) {
@@ -126,38 +131,43 @@ export default function AverageScorePage() {
         player.recent_games.push({
           game_name: game.game_name,
           game_date: game.game_date,
-          average_score: row.average_score ?? 0,
+          overall_score: row.overall_score ?? 0,
         });
       });
 
-      const stats: PlayerStats[] = Array.from(statsMap.values()).map((player) => {
+      // STEP 3: Kira handicap untuk setiap pemain
+      const stats: PlayerStats[] = [];
+      
+      for (const player of Array.from(statsMap.values())) {
+        // Susun games mengikut tarikh (terkini dulu)
         const sortedGames = [...player.recent_games].sort((a, b) => {
-          const dateA = new Date(a.game_date).getTime();
-          const dateB = new Date(b.game_date).getTime();
-          return dateB - dateA;
-        }).slice(0, 3);
+          return new Date(b.game_date).getTime() - new Date(a.game_date).getTime();
+        });
 
-        const avgOf3 =
-          sortedGames.length > 0
-            ? Math.round(
-                sortedGames.reduce((sum, g) => sum + g.average_score, 0) /
-                  sortedGames.length
-              )
-            : 0;
+        // Ambil 3 games terkini
+        const last3Games = sortedGames.slice(0, 3);
 
-        const handicap = calculateHandicap(
-          { sex: player.sex, birthday: player.birthday } as any,
-          sortedGames as any[],
+        // Kira average (purata overall_score dari 3 games)
+        const avgOf3 = last3Games.length > 0
+          ? Math.round(last3Games.reduce((sum, g) => sum + g.overall_score, 0) / last3Games.length)
+          : 0;
+
+        // Kira handicap berdasarkan syarat baru
+        const handicap = await calculateHandicap(
+          player.member_id,
+          player.sex,
+          last3Games,
+          allBlokGames || [],
           avgOf3
         );
 
-        return {
+        stats.push({
           ...player,
-          recent_games: sortedGames,
+          recent_games: last3Games,
           average_of_3: avgOf3,
           calculated_handicap: handicap,
-        };
-      });
+        });
+      }
 
       // Sort by average score (highest first)
       stats.sort((a, b) => b.average_of_3 - a.average_of_3);
@@ -171,46 +181,79 @@ export default function AverageScorePage() {
     }
   }
 
-  function calculateHandicap(
-    member: any,
-    recentGames: any[],
+  async function calculateHandicap(
+    memberId: string,
+    sex: string | null,
+    last3Games: { game_date: string; overall_score: number }[],
+    allBlokGames: { id: string; game_date: string }[],
     avgScore: number
-  ): number {
-    const isFemale = member.sex === "Perempuan";
-    const age = member.birthday 
-      ? new Date().getFullYear() - new Date(member.birthday).getFullYear()
-      : 0;
-    const isUnder15 = age < 15;
-
-    // Not enough games
-    if (recentGames.length < 3) {
-      return isFemale ? 25 : 0; // Female bowlers get max 25 hcp
+  ): Promise<number> {
+    // SYARAT 1: Mesti ada 3 BLOK terkini
+    if (last3Games.length < 3) {
+      await updateMemberHandicap(memberId, 0);
+      return 0;
     }
 
-    // Check if last game was more than 1 month ago
-    const lastGameDate = new Date(recentGames[0].game_date);
-    const monthsAgo = Math.floor(
-      (Date.now() - lastGameDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-    );
-
-    if (monthsAgo > 1) {
-      return isFemale ? 25 : 0; // Reset to 0, except females get 25
+    // SYARAT 2: Semak kehadiran dalam 5 BLOK terkini
+    const last5Bloks = allBlokGames.slice(0, 5);
+    const memberGameDates = new Set(last3Games.map(g => g.game_date));
+    
+    let consecutiveMissed = 0;
+    for (const blok of last5Bloks) {
+      if (!memberGameDates.has(blok.game_date)) {
+        consecutiveMissed++;
+      } else {
+        break; // Reset jika ada kehadiran
+      }
     }
 
-    // Calculate handicap: (200 - average) * 0.8
-    const baseHandicap = Math.max(0, Math.round((200 - avgScore) * 0.8));
-
-    // Under 15 gets minimum 15 hcp
-    if (isUnder15 && baseHandicap < 15) {
-      return 15;
+    // Jika tidak sertai 5 BLOK berturut-turut
+    if (consecutiveMissed >= 5) {
+      await updateMemberHandicap(memberId, 0);
+      return 0;
     }
 
-    // Female max 25 hcp
-    if (isFemale && baseHandicap > 25) {
-      return 25;
+    // SYARAT 3: Kira handicap berdasarkan jantina dan average score
+    let handicap = 0;
+
+    if (sex === "men") {
+      // Lelaki: 750-799 = handicap 15
+      if (avgScore >= 750 && avgScore <= 799) {
+        handicap = 15;
+      }
+    } else if (sex === "women") {
+      // Perempuan:
+      if (avgScore >= 850 && avgScore <= 949) {
+        handicap = 15;
+      } else if (avgScore >= 750 && avgScore <= 849) {
+        handicap = 25;
+      } else if (avgScore <= 749) {
+        handicap = 35;
+      }
     }
 
-    return baseHandicap;
+    // Maksimum handicap = 35
+    handicap = Math.min(handicap, 35);
+
+    // STEP 4: Simpan ke database
+    await updateMemberHandicap(memberId, handicap);
+
+    return handicap;
+  }
+
+  async function updateMemberHandicap(memberId: string, handicap: number) {
+    try {
+      const { error } = await supabase
+        .from("members")
+        .update({ handicap })
+        .eq("id", memberId);
+
+      if (error) {
+        console.error("Failed to update handicap for member", memberId, error);
+      }
+    } catch (err) {
+      console.error("Update handicap error:", err);
+    }
   }
 
   function filterPlayers() {
@@ -225,12 +268,10 @@ export default function AverageScorePage() {
       );
     }
 
-    // Apply sorting based on sortMode
     const sorted = [...filtered].sort((a, b) => {
       if (sortMode === "username") {
-        return a.username.localeCompare(b.username); // A to Z
+        return a.username.localeCompare(b.username);
       }
-      // Default: sort by score (highest first)
       return b.average_of_3 - a.average_of_3;
     });
 
@@ -307,15 +348,27 @@ export default function AverageScorePage() {
             {/* Info Card */}
             <Card className="mb-6 bg-pink-50 border-pink-200">
               <CardHeader>
-                <CardTitle className="text-sm">Nota Handicap</CardTitle>
+                <CardTitle className="text-sm">Nota Handicap (Sistem Baru)</CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-rose-700 space-y-1">
-                <p>• Dikira berdasarkan 3 blok terakhir (Blok Rasmi 10 PIN sahaja)</p>
-                <p>• Belum cukup 3 kali: 0 hcp (perempuan: 25 hcp)</p>
-                <p>• Bawah umur 15: minimum 15 hcp</p>
-                <p>• Bawah umur 15: minimum 15 hcp</p>
-                <p>• Lebih 1 bulan tidak join: 0 hcp (perempuan: 25 hcp)</p>
-                <p>• Formula: (200 - purata) × 0.8</p>
+                <p className="font-semibold">Syarat Asas:</p>
+                <p>• Dikira berdasarkan 3 BLOK terakhir yang ahli sertai</p>
+                <p>• Kurang dari 3 BLOK → handicap = 0</p>
+                <p>• Tidak sertai 5 BLOK berturut-turut → handicap = 0</p>
+                
+                <p className="font-semibold mt-3">Kiraan Handicap (Lelaki):</p>
+                <p>• Total score 750-799 → handicap 15</p>
+                <p>• Lain-lain → handicap 0</p>
+                
+                <p className="font-semibold mt-3">Kiraan Handicap (Perempuan):</p>
+                <p>• Total score 850-949 → handicap 15</p>
+                <p>• Total score 750-849 → handicap 25</p>
+                <p>• Total score ≤749 → handicap 35</p>
+                <p>• Lain-lain → handicap 0</p>
+                
+                <p className="font-semibold mt-3">Catatan:</p>
+                <p>• Maksimum handicap = 35</p>
+                <p>• Handicap disimpan secara automatik ke database</p>
               </CardContent>
             </Card>
 
@@ -376,7 +429,7 @@ export default function AverageScorePage() {
                               player.recent_games.map((game, idx) => (
                                 <div key={idx} className="flex items-center justify-between text-xs bg-rose-50 rounded p-2">
                                   <span className="text-rose-600 truncate mr-2">{game.game_name}</span>
-                                  <Badge variant="outline">{game.average_score}</Badge>
+                                  <Badge variant="outline">{game.overall_score}</Badge>
                                 </div>
                               ))
                             ) : (
@@ -401,12 +454,12 @@ export default function AverageScorePage() {
                           </div>
                           {player.recent_games.length >= 2 && (
                             <div className="flex items-center justify-end gap-1 text-xs">
-                              {player.recent_games[0].average_score > player.recent_games[1].average_score ? (
+                              {player.recent_games[0].overall_score > player.recent_games[1].overall_score ? (
                                 <>
                                   <TrendingUp className="h-3 w-3 text-green-600" />
                                   <span className="text-green-600">Naik</span>
                                 </>
-                              ) : player.recent_games[0].average_score < player.recent_games[1].average_score ? (
+                              ) : player.recent_games[0].overall_score < player.recent_games[1].overall_score ? (
                                 <>
                                   <TrendingDown className="h-3 w-3 text-pink-600" />
                                   <span className="text-pink-600">Turun</span>
