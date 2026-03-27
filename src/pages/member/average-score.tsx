@@ -79,7 +79,7 @@ export default function AverageScorePage() {
             is_admin
           )
         `)
-        .eq("games.game_type", "Blok Rasmi 10 PIN")
+        .eq("games.game_type", "Blok")
         .eq("members.is_admin", false);
 
       if (error) throw error;
