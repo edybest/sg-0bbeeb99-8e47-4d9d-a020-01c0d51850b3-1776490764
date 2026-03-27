@@ -20,10 +20,14 @@ export function PageAccessGuard({
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const checkingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Wait for router to be ready so query params are available
+    mountedRef.current = true;
+
+    // Wait for router to be ready
     if (!router.isReady) return;
 
     // Prevent multiple simultaneous checks
@@ -31,10 +35,14 @@ export function PageAccessGuard({
     
     checkAccess();
 
-    // Cleanup timeout on unmount
+    // Cleanup
     return () => {
+      mountedRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [pagePath, router.isReady, router.query.share]);
@@ -45,53 +53,83 @@ export function PageAccessGuard({
       console.log("⏸️ Access check already in progress");
       return;
     }
+
+    // Abort any previous check
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     
     checkingRef.current = true;
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
 
-    // Set timeout to prevent hanging forever (8 seconds)
+    // Clear existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Set aggressive timeout (4 seconds) - shorter than auth timeout
     timeoutRef.current = setTimeout(() => {
-      console.error("⏱️ Page access check timeout - allowing access (fail open)");
+      if (!mountedRef.current) return;
+      
+      console.error("⏱️ Page access check timeout (4s) - allowing access (fail open)");
+      checkingRef.current = false;
       setHasAccess(true);
       setLoading(false);
-      checkingRef.current = false;
-    }, 8000);
+    }, 4000);
     
     try {
       // Bypass access check for public share links
       if (router.pathname === "/member/mini-blok" && router.query.share) {
         console.log("🔓 Allowing public access to shared Mini Blok");
-        clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setHasAccess(true);
         setLoading(false);
         checkingRef.current = false;
         return;
       }
 
+      // Check if aborted
+      if (signal.aborted) {
+        console.log("⏸️ Access check aborted");
+        return;
+      }
+
       // Get user role with timeout
-      const userRole = await Promise.race([
-        pageAccessService.getUserRole(),
-        new Promise<"guest">((resolve) => 
-          setTimeout(() => {
-            console.warn("⏱️ getUserRole timeout, defaulting to guest");
-            resolve("guest");
-          }, 5000)
-        )
-      ]);
+      const userRolePromise = pageAccessService.getUserRole();
+      const userRoleTimeout = new Promise<"guest">((resolve) => 
+        setTimeout(() => {
+          console.warn("⏱️ getUserRole timeout, defaulting to guest");
+          resolve("guest");
+        }, 2000)
+      );
+      const userRole = await Promise.race([userRolePromise, userRoleTimeout]);
+      
+      // Check if aborted
+      if (signal.aborted || !mountedRef.current) {
+        console.log("⏸️ Access check aborted after getUserRole");
+        return;
+      }
       
       // Check page access with timeout
-      const accessCheck = await Promise.race([
-        pageAccessService.checkPageAccess(pagePath, userRole),
-        new Promise<{ hasAccess: boolean; isEnabled: boolean; accessLevel: string }>((resolve) => 
-          setTimeout(() => {
-            console.warn("⏱️ checkPageAccess timeout, allowing access");
-            resolve({ hasAccess: true, isEnabled: true, accessLevel: "public" });
-          }, 5000)
-        )
-      ]);
+      const accessCheckPromise = pageAccessService.checkPageAccess(pagePath, userRole);
+      const accessCheckTimeout = new Promise<{ hasAccess: boolean; isEnabled: boolean; accessLevel: string }>((resolve) => 
+        setTimeout(() => {
+          console.warn("⏱️ checkPageAccess timeout, allowing access");
+          resolve({ hasAccess: true, isEnabled: true, accessLevel: "public" });
+        }, 2000)
+      );
+      const accessCheck = await Promise.race([accessCheckPromise, accessCheckTimeout]);
       
       // Clear timeout since we got a response
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+
+      // Check if aborted or unmounted
+      if (signal.aborted || !mountedRef.current) {
+        console.log("⏸️ Access check aborted after checkPageAccess");
+        return;
       }
 
       console.log("🔐 Page Access Check:", {
@@ -114,13 +152,10 @@ export function PageAccessGuard({
         console.log("❌ Access denied, redirecting...");
         
         if (userRole === "guest") {
-          // Guest trying to access member/admin page -> redirect to login
           router.push("/login");
         } else if (userRole === "member" && accessCheck.accessLevel === "admin") {
-          // Member trying to access admin page -> redirect to member dashboard
           router.push("/member");
         } else {
-          // Other cases -> redirect to home
           router.push("/");
         }
         return;
@@ -128,17 +163,30 @@ export function PageAccessGuard({
 
       // Has access - show page
       setHasAccess(true);
+      setLoading(false);
     } catch (error) {
-      console.error("Error checking page access:", error);
+      // Ignore abort errors
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("⏸️ Access check was aborted");
+        return;
+      }
+      
+      console.error("❌ Error checking page access:", error);
+      
       // Clear timeout on error
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+      
       // On error, allow access (fail open for better UX)
-      setHasAccess(true);
+      if (mountedRef.current) {
+        setHasAccess(true);
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
-      checkingRef.current = false;
+      if (mountedRef.current) {
+        checkingRef.current = false;
+      }
     }
   };
 

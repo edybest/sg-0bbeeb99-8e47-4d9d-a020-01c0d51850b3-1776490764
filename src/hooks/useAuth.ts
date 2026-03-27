@@ -24,46 +24,71 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   
   const subscribe = options?.subscribe ?? true;
   const checkingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const mountedRef = useRef(true);
 
   const checkAuth = useCallback(async () => {
     // Prevent concurrent checks
     if (checkingRef.current) {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("⏸️ Auth check already in progress, skipping...");
-      }
+      console.log("⏸️ Auth check already in progress, skipping...");
       return;
     }
 
-    checkingRef.current = true;
+    // Abort any previous pending check
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
 
-    // Set timeout to prevent hanging forever (10 seconds)
-    const timeoutId = setTimeout(() => {
-      console.error("⏱️ Auth check timeout - falling back to unauthenticated state");
-      setLoading(false);
+    checkingRef.current = true;
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Set aggressive timeout (5 seconds)
+    timeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      
+      console.error("⏱️ Auth check timeout (5s) - forcing completion");
       checkingRef.current = false;
-      if (requireAuth) {
+      setLoading(false);
+      
+      if (requireAuth && !isAuthenticated) {
+        console.log("🔴 Timeout + requireAuth -> redirecting to login");
         router.push("/login");
       }
-    }, 10000);
+    }, 5000);
 
     try {
+      console.log("🔍 Starting auth check...");
+      
+      // Check if request was aborted
+      if (signal.aborted) {
+        console.log("⏸️ Auth check aborted");
+        return;
+      }
+
       const { data: { session }, error } = await supabase.auth.getSession();
       
       // Clear timeout if we got a response
-      clearTimeout(timeoutId);
-      
-      if (process.env.NODE_ENV !== "production") {
-        console.log("🔍 Session check:", { 
-          hasSession: !!session, 
-          userId: session?.user?.id,
-          error: error?.message 
-        });
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Check if we're still mounted and not aborted
+      if (!mountedRef.current || signal.aborted) {
+        console.log("⏸️ Component unmounted or check aborted");
+        return;
       }
 
       if (error) {
-        console.error("Session error:", error);
+        console.error("❌ Session error:", error);
         setIsAuthenticated(false);
+        setLoading(false);
         if (requireAuth) {
           router.push("/login");
         }
@@ -71,151 +96,182 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       }
 
       if (!session) {
-        if (process.env.NODE_ENV !== "production") {
-          console.log("❌ No session found");
-        }
+        console.log("❌ No session found");
         setIsAuthenticated(false);
+        setLoading(false);
         if (requireAuth) {
           router.push("/login");
         }
         return;
       }
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log("✅ Session found, loading member data...");
-      }
-      await loadMemberData(session.user.id, session.user.email ?? null);
+      console.log("✅ Session found, loading member data...");
+      await loadMemberData(session.user.id, session.user.email ?? null, signal);
     } catch (error) {
-      clearTimeout(timeoutId);
-      console.error("Auth check error:", error);
-      setIsAuthenticated(false);
-      if (requireAuth) {
-        router.push("/login");
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Ignore abort errors
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("⏸️ Auth check was aborted");
+        return;
+      }
+      
+      console.error("❌ Auth check error:", error);
+      
+      if (mountedRef.current) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        if (requireAuth) {
+          router.push("/login");
+        }
       }
     } finally {
-      setLoading(false);
-      checkingRef.current = false;
-    }
-  }, [requireAuth, requireAdmin, router]);
-
-  async function loadMemberData(userId: string, email: string | null) {
-    try {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
+      if (mountedRef.current) {
+        checkingRef.current = false;
       }
+    }
+  }, [requireAuth, requireAdmin, router, isAuthenticated]);
+
+  async function loadMemberData(userId: string, email: string | null, signal: AbortSignal) {
+    try {
+      if (signal.aborted) return;
+
+      console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
 
       let memberData = await memberService.getMemberByUserId(userId);
 
+      if (signal.aborted) return;
+
       if (!memberData && email) {
-        if (process.env.NODE_ENV !== "production") {
-          console.log("🔁 Member not found by user_id, trying email lookup...");
-        }
+        console.log("🔁 Member not found by user_id, trying email lookup...");
         memberData = await memberService.getMemberByEmail(email);
 
-        if (memberData && memberData.user_id !== userId) {
-          if (process.env.NODE_ENV !== "production") {
-            console.log("🔗 Linking member.user_id for future sessions...", {
-              memberId: memberData.id,
-              prevUserId: memberData.user_id,
-              newUserId: userId
-            });
-          }
+        if (signal.aborted) return;
 
+        if (memberData && memberData.user_id !== userId) {
+          console.log("🔗 Linking member.user_id for future sessions...");
           try {
             await memberService.linkAuthUser(memberData.id, userId);
             memberData = { ...memberData, user_id: userId };
           } catch (linkError) {
-            console.warn("⚠️ Could not link member.user_id (RLS may block). Continuing anyway.", linkError);
+            console.warn("⚠️ Could not link member.user_id (RLS may block)", linkError);
           }
         }
       }
 
+      if (signal.aborted) return;
+
       if (!memberData) {
         console.error("❌ Member not found for session user:", { userId, email });
         setIsAuthenticated(false);
+        setLoading(false);
         if (requireAuth) {
           router.push("/login");
         }
         return;
       }
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log("✅ Member loaded:", {
-          id: memberData.id,
-          username: memberData.username,
-          isAdmin: memberData.is_admin
-        });
-      }
+      console.log("✅ Member loaded:", {
+        id: memberData.id,
+        username: memberData.username,
+        isAdmin: memberData.is_admin
+      });
+
+      if (!mountedRef.current) return;
 
       setMember(memberData as Member);
       setIsAuthenticated(true);
+      setLoading(false);
 
       // Check admin requirement
       if (requireAdmin && !memberData.is_admin) {
-        if (process.env.NODE_ENV !== "production") {
-          console.log("⚠️ Admin required but user is not admin, redirecting...");
-        }
+        console.log("⚠️ Admin required but user is not admin, redirecting...");
         router.push("/member");
       }
     } catch (error) {
-      console.error("Error loading member data:", error);
-      setIsAuthenticated(false);
-      if (requireAuth) {
-        router.push("/login");
+      console.error("❌ Error loading member data:", error);
+      if (mountedRef.current) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        if (requireAuth) {
+          router.push("/login");
+        }
       }
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
+    
+    // Initial check
     checkAuth();
 
-    // Handle page visibility changes - refresh session when tab becomes active
+    // Handle page visibility changes
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !checkingRef.current) {
-        if (process.env.NODE_ENV !== "production") {
-          console.log("👁️ Tab became visible, refreshing auth...");
+      if (!mountedRef.current) return;
+      
+      if (document.visibilityState === "visible") {
+        console.log("👁️ Tab became visible");
+        // Only refresh if not currently checking
+        if (!checkingRef.current) {
+          checkAuth();
         }
-        checkAuth();
+      } else {
+        console.log("👁️ Tab became hidden - pausing checks");
+        // Abort any ongoing check when tab becomes hidden
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        checkingRef.current = false;
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    if (!subscribe) {
-      return () => {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
-    }
+    // Auth state change listener
+    let authSubscription: { subscription: { unsubscribe: () => void } } | null = null;
 
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (process.env.NODE_ENV !== "production") {
+    if (subscribe) {
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mountedRef.current) return;
+        
         console.log("🔄 Auth state changed:", event);
-      }
 
-      if (event === "SIGNED_IN" && session) {
-        await loadMemberData(session.user.id, session.user.email ?? null);
-      } else if (event === "SIGNED_OUT") {
-        setMember(null);
-        setIsAuthenticated(false);
-        if (requireAuth) {
-          router.push("/login");
-        }
-      } else if (event === "TOKEN_REFRESHED") {
-        if (process.env.NODE_ENV !== "production") {
+        if (event === "SIGNED_IN" && session) {
+          const controller = new AbortController();
+          await loadMemberData(session.user.id, session.user.email ?? null, controller.signal);
+        } else if (event === "SIGNED_OUT") {
+          setMember(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          if (requireAuth) {
+            router.push("/login");
+          }
+        } else if (event === "TOKEN_REFRESHED") {
           console.log("🔄 Token refreshed successfully");
         }
-      }
-    });
+      });
 
+      authSubscription = listener;
+    }
+
+    // Cleanup
     return () => {
-      authListener.subscription.unsubscribe();
+      mountedRef.current = false;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      if (authSubscription) {
+        authSubscription.subscription.unsubscribe();
       }
     };
   }, [checkAuth, requireAuth, subscribe]);
@@ -225,6 +281,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       await supabase.auth.signOut();
       setMember(null);
       setIsAuthenticated(false);
+      setLoading(false);
 
       const redirectTo = options?.redirectTo ?? "/login";
       router.push(redirectTo);
