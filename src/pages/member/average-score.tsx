@@ -393,7 +393,7 @@ export default function AverageScorePage() {
                 
                 <p className="font-semibold mt-3">Catatan:</p>
                 <p>• Maksimum handicap = 35</p>
-                <p>• Handicap disimpan secara automatik ke database</p>
+                <p>• Admin berhak menukar handicap ahli mengikut budi bicara</p>
               </CardContent>
             </Card>
 
