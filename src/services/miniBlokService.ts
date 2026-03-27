@@ -1,6 +1,43 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
+// In-memory cache for tournaments
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+const CACHE_DURATION = 30000; // 30 seconds
+const tournamentsCache = new Map<string, CacheEntry<MiniBlokWithPlayers[]>>();
+const sharedCache = new Map<string, CacheEntry<MiniBlokPublicShared>>();
+
+function isCacheValid<T>(entry: CacheEntry<T> | undefined): boolean {
+  if (!entry) return false;
+  return Date.now() - entry.timestamp < CACHE_DURATION;
+}
+
+function setCache<T>(cache: Map<string, CacheEntry<T>>, key: string, data: T): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
+function getCache<T>(cache: Map<string, CacheEntry<T>>, key: string): T | null {
+  const entry = cache.get(key);
+  if (isCacheValid(entry)) {
+    console.log(`✅ Cache hit for: ${key}`);
+    return entry!.data;
+  }
+  if (entry) {
+    cache.delete(key);
+  }
+  return null;
+}
+
+export function clearMiniBlokCache(): void {
+  tournamentsCache.clear();
+  sharedCache.clear();
+  console.log("🗑️ Mini Blok cache cleared");
+}
+
 type MiniBlok = Database["public"]["Tables"]["mini_blok"]["Row"];
 type MiniBlokInsert = Database["public"]["Tables"]["mini_blok"]["Insert"];
 type MiniBlokUpdate = Database["public"]["Tables"]["mini_blok"]["Update"];
@@ -55,6 +92,13 @@ function calculatePlayerStats(player: MiniBlokPlayer, numGames: number): PlayerS
 }
 
 export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWithPlayers[]> {
+  // Check cache first
+  const cacheKey = `entries_${memberId || 'guest'}`;
+  const cached = getCache(tournamentsCache, cacheKey);
+  if (cached) return cached;
+
+  console.log("🔍 Loading tournaments from database...");
+  
   const query = supabase
     .from("mini_blok")
     .select(`
@@ -68,7 +112,7 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
 
   const { data, error } = await query;
 
-  console.log("getMiniBlokEntries:", { data, error });
+  console.log("getMiniBlokEntries:", { data, error, count: data?.length });
 
   if (error) {
     console.error("Error fetching mini blok entries:", error);
@@ -89,7 +133,13 @@ export async function getMiniBlokEntries(memberId?: string): Promise<MiniBlokWit
   }));
 
   // Only return entries where the user has access (owner or collaborator)
-  return mappedData.filter(entry => entry.can_edit);
+  const filtered = memberId ? mappedData.filter(entry => entry.can_edit) : [];
+  
+  // Cache the result
+  setCache(tournamentsCache, cacheKey, filtered);
+  console.log(`✅ Cached ${filtered.length} tournaments`);
+  
+  return filtered;
 }
 
 export async function getMiniBlokById(id: string, memberId?: string): Promise<MiniBlokWithPlayers | null> {
@@ -147,6 +197,9 @@ export async function createMiniBlok(entry: MiniBlokInsert): Promise<MiniBlok> {
     throw error;
   }
 
+  // Clear cache after mutation
+  clearMiniBlokCache();
+
   return data;
 }
 
@@ -165,6 +218,9 @@ export async function updateMiniBlok(id: string, updates: MiniBlokUpdate): Promi
     throw error;
   }
 
+  // Clear cache after mutation
+  clearMiniBlokCache();
+
   return data;
 }
 
@@ -180,6 +236,9 @@ export async function deleteMiniBlok(id: string): Promise<void> {
     console.error("Error deleting mini blok:", error);
     throw error;
   }
+
+  // Clear cache after mutation
+  clearMiniBlokCache();
 }
 
 // Player management
@@ -196,6 +255,9 @@ export async function addPlayer(player: MiniBlokPlayerInsert): Promise<MiniBlokP
     console.error("Error adding player:", error);
     throw error;
   }
+
+  // Clear cache after mutation
+  clearMiniBlokCache();
 
   return data;
 }
@@ -215,6 +277,9 @@ export async function updatePlayer(id: string, updates: MiniBlokPlayerUpdate): P
     throw error;
   }
 
+  // Clear cache after mutation
+  clearMiniBlokCache();
+
   return data;
 }
 
@@ -230,6 +295,9 @@ export async function deletePlayer(id: string): Promise<void> {
     console.error("Error deleting player:", error);
     throw error;
   }
+
+  // Clear cache after mutation
+  clearMiniBlokCache();
 }
 
 // Access management
@@ -333,18 +401,28 @@ export async function generateShareToken(miniBlokId: string): Promise<string> {
 }
 
 export async function getMiniBlokSharedByToken(shareToken: string): Promise<MiniBlokPublicShared | null> {
+  // Check cache first
+  const cacheKey = `shared_${shareToken}`;
+  const cached = getCache(sharedCache, cacheKey);
+  if (cached) return cached;
+
+  console.log("🔍 Loading shared tournament from database...", { shareToken });
+
   const { data, error } = await supabase.rpc("get_mini_blok_shared" as any, {
     p_token: shareToken,
   } as any);
 
-  console.log("getMiniBlokSharedByToken:", { data, error });
+  console.log("getMiniBlokSharedByToken RPC result:", { data, error, type: typeof data });
 
   if (error) {
     console.error("Error fetching shared mini blok:", error);
     throw error;
   }
 
-  if (!data) return null;
+  if (!data) {
+    console.warn("No data returned for share token:", shareToken);
+    return null;
+  }
 
   const row = data as unknown as {
     mini_blok_id: string;
@@ -358,7 +436,10 @@ export async function getMiniBlokSharedByToken(shareToken: string): Promise<Mini
     players: unknown;
   };
 
-  if (!row.mini_blok_id) return null;
+  if (!row.mini_blok_id) {
+    console.warn("Invalid data structure - missing mini_blok_id");
+    return null;
+  }
 
   const entry: MiniBlok = {
     id: row.mini_blok_id,
@@ -384,7 +465,15 @@ export async function getMiniBlokSharedByToken(shareToken: string): Promise<Mini
         })()
       : (row.players as MiniBlokPlayer[]) || [];
 
-  return { entry, players };
+  console.log("✅ Parsed shared tournament:", { entry, playersCount: players.length });
+
+  const result = { entry, players };
+  
+  // Cache the result
+  setCache(sharedCache, cacheKey, result);
+  console.log("✅ Cached shared tournament");
+  
+  return result;
 }
 
 export function generateShareTokenUrl(shareToken: string): string {
