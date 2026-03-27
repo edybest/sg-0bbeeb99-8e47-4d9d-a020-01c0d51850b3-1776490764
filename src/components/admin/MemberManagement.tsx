@@ -62,6 +62,11 @@ export function MemberManagement() {
   const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [handicapDialogOpen, setHandicapDialogOpen] = useState(false);
+  const [editingHandicapMember, setEditingHandicapMember] = useState<Member | null>(null);
+  const [newHandicapValue, setNewHandicapValue] = useState(0);
+  const [updatingHandicap, setUpdatingHandicap] = useState(false);
+
   // Helper function to check if avatar is base64
   const isBase64Image = (url: string | null) => {
     if (!url) return false;
@@ -350,6 +355,57 @@ export function MemberManagement() {
     }
   }
 
+  function openHandicapDialog(member: Member) {
+    setEditingHandicapMember(member);
+    setNewHandicapValue(member.handicap);
+    setHandicapDialogOpen(true);
+  }
+
+  async function handleUpdateHandicap() {
+    if (!editingHandicapMember) return;
+
+    // Validate handicap range
+    if (newHandicapValue < 0 || newHandicapValue > 35) {
+      toast({
+        title: "❌ Nilai Tidak Sah",
+        description: "Handicap mesti antara 0 hingga 35",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setUpdatingHandicap(true);
+    try {
+      const { error } = await supabase
+        .from("members")
+        .update({ handicap: newHandicapValue })
+        .eq("id", editingHandicapMember.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "✅ Berjaya",
+        description: `Handicap ${editingHandicapMember.username} telah dikemaskini kepada ${newHandicapValue}`,
+        duration: 3000,
+      });
+
+      await loadMembers();
+      setHandicapDialogOpen(false);
+      setEditingHandicapMember(null);
+    } catch (error: any) {
+      console.error("Error updating handicap:", error);
+      toast({
+        title: "❌ Gagal",
+        description: error.message || "Gagal kemaskini handicap",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
+      setUpdatingHandicap(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -630,6 +686,7 @@ export function MemberManagement() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Details</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Handicap</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -662,20 +719,20 @@ export function MemberManagement() {
                     <td className="px-4 py-3 text-sm text-gray-900 font-medium">{member.username}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{member.full_name}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{member.email || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{member.phone}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {member.is_verified ? (
-                        <div className="flex items-center gap-1 text-green-500">
-                          <ShieldCheck className="h-4 w-4" />
-                          <span className="text-xs">Verified</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <ShieldAlert className="h-4 w-4" />
-                          <span className="text-xs">Pending</span>
-                        </div>
-                      )}
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{member.handicap}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openHandicapDialog(member)}
+                          className="h-6 w-6 p-0 hover:bg-gray-100"
+                        >
+                          <Pencil className="h-3 w-3 text-gray-500" />
+                        </Button>
+                      </div>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{member.phone}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-500">
                       <div className="flex gap-2">
                         {!member.is_verified && (
@@ -886,6 +943,58 @@ export function MemberManagement() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Handicap Edit Dialog */}
+      <Dialog open={handicapDialogOpen} onOpenChange={setHandicapDialogOpen}>
+        <DialogContent className="bg-gray-900 border-red-900/50 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-500">
+              Edit Handicap - {editingHandicapMember?.username}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="handicap" className="text-gray-300">
+                Handicap (0-35)
+              </Label>
+              <Input
+                id="handicap"
+                type="number"
+                min={0}
+                max={35}
+                value={newHandicapValue}
+                onChange={(e) => setNewHandicapValue(parseInt(e.target.value) || 0)}
+                className="bg-gray-800 border-gray-700 text-white"
+              />
+              <p className="text-xs text-gray-500">
+                Handicap semasa: <span className="font-bold text-white">{editingHandicapMember?.handicap}</span>
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleUpdateHandicap}
+                disabled={updatingHandicap}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {updatingHandicap ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Simpan"
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setHandicapDialogOpen(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
