@@ -679,7 +679,7 @@ export function ScoreManagement() {
           setSelectedGameId(targetGameId);
         } catch (err) {
           console.error("Failed to create game:", err);
-          alert("Gagal mencipta permainan baru.");
+          alert("Gagal mencipta permainan baru untuk tarikh " + parsedScore.date);
           return;
         }
       }
@@ -1584,11 +1584,15 @@ Eby,,168,116,153,152,176,18,no</pre>
                 className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500"
               >
                 <option value="">Choose a game...</option>
-                {games.map((game) => (
-                  <option key={game.id} value={game.id}>
-                    {game.game_name} - {new Date(game.game_date).toLocaleDateString()}
-                  </option>
-                ))}
+                {games.map((game) => {
+                  const date = new Date(game.game_date);
+                  const formattedDate = `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+                  return (
+                    <option key={game.id} value={game.id}>
+                      {game.game_name} - {formattedDate}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
