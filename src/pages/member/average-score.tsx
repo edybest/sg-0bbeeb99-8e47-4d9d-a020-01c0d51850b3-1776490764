@@ -48,94 +48,97 @@ export default function AverageScorePage() {
     try {
       setLoading(true);
 
-      // STEP 1: Ambil semua game BLOK (untuk semak kehadiran)
-      const { data: allBlokGames, error: gamesError } = await supabase
+      // STEP 1: Ambil semua game BLOK beserta game_players (like Hall of Fame approach)
+      const { data: games, error } = await supabase
         .from("games")
-        .select("id, game_date")
-        .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
-        .order("game_date", { ascending: false });
-
-      if (gamesError) throw gamesError;
-
-      // STEP 2: Ambil data game_players untuk ahli bukan admin
-      const { data, error } = await supabase
-        .from("game_players")
         .select(`
-          member_id,
-          overall_score,
-          games!inner (
-            id,
-            game_name,
-            game_date,
-            game_type
-          ),
-          members!inner (
-            id,
-            username,
-            full_name,
-            avatar_url,
-            sex,
-            birthday,
-            is_admin
+          id,
+          game_name,
+          game_date,
+          game_players (
+            member_id,
+            overall_score
           )
         `)
         .in("game_type", ["BLOK", "Blok Rasmi 10 PIN"])
-        .eq("members.is_admin", false);
+        .order("game_date", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading games:", error);
+        throw error;
+      }
 
-      type Row = {
-        member_id: string;
-        overall_score: number | null;
-        games: {
-          id: string;
-          game_name: string;
-          game_date: string;
-          game_type: string;
-        } | null;
-        members: {
-          id: string;
-          username: string;
-          full_name: string;
-          avatar_url: string | null;
-          sex: string | null;
-          birthday: string | null;
-          is_admin: boolean | null;
-        } | null;
-      };
+      console.log("Games with players:", games);
 
-      const statsMap = new Map<string, PlayerStats>();
-
-      (data as Row[] || []).forEach((row) => {
-        const member = row.members;
-        const game = row.games;
-
-        if (!member || !game || member.is_admin) return;
-
-        let player = statsMap.get(member.id);
-        if (!player) {
-          player = {
-            member_id: member.id,
-            username: member.username,
-            full_name: member.full_name,
-            avatar_url: member.avatar_url,
-            sex: member.sex,
-            birthday: member.birthday,
-            recent_games: [],
-            average_of_3: 0,
-            calculated_handicap: 0,
-          };
-          statsMap.set(member.id, player);
-        }
-
-        player.recent_games.push({
-          game_name: game.game_name,
-          game_date: game.game_date,
-          overall_score: row.overall_score ?? 0,
+      // STEP 2: Collect unique member IDs
+      const memberIds = new Set<string>();
+      (games || []).forEach((game: any) => {
+        const players = game.game_players || [];
+        players.forEach((player: any) => {
+          if (player.member_id) {
+            memberIds.add(player.member_id);
+          }
         });
       });
 
-      // STEP 3: Kira handicap untuk setiap pemain
+      console.log("Unique member IDs:", Array.from(memberIds));
+
+      // STEP 3: Fetch member details for those IDs (non-admin only)
+      const { data: membersData, error: membersError } = await supabase
+        .from("members")
+        .select("id, username, full_name, avatar_url, sex, birthday, is_admin")
+        .in("id", Array.from(memberIds))
+        .eq("is_admin", false);
+
+      if (membersError) {
+        console.error("Error loading members:", membersError);
+        throw membersError;
+      }
+
+      console.log("Members data:", membersData);
+
+      // Create a map of members for quick lookup
+      const membersMap = new Map(
+        (membersData || []).map(m => [m.id, m])
+      );
+
+      // STEP 4: Build player stats
+      const statsMap = new Map<string, PlayerStats>();
+
+      (games || []).forEach((game: any) => {
+        const players = game.game_players || [];
+        
+        players.forEach((playerData: any) => {
+          const member = membersMap.get(playerData.member_id);
+          if (!member) return; // Skip if admin or not found
+
+          let player = statsMap.get(member.id);
+          if (!player) {
+            player = {
+              member_id: member.id,
+              username: member.username,
+              full_name: member.full_name,
+              avatar_url: member.avatar_url,
+              sex: member.sex,
+              birthday: member.birthday,
+              recent_games: [],
+              average_of_3: 0,
+              calculated_handicap: 0,
+            };
+            statsMap.set(member.id, player);
+          }
+
+          player.recent_games.push({
+            game_name: game.game_name,
+            game_date: game.game_date,
+            overall_score: playerData.overall_score ?? 0,
+          });
+        });
+      });
+
+      console.log("Stats map:", statsMap);
+
+      // STEP 5: Kira handicap untuk setiap pemain
       const stats: PlayerStats[] = [];
       
       for (const player of Array.from(statsMap.values())) {
@@ -157,7 +160,7 @@ export default function AverageScorePage() {
           player.member_id,
           player.sex,
           last3Games,
-          allBlokGames || [],
+          [],
           avgOf3
         );
 
