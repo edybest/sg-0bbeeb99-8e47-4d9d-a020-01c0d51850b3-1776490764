@@ -570,8 +570,196 @@ export default function TrainingPage() {
               {showForm && (
                 <Card className="mb-6 border-2 border-pink-200 shadow-xl">
                   <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50">
-                    <CardTitle className="text-2xl text-rose-900">Tambah Skor Baru</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-2xl text-rose-900">Tambah Skor Baru</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowForm(false);
+                          handleCloseDialog();
+                        }}
+                        className="text-rose-600 hover:text-rose-700"
+                      >
+                        Tutup
+                      </Button>
+                    </div>
                   </CardHeader>
+                  <CardContent className="pt-6">
+                    {/* Metadata Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="date">Tarikh Latihan</Label>
+                        <Input
+                          id="date"
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="location">Lokasi (Optional)</Label>
+                        <Input
+                          id="location"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder="Contoh: Sunway Mega Lanes"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="notes">Nota (Optional)</Label>
+                        <Textarea
+                          id="notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Catatan tentang latihan hari ini..."
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Current Score Display */}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-rose-600 font-medium">Current Score</p>
+                          <p className="text-3xl font-bold text-pink-600">
+                            {calculateBowlingScore(frames)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-rose-600 font-medium">Frame</p>
+                          <p className="text-3xl font-bold text-pink-600">
+                            {currentFrame + 1} / 10
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Frames Display */}
+                    <div className="mb-6 overflow-x-auto">
+                      <div className="flex gap-2 min-w-max pb-2">
+                        {frames.map((frame, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex-shrink-0 w-20 border-2 rounded-lg p-2 transition-all ${
+                              idx === currentFrame
+                                ? "border-pink-500 bg-pink-50 shadow-lg scale-105"
+                                : "border-gray-200 bg-white"
+                            }`}
+                          >
+                            <div className="text-center text-xs font-semibold text-gray-600 mb-1">
+                              {idx + 1}
+                            </div>
+                            <div className="flex justify-center items-center gap-1 min-h-[40px]">
+                              {idx === 9 ? (
+                                // Frame 10 (3 rolls)
+                                <>
+                                  <span className="text-lg font-bold">{frame.roll1 || "-"}</span>
+                                  <span className="text-lg font-bold">{frame.roll2 || "-"}</span>
+                                  <span className="text-lg font-bold">{frame.roll3 || "-"}</span>
+                                </>
+                              ) : (
+                                // Frames 1-9 (2 rolls)
+                                <>
+                                  <span className="text-lg font-bold">{frame.roll1 || "-"}</span>
+                                  <span className="text-lg font-bold">{frame.roll2 || "-"}</span>
+                                  {frame.split && (
+                                    <span className="text-xs text-orange-500">⭕</span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Pin Entry Buttons */}
+                    <div className="mb-6">
+                      <Label className="mb-3 block text-base font-semibold">
+                        Roll {currentRoll} {currentFrame === 9 && currentRoll === 3 && "(Bonus)"}
+                      </Label>
+                      <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                        {availablePinButtons.map((btn) => (
+                          <Button
+                            key={btn.value}
+                            onClick={() => handlePinInput(btn.value)}
+                            className={`h-14 text-lg font-bold ${btn.color} text-white transition-all hover:scale-105 active:scale-95`}
+                          >
+                            {btn.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Control Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        onClick={toggleSplit}
+                        variant="outline"
+                        disabled={currentRoll !== 1 || currentFrame === 9}
+                        className="flex-1 min-w-[120px]"
+                      >
+                        {frames[currentFrame]?.split ? "Remove Split ⭕" : "Mark Split ⭕"}
+                      </Button>
+                      <Button
+                        onClick={clearCurrentFrame}
+                        variant="outline"
+                        className="flex-1 min-w-[120px] text-orange-600 hover:bg-orange-50"
+                      >
+                        Clear Frame
+                      </Button>
+                      <Button
+                        onClick={clearAllFrames}
+                        variant="outline"
+                        className="flex-1 min-w-[120px] text-red-600 hover:bg-red-50"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <div className="flex gap-3 mt-4">
+                      <Button
+                        onClick={() => {
+                          if (currentFrame > 0) {
+                            setCurrentFrame(currentFrame - 1);
+                            setCurrentRoll(1);
+                          }
+                        }}
+                        variant="outline"
+                        disabled={currentFrame === 0}
+                        className="flex-1"
+                      >
+                        ← Previous Frame
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (currentFrame < 9) {
+                            setCurrentFrame(currentFrame + 1);
+                            setCurrentRoll(1);
+                          }
+                        }}
+                        variant="outline"
+                        disabled={currentFrame === 9}
+                        className="flex-1"
+                      >
+                        Next Frame →
+                      </Button>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <Button
+                        onClick={handleSave}
+                        className="w-full h-12 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all"
+                        size="lg"
+                      >
+                        💾 Simpan Skor ({calculateBowlingScore(frames)} pins)
+                      </Button>
+                    </div>
+                  </CardContent>
                 </Card>
               )}
 
