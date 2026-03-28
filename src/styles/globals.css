@@ -6,38 +6,38 @@
 
 @layer base {
   :root {
-    /* Feminine Bowling Color Palette */
+    /* Soft Blue Gradient Color Palette */
     --background: 0 0% 100%;
-    --foreground: 340 10% 15%;
+    --foreground: 220 25% 15%;
 
-    /* Primary - Soft Rose Pink (bowling ball inspired) */
-    --primary: 340 82% 65%;
+    /* Primary - Soft Sky Blue */
+    --primary: 210 100% 65%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Lavender Purple (elegant touch) */
-    --secondary: 270 50% 75%;
-    --secondary-foreground: 270 50% 15%;
+    /* Secondary - Soft Cyan/Teal */
+    --secondary: 195 100% 70%;
+    --secondary-foreground: 195 100% 15%;
 
-    /* Accent - Coral (energetic bowling vibe) */
-    --accent: 10 80% 70%;
-    --accent-foreground: 10 80% 15%;
+    /* Accent - Soft Indigo */
+    --accent: 225 100% 75%;
+    --accent-foreground: 225 100% 15%;
 
-    /* Muted - Soft Cream */
-    --muted: 40 30% 96%;
-    --muted-foreground: 340 5% 40%;
+    /* Muted - Soft Slate/Gray */
+    --muted: 210 20% 96%;
+    --muted-foreground: 220 15% 45%;
 
-    /* Card - White with subtle warmth */
+    /* Card - White with subtle cool tint */
     --card: 0 0% 100%;
-    --card-foreground: 340 10% 15%;
+    --card-foreground: 220 25% 15%;
 
     /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 340 10% 15%;
+    --popover-foreground: 220 25% 15%;
 
-    /* Border - Soft Pink Tint */
-    --border: 340 20% 90%;
-    --input: 340 20% 85%;
-    --ring: 340 82% 65%;
+    /* Border - Soft Blue Tint */
+    --border: 210 30% 90%;
+    --input: 210 30% 85%;
+    --ring: 210 100% 65%;
 
     /* Destructive - Soft Red */
     --destructive: 0 70% 60%;
@@ -47,26 +47,26 @@
     --success: 150 60% 55%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning - Peach */
-    --warning: 30 90% 65%;
-    --warning-foreground: 30 90% 15%;
+    /* Warning - Peach/Yellow */
+    --warning: 40 90% 60%;
+    --warning-foreground: 40 90% 15%;
 
-    /* Chart Colors - Bowling Inspired */
-    --chart-1: 340 82% 65%;
-    --chart-2: 270 50% 75%;
-    --chart-3: 10 80% 70%;
+    /* Chart Colors - Cool Palette */
+    --chart-1: 210 100% 65%;
+    --chart-2: 195 100% 70%;
+    --chart-3: 225 100% 75%;
     --chart-4: 150 60% 55%;
-    --chart-5: 30 90% 65%;
+    --chart-5: 40 90% 60%;
 
-    /* Custom Gradients */
-    --gradient-bowling: linear-gradient(135deg, hsl(340 82% 65%) 0%, hsl(270 50% 75%) 100%);
-    --gradient-strike: linear-gradient(135deg, hsl(10 80% 70%) 0%, hsl(340 82% 65%) 100%);
-    --gradient-elegant: linear-gradient(135deg, hsl(270 50% 75%) 0%, hsl(340 82% 65%) 50%, hsl(10 80% 70%) 100%);
+    /* Custom Gradients - Soft Blues */
+    --gradient-bowling: linear-gradient(135deg, hsl(210 100% 65%) 0%, hsl(225 100% 75%) 100%);
+    --gradient-strike: linear-gradient(135deg, hsl(195 100% 70%) 0%, hsl(210 100% 65%) 100%);
+    --gradient-elegant: linear-gradient(135deg, hsl(195 100% 70%) 0%, hsl(210 100% 65%) 50%, hsl(225 100% 75%) 100%);
     
-    /* Shadows - Soft & Elegant */
-    --shadow-soft: 0 2px 8px rgba(340, 82%, 65%, 0.08);
-    --shadow-medium: 0 4px 16px rgba(340, 82%, 65%, 0.12);
-    --shadow-large: 0 8px 32px rgba(340, 82%, 65%, 0.16);
+    /* Shadows - Soft Blue Tinted */
+    --shadow-soft: 0 2px 8px rgba(33, 150, 243, 0.08);
+    --shadow-medium: 0 4px 16px rgba(33, 150, 243, 0.12);
+    --shadow-large: 0 8px 32px rgba(33, 150, 243, 0.16);
     
     /* Border Radius */
     --radius: 0.75rem;
@@ -105,7 +105,7 @@
     scroll-behavior: smooth;
   }
 
-  /* Custom Scrollbar - Feminine Touch */
+  /* Custom Scrollbar - Soft Blue Touch */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -132,9 +132,9 @@
   .bowling-shimmer {
     background: linear-gradient(
       90deg,
-      hsl(340 82% 65% / 0.1) 0%,
-      hsl(340 82% 65% / 0.3) 50%,
-      hsl(340 82% 65% / 0.1) 100%
+      hsl(210 100% 65% / 0.1) 0%,
+      hsl(210 100% 65% / 0.3) 50%,
+      hsl(210 100% 65% / 0.1) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 2s infinite;
@@ -188,7 +188,7 @@
 
   /* Soft Button */
   .btn-soft {
-    @apply bg-gradient-to-r from-primary to-secondary text-white 
+    @apply bg-gradient-to-r from-primary to-accent text-white 
            shadow-md hover:shadow-lg transition-all duration-300
            hover:scale-105 active:scale-95;
   }
@@ -233,14 +233,14 @@
 
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 20px rgba(340, 82%, 65%, 0.3);
+      box-shadow: 0 0 20px rgba(77, 171, 245, 0.3);
     }
     50% {
-      box-shadow: 0 0 30px rgba(340, 82%, 65%, 0.6);
+      box-shadow: 0 0 30px rgba(77, 171, 245, 0.6);
     }
   }
 
-  /* Feminine Border */
+  /* Feminine/Soft Border */
   .feminine-border {
     @apply border-2 border-primary/20 rounded-xl;
     background: linear-gradient(white, white) padding-box,
@@ -340,6 +340,6 @@
 
 /* Selection */
 ::selection {
-  background-color: hsl(340 82% 65% / 0.3);
-  color: hsl(340 10% 15%);
+  background-color: hsl(210 100% 65% / 0.3);
+  color: hsl(220 25% 15%);
 }

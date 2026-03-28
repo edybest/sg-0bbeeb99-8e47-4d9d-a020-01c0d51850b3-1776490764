@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -31,7 +31,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          game_date: string
+          game_date?: string
           id?: string
           member_id?: string | null
           member_name: string
@@ -215,7 +215,7 @@ export type Database = {
           is_public?: boolean | null
           last_message_at?: string | null
           name?: string | null
-          type?: string
+          type: string
           updated_at?: string | null
         }
         Update: {
@@ -386,42 +386,34 @@ export type Database = {
         Row: {
           cover_image_url: string | null
           created_at: string | null
-          created_by: string | null
+          created_by: string
           description: string | null
           id: string
           name: string
-          position_order: number | null
+          position_order: number
           updated_at: string | null
         }
         Insert: {
           cover_image_url?: string | null
           created_at?: string | null
-          created_by?: string | null
+          created_by: string
           description?: string | null
           id?: string
           name: string
-          position_order?: number | null
+          position_order?: number
           updated_at?: string | null
         }
         Update: {
           cover_image_url?: string | null
           created_at?: string | null
-          created_by?: string | null
+          created_by?: string
           description?: string | null
           id?: string
           name?: string
-          position_order?: number | null
+          position_order?: number
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "gallery_albums_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       gallery_images: {
         Row: {
@@ -430,7 +422,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string
-          position_order: number | null
+          position_order: number
           title: string | null
           updated_at: string | null
           uploaded_by: string
@@ -441,7 +433,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url: string
-          position_order?: number | null
+          position_order?: number
           title?: string | null
           updated_at?: string | null
           uploaded_by: string
@@ -452,7 +444,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string
-          position_order?: number | null
+          position_order?: number
           title?: string | null
           updated_at?: string | null
           uploaded_by?: string
@@ -463,13 +455,6 @@ export type Database = {
             columns: ["album_id"]
             isOneToOne: false
             referencedRelation: "gallery_albums"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gallery_images_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -515,13 +500,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "gallery_permissions_granted_by_fkey"
-            columns: ["granted_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "gallery_permissions_member_id_fkey"
             columns: ["member_id"]
@@ -695,7 +673,7 @@ export type Database = {
           id?: string
           lane_sebenar: string
           lane_undian: string
-          position_order?: number
+          position_order: number
           updated_at?: string | null
         }
         Update: {
@@ -924,7 +902,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          date: string
+          date?: string
           id?: string
           location?: string | null
           num_games?: number
@@ -1028,7 +1006,7 @@ export type Database = {
       }
       mini_blok_shares: {
         Row: {
-          created_at: string | null
+          created_at: string
           created_by_member_id: string
           expires_at: string | null
           id: string
@@ -1038,7 +1016,7 @@ export type Database = {
           token: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           created_by_member_id: string
           expires_at?: string | null
           id?: string
@@ -1048,7 +1026,7 @@ export type Database = {
           token: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           created_by_member_id?: string
           expires_at?: string | null
           id?: string
@@ -1078,19 +1056,19 @@ export type Database = {
         Row: {
           id: string
           key: string
-          updated_at: string | null
+          updated_at: string
           value: Json
         }
         Insert: {
           id?: string
           key: string
-          updated_at?: string | null
+          updated_at?: string
           value?: Json
         }
         Update: {
           id?: string
           key?: string
-          updated_at?: string | null
+          updated_at?: string
           value?: Json
         }
         Relationships: []
@@ -1133,7 +1111,7 @@ export type Database = {
       }
       notifications: {
         Row: {
-          created_at: string | null
+          created_at: string
           created_by: string | null
           id: string
           message: string
@@ -1142,7 +1120,7 @@ export type Database = {
           title: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           id?: string
           message: string
@@ -1151,7 +1129,7 @@ export type Database = {
           title: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           id?: string
           message?: string
@@ -1159,15 +1137,7 @@ export type Database = {
           target_type?: string
           title?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       page_access_control: {
         Row: {
@@ -1306,7 +1276,7 @@ export type Database = {
           member_id: string
           notes?: string | null
           total_score?: number | null
-          training_date: string
+          training_date?: string
           updated_at?: string | null
         }
         Update: {

@@ -35,30 +35,30 @@ export interface ThemePreset {
   theme: AppTheme;
 }
 
-const defaultGradient = { angle: "to right", colors: ["#3b82f6", "#8b5cf6"] };
+const defaultGradient = { angle: "to right", colors: ["#38bdf8", "#818cf8"] }; // soft blue to soft indigo
 
 export const DEFAULT_THEME: AppTheme = {
   light: {
     background: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
-    primary: { type: "solid", value: "220 90% 56%", gradientParams: defaultGradient },
+    primary: { type: "solid", value: "210 100% 65%", gradientParams: defaultGradient },
     card: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
-    text: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
-    link: { type: "solid", value: "220 90% 56%", gradientParams: defaultGradient },
-    icon: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
+    text: { type: "solid", value: "220 25% 15%", gradientParams: defaultGradient },
+    link: { type: "solid", value: "210 100% 65%", gradientParams: defaultGradient },
+    icon: { type: "solid", value: "220 25% 15%", gradientParams: defaultGradient },
     header: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
     footer: { type: "solid", value: "0 0% 100%", gradientParams: defaultGradient },
-    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #dc2626, #b91c1c)", gradientParams: { angle: "to right", colors: ["#dc2626", "#b91c1c"] } },
+    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #38bdf8, #818cf8)", gradientParams: { angle: "to right", colors: ["#38bdf8", "#818cf8"] } },
   },
   dark: {
     background: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
-    primary: { type: "solid", value: "217.2 91.2% 59.8%", gradientParams: defaultGradient },
+    primary: { type: "solid", value: "210 100% 65%", gradientParams: defaultGradient },
     card: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
     text: { type: "solid", value: "210 40% 98%", gradientParams: defaultGradient },
-    link: { type: "solid", value: "217.2 91.2% 59.8%", gradientParams: defaultGradient },
+    link: { type: "solid", value: "210 100% 65%", gradientParams: defaultGradient },
     icon: { type: "solid", value: "210 40% 98%", gradientParams: defaultGradient },
     header: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
     footer: { type: "solid", value: "222.2 84% 4.9%", gradientParams: defaultGradient },
-    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #b91c1c, #991b1b)", gradientParams: { angle: "to right", colors: ["#b91c1c", "#991b1b"] } },
+    welcomeCard: { type: "gradient", value: "linear-gradient(to right, #0284c7, #4f46e5)", gradientParams: { angle: "to right", colors: ["#0284c7", "#4f46e5"] } },
   }
 };
 
@@ -66,7 +66,7 @@ export const DEFAULT_THEME: AppTheme = {
 export const PREDEFINED_PRESETS: ThemePreset[] = [
   {
     id: "default",
-    name: "Default (AMBC Red/Blue)",
+    name: "Default (Soft Blue)",
     theme: DEFAULT_THEME
   },
   {
