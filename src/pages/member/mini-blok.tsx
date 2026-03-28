@@ -274,7 +274,7 @@ function PublicSharedView({
                         </TableCell>
                       </TableRow>
                     );
-                  }}
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -359,7 +359,7 @@ function PublicSharedView({
                                     G{i + 1}: {score !== null && score > 0 ? score : "-"}
                                   </Badge>
                                 );
-                              })
+                              })}
                             </div>
                           </div>
                         </>
@@ -367,7 +367,7 @@ function PublicSharedView({
                     </div>
                   </Card>
                 );
-              }}
+              })}
             </div>
           </CardContent>
         </Card>
@@ -1441,7 +1441,7 @@ export default function MiniBlokPage() {
                                 </div>
                               </div>
                             );
-                          })
+                          })}
                           <div className="pt-1">
                             <Button
                               type="button"
@@ -1552,13 +1552,13 @@ export default function MiniBlokPage() {
                                                 {score !== null && score > 0 ? score : "-"}
                                               </Badge>
                                             );
-                                          })
+                                          })}
                                         </div>
                                       </div>
                                     )}
                                   </div>
                                 );
-                              })
+                              })}
                             </div>
                           )}
                         </div>
@@ -1566,7 +1566,7 @@ export default function MiniBlokPage() {
                     </CardContent>
                   </Card>
                 );
-              }}
+              })}
             </div>
           )}
         </div>
@@ -2001,14 +2001,14 @@ export default function MiniBlokPage() {
                                                 G{i + 1}: {score !== null && score > 0 ? score : "-"}
                                               </Badge>
                                             );
-                                          })
+                                          })}
                                         </div>
                                       </div>
                                     </div>
                                   )}
                                 </Card>
                               );
-                            })
+                            })}
                         </div>
 
                         {/* Desktop View - Full Table */}
@@ -2094,7 +2094,7 @@ export default function MiniBlokPage() {
                                       )}
                                     </TableRow>
                                   );
-                                })
+                                })}
                             </TableBody>
                           </Table>
                         </div>
