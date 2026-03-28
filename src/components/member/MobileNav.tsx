@@ -24,7 +24,7 @@ export function MobileNav() {
   return (
     <>
       {/* Bottom Navigation - Mobile Only */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-pink-100 shadow-2xl shadow-pink-200/50 sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-sky-100 shadow-2xl shadow-sky-200/50 sm:hidden">
         {/* Scrollable Menu Container */}
         <div className="overflow-x-auto overflow-y-hidden scrollbar-hide">
           <div className="flex items-center min-w-max px-2 py-2">
@@ -42,8 +42,8 @@ export function MobileNav() {
                     transition-all duration-300 ease-in-out
                     ${
                       isActive
-                        ? "bg-gradient-to-br from-rose-500 to-pink-500 text-white shadow-lg shadow-pink-500/50 scale-105"
-                        : "text-gray-600 hover:bg-pink-50 hover:text-pink-600 active:scale-95"
+                        ? "bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-lg shadow-blue-500/50 scale-105"
+                        : "text-gray-600 hover:bg-sky-50 hover:text-sky-600 active:scale-95"
                     }
                   `}
                 >
