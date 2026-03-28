@@ -241,7 +241,6 @@ export default function MemberDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-rose-50/30 via-pink-50/20 to-purple-50/30">
         {/* Welcome Hero */}
         <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-400 to-purple-400 text-white">
-          <div className="absolute inset-0 bg-[url('/bowling-pattern.svg')] opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           
           <div className="relative container max-w-6xl mx-auto px-4 py-12">
