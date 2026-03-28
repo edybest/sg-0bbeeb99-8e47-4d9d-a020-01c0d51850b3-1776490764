@@ -258,10 +258,10 @@ export default function MiniBlokPage() {
     }));
   }, [searchQuery, dateFilter, ownershipFilter, sortBy]);
 
-  async function loadEntries() {
+  async function loadEntries(silent = false) {
     const startTime = Date.now();
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getMiniBlokEntries(member?.id);
       setEntries(data || []);
       
@@ -280,7 +280,7 @@ export default function MiniBlokPage() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -416,7 +416,7 @@ export default function MiniBlokPage() {
         date: new Date().toISOString().split("T")[0],
         total_games: 5,
       });
-      loadEntries();
+      await loadEntries(true);
     } catch (error) {
       console.error("Error creating tournament:", error);
       toast({
@@ -446,7 +446,7 @@ export default function MiniBlokPage() {
         description: "Tournament updated successfully",
       });
 
-      loadEntries();
+      await loadEntries(true);
       const updated = await getMiniBlokById(selectedEntry.id, member?.id);
       if (updated) setSelectedEntry(updated);
     } catch (error) {
@@ -471,7 +471,7 @@ export default function MiniBlokPage() {
       setDeleteConfirmEntry(null);
       setShowManageDialog(false);
       setSelectedEntry(null);
-      loadEntries();
+      await loadEntries(true);
     } catch (error) {
       console.error("Error deleting tournament:", error);
       toast({
@@ -552,9 +552,10 @@ export default function MiniBlokPage() {
     }
 
     const scoresObj: Record<string, number> = {};
-    for (let i = 1; i <= selectedEntry.num_games; i++) {
+    const numGames = selectedEntry.num_games || 5;
+    for (let i = 1; i <= numGames; i++) {
       const val = playerForm[`game_${i}` as keyof PlayerForm];
-      if (typeof val === "number" && val > 0) {
+      if (typeof val === "number" && val >= 0) {
         scoresObj[`game_${i}`] = val;
       }
     }
@@ -599,7 +600,7 @@ export default function MiniBlokPage() {
       setShowPlayerForm(false);
       const updated = await getMiniBlokById(selectedEntry.id, member?.id);
       if (updated) setSelectedEntry(updated);
-      loadEntries();
+      await loadEntries(true);
     } catch (error) {
       console.error("Error saving player:", error);
       toast({
@@ -624,7 +625,7 @@ export default function MiniBlokPage() {
         const updated = await getMiniBlokById(selectedEntry.id, member?.id);
         if (updated) setSelectedEntry(updated);
       }
-      loadEntries();
+      await loadEntries(true);
     } catch (error) {
       console.error("Error deleting player:", error);
       toast({
@@ -671,7 +672,7 @@ export default function MiniBlokPage() {
 
       setShowShareAccessDialog(false);
       setSelectedMemberIds([]);
-      loadEntries();
+      await loadEntries(true);
 
       if (selectedEntry?.id === shareAccessEntry.id) {
         const updated = await getMiniBlokById(shareAccessEntry.id, member?.id);
@@ -696,7 +697,7 @@ export default function MiniBlokPage() {
         title: "Success",
         description: "Access revoked successfully",
       });
-      loadEntries();
+      await loadEntries(true);
 
       if (selectedEntry?.id === entryId) {
         const updated = await getMiniBlokById(entryId, member?.id);
