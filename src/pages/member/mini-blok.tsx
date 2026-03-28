@@ -2041,10 +2041,11 @@ export default function MiniBlokPage() {
                   readOnly
                   value={
                     shareEntry
-                      ? (shareMode === "editable"
-                          ? generateShareUrl(shareEntry.id)
-                          : (shareEntry.share_token ? generateShareTokenUrl(shareEntry.share_token) : ""))
-                      )
+                      ? shareMode === "editable"
+                        ? generateShareUrl(shareEntry.id)
+                        : shareEntry.share_token
+                        ? generateShareTokenUrl(shareEntry.share_token)
+                        : ""
                       : ""
                   }
                   className="flex-1"
