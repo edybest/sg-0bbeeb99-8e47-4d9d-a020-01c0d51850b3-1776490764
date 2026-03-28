@@ -260,7 +260,7 @@ function PublicSharedView({
                               )}
                             </TableCell>
                           );
-                        })
+                        })}
                         <TableCell className="text-center">{player.handicap}</TableCell>
                         <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                         <TableCell className="text-center">{stats.total_score}</TableCell>
@@ -293,7 +293,7 @@ function PublicSharedView({
                         setExpandedScores((prev) => ({
                           ...prev,
                           [player.id]: !prev[player.id],
-                        })
+                        }))
                       }
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -524,7 +524,7 @@ export default function MiniBlokPage() {
         }
 
         return true;
-      }
+      })
       .sort((a, b) => {
         if (sortBy === "date-desc") {
           return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -546,7 +546,7 @@ export default function MiniBlokPage() {
         ownership: ownershipFilter,
         sort: sortBy
       }
-    });
+    }));
   }, [searchQuery, dateFilter, ownershipFilter, sortBy]);
 
   async function loadEntries() {
@@ -562,7 +562,7 @@ export default function MiniBlokPage() {
         loadingTime: Date.now() - startTime,
         publicMode: isPublicSharedMode,
         token: shareToken || ""
-      });
+      }));
     } catch (error) {
       console.error("Error loading mini blok entries:", error);
       toast({
@@ -825,7 +825,7 @@ export default function MiniBlokPage() {
       game_18: scores.game_18 || null,
       game_19: scores.game_19 || null,
       game_20: scores.game_20 || null,
-    });
+    };
     setPlayerForm(formData);
     setShowPlayerForm(true);
   }
@@ -1451,7 +1451,7 @@ export default function MiniBlokPage() {
                                 setExpandedEntryPlayers((prev) => ({
                                   ...prev,
                                   [entry.id]: !prev[entry.id],
-                                })
+                                }))
                               }
                             >
                               <span className="text-sm">
@@ -1488,7 +1488,7 @@ export default function MiniBlokPage() {
                                             ...(prev[entry.id] || {}),
                                             [player.id]: !(prev[entry.id] || {})[player.id],
                                           },
-                                        })
+                                        }))
                                       }
                                     >
                                       <div className="min-w-0">
@@ -1857,7 +1857,7 @@ export default function MiniBlokPage() {
                                       setPlayerForm({
                                         ...playerForm,
                                         [`game_${gameNum}`]: e.target.value ? parseInt(e.target.value) : null,
-                                      }
+                                      })
                                     }
                                     placeholder="0"
                                   />
@@ -1875,7 +1875,7 @@ export default function MiniBlokPage() {
                                 setPlayerForm(INITIAL_PLAYER_FORM);
                                 setEditingPlayer(null);
                                 setShowPlayerForm(false);
-                              })
+                              }}
                               disabled={submitting}
                             >
                               Cancel
@@ -1899,7 +1899,7 @@ export default function MiniBlokPage() {
                               const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
                               const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
                               return statsB.overall_score - statsA.overall_score;
-                            }
+                            })
                             .map((player, idx) => {
                               const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
                               const scores = (player.scores as Record<string, number>) || {};
@@ -1913,7 +1913,7 @@ export default function MiniBlokPage() {
                                       setExpandedScores((prev) => ({
                                         ...prev,
                                         [player.id]: !prev[player.id],
-                                      })
+                                      }))
                                     }
                                   >
                                     <div className="flex items-center justify-between mb-3">
@@ -1944,7 +1944,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 openEditPlayerDialog(player);
-                                              })
+                                              }}
                                             >
                                               <Edit2 className="h-4 w-4" />
                                             </Button>
@@ -1954,7 +1954,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setDeleteConfirmPlayer(player.id);
-                                              })
+                                              }}
                                             >
                                               <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -2035,7 +2035,7 @@ export default function MiniBlokPage() {
                                   const statsA = calculatePlayerStats(a, selectedEntry.num_games || 5);
                                   const statsB = calculatePlayerStats(b, selectedEntry.num_games || 5);
                                   return statsB.overall_score - statsA.overall_score;
-                                }
+                                })
                                 .map((player, idx) => {
                                   const stats = calculatePlayerStats(player, selectedEntry.num_games || 5);
                                   const scores = (player.scores as Record<string, number>) || {};
@@ -2060,7 +2060,7 @@ export default function MiniBlokPage() {
                                             )}
                                           </TableCell>
                                         );
-                                      })
+                                      })}
                                       <TableCell className="text-center">{player.handicap}</TableCell>
                                       <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                                       <TableCell className="text-center">{stats.total_score}</TableCell>
@@ -2158,7 +2158,7 @@ export default function MiniBlokPage() {
                           </button>
                         </Badge>
                       );
-                    }}
+                    })}
                   </div>
                 </div>
               )}
