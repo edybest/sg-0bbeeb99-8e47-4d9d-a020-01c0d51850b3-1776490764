@@ -142,7 +142,12 @@ self.addEventListener("fetch", (event) => {
               return cached;
             }
             // Last resort - serve offline page or root
-            return caches.match("/");
+            return caches.match("/").then(rootCached => {
+              return rootCached || new Response('<html><body><h2>App is currently offline. Please check your connection.</h2></body></html>', { 
+                status: 503, 
+                headers: { 'Content-Type': 'text/html' }
+              });
+            });
           });
         })
     );
@@ -162,7 +167,12 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(request);
+        return caches.match(request).then((cached) => {
+          return cached || new Response('{"error": "Offline and no cache available"}', { 
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        });
       })
   );
 });

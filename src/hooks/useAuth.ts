@@ -49,11 +49,11 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       clearTimeout(timeoutRef.current);
     }
 
-    // Set aggressive timeout (5 seconds)
+    // Set aggressive timeout (10 seconds)
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
       
-      console.error("⏱️ Auth check timeout (5s) - forcing completion");
+      console.error("⏱️ Auth check timeout (10s) - forcing completion");
       checkingRef.current = false;
       setLoading(false);
       
@@ -61,7 +61,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
         console.log("🔴 Timeout + requireAuth -> redirecting to login");
         router.push("/login");
       }
-    }, 5000);
+    }, 10000);
 
     try {
       console.log("🔍 Starting auth check...");
