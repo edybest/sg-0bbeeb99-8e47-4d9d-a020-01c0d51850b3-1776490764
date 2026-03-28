@@ -53,6 +53,11 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip non-GET requests completely (Cache API only supports GET)
+  if (request.method !== "GET") {
+    return;
+  }
+
   // Skip cross-origin requests and chrome-extension
   if (url.origin !== location.origin) {
     return;
