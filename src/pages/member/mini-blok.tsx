@@ -166,7 +166,7 @@ function PublicSharedView({
     const statsA = calculatePlayerStats(a, entry.num_games || 5);
     const statsB = calculatePlayerStats(b, entry.num_games || 5);
     return statsB.overall_score - statsA.overall_score;
-  };
+  });
   const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
 
   return (
@@ -260,7 +260,7 @@ function PublicSharedView({
                               )}
                             </TableCell>
                           );
-                        }}
+                        })
                         <TableCell className="text-center">{player.handicap}</TableCell>
                         <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                         <TableCell className="text-center">{stats.total_score}</TableCell>
@@ -359,7 +359,7 @@ function PublicSharedView({
                                     G{i + 1}: {score !== null && score > 0 ? score : "-"}
                                   </Badge>
                                 );
-                              }}
+                              })
                             </div>
                           </div>
                         </>
@@ -400,7 +400,7 @@ export default function MiniBlokPage() {
     publicMode: false,
     token: "",
     filtersApplied: {}
-  };
+  });
 
   // UI states
   const [searchQuery, setSearchQuery] = useState("");
@@ -420,7 +420,7 @@ export default function MiniBlokPage() {
     location: "Daiman Bowl",
     date: new Date().toISOString().split("T")[0],
     total_games: 5,
-  };
+  });
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showManageDialog, setShowManageDialog] = useState(false);
@@ -477,7 +477,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Unable to load shared tournament",
         variant: "destructive",
-      };
+      });
       setPublicShared(null);
     } finally {
       setLoading(false);
@@ -534,7 +534,7 @@ export default function MiniBlokPage() {
           return (a.title || "").localeCompare(b.title || "");
         }
         return 0;
-      };
+      });
   }, [entries, searchQuery, dateFilter, ownershipFilter, sortBy, member?.id, isPublicSharedMode]);
 
   useEffect(() => {
@@ -569,7 +569,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to load entries",
         variant: "destructive",
-      };
+      });
     } finally {
       setLoading(false);
     }
@@ -603,7 +603,7 @@ export default function MiniBlokPage() {
           title: "Tournament not found",
           description: "Link may be invalid or tournament deleted.",
           variant: "destructive",
-        };
+        });
         return;
       }
 
@@ -612,7 +612,7 @@ export default function MiniBlokPage() {
           title: "No access",
           description: "Tournament not shared with your account.",
           variant: "destructive",
-        };
+        });
         return;
       }
 
@@ -620,7 +620,7 @@ export default function MiniBlokPage() {
         const already = prev.some((e) => e.id === entry.id);
         if (already) return prev;
         return [entry, ...prev];
-      };
+      });
 
       highlightEntry(entryId);
     } catch (error) {
@@ -629,7 +629,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to load shared entry",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -642,7 +642,7 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: "Share link revoked.",
-      };
+      });
 
       router.replace("/member/mini-blok");
     } catch (error) {
@@ -651,7 +651,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to revoke share link.",
         variant: "destructive",
-      };
+      });
     } finally {
       setSubmitting(false);
     }
@@ -663,7 +663,7 @@ export default function MiniBlokPage() {
         title: "Authentication Required",
         description: "Please login to create tournaments",
         variant: "destructive",
-      };
+      });
       return;
     }
 
@@ -672,7 +672,7 @@ export default function MiniBlokPage() {
         title: "Validation Error",
         description: "Tournament title is required",
         variant: "destructive",
-      };
+      });
       return;
     }
 
@@ -681,7 +681,7 @@ export default function MiniBlokPage() {
         title: "Validation Error",
         description: "Total games must be between 1 and 20",
         variant: "destructive",
-      };
+      });
       return;
     }
 
@@ -693,12 +693,12 @@ export default function MiniBlokPage() {
         date: tournamentForm.date,
         num_games: tournamentForm.total_games,
         owner_id: member.id,
-      };
+      });
 
       toast({
         title: "Success",
         description: "Tournament created successfully",
-      };
+      });
 
       setShowCreateDialog(false);
       setTournamentForm({
@@ -706,7 +706,7 @@ export default function MiniBlokPage() {
         location: "Daiman Bowl",
         date: new Date().toISOString().split("T")[0],
         total_games: 5,
-      };
+      });
       loadEntries();
     } catch (error) {
       console.error("Error creating tournament:", error);
@@ -714,7 +714,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create tournament",
         variant: "destructive",
-      };
+      });
     } finally {
       setSubmitting(false);
     }
@@ -730,12 +730,12 @@ export default function MiniBlokPage() {
         location: tournamentForm.location,
         date: tournamentForm.date,
         num_games: tournamentForm.total_games,
-      };
+      });
 
       toast({
         title: "Success",
         description: "Tournament updated successfully",
-      };
+      });
 
       loadEntries();
       const updated = await getMiniBlokById(selectedEntry.id, member?.id);
@@ -746,7 +746,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update tournament",
         variant: "destructive",
-      };
+      });
     } finally {
       setSubmitting(false);
     }
@@ -758,7 +758,7 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: "Tournament deleted successfully",
-      };
+      });
       setDeleteConfirmEntry(null);
       setShowManageDialog(false);
       setSelectedEntry(null);
@@ -769,7 +769,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to delete tournament",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -780,7 +780,7 @@ export default function MiniBlokPage() {
       location: entry.location || "",
       date: entry.date || new Date().toISOString().split("T")[0],
       total_games: entry.num_games || 5,
-    };
+    });
     setShowManageDialog(true);
   }
 
@@ -791,7 +791,7 @@ export default function MiniBlokPage() {
         title: "Player Limit Reached",
         description: "Maximum 48 players per tournament",
         variant: "destructive",
-      };
+      });
       return;
     }
     setEditingPlayer(null);
@@ -825,7 +825,7 @@ export default function MiniBlokPage() {
       game_18: scores.game_18 || null,
       game_19: scores.game_19 || null,
       game_20: scores.game_20 || null,
-    };
+    });
     setPlayerForm(formData);
     setShowPlayerForm(true);
   }
@@ -838,7 +838,7 @@ export default function MiniBlokPage() {
         title: "Validation Error",
         description: "Player name is required",
         variant: "destructive",
-      };
+      });
       return;
     }
 
@@ -855,7 +855,7 @@ export default function MiniBlokPage() {
         title: "Validation Error",
         description: "At least one game score is required",
         variant: "destructive",
-      };
+      });
       return;
     }
 
@@ -867,22 +867,22 @@ export default function MiniBlokPage() {
           player_name: playerForm.player_name,
           handicap: playerForm.handicap,
           scores: scoresObj,
-        };
+        });
         toast({
           title: "Success",
           description: "Player updated successfully",
-        };
+        });
       } else {
         await addPlayer({
           player_name: playerForm.player_name,
           handicap: playerForm.handicap,
           scores: scoresObj,
           mini_blok_id: selectedEntry.id,
-        };
+        });
         toast({
           title: "Success",
           description: "Player added successfully",
-        };
+        });
       }
 
       setPlayerForm(INITIAL_PLAYER_FORM);
@@ -897,7 +897,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to save player",
         variant: "destructive",
-      };
+      });
     } finally {
       setSubmitting(false);
     }
@@ -909,7 +909,7 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: "Player deleted successfully",
-      };
+      });
       setDeleteConfirmPlayer(null);
       if (selectedEntry) {
         const updated = await getMiniBlokById(selectedEntry.id, member?.id);
@@ -922,7 +922,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to delete player",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -958,7 +958,7 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: `Shared with ${selectedMemberIds.length} member(s)`,
-      };
+      });
 
       setShowShareAccessDialog(false);
       setSelectedMemberIds([]);
@@ -974,7 +974,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to share access",
         variant: "destructive",
-      };
+      });
     } finally {
       setSubmitting(false);
     }
@@ -986,7 +986,7 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: "Access revoked successfully",
-      };
+      });
       loadEntries();
 
       if (selectedEntry?.id === entryId) {
@@ -999,7 +999,7 @@ export default function MiniBlokPage() {
         title: "Error",
         description: "Failed to revoke access",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -1025,14 +1025,14 @@ export default function MiniBlokPage() {
       toast({
         title: "Success",
         description: "Public link generated successfully!",
-      };
+      });
     } catch (error) {
       console.error("Failed to generate token:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to generate public link",
         variant: "destructive",
-      };
+      });
     } finally {
       setIsGeneratingToken(false);
     }
@@ -1052,14 +1052,14 @@ export default function MiniBlokPage() {
       toast({
         title: "Copied!",
         description: "Link copied to clipboard",
-      };
+      });
     } catch (error) {
       console.error("Error copying URL:", error);
       toast({
         title: "Error",
         description: "Failed to copy link",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -1075,14 +1075,14 @@ export default function MiniBlokPage() {
       toast({
         title: "Copied!",
         description: "Editable link copied to clipboard",
-      };
+      });
     } catch (error) {
       console.error("Error copying editable URL:", error);
       toast({
         title: "Error",
         description: "Failed to copy editable link",
         variant: "destructive",
-      };
+      });
     }
   }
 
@@ -1344,7 +1344,7 @@ export default function MiniBlokPage() {
                   const statsA = calculatePlayerStats(a, entry.num_games || 5);
                   const statsB = calculatePlayerStats(b, entry.num_games || 5);
                   return statsB.overall_score - statsA.overall_score;
-                };
+                });
                 const isPlayersExpanded = !!expandedEntryPlayers[entry.id];
 
                 return (
@@ -1441,7 +1441,7 @@ export default function MiniBlokPage() {
                                 </div>
                               </div>
                             );
-                          }}
+                          })
                           <div className="pt-1">
                             <Button
                               type="button"
@@ -1552,13 +1552,13 @@ export default function MiniBlokPage() {
                                                 {score !== null && score > 0 ? score : "-"}
                                               </Badge>
                                             );
-                                          }}
+                                          })
                                         </div>
                                       </div>
                                     )}
                                   </div>
                                 );
-                              }}
+                              })
                             </div>
                           )}
                         </div>
@@ -1875,7 +1875,7 @@ export default function MiniBlokPage() {
                                 setPlayerForm(INITIAL_PLAYER_FORM);
                                 setEditingPlayer(null);
                                 setShowPlayerForm(false);
-                              }}
+                              })
                               disabled={submitting}
                             >
                               Cancel
@@ -1944,7 +1944,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 openEditPlayerDialog(player);
-                                              }}
+                                              })
                                             >
                                               <Edit2 className="h-4 w-4" />
                                             </Button>
@@ -1954,7 +1954,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setDeleteConfirmPlayer(player.id);
-                                              }}
+                                              })
                                             >
                                               <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -2001,14 +2001,14 @@ export default function MiniBlokPage() {
                                                 G{i + 1}: {score !== null && score > 0 ? score : "-"}
                                               </Badge>
                                             );
-                                          }}
+                                          })
                                         </div>
                                       </div>
                                     </div>
                                   )}
                                 </Card>
                               );
-                            }}
+                            })
                         </div>
 
                         {/* Desktop View - Full Table */}
@@ -2060,7 +2060,7 @@ export default function MiniBlokPage() {
                                             )}
                                           </TableCell>
                                         );
-                                      }}
+                                      })
                                       <TableCell className="text-center">{player.handicap}</TableCell>
                                       <TableCell className="text-center font-semibold">{stats.average}</TableCell>
                                       <TableCell className="text-center">{stats.total_score}</TableCell>
@@ -2094,7 +2094,7 @@ export default function MiniBlokPage() {
                                       )}
                                     </TableRow>
                                   );
-                                }}
+                                })
                             </TableBody>
                           </Table>
                         </div>
