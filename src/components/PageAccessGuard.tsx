@@ -38,6 +38,7 @@ export function PageAccessGuard({
     // Cleanup
     return () => {
       mountedRef.current = false;
+      checkingRef.current = false; // CRITICAL FIX: reset lock so remounts can execute
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
