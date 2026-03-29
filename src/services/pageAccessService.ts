@@ -155,9 +155,18 @@ export const pageAccessService = {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Use Promise.race to prevent Web Locks API from hanging the role check
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null }, error: Error | null }>((resolve) => 
+        setTimeout(() => resolve({ data: { session: null }, error: new Error("Session check timeout") }), 1500)
+      );
       
-      if (!session) {
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+      
+      if (error || !session) {
+        if (error && error.message !== "Session check timeout") {
+          console.error("Error checking session:", error);
+        }
         cache.userRole = "guest";
         cache.userRoleTimestamp = Date.now();
         return "guest";
