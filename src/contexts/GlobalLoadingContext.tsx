@@ -12,7 +12,7 @@ interface GlobalLoadingContextValue {
 
 const GlobalLoadingContext = createContext<GlobalLoadingContextValue | null>(null);
 
-const MAX_LOADING_TIME = 15000; // 15 seconds emergency timeout
+const MAX_LOADING_TIME = 8000; // Reduced to 8 seconds emergency timeout
 
 export function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<LoadingState>({});
@@ -25,12 +25,12 @@ export function GlobalLoadingProvider({ children }: { children: React.ReactNode 
       return newState;
     });
 
-    // Set emergency timeout to force stop loading
+    // Reset emergency timeout on every new start to prevent permanent freezing
     if (emergencyTimeoutRef.current) {
       clearTimeout(emergencyTimeoutRef.current);
     }
     emergencyTimeoutRef.current = setTimeout(() => {
-      console.error("🚨 EMERGENCY: Forcing loading stop after 15s timeout");
+      console.error(`🚨 EMERGENCY: Forcing loading stop after ${MAX_LOADING_TIME/1000}s timeout`);
       setState({});
     }, MAX_LOADING_TIME);
   }, []);
@@ -95,16 +95,26 @@ export function GlobalLoadingProvider({ children }: { children: React.ReactNode 
       } else {
         // Tab became visible
         const timeHidden = Date.now() - hiddenTime;
-        if (timeHidden > 5000 && isLoading) {
-          console.warn("⚠️ Tab was hidden for", timeHidden, "ms and still loading - force stopping");
+        if (timeHidden > 3000) {
+          // If tab was hidden for > 3s, force clear loading state
+          // to prevent UI locking from broken async chains
+          console.warn("⚠️ Tab returned from background - force clearing loading state to prevent freezes");
           forceStop();
         }
       }
     };
 
+    // Also clear loading state on window focus as a fallback
+    const handleFocus = () => forceStop();
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [isLoading, forceStop]);
+    window.addEventListener("focus", handleFocus);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [forceStop]);
 
   const value = useMemo<GlobalLoadingContextValue>(
     () => ({ isLoading, start, stop, withLoading, forceStop }),

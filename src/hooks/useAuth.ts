@@ -35,14 +35,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       return;
     }
 
-    // Abort any previous pending check
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
     checkingRef.current = true;
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
 
     // Clear any existing timeout
     if (timeoutRef.current) {
@@ -66,12 +59,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     try {
       console.log("🔍 Starting auth check...");
       
-      // Check if request was aborted
-      if (signal.aborted) {
-        console.log("⏸️ Auth check aborted");
-        return;
-      }
-
       const { data: { session }, error } = await supabase.auth.getSession();
       
       // Clear timeout if we got a response
@@ -79,9 +66,9 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
         clearTimeout(timeoutRef.current);
       }
 
-      // Check if we're still mounted and not aborted
-      if (!mountedRef.current || signal.aborted) {
-        console.log("⏸️ Component unmounted or check aborted");
+      // Check if we're still mounted
+      if (!mountedRef.current) {
+        console.log("⏸️ Component unmounted, ignoring auth result");
         return;
       }
 
@@ -106,16 +93,10 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       }
 
       console.log("✅ Session found, loading member data...");
-      await loadMemberData(session.user.id, session.user.email ?? null, signal);
+      await loadMemberData(session.user.id, session.user.email ?? null);
     } catch (error) {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-      }
-      
-      // Ignore abort errors
-      if (error instanceof Error && error.name === "AbortError") {
-        console.log("⏸️ Auth check was aborted");
-        return;
       }
       
       console.error("❌ Auth check error:", error);
@@ -134,21 +115,15 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     }
   }, [requireAuth, requireAdmin, router, isAuthenticated]);
 
-  async function loadMemberData(userId: string, email: string | null, signal: AbortSignal) {
+  async function loadMemberData(userId: string, email: string | null) {
     try {
-      if (signal.aborted) return;
-
       console.log("📊 Loading member data for user:", { userId, hasEmail: !!email });
 
       let memberData = await memberService.getMemberByUserId(userId);
 
-      if (signal.aborted) return;
-
       if (!memberData && email) {
         console.log("🔁 Member not found by user_id, trying email lookup...");
         memberData = await memberService.getMemberByEmail(email);
-
-        if (signal.aborted) return;
 
         if (memberData && memberData.user_id !== userId) {
           console.log("🔗 Linking member.user_id for future sessions...");
@@ -160,8 +135,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
           }
         }
       }
-
-      if (signal.aborted) return;
 
       if (!memberData) {
         console.error("❌ Member not found for session user:", { userId, email });
@@ -208,23 +181,15 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     // Initial check
     checkAuth();
 
-    // Handle page visibility changes
+    // Simplify visibility handling to prevent Supabase lock stealing and abort errors
     const handleVisibilityChange = () => {
       if (!mountedRef.current) return;
       
       if (document.visibilityState === "visible") {
-        console.log("👁️ Tab became visible");
-        // Only refresh if not currently checking
-        if (!checkingRef.current) {
+        console.log("👁️ Tab became visible - checking auth if needed");
+        if (!checkingRef.current && !isAuthenticated) {
           checkAuth();
         }
-      } else {
-        console.log("👁️ Tab became hidden - pausing checks");
-        // Abort any ongoing check when tab becomes hidden
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        checkingRef.current = false;
       }
     };
 
@@ -240,8 +205,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
         console.log("🔄 Auth state changed:", event);
 
         if (event === "SIGNED_IN" && session) {
-          const controller = new AbortController();
-          await loadMemberData(session.user.id, session.user.email ?? null, controller.signal);
+          await loadMemberData(session.user.id, session.user.email ?? null);
         } else if (event === "SIGNED_OUT") {
           setMember(null);
           setIsAuthenticated(false);
@@ -264,10 +228,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-      }
-      
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
       }
       
       if (authSubscription) {
