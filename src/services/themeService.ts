@@ -173,7 +173,7 @@ export const themeService = {
         .from("club_settings")
         .select("setting_value")
         .eq("setting_key", "app_theme_config")
-        .single();
+        .maybeSingle();
 
       if (error || !data?.setting_value) return DEFAULT_THEME;
       
@@ -220,7 +220,7 @@ export const themeService = {
         .from("club_settings")
         .select("setting_value")
         .eq("setting_key", "theme_custom_presets")
-        .single();
+        .maybeSingle();
 
       if (error || !data?.setting_value) return [];
       
