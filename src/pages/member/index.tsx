@@ -104,15 +104,15 @@ export default function MemberDashboard() {
     icon: Target,
     label: "Permainan",
     value: stats.totalGames,
-    color: "text-rose-100",
-    gradient: "from-rose-500 to-pink-500"
+    color: "text-sky-100",
+    gradient: "from-sky-500 to-blue-500"
   },
   {
     icon: TrendingUp,
     label: "Purata",
     value: stats.averageScore,
-    color: "text-purple-100",
-    gradient: "from-purple-500 to-pink-500"
+    color: "text-blue-100",
+    gradient: "from-blue-500 to-indigo-500"
   },
   {
     icon: Trophy,
@@ -125,8 +125,8 @@ export default function MemberDashboard() {
     icon: Award,
     label: "Kedudukan",
     value: stats.rank,
-    color: "text-blue-100",
-    gradient: "from-blue-500 to-cyan-500"
+    color: "text-cyan-100",
+    gradient: "from-cyan-500 to-blue-500"
   }];
 
 
@@ -136,28 +136,28 @@ export default function MemberDashboard() {
     description: "Lihat kedudukan blok",
     href: "/member/blok",
     icon: Trophy,
-    gradient: "from-rose-400 to-pink-500",
-    iconColor: "text-rose-100",
+    gradient: "from-sky-400 to-blue-500",
+    iconColor: "text-sky-100",
     badgeText: "Game",
-    badgeColor: "bg-rose-100 text-rose-700"
+    badgeColor: "bg-sky-100 text-sky-700"
   },
   {
     title: "Five-Five",
     description: "Sertai pertandingan five-five",
     href: "/member/five-five",
     icon: Star,
-    gradient: "from-purple-400 to-pink-500",
-    iconColor: "text-purple-100",
+    gradient: "from-blue-400 to-indigo-500",
+    iconColor: "text-blue-100",
     badgeText: "5-5",
-    badgeColor: "bg-purple-100 text-purple-700"
+    badgeColor: "bg-blue-100 text-blue-700"
   },
   {
     title: "Mini Blok",
     description: "Rekod mini blok anda",
     href: "/member/mini-blok",
     icon: BarChart3,
-    gradient: "from-pink-400 to-rose-500",
-    iconColor: "text-pink-100"
+    gradient: "from-indigo-400 to-blue-500",
+    iconColor: "text-indigo-100"
   },
   {
     title: "Hall of Fame",
@@ -174,26 +174,26 @@ export default function MemberDashboard() {
     description: "Rekod latihan bowling",
     href: "/member/training",
     icon: Target,
-    gradient: "from-blue-400 to-cyan-500",
-    iconColor: "text-blue-100"
+    gradient: "from-cyan-400 to-sky-500",
+    iconColor: "text-cyan-100"
   },
   {
     title: "Purata Skor",
     description: "Statistik purata skor ahli",
     href: "/member/average-score",
     icon: TrendingUp,
-    gradient: "from-green-400 to-emerald-500",
-    iconColor: "text-green-100"
+    gradient: "from-emerald-400 to-teal-500",
+    iconColor: "text-emerald-100"
   },
   {
     title: "Undi Lane",
     description: "Undian lane secara rawak",
     href: "/member/undi-lane",
     icon: Shuffle,
-    gradient: "from-violet-400 to-purple-500",
-    iconColor: "text-violet-100",
+    gradient: "from-slate-400 to-gray-500",
+    iconColor: "text-slate-100",
     badgeText: "",
-    badgeColor: "bg-violet-100 text-violet-700"
+    badgeColor: "bg-slate-100 text-slate-700"
   },
   {
     title: "Lane",
@@ -208,16 +208,16 @@ export default function MemberDashboard() {
     description: "Album foto & aktiviti",
     href: "/member/gallery",
     icon: ImageIcon,
-    gradient: "from-fuchsia-400 to-pink-500",
-    iconColor: "text-fuchsia-100"
+    gradient: "from-violet-400 to-purple-500",
+    iconColor: "text-violet-100"
   },
   {
     title: "Feedback",
     description: "Hantar maklum balas",
     href: "/member/feedback",
     icon: MessageSquare,
-    gradient: "from-cyan-400 to-blue-500",
-    iconColor: "text-cyan-100"
+    gradient: "from-sky-400 to-blue-500",
+    iconColor: "text-sky-100"
   }];
 
 
@@ -238,9 +238,9 @@ export default function MemberDashboard() {
         description="Dashboard ahli AMBC Bowling Club" />
       
 
-      <div className="min-h-screen bg-gradient-to-br from-rose-50/30 via-pink-50/20 to-purple-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-sky-50/30 via-blue-50/20 to-indigo-50/30">
         {/* Welcome Hero */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-400 to-purple-400 text-white">
+        <div className="relative overflow-hidden bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 text-white">
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           
           <div className="relative container max-w-6xl mx-auto px-4 py-12">
@@ -288,7 +288,7 @@ export default function MemberDashboard() {
                         <stat.icon className={`h-5 w-5 ${stat.color}`} />
                       </div>
                     </div>
-                    <p className="text-2xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">
+                    <p className="text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
                       {stat.value}
                     </p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -306,7 +306,7 @@ export default function MemberDashboard() {
               transition={{ delay: 0.5 }}
               className="mb-6">
               
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent mb-2">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent mb-2">
                 Menu Utama
               </h2>
               <p className="text-muted-foreground">Pilih aktiviti yang anda ingin akses</p>
@@ -335,7 +335,7 @@ export default function MemberDashboard() {
 
                         }
                         </div>
-                        <CardTitle className="text-xl group-hover:bg-gradient-to-r group-hover:from-rose-500 group-hover:to-pink-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                        <CardTitle className="text-xl group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                           {card.title}
                         </CardTitle>
                       </CardHeader>
@@ -347,7 +347,7 @@ export default function MemberDashboard() {
                         <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full group-hover:bg-gradient-to-r group-hover:from-rose-500 group-hover:to-pink-500 group-hover:text-white transition-all duration-300">
+                        className="w-full group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:text-white transition-all duration-300">
                         
                           Buka
                         </Button>
@@ -366,19 +366,19 @@ export default function MemberDashboard() {
             transition={{ delay: 1 }}>
             
             <Link href="/member/profile">
-              <Card className="border-2 border-rose-200 bg-gradient-to-br from-rose-50/50 to-pink-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
+              <Card className="border-2 border-sky-200 bg-gradient-to-br from-sky-50/50 to-blue-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
                 <CardContent className="py-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
                         {member?.full_name?.charAt(0) || "?"}
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Profil Anda</p>
-                        <p className="text-lg font-bold text-rose-600">{member?.full_name}</p>
+                        <p className="text-lg font-bold text-sky-600">{member?.full_name}</p>
                       </div>
                     </div>
-                    <Button variant="outline" className="border-rose-200 text-rose-600 hover:bg-rose-50">
+                    <Button variant="outline" className="border-sky-200 text-sky-600 hover:bg-sky-50">
                       Lihat Profil
                     </Button>
                   </div>
