@@ -631,10 +631,10 @@ export default function BlokPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => router.push("/member")}
-                      className="text-sky-700 hover:text-blue-600">
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push("/member")}
+                  className="text-sky-700 hover:text-blue-600">
                     
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
@@ -762,10 +762,10 @@ export default function BlokPage() {
                                 alt={entry.member.username}
                                 width={60}
                                 height={60}
-                                className="rounded-full border-2 border-sky-200" /> :
+                                className="w-[60px] h-[60px] rounded-full object-cover border-2 border-sky-200" /> :
 
 
-                              <div className="w-10 h-10 rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg">
+                              <div className="w-[60px] h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-2xl">
                                                                             {entry.member.username[0].toUpperCase()}
                                                                         </div>
                               }
@@ -1016,10 +1016,10 @@ export default function BlokPage() {
                                   alt={entry.member.username}
                                   width={40}
                                   height={40}
-                                  className="rounded-full border-2 border-sky-200 mx-auto" /> :
+                                  className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto" /> :
 
 
-                                <div className="w-10 h-10 rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
+                                <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
                                                                                 {entry.member.username[0].toUpperCase()}
                                                                             </div>
                                 }
