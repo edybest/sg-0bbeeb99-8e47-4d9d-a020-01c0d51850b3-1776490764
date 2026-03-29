@@ -227,7 +227,7 @@ export default function AverageScorePage() {
     const isFemale = s === "women" || s === "female" || s === "perempuan";
 
     if (isMale) {
-      if (avgScore >= 750 && avgScore <= 799) handicap = 15;
+      if (avgScore <= 799) handicap = 15;
     } else if (isFemale) {
       if (avgScore >= 850 && avgScore <= 949) handicap = 15;
       else if (avgScore >= 750 && avgScore <= 849) handicap = 25;
@@ -378,7 +378,7 @@ export default function AverageScorePage() {
                     <p className="font-semibold text-red-500 mt-1">• Game 9 PIN dan 369 TIDAK dikira</p>
                     
                     <p className="font-semibold mt-3 text-slate-800">Lelaki:</p>
-                    <p>• Total score 750-799 → handicap 15</p>
+                    <p>• Total score bawah ≤799 → handicap 15</p>
                     
                     <p className="font-semibold mt-3 text-slate-800">Perempuan:</p>
                     <p>• Total score 850-949 → handicap 15</p>
