@@ -72,7 +72,7 @@ export function PageAccessGuard({
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
       
-      console.error("⏱️ Page access check timeout (4s) - allowing access (fail open)");
+      console.warn("⏱️ Page access check timeout - allowing access (fail open)");
       checkingRef.current = false;
       setHasAccess(true);
       setLoading(false);
