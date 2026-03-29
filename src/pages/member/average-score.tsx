@@ -207,11 +207,11 @@ export default function AverageScorePage() {
   ): number {
     if (last3Games.length < 3) return 0;
 
-    const last5Bloks = allBlokGames.slice(0, 5);
+    const last10Bloks = allBlokGames.slice(0, 10);
     const memberGameDates = new Set(last3Games.map(g => g.game_date));
     
     let consecutiveMissed = 0;
-    for (const blok of last5Bloks) {
+    for (const blok of last10Bloks) {
       if (!memberGameDates.has(blok.game_date)) {
         consecutiveMissed++;
       } else {
@@ -219,7 +219,7 @@ export default function AverageScorePage() {
       }
     }
 
-    if (consecutiveMissed >= 5) return 0;
+    if (consecutiveMissed >= 10) return 0;
 
     let handicap = 0;
     const s = sex?.toLowerCase() || "";
@@ -374,7 +374,7 @@ export default function AverageScorePage() {
                     <p className="font-semibold text-slate-800">Syarat Asas:</p>
                     <p>• Dikira berdasarkan 3 BLOK terakhir</p>
                     <p>• Kurang dari 3 BLOK → handicap = 0</p>
-                    <p>• Tidak sertai 5 BLOK berturut-turut → handicap = 0</p>
+                    <p>• Tidak sertai 10 BLOK berturut-turut → handicap = 0</p>
                     <p className="font-semibold text-red-500 mt-1">• Game 9 PIN dan 369 TIDAK dikira</p>
                     
                     <p className="font-semibold mt-3 text-slate-800">Lelaki:</p>
