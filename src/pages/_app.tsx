@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
 import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
+import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useRouter } from "next/router";
 
@@ -117,6 +118,7 @@ export default function App({ Component, pageProps }: AppProps) {
           </div>
         )}
 
+        <PwaInstallCard />
         <Toaster />
         {typeof window === "undefined" ? null : <GlobalLoadingOverlay />}
       </ThemeProvider>

@@ -242,7 +242,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         >
           <motion.div
             style={backgroundParallaxStyle}
-            className="absolute inset-0 bg-[length:200%_200%] bg-gradient-to-br from-red-600 via-red-700 to-red-800"
+            className="absolute inset-0 bg-[length:200%_200%] bg-gradient-to-br from-sky-400 via-blue-500 to-blue-700"
             variants={shimmerVariants as any}
             animate="animate"
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -285,7 +285,7 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              className="absolute inset-0 blur-2xl sm:blur-3xl bg-white/20 rounded-full"
+              className="absolute inset-0 blur-2xl sm:blur-3xl bg-white/30 rounded-full"
             />
 
             <motion.div
@@ -295,13 +295,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 duration: 0.8,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48"
+              className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56"
             >
               <Image
                 src="/ambc-logo.png"
                 alt="AMBC Club Logo"
                 fill
-                className="object-contain drop-shadow-2xl"
+                className="object-contain drop-shadow-2xl drop-shadow-white/20"
                 priority
               />
             </motion.div>
