@@ -27,13 +27,14 @@ function isInStandaloneMode() {
 export function PwaInstallCard({ className }: { className?: string }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(true); // Default hide until we check client-side
   const [mounted, setMounted] = useState(false);
 
   const ios = useMemo(() => (mounted ? isIos() : false), [mounted]);
   const standalone = useMemo(() => (mounted ? isInStandaloneMode() : false), [mounted]);
 
   useEffect(() => {
+    setMounted(true);
     // Semak jika pengguna telah menekan dismiss dalam tempoh 24 jam lepas
     const lastDismissed = localStorage.getItem("pwa_prompt_dismissed");
     if (lastDismissed) {
@@ -43,11 +44,13 @@ export function PwaInstallCard({ className }: { className?: string }) {
       if (timePassed < oneDay) {
         setDismissed(true);
       } else {
-        // Expired, buang dari localStorage
+        // Expired, buang dari localStorage dan tunjuk semula
         localStorage.removeItem("pwa_prompt_dismissed");
+        setDismissed(false);
       }
+    } else {
+      setDismissed(false);
     }
-    setMounted(true);
   }, []);
 
   useEffect(() => {
@@ -73,6 +76,8 @@ export function PwaInstallCard({ className }: { className?: string }) {
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
       handleDismiss(); // Sembunyikan selepas proses install
+    } catch (err) {
+      console.error("PWA Install Error:", err);
     } finally {
       setInstalling(false);
     }
@@ -90,18 +95,18 @@ export function PwaInstallCard({ className }: { className?: string }) {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", damping: 25, stiffness: 200, delay: 2 }} // Delay 2 saat sebelum popup muncul
-          className={`fixed bottom-20 left-4 right-4 sm:bottom-4 sm:left-auto sm:right-4 sm:w-96 z-[60] ${className || ""}`}
+          transition={{ type: "spring", damping: 25, stiffness: 200, delay: 2.5 }} // Delay sikit sebelum popup muncul
+          className={`fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[60] ${className || ""}`}
         >
-          <Card className="shadow-2xl border-sky-200 bg-white/95 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
+          <Card className="shadow-2xl border-sky-200 bg-white/95 backdrop-blur-md overflow-hidden">
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3 bg-sky-50/50">
               <div className="space-y-1">
                 <CardTitle className="text-base text-sky-800 flex items-center gap-2">
                   <Download className="h-4 w-4" />
                   Install App AMBC
                 </CardTitle>
                 <p className="text-xs text-slate-500">
-                  Untuk pengalaman yang lebih pantas & notifikasi terkini.
+                  Akses lebih pantas seperti aplikasi sebenar.
                 </p>
               </div>
               <Button 
@@ -113,7 +118,7 @@ export function PwaInstallCard({ className }: { className?: string }) {
                 <X className="h-4 w-4" />
               </Button>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-3">
               {deferredPrompt ? (
                 <Button 
                   onClick={handleInstall} 
@@ -136,7 +141,7 @@ export function PwaInstallCard({ className }: { className?: string }) {
                 </div>
               ) : (
                 <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
-                  Sila guna browser Chrome/Edge dan pastikan anda tidak membukanya melalui in-app browser (seperti Facebook/WhatsApp).
+                  Sila guna browser Google Chrome dan pastikan anda tidak membukanya melalui in-app browser (seperti dari dalam Facebook/WhatsApp).
                 </div>
               )}
 
