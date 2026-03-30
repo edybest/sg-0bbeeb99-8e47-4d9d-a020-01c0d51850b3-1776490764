@@ -19,11 +19,13 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  ChevronRight } from
+  ChevronRight,
+  Sparkles } from
 "lucide-react";
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type GameSummary = Pick<
   Tables<"games">,
@@ -155,6 +157,11 @@ export default function BlokPage() {
 
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+
+  const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
+  const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
+  const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
+  const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -354,6 +361,63 @@ export default function BlokPage() {
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
+  };
+
+  const handleOpenCleanGameDialog = async (gameNumber: number) => {
+    if (!selectedGame) return;
+    
+    setSelectedGameForCleanGame(gameNumber);
+    setLoadingCleanGame(true);
+    setCleanGameDialogOpen(true);
+
+    try {
+      const { data: gameData, error } = await supabase
+        .from("games")
+        .select("clean_game_data")
+        .eq("id", selectedGame)
+        .single();
+
+      if (error) throw error;
+
+      const cleanGameData = gameData?.clean_game_data as any;
+      const gameKey = `game${gameNumber}`;
+      const winnerIds = cleanGameData?.[gameKey] || [];
+
+      if (winnerIds.length === 0) {
+        setCleanGameWinners([]);
+        setLoadingCleanGame(false);
+        return;
+      }
+
+      // Get total players for prize calculation
+      const totalPlayers = leaderboard.length;
+      const totalPrize = totalPlayers * 2; // RM2 per player
+      const prizePerWinner = totalPrize / winnerIds.length;
+
+      // Fetch winner details
+      const { data: winners, error: winnersError } = await supabase
+        .from("members")
+        .select("id, username, full_name")
+        .in("id", winnerIds);
+
+      if (winnersError) throw winnersError;
+
+      const formattedWinners = (winners || []).map((w) => ({
+        member_name: w.username || w.full_name,
+        prize: prizePerWinner
+      }));
+
+      setCleanGameWinners(formattedWinners);
+    } catch (err) {
+      console.error("Error loading clean game winners:", err);
+      toast({
+        title: "Ralat",
+        description: "Gagal memuatkan pemenang clean game",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingCleanGame(false);
+    }
   };
 
   const handleSort = (field: SortField) => {
@@ -733,6 +797,38 @@ export default function BlokPage() {
                                         </div> :
 
                   <>
+                                            {/* Clean Game Buttons */}
+                                            <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
+                                              <p className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4" />
+                                                Clean Game Winners
+                                              </p>
+                                              <div className="flex flex-wrap gap-2">
+                                                {[1, 2, 3, 4, 5].map((gameNum) => (
+                                                  <motion.button
+                                                    key={gameNum}
+                                                    onClick={() => handleOpenCleanGameDialog(gameNum)}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    className="relative px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
+                                                  >
+                                                    <motion.div
+                                                      animate={{
+                                                        boxShadow: [
+                                                          "0 0 0px rgba(251, 191, 36, 0.4)",
+                                                          "0 0 20px rgba(251, 191, 36, 0.6)",
+                                                          "0 0 0px rgba(251, 191, 36, 0.4)"
+                                                        ]
+                                                      }}
+                                                      transition={{ duration: 2, repeat: Infinity }}
+                                                      className="absolute inset-0 rounded-lg"
+                                                    />
+                                                    <span className="relative z-10">Game {gameNum}</span>
+                                                  </motion.button>
+                                                ))}
+                                              </div>
+                                            </div>
+
                                             <div className="block md:hidden space-y-2 p-2">
                                                 {leaderboard.map((entry) =>
                       <Card
@@ -1086,5 +1182,61 @@ export default function BlokPage() {
               </div>
           </>
       </MemberLayout>
+
+      {/* Clean Game Dialog */}
+      {cleanGameDialogOpen && (
+        <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Sparkles className="w-6 h-6 text-yellow-500" />
+                Clean Game {selectedGameForCleanGame} Winners
+              </DialogTitle>
+            </DialogHeader>
+            
+            {loadingCleanGame ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+              </div>
+            ) : cleanGameWinners.length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-600">Tiada pemenang clean game untuk game ini</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
+                  <p className="text-sm text-amber-900 mb-1">
+                    Jumlah Hadiah: <span className="font-bold">RM{(leaderboard.length * 2).toFixed(2)}</span>
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {cleanGameWinners.map((winner, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
+                          {idx + 1}
+                        </div>
+                        <span className="font-semibold text-gray-900">{winner.member_name}</span>
+                      </div>
+                      <span className="font-bold text-green-600">RM{winner.prize.toFixed(2)}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
   );
 }
