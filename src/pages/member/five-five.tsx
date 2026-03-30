@@ -13,7 +13,6 @@ import { SEO } from "@/components/SEO";
 import { Trophy, Calendar, TrendingUp, ArrowLeft, Award, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { fivefiveService } from "@/services/fivefiveService";
 
@@ -346,391 +345,385 @@ export default function FiveFivePage() {
   };
 
   return (
-    <PageAccessGuard
-      pagePath="/member/five-five"
-      requireAuth={true}
-      renderLoading={() => null}
-    >
-      <MemberLayout>
-        <>
-          <SEO title="FiveFive - AMBC Club" />
-          <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
-            <main className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
-              {loadingData && !selectedGameId ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full rounded-xl" />
-                  <Skeleton className="h-64 w-full rounded-xl" />
-                </div>
-              ) : games.length === 0 ? (
-                <Alert className="border-amber-200 bg-amber-50  ">
-                  <AlertDescription className="text-amber-900 ">
-                    Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <div className="space-y-6">
-                  {/* Game Selector Card */}
-                  <Card className="shadow-lg border-2 border-sky-100 bg-gradient-to-br from-white to-sky-50/30">
-                    <CardHeader>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-sky-900">
-                          <Calendar className="w-5 h-5 text-sky-600" />
-                          Pilih Tarikh Game
-                        </CardTitle>
-                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                          <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                            <SelectTrigger className="w-full sm:w-72 border-2 hover:border-sky-300 transition-colors">
-                              <SelectValue placeholder="Pilih tarikh..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {games.map((game) => (
-                                <SelectItem key={game.id} value={game.id}>
-                                  {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+    <MemberLayout>
+      <>
+        <SEO title="FiveFive - AMBC Club" />
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
+          <main className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+            {loadingData && !selectedGameId ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                <Skeleton className="h-64 w-full rounded-xl" />
+              </div>
+            ) : games.length === 0 ? (
+              <Alert className="border-amber-200 bg-amber-50  ">
+                <AlertDescription className="text-amber-900 ">
+                  Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-6">
+                {/* Game Selector Card */}
+                <Card className="shadow-lg border-2 border-sky-100 bg-gradient-to-br from-white to-sky-50/30">
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <CardTitle className="flex items-center gap-2 text-lg sm:text-xl text-sky-900">
+                        <Calendar className="w-5 h-5 text-sky-600" />
+                        Pilih Tarikh Game
+                      </CardTitle>
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+                          <SelectTrigger className="w-full sm:w-72 border-2 hover:border-sky-300 transition-colors">
+                            <SelectValue placeholder="Pilih tarikh..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {games.map((game) => (
+                              <SelectItem key={game.id} value={game.id}>
+                                {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    </CardHeader>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {loadingData ? (
+                  <Card className="shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <Skeleton className="h-8 w-full rounded-lg" />
+                        <Skeleton className="h-8 w-full rounded-lg" />
+                        <Skeleton className="h-8 w-full rounded-lg" />
+                      </div>
+                    </CardContent>
                   </Card>
-
-                  {loadingData ? (
-                    <Card className="shadow-lg">
-                      <CardContent className="p-6">
-                        <div className="space-y-4">
-                          <Skeleton className="h-8 w-full rounded-lg" />
-                          <Skeleton className="h-8 w-full rounded-lg" />
-                          <Skeleton className="h-8 w-full rounded-lg" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : participants.length === 0 ? (
-                    <Alert className="border-amber-200 bg-amber-50  ">
-                      <AlertDescription className="text-amber-900 ">
-                        Tiada peserta FiveFive untuk game ini.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <>
-                      {/* MOBILE VIEW - Card Based Layout */}
-                      <div className="md:hidden space-y-4">
-                        {participants.map((participant, index) => {
-                          const isExpanded = expandedCards.has(participant.member_id);
-                          return (
-                            <Card 
-                              key={participant.member_id}
-                              className="shadow-lg border-2 border-sky-200 overflow-hidden"
+                ) : participants.length === 0 ? (
+                  <Alert className="border-amber-200 bg-amber-50  ">
+                    <AlertDescription className="text-amber-900 ">
+                      Tiada peserta FiveFive untuk game ini.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    {/* MOBILE VIEW - Card Based Layout */}
+                    <div className="md:hidden space-y-4">
+                      {participants.map((participant, index) => {
+                        const isExpanded = expandedCards.has(participant.member_id);
+                        return (
+                          <Card 
+                            key={participant.member_id}
+                            className="shadow-lg border-2 border-sky-200 overflow-hidden"
+                          >
+                            {/* Card Header - Always Visible */}
+                            <div 
+                              className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 cursor-pointer hover:bg-sky-100 transition-colors"
+                              onClick={() => toggleCard(participant.member_id)}
                             >
-                              {/* Card Header - Always Visible */}
-                              <div 
-                                className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 cursor-pointer hover:bg-sky-100 transition-colors"
-                                onClick={() => toggleCard(participant.member_id)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Badge variant="outline" className="text-xs border-sky-300 text-sky-700 bg-white">
-                                        #{index + 1}
-                                      </Badge>
-                                      <h3 className="font-bold text-sky-900 text-lg">
-                                        {participant.username}
-                                      </h3>
-                                    </div>
-
-                                    {participant.handicap > 0 && (
-                                      <p className="text-xs text-sky-700 mb-2">
-                                        Handicap:{" "}
-                                        <span className="font-semibold">
-                                          {participant.handicap}
-                                        </span>{" "}
-                                        (
-                                        <span className="font-semibold">
-                                          +{participant.per_game_handicap}
-                                        </span>{" "}
-                                        / game)
-                                      </p>
-                                    )}
-
-                                    <div className="flex items-center gap-2">
-                                      <DollarSign className="w-5 h-5 text-yellow-600" />
-                                      <span className="text-2xl font-bold text-yellow-700 ">
-                                        {formatCurrency(participant.total_prize)}
-                                      </span>
-                                    </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className="text-xs border-sky-300 text-sky-700 bg-white">
+                                      #{index + 1}
+                                    </Badge>
+                                    <h3 className="font-bold text-sky-900 text-lg">
+                                      {participant.username}
+                                    </h3>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="shrink-0 text-sky-600"
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronUp className="w-6 h-6" />
-                                    ) : (
-                                      <ChevronDown className="w-6 h-6" />
-                                    )}
-                                  </Button>
-                                </div>
-                              </div>
 
-                              {/* Expandable Game Details */}
-                              {isExpanded && (
-                                <CardContent className="p-4 space-y-3 bg-white">
+                                  {participant.handicap > 0 && (
+                                    <p className="text-xs text-sky-700 mb-2">
+                                      Handicap:{" "}
+                                      <span className="font-semibold">
+                                        {participant.handicap}
+                                      </span>{" "}
+                                      (
+                                      <span className="font-semibold">
+                                        +{participant.per_game_handicap}
+                                      </span>{" "}
+                                      / game)
+                                    </p>
+                                  )}
+
+                                  <div className="flex items-center gap-2">
+                                    <DollarSign className="w-5 h-5 text-yellow-600" />
+                                    <span className="text-2xl font-bold text-yellow-700 ">
+                                      {formatCurrency(participant.total_prize)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="shrink-0 text-sky-600"
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="w-6 h-6" />
+                                  ) : (
+                                    <ChevronDown className="w-6 h-6" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Expandable Game Details */}
+                            {isExpanded && (
+                              <CardContent className="p-4 space-y-3 bg-white">
+                                {[1, 2, 3, 4, 5].map((gameNum) => {
+                                  const rawKey = `raw_game${gameNum}_score` as keyof FiveFiveParticipant;
+                                  const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
+                                  const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
+                                  const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
+                                  
+                                  const rawScore = participant[rawKey] as number;
+                                  const finalScore = participant[scoreKey] as number;
+                                  const addedHcp = participant.per_game_handicap;
+
+                                  return (
+                                    <div
+                                      key={gameNum}
+                                      className={`p-3 rounded-lg border-2 bg-gradient-to-r ${getGameGradient(gameNum)} ${getGameBorder(gameNum)}`}
+                                    >
+                                      <div className="flex items-center justify-between mb-2">
+                                        <Badge className={getGameBadgeColor(gameNum)}>
+                                          🎯 Game {gameNum}
+                                        </Badge>
+                                        <span className="text-2xl drop-shadow-sm">
+                                          {getRankDisplay(participant[rankKey] as number)}
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-3 text-xs sm:text-sm">
+                                        <div>
+                                          <p className="text-[10px] uppercase tracking-wide text-sky-600">
+                                            Score Asal
+                                          </p>
+                                          <p className="text-base font-semibold text-sky-900">
+                                            {rawScore}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-[10px] uppercase tracking-wide text-sky-600">
+                                            Handicap / Game
+                                          </p>
+                                          <p className="text-base font-semibold text-sky-900">
+                                            +{addedHcp}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-[10px] uppercase tracking-wide text-sky-600">
+                                            Score Akhir
+                                          </p>
+                                          <p className="text-base font-bold text-sky-900">
+                                            {finalScore}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 flex justify-between items-center">
+                                        <p className="text-[10px] uppercase tracking-wide text-sky-600">
+                                          Prize
+                                        </p>
+                                        <p className="text-sm font-bold text-emerald-600">
+                                          {(participant[prizeKey] as number) > 0
+                                            ? formatCurrency(participant[prizeKey] as number)
+                                            : "-"}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </CardContent>
+                            )}
+                          </Card>
+                        );
+                      })}
+                    </div>
+
+                    {/* DESKTOP VIEW - Table Layout */}
+                    <Card className="hidden md:block shadow-xl border-2 border-sky-200 overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-sky-600 to-blue-600">
+                        <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
+                          <span className="flex items-center gap-2">
+                            <Award className="w-5 h-5" />
+                            Keputusan FiveFive - Prize Per Game
+                          </span>
+                          {selectedGame && (
+                            <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30 hover:bg-white/30">
+                              {formatDate(selectedGame.game_date)}
+                            </Badge>
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0 bg-white">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-sky-300">
+                                <TableHead className="font-bold text-sky-900 sticky left-0 bg-sky-100 z-10 min-w-[150px] shadow-md">
+                                  Nama Pemain
+                                </TableHead>
+                                
+                                {/* Game 1 */}
+                                <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(1)} bg-gradient-to-r ${getGameGradient(1)}`}>
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <span className="text-blue-700 ">🎯 Game 1</span>
+                                  </div>
+                                </TableHead>
+                                
+                                {/* Game 2 */}
+                                <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(2)} bg-gradient-to-r ${getGameGradient(2)}`}>
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <span className="text-green-700 ">🎯 Game 2</span>
+                                  </div>
+                                </TableHead>
+                                
+                                {/* Game 3 */}
+                                <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(3)} bg-gradient-to-r ${getGameGradient(3)}`}>
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <span className="text-purple-700 ">🎯 Game 3</span>
+                                  </div>
+                                </TableHead>
+                                
+                                {/* Game 4 */}
+                                <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(4)} bg-gradient-to-r ${getGameGradient(4)}`}>
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <span className="text-orange-700 ">🎯 Game 4</span>
+                                  </div>
+                                </TableHead>
+                                
+                                {/* Game 5 */}
+                                <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(5)} bg-gradient-to-r ${getGameGradient(5)}`}>
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <span className="text-pink-700 ">🎯 Game 5</span>
+                                  </div>
+                                </TableHead>
+                                
+                                {/* Total */}
+                                <TableHead className="font-bold text-center bg-gradient-to-r from-yellow-100 to-yellow-200 border-l-2 border-yellow-300 sticky right-0 z-10 shadow-md min-w-[120px]">
+                                  <div className="flex items-center justify-center gap-2 py-1">
+                                    <DollarSign className="w-4 h-4 text-yellow-700 " />
+                                    <span className="text-yellow-800 ">Total Prize</span>
+                                  </div>
+                                </TableHead>
+                              </TableRow>
+                              <TableRow className="bg-sky-50/50">
+                                <TableHead className="sticky left-0 bg-sky-50 z-10"></TableHead>
+                                
+                                {[1, 2, 3, 4, 5].map((gameNum) => (
+                                  <>
+                                    <TableHead className="text-center text-xs font-semibold text-sky-600 border-l border-sky-200">Rank</TableHead>
+                                    <TableHead className="text-center text-xs font-semibold text-sky-600">Score</TableHead>
+                                    <TableHead className="text-right text-xs font-semibold text-sky-600">Prize</TableHead>
+                                  </>
+                                ))}
+                                
+                                <TableHead className="sticky right-0 bg-yellow-50 z-10 border-l-2 border-yellow-300 "></TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {participants.map((participant, index) => (
+                                <TableRow
+                                  key={participant.member_id}
+                                  className={`
+                                    ${index % 2 === 0 ? "bg-white " : "bg-sky-50/30 "}
+                                    hover:bg-blue-50 transition-all duration-200 border-b border-sky-200
+                                  `}
+                                >
+                                  <TableCell className="font-semibold text-sky-900 sticky left-0 bg-inherit z-10 shadow-sm border-r border-sky-100">
+                                    <div className="flex flex-col gap-0.5">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sky-400 text-sm">#{index + 1}</span>
+                                        <span>{participant.username}</span>
+                                      </div>
+                                      {participant.handicap > 0 && (
+                                        <span className="text-[11px] text-sky-600">
+                                          HC: {participant.handicap} (+{participant.per_game_handicap}/gm)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+
                                   {[1, 2, 3, 4, 5].map((gameNum) => {
-                                    const rawKey = `raw_game${gameNum}_score` as keyof FiveFiveParticipant;
                                     const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
                                     const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
                                     const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
                                     
-                                    const rawScore = participant[rawKey] as number;
-                                    const finalScore = participant[scoreKey] as number;
-                                    const addedHcp = participant.per_game_handicap;
-
                                     return (
-                                      <div
-                                        key={gameNum}
-                                        className={`p-3 rounded-lg border-2 bg-gradient-to-r ${getGameGradient(gameNum)} ${getGameBorder(gameNum)}`}
-                                      >
-                                        <div className="flex items-center justify-between mb-2">
-                                          <Badge className={getGameBadgeColor(gameNum)}>
-                                            🎯 Game {gameNum}
-                                          </Badge>
-                                          <span className="text-2xl drop-shadow-sm">
-                                            {getRankDisplay(participant[rankKey] as number)}
-                                          </span>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-3 text-xs sm:text-sm">
-                                          <div>
-                                            <p className="text-[10px] uppercase tracking-wide text-sky-600">
-                                              Score Asal
-                                            </p>
-                                            <p className="text-base font-semibold text-sky-900">
-                                              {rawScore}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <p className="text-[10px] uppercase tracking-wide text-sky-600">
-                                              Handicap / Game
-                                            </p>
-                                            <p className="text-base font-semibold text-sky-900">
-                                              +{addedHcp}
-                                            </p>
-                                          </div>
-                                          <div>
-                                            <p className="text-[10px] uppercase tracking-wide text-sky-600">
-                                              Score Akhir
-                                            </p>
-                                            <p className="text-base font-bold text-sky-900">
-                                              {finalScore}
-                                            </p>
-                                          </div>
-                                        </div>
-                                        <div className="mt-2 flex justify-between items-center">
-                                          <p className="text-[10px] uppercase tracking-wide text-sky-600">
-                                            Prize
-                                          </p>
-                                          <p className="text-sm font-bold text-emerald-600">
-                                            {(participant[prizeKey] as number) > 0
-                                              ? formatCurrency(participant[prizeKey] as number)
-                                              : "-"}
-                                          </p>
-                                        </div>
-                                      </div>
+                                      <>
+                                        <TableCell className="text-center text-lg border-l border-sky-200 bg-white/50">
+                                          {getRankDisplay(participant[rankKey] as number)}
+                                        </TableCell>
+                                        <TableCell className="text-center tabular-nums font-medium text-sky-700 bg-white/50">
+                                          {participant[scoreKey]}
+                                        </TableCell>
+                                        <TableCell className="text-right tabular-nums bg-white/50">
+                                          {(participant[prizeKey] as number) > 0 ? (
+                                            <span className="text-emerald-600 font-semibold">
+                                              {formatCurrency(participant[prizeKey] as number)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-300 ">-</span>
+                                          )}
+                                        </TableCell>
+                                      </>
                                     );
                                   })}
-                                </CardContent>
-                              )}
-                            </Card>
-                          );
-                        })}
-                      </div>
 
-                      {/* DESKTOP VIEW - Table Layout */}
-                      <Card className="hidden md:block shadow-xl border-2 border-sky-200 overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-sky-600 to-blue-600">
-                          <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white">
-                            <span className="flex items-center gap-2">
-                              <Award className="w-5 h-5" />
-                              Keputusan FiveFive - Prize Per Game
-                            </span>
-                            {selectedGame && (
-                              <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30 hover:bg-white/30">
-                                {formatDate(selectedGame.game_date)}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 bg-white">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-sky-300">
-                                  <TableHead className="font-bold text-sky-900 sticky left-0 bg-sky-100 z-10 min-w-[150px] shadow-md">
-                                    Nama Pemain
-                                  </TableHead>
-                                  
-                                  {/* Game 1 */}
-                                  <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(1)} bg-gradient-to-r ${getGameGradient(1)}`}>
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <span className="text-blue-700 ">🎯 Game 1</span>
-                                    </div>
-                                  </TableHead>
-                                  
-                                  {/* Game 2 */}
-                                  <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(2)} bg-gradient-to-r ${getGameGradient(2)}`}>
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <span className="text-green-700 ">🎯 Game 2</span>
-                                    </div>
-                                  </TableHead>
-                                  
-                                  {/* Game 3 */}
-                                  <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(3)} bg-gradient-to-r ${getGameGradient(3)}`}>
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <span className="text-purple-700 ">🎯 Game 3</span>
-                                    </div>
-                                  </TableHead>
-                                  
-                                  {/* Game 4 */}
-                                  <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(4)} bg-gradient-to-r ${getGameGradient(4)}`}>
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <span className="text-orange-700 ">🎯 Game 4</span>
-                                    </div>
-                                  </TableHead>
-                                  
-                                  {/* Game 5 */}
-                                  <TableHead colSpan={3} className={`font-bold text-center border-l-2 ${getGameBorder(5)} bg-gradient-to-r ${getGameGradient(5)}`}>
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <span className="text-pink-700 ">🎯 Game 5</span>
-                                    </div>
-                                  </TableHead>
-                                  
-                                  {/* Total */}
-                                  <TableHead className="font-bold text-center bg-gradient-to-r from-yellow-100 to-yellow-200 border-l-2 border-yellow-300 sticky right-0 z-10 shadow-md min-w-[120px]">
-                                    <div className="flex items-center justify-center gap-2 py-1">
-                                      <DollarSign className="w-4 h-4 text-yellow-700 " />
-                                      <span className="text-yellow-800 ">Total Prize</span>
-                                    </div>
-                                  </TableHead>
+                                  <TableCell className="text-right font-bold tabular-nums bg-gradient-to-r from-yellow-50 to-yellow-100 sticky right-0 z-10 shadow-lg border-l-2 border-yellow-300">
+                                    {participant.total_prize > 0 ? (
+                                      <span className="text-yellow-700 text-lg">
+                                        {formatCurrency(participant.total_prize)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-400 ">-</span>
+                                    )}
+                                  </TableCell>
                                 </TableRow>
-                                <TableRow className="bg-sky-50/50">
-                                  <TableHead className="sticky left-0 bg-sky-50 z-10"></TableHead>
-                                  
-                                  {[1, 2, 3, 4, 5].map((gameNum) => (
-                                    <>
-                                      <TableHead className="text-center text-xs font-semibold text-sky-600 border-l border-sky-200">Rank</TableHead>
-                                      <TableHead className="text-center text-xs font-semibold text-sky-600">Score</TableHead>
-                                      <TableHead className="text-right text-xs font-semibold text-sky-600">Prize</TableHead>
-                                    </>
-                                  ))}
-                                  
-                                  <TableHead className="sticky right-0 bg-yellow-50 z-10 border-l-2 border-yellow-300 "></TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {participants.map((participant, index) => (
-                                  <TableRow
-                                    key={participant.member_id}
-                                    className={`
-                                      ${index % 2 === 0 ? "bg-white " : "bg-sky-50/30 "}
-                                      hover:bg-blue-50 transition-all duration-200 border-b border-sky-200
-                                    `}
-                                  >
-                                    <TableCell className="font-semibold text-sky-900 sticky left-0 bg-inherit z-10 shadow-sm border-r border-sky-100">
-                                      <div className="flex flex-col gap-0.5">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-sky-400 text-sm">#{index + 1}</span>
-                                          <span>{participant.username}</span>
-                                        </div>
-                                        {participant.handicap > 0 && (
-                                          <span className="text-[11px] text-sky-600">
-                                            HC: {participant.handicap} (+{participant.per_game_handicap}/gm)
-                                          </span>
-                                        )}
-                                      </div>
-                                    </TableCell>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                                    {[1, 2, 3, 4, 5].map((gameNum) => {
-                                      const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
-                                      const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
-                                      const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
-                                      
-                                      return (
-                                        <>
-                                          <TableCell className="text-center text-lg border-l border-sky-200 bg-white/50">
-                                            {getRankDisplay(participant[rankKey] as number)}
-                                          </TableCell>
-                                          <TableCell className="text-center tabular-nums font-medium text-sky-700 bg-white/50">
-                                            {participant[scoreKey]}
-                                          </TableCell>
-                                          <TableCell className="text-right tabular-nums bg-white/50">
-                                            {(participant[prizeKey] as number) > 0 ? (
-                                              <span className="text-emerald-600 font-semibold">
-                                                {formatCurrency(participant[prizeKey] as number)}
-                                              </span>
-                                            ) : (
-                                              <span className="text-gray-300 ">-</span>
-                                            )}
-                                          </TableCell>
-                                        </>
-                                      );
-                                    })}
-
-                                    <TableCell className="text-right font-bold tabular-nums bg-gradient-to-r from-yellow-50 to-yellow-100 sticky right-0 z-10 shadow-lg border-l-2 border-yellow-300">
-                                      {participant.total_prize > 0 ? (
-                                        <span className="text-yellow-700 text-lg">
-                                          {formatCurrency(participant.total_prize)}
-                                        </span>
-                                      ) : (
-                                        <span className="text-gray-400 ">-</span>
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                    {/* Summary Card */}
+                    {participants.length > 0 && (
+                      <Card className="shadow-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-sky-50 to-blue-50">
+                        <CardContent className="p-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 shadow-md">
+                              <div className="p-3 rounded-full bg-yellow-200 ">
+                                <Trophy className="w-8 h-8 text-yellow-700 " />
+                              </div>
+                              <div>
+                                <p className="text-sm text-sky-600 font-medium">Jumlah Hadiah Keseluruhan</p>
+                                <p className="text-3xl font-bold text-yellow-700 ">
+                                  {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 shadow-md">
+                              <div className="p-3 rounded-full bg-blue-200">
+                                <Award className="w-8 h-8 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-sky-600 font-medium">Jumlah Peserta</p>
+                                <p className="text-3xl font-bold text-blue-600">
+                                  {participants.length} Players
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
-
-                      {/* Summary Card */}
-                      {participants.length > 0 && (
-                        <Card className="shadow-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-sky-50 to-blue-50">
-                          <CardContent className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 shadow-md">
-                                <div className="p-3 rounded-full bg-yellow-200 ">
-                                  <Trophy className="w-8 h-8 text-yellow-700 " />
-                                </div>
-                                <div>
-                                  <p className="text-sm text-sky-600 font-medium">Jumlah Hadiah Keseluruhan</p>
-                                  <p className="text-3xl font-bold text-yellow-700 ">
-                                    {formatCurrency(participants.reduce((sum, p) => sum + p.total_prize, 0))}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 shadow-md">
-                                <div className="p-3 rounded-full bg-blue-200">
-                                  <Award className="w-8 h-8 text-blue-600" />
-                                </div>
-                                <div>
-                                  <p className="text-sm text-sky-600 font-medium">Jumlah Peserta</p>
-                                  <p className="text-3xl font-bold text-blue-600">
-                                    {participants.length} Players
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </main>
-          </div>
-        </>
-      </MemberLayout>
-    </PageAccessGuard>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+      </>
+    </MemberLayout>
   );
 }

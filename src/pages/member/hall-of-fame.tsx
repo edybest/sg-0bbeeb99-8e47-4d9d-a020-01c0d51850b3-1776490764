@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trophy, Loader2, ChevronDown, CalendarDays } from "lucide-react";
 import confetti from "canvas-confetti";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -210,171 +209,165 @@ export default function HallOfFamePage() {
       : champions.filter((c) => c.year.toString() === selectedYear);
 
   return (
-    <PageAccessGuard
-      pagePath="/member/hall-of-fame"
-      requireAuth={true}
-      renderLoading={() => null}
-    >
-      <MemberLayout>
-        <>
-          <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
-          <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
-            {/* Header */}
-            <header className="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg sticky top-0 z-40">
-              <div className="container mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => router.push("/member")}
-                      className="text-white hover:bg-white/20"
-                    >
-                      <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <div>
-                      <h1 className="text-2xl font-bold">Hall of Fame</h1>
-                      <p className="text-sm text-yellow-100">Pemain Terbaik AMBC</p>
-                    </div>
+    <MemberLayout>
+      <>
+        <SEO title="Hall of Fame - AMBC Club" description="Senarai juara mengikut tahun" />
+        <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg sticky top-0 z-40">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push("/member")}
+                    className="text-white hover:bg-white/20"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <div>
+                    <h1 className="text-2xl font-bold">Hall of Fame</h1>
+                    <p className="text-sm text-yellow-100">Pemain Terbaik AMBC</p>
                   </div>
                 </div>
               </div>
-            </header>
+            </div>
+          </header>
 
-            {/* Content */}
-            <main className="container mx-auto px-4 py-6">
-              {/* Year Filter */}
-              <Card className="mb-6 bg-gradient-to-r from-rose-100 to-pink-100 border-rose-200">
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-pink-600" />
-                    Filter Tahun
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={selectedYear} onValueChange={setSelectedYear}>
-                    <SelectTrigger className="w-full bg-white">
-                      <SelectValue placeholder="Pilih tahun" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Tahun</SelectItem>
-                      {years.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {/* Content */}
+          <main className="container mx-auto px-4 py-6">
+            {/* Year Filter */}
+            <Card className="mb-6 bg-gradient-to-r from-rose-100 to-pink-100 border-rose-200">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-pink-600" />
+                  Filter Tahun
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue placeholder="Pilih tahun" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Tahun</SelectItem>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {/* Champions List */}
+            {loadingChampions ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+              </div>
+            ) : filteredChampions.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-rose-500">
+                  Tiada juara dijumpai
                 </CardContent>
               </Card>
+            ) : (
+              <div className="space-y-4">
+                {filteredChampions.map((champion) => (
+                  <Card
+                    key={`${champion.year}-${champion.member_id}`}
+                    className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-rose-200"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        {/* Avatar */}
+                        <Avatar className="w-16 h-16 flex-shrink-0 border-2 border-pink-200">
+                          {champion.avatar_url ? (
+                            <AvatarImage src={champion.avatar_url} alt={champion.full_name} />
+                          ) : (
+                            <AvatarImage src="" alt={champion.full_name} />
+                          )}
+                          <AvatarFallback className="bg-gradient-to-br from-pink-100 to-pink-200 text-pink-700 font-semibold text-xl">
+                            {champion.full_name?.charAt(0) || "?"}
+                          </AvatarFallback>
+                        </Avatar>
 
-              {/* Champions List */}
-              {loadingChampions ? (
-                <div className="flex justify-center items-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-                </div>
-              ) : filteredChampions.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12 text-center text-rose-500">
-                    Tiada juara dijumpai
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {filteredChampions.map((champion) => (
-                    <Card
-                      key={`${champion.year}-${champion.member_id}`}
-                      className="transform transition-all hover:scale-[1.02] hover:shadow-xl bg-gradient-to-r from-white to-yellow-50 border-2 border-rose-200"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          {/* Avatar */}
-                          <Avatar className="w-16 h-16 flex-shrink-0 border-2 border-pink-200">
-                            {champion.avatar_url ? (
-                              <AvatarImage src={champion.avatar_url} alt={champion.full_name} />
-                            ) : (
-                              <AvatarImage src="" alt={champion.full_name} />
-                            )}
-                            <AvatarFallback className="bg-gradient-to-br from-pink-100 to-pink-200 text-pink-700 font-semibold text-xl">
-                              {champion.full_name?.charAt(0) || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          {/* Trophy Icon */}
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-lg">
-                              <Trophy className="w-6 h-6 text-white" />
-                            </div>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            {/* Name and Username */}
-                            <div className="mb-2">
-                              <div className="font-bold text-lg">
-                                {champion.full_name || "Pemain"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                @{champion.username || "username"}
-                              </div>
-                            </div>
-
-                            {/* Year & total champion count */}
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="secondary" className="bg-pink-100 text-pink-700">
-                                {champion.year}
-                              </Badge>
-                              <span className="text-sm font-medium text-rose-700">
-                                Juara {champion.total_champ} kali
-                              </span>
-                            </div>
-
-                            {/* Wins dropdown */}
-                            {champion.wins.length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="mt-2 flex items-center gap-2"
-                                  >
-                                    <CalendarDays className="h-4 w-4" />
-                                    <span>
-                                      Tarikh juara ({champion.total_champ})
-                                    </span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start">
-                                  {champion.wins.map((win) => (
-                                    <DropdownMenuItem key={win.game_id} asChild>
-                                      <Link
-                                        href={{
-                                          pathname: "/member/blok",
-                                          query: { gameId: win.game_id },
-                                        }}
-                                        className="flex w-full items-center justify-between"
-                                      >
-                                        <span>{formatDate(win.game_date)}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          Lihat Blok
-                                        </span>
-                                      </Link>
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                        {/* Trophy Icon */}
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center shadow-lg">
+                            <Trophy className="w-6 h-6 text-white" />
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </main>
-          </div>
-        </>
-      </MemberLayout>
-    </PageAccessGuard>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Name and Username */}
+                          <div className="mb-2">
+                            <div className="font-bold text-lg">
+                              {champion.full_name || "Pemain"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              @{champion.username || "username"}
+                            </div>
+                          </div>
+
+                          {/* Year & total champion count */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary" className="bg-pink-100 text-pink-700">
+                              {champion.year}
+                            </Badge>
+                            <span className="text-sm font-medium text-rose-700">
+                              Juara {champion.total_champ} kali
+                            </span>
+                          </div>
+
+                          {/* Wins dropdown */}
+                          {champion.wins.length > 0 && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="mt-2 flex items-center gap-2"
+                                >
+                                  <CalendarDays className="h-4 w-4" />
+                                  <span>
+                                    Tarikh juara ({champion.total_champ})
+                                  </span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {champion.wins.map((win) => (
+                                  <DropdownMenuItem key={win.game_id} asChild>
+                                    <Link
+                                      href={{
+                                        pathname: "/member/blok",
+                                        query: { gameId: win.game_id },
+                                      }}
+                                      className="flex w-full items-center justify-between"
+                                    >
+                                      <span>{formatDate(win.game_date)}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Lihat Blok
+                                      </span>
+                                    </Link>
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
+      </>
+    </MemberLayout>
   );
 }

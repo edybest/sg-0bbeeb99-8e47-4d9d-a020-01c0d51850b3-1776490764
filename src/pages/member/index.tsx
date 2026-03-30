@@ -53,8 +53,8 @@ type NavigationCard = {
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, isAuthenticated } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { member, isAuthenticated } = useAuth(false);
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     totalGames: 0,
     averageScore: 0,
@@ -65,8 +65,6 @@ export default function MemberDashboard() {
   useEffect(() => {
     if (isAuthenticated && member) {
       loadStats();
-    } else {
-      setLoading(false);
     }
   }, [isAuthenticated, member]);
 
@@ -220,16 +218,6 @@ export default function MemberDashboard() {
     iconColor: "text-sky-100"
   }];
 
-
-  if (loading) {
-    return (
-      <MemberLayout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <BowlingBallLoader />
-        </div>
-      </MemberLayout>);
-
-  }
 
   return (
     <MemberLayout>

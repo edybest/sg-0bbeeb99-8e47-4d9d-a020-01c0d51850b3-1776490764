@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { MobileNav } from "@/components/member/MobileNav";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 
 import {
@@ -591,40 +590,35 @@ export default function BlokPage() {
   }
 
   return (
-    <PageAccessGuard
-      pagePath="/member/blok"
-      requireAuth
-      renderLoading={() => null}>
-      
-      <MemberLayout>
-        <>
-          <style jsx global>{`
-          @keyframes scoreChange {
-            0% {
-              transform: scale(1);
-              background-color: transparent;
-            }
-            50% {
-              transform: scale(1.1);
-              background-color: rgb(254, 240, 138);
-            }
-            100% {
-              transform: scale(1);
-              background-color: transparent;
-            }
+    <MemberLayout>
+      <>
+        <style jsx global>{`
+        @keyframes scoreChange {
+          0% {
+            transform: scale(1);
+            background-color: transparent;
           }
-
-          .score-changed {
-            animation: scoreChange 1s ease-in-out;
+          50% {
+            transform: scale(1.1);
+            background-color: rgb(254, 240, 138);
           }
-        `}</style>
+          100% {
+            transform: scale(1);
+            background-color: transparent;
+          }
+        }
 
-          <SEO
-            title="Blok Leaderboard - AMBC Club"
-            description="View Blok game leaderboard and rankings" />
+        .score-changed {
+          animation: scoreChange 1s ease-in-out;
+        }
+      `}</style>
+
+        <SEO
+          title="Blok Leaderboard - AMBC Club"
+          description="View Blok game leaderboard and rankings" />
         
 
-          <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white">
               {/* Header */}
           <header className="sticky top-0 z-40 bg-white border-b border-sky-200 shadow-sm">
             <div className="container mx-auto px-4 py-4">
