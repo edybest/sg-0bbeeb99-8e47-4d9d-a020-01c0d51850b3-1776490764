@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
-import { Trophy, Calendar, TrendingUp, ArrowLeft, Award, DollarSign, ChevronDown, ChevronUp } from "lucide-react";
+import { Trophy, Calendar, TrendingUp, ArrowLeft, Award, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { MemberLayout } from "@/components/member/MemberLayout";
