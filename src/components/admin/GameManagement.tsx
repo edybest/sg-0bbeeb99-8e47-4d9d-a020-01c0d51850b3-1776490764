@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   }>;
 };
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 export function GameManagement() {
   const { toast } = useToast();
@@ -309,6 +309,113 @@ export function GameManagement() {
     }
   };
 
+  const handlePrintScoresheet = (game: Game) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({
+        title: "Ralat",
+        description: "Sila benarkan 'pop-ups' untuk mencetak",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const players = game.players || [];
+    const half = Math.ceil(players.length / 2);
+    const leftPlayers = players.slice(0, half);
+    const rightPlayers = players.slice(half);
+
+    const generateTableRows = (playerList: any[], startIndex: number) => {
+      return playerList.map((p, i) => `
+        <tr>
+          <td style="text-align: center;">${startIndex + i + 1}</td>
+          <td>${p.username || p.full_name || 'Unknown'}</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      `).join('');
+    };
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Cetak Borang - ${game.game_name}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { margin-bottom: 5px; font-size: 22px; text-transform: uppercase; font-weight: normal; }
+          .date { margin-bottom: 20px; font-size: 14px; color: #333; }
+          .container { display: flex; gap: 40px; align-items: flex-start; }
+          table { border-collapse: collapse; width: 100%; font-size: 13px; }
+          th, td { border: 1px solid #000; padding: 8px; }
+          th { background-color: #fde047 !important; text-align: center; font-weight: bold; }
+          .col-num { width: 25px; }
+          .col-name { width: auto; text-align: left; }
+          .col-box { width: 40px; }
+          td { height: 22px; }
+          @media print {
+            body { padding: 0; }
+            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>AMBC ${game.game_type === 'UNDI_LANE' ? 'UNDI LANE' : game.game_type.replace('_', ' ')}</h1>
+        <div class="date">Date: ${game.game_date}</div>
+        <div class="container">
+          <div style="flex: 1;">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-name">Name</th>
+                  <th class="col-box">Game</th>
+                  <th class="col-box">CG</th>
+                  <th class="col-box">5/5</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${players.length > 0 ? generateTableRows(leftPlayers, 0) : '<tr><td colspan="5" style="text-align: center;">Tiada pemain didaftarkan</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+          ${rightPlayers.length > 0 ? `
+          <div style="flex: 1;">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-name">Name</th>
+                  <th class="col-box">Game</th>
+                  <th class="col-box">CG</th>
+                  <th class="col-box">5/5</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${generateTableRows(rightPlayers, half)}
+              </tbody>
+            </table>
+          </div>
+          ` : `
+          <div style="flex: 1;"></div>
+          `}
+        </div>
+        <script>
+          window.onload = () => {
+            setTimeout(() => {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ms-MY", {
@@ -400,6 +507,18 @@ export function GameManagement() {
                         <Badge variant="outline" className="text-xs">
                           {game.game_type === "BLOK" ? "BLOK" : game.game_type === "MINI_BLOK" ? "MINI BLOK" : "UNDI LANE"}
                         </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePrintScoresheet(game)}
+                            >
+                              <Printer className="h-4 w-4 text-slate-600 hover:text-slate-900" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Cetak Borang Markah</TooltipContent>
+                        </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
