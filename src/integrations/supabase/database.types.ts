@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -512,6 +512,7 @@ export type Database = {
       game_players: {
         Row: {
           average_score: number | null
+          clean_game: boolean | null
           created_at: string | null
           game_id: string
           game1_score: number | null
@@ -529,6 +530,7 @@ export type Database = {
         }
         Insert: {
           average_score?: number | null
+          clean_game?: boolean | null
           created_at?: string | null
           game_id: string
           game1_score?: number | null
@@ -546,6 +548,7 @@ export type Database = {
         }
         Update: {
           average_score?: number | null
+          clean_game?: boolean | null
           created_at?: string | null
           game_id?: string
           game1_score?: number | null
@@ -580,6 +583,7 @@ export type Database = {
       }
       games: {
         Row: {
+          clean_game_data: Json | null
           created_at: string | null
           game_date: string
           game_format: string | null
@@ -592,6 +596,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          clean_game_data?: Json | null
           created_at?: string | null
           game_date: string
           game_format?: string | null
@@ -604,6 +609,7 @@ export type Database = {
           year: number
         }
         Update: {
+          clean_game_data?: Json | null
           created_at?: string | null
           game_date?: string
           game_format?: string | null
