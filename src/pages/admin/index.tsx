@@ -14,6 +14,7 @@ import { ClubSettings } from "@/components/admin/ClubSettings";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
+import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
 import { LogOut, Users, Trophy, BarChart3, Settings, Loader2, Bell, MessageSquare, ListChecks, ArrowRightLeft } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
@@ -106,58 +107,69 @@ export default function AdminPage() {
             <div className="mb-6">
               <AdminPwaInstallCard className="max-w-xl" />
             </div>
-            <Tabs defaultValue="members" className="w-full">
+            <Tabs defaultValue="statistics" className="w-full">
               <TabsList className="flex w-full overflow-x-auto bg-white border border-gray-200 mb-8 shadow-sm p-1 rounded-lg">
                 <TabsTrigger 
+                  value="statistics" 
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Statistik
+                </TabsTrigger>
+                <TabsTrigger 
                   value="members" 
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Pengurusan</span> Ahli
                 </TabsTrigger>
                 <TabsTrigger 
                   value="games"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <Trophy className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Pengurusan</span> Game
                 </TabsTrigger>
                 <TabsTrigger 
                   value="scores"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Pengurusan</span> Skor
                 </TabsTrigger>
                 <TabsTrigger 
                   value="lanes"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <ArrowRightLeft className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Pengurusan</span> Lane
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   Settings
                 </TabsTrigger>
                 <TabsTrigger 
                   value="feedback"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Maklum Balas</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="gallery"
-                  className="data-[state=active]:bg-red-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
                   <ListChecks className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Galeri</span>
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="statistics">
+                <StatisticsPanel />
+              </TabsContent>
 
               <TabsContent value="members">
                 <MemberManagement />
