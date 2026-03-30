@@ -92,7 +92,6 @@ export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
           alt="AMBC Club Logo"
           fill
           className="object-cover"
-          priority
           onError={() => setUseFallback(true)}
         />
       </div>

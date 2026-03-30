@@ -328,17 +328,13 @@ export function WhatsAppLoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-purple-50 dark:from-blue-950/20 dark:via-background dark:to-purple-950/20 px-4 py-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative w-32 h-32">
-              <Image
-                src="/ambc-logo.png"
-                alt="AMBC Club Logo"
-                fill
-                sizes="128px"
-                className="object-contain"
-                priority
-              />
-            </div>
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-6 transform hover:scale-105 transition-transform duration-300">
+            <Image
+              src="/ambc-logo.png"
+              alt="AMBC Logo"
+              fill
+              className="object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+            />
           </div>
          </div>
 

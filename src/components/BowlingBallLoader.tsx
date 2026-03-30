@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 interface BowlingBallLoaderProps {
   className?: string;
@@ -30,7 +31,6 @@ export function BowlingBallLoader({ className, size = "md" }: BowlingBallLoaderP
           alt="AMBC Club"
           fill
           className="object-contain"
-          priority
           sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 160px"
         />
       </div>

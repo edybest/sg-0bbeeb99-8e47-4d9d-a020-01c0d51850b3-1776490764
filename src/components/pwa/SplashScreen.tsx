@@ -295,14 +295,13 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
                 duration: 0.8,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 lg:w-56 lg:h-56"
+              className="relative w-32 h-32 md:w-40 md:h-40 mx-auto"
             >
               <Image
                 src="/ambc-logo.png"
-                alt="AMBC Club Logo"
+                alt="AMBC Logo"
                 fill
-                className="object-contain drop-shadow-2xl drop-shadow-white/20"
-                priority
+                className="object-contain drop-shadow-2xl"
               />
             </motion.div>
           </motion.div>
