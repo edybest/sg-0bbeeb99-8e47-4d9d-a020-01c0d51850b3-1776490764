@@ -83,16 +83,16 @@ export default function FiveFivePage() {
   const loadGamesWithFiveFive = async () => {
     setLoading(true);
     try {
-      const { data: gamesData, error } = await supabase
-        .from("games")
-        .select(`
+      const { data: gamesData, error } = await supabase.
+      from("games").
+      select(`
           id,
           game_date,
           game_format,
           game_players!inner(is_fivefive)
-        `)
-        .eq("game_players.is_fivefive", true)
-        .order("game_date", { ascending: false });
+        `).
+      eq("game_players.is_fivefive", true).
+      order("game_date", { ascending: false });
 
       if (error) throw error;
 
@@ -122,9 +122,9 @@ export default function FiveFivePage() {
         setSelectedGame(game);
       }
 
-      const { data: playersData, error: playersError } = await supabase
-        .from("game_players")
-        .select(`
+      const { data: playersData, error: playersError } = await supabase.
+      from("game_players").
+      select(`
           member_id,
           is_fivefive,
           handicap,
@@ -134,9 +134,9 @@ export default function FiveFivePage() {
           game4_score,
           game5_score,
           members!inner(username)
-        `)
-        .eq("game_id", gameId)
-        .eq("is_fivefive", true);
+        `).
+      eq("game_id", gameId).
+      eq("is_fivefive", true);
 
       if (playersError) throw playersError;
 
@@ -192,7 +192,7 @@ export default function FiveFivePage() {
           game3_prize: 0,
           game4_prize: 0,
           game5_prize: 0,
-          total_prize: 0,
+          total_prize: 0
         };
       });
 
@@ -205,8 +205,8 @@ export default function FiveFivePage() {
           (a, b) => (b[scoreKey] as number) - (a[scoreKey] as number)
         );
 
-        const scoreGroups: { score: number; players: FiveFiveParticipant[] }[] = [];
-        
+        const scoreGroups: {score: number;players: FiveFiveParticipant[];}[] = [];
+
         sortedByGame.forEach((player) => {
           const score = player[scoreKey] as number;
           const lastGroup = scoreGroups[scoreGroups.length - 1];
@@ -222,7 +222,7 @@ export default function FiveFivePage() {
         scoreGroups.forEach((group) => {
           const numPlayers = group.players.length;
           const rankForGroup = currentRankOffset + 1;
-          
+
           let totalPrizeForGroup = 0;
           for (let i = 0; i < numPlayers; i++) {
             const prizeIndex = currentRankOffset + i;
@@ -230,7 +230,7 @@ export default function FiveFivePage() {
               totalPrizeForGroup += gamePrizes[prizeIndex];
             }
           }
-          
+
           const exactPrizePerPlayer = numPlayers > 0 ? totalPrizeForGroup / numPlayers : 0;
           // Bundarkan ke RM0.50 terdekat ke bawah (cth: 45.33 -> 45.00, 45.83 -> 45.50)
           const prizePerPlayer = Math.floor(exactPrizePerPlayer * 2) / 2;
@@ -249,20 +249,20 @@ export default function FiveFivePage() {
 
       participantsWithRankings.forEach((participant) => {
         participant.total_prize =
-          participant.game1_prize +
-          participant.game2_prize +
-          participant.game3_prize +
-          participant.game4_prize +
-          participant.game5_prize;
+        participant.game1_prize +
+        participant.game2_prize +
+        participant.game3_prize +
+        participant.game4_prize +
+        participant.game5_prize;
       });
 
       participantsWithRankings.sort((a, b) => {
         if (b.total_prize !== a.total_prize) return b.total_prize - a.total_prize;
-        
+
         const totalA = a.game1_score + a.game2_score + a.game3_score + a.game4_score + a.game5_score;
         const totalB = b.game1_score + b.game2_score + b.game3_score + b.game4_score + b.game5_score;
         if (totalA !== totalB) return totalB - totalA;
-        
+
         if (a.game5_score !== b.game5_score) return b.game5_score - a.game5_score;
         if (a.game4_score !== b.game4_score) return b.game4_score - a.game4_score;
         if (a.game3_score !== b.game3_score) return b.game3_score - a.game3_score;
@@ -313,33 +313,33 @@ export default function FiveFivePage() {
 
   const getGameGradient = (gameNum: number) => {
     const gradients = [
-      "from-blue-500/10 to-blue-600/10  ",
-      "from-green-500/10 to-green-600/10  ",
-      "from-purple-500/10 to-purple-600/10  ",
-      "from-orange-500/10 to-orange-600/10  ",
-      "from-pink-500/10 to-pink-600/10  ", // kept for distinction
+    "from-blue-500/10 to-blue-600/10  ",
+    "from-green-500/10 to-green-600/10  ",
+    "from-purple-500/10 to-purple-600/10  ",
+    "from-orange-500/10 to-orange-600/10  ",
+    "from-pink-500/10 to-pink-600/10  " // kept for distinction
     ];
     return gradients[gameNum - 1] || gradients[0];
   };
 
   const getGameBorder = (gameNum: number) => {
     const borders = [
-      "border-blue-200 ",
-      "border-green-200 ",
-      "border-purple-200 ",
-      "border-orange-200 ",
-      "border-pink-200 ", // kept for distinction
+    "border-blue-200 ",
+    "border-green-200 ",
+    "border-purple-200 ",
+    "border-orange-200 ",
+    "border-pink-200 " // kept for distinction
     ];
     return borders[gameNum - 1] || borders[0];
   };
 
   const getGameBadgeColor = (gameNum: number) => {
     const colors = [
-      "bg-blue-100 text-blue-700  ",
-      "bg-green-100 text-green-700  ",
-      "bg-purple-100 text-purple-700  ",
-      "bg-orange-100 text-orange-700  ",
-      "bg-pink-100 text-pink-700  ", // kept for distinction
+    "bg-blue-100 text-blue-700  ",
+    "bg-green-100 text-green-700  ",
+    "bg-purple-100 text-purple-700  ",
+    "bg-orange-100 text-orange-700  ",
+    "bg-pink-100 text-pink-700  " // kept for distinction
     ];
     return colors[gameNum - 1] || colors[0];
   };
@@ -350,19 +350,19 @@ export default function FiveFivePage() {
         <SEO title="FiveFive - AMBC Club" />
         <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
           <main className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
-            {loadingData && !selectedGameId ? (
-              <div className="space-y-4">
+            {loadingData && !selectedGameId ?
+            <div className="space-y-4">
                 <Skeleton className="h-12 w-full rounded-xl" />
                 <Skeleton className="h-64 w-full rounded-xl" />
-              </div>
-            ) : games.length === 0 ? (
-              <Alert className="border-amber-200 bg-amber-50  ">
+              </div> :
+            games.length === 0 ?
+            <Alert className="border-amber-200 bg-amber-50  ">
                 <AlertDescription className="text-amber-900 ">
                   Tiada data FiveFive tersedia. Sila hubungi admin untuk maklumat lanjut.
                 </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="space-y-6">
+              </Alert> :
+
+            <div className="space-y-6">
                 {/* Game Selector Card */}
                 <Card className="shadow-lg border-2 border-sky-100 bg-gradient-to-br from-white to-sky-50/30">
                   <CardHeader>
@@ -377,11 +377,11 @@ export default function FiveFivePage() {
                             <SelectValue placeholder="Pilih tarikh..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {games.map((game) => (
-                              <SelectItem key={game.id} value={game.id}>
+                            {games.map((game) =>
+                          <SelectItem key={game.id} value={game.id}>
                                 {formatDate(game.game_date)} {game.game_format ? `- ${game.game_format}` : ""}
                               </SelectItem>
-                            ))}
+                          )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -389,8 +389,8 @@ export default function FiveFivePage() {
                   </CardHeader>
                 </Card>
 
-                {loadingData ? (
-                  <Card className="shadow-lg">
+                {loadingData ?
+              <Card className="shadow-lg">
                     <CardContent className="p-6">
                       <div className="space-y-4">
                         <Skeleton className="h-8 w-full rounded-lg" />
@@ -398,29 +398,29 @@ export default function FiveFivePage() {
                         <Skeleton className="h-8 w-full rounded-lg" />
                       </div>
                     </CardContent>
-                  </Card>
-                ) : participants.length === 0 ? (
-                  <Alert className="border-amber-200 bg-amber-50  ">
+                  </Card> :
+              participants.length === 0 ?
+              <Alert className="border-amber-200 bg-amber-50  ">
                     <AlertDescription className="text-amber-900 ">
                       Tiada peserta FiveFive untuk game ini.
                     </AlertDescription>
-                  </Alert>
-                ) : (
-                  <>
+                  </Alert> :
+
+              <>
                     {/* MOBILE VIEW - Card Based Layout */}
                     <div className="md:hidden space-y-4">
                       {participants.map((participant, index) => {
-                        const isExpanded = expandedCards.has(participant.member_id);
-                        return (
-                          <Card 
-                            key={participant.member_id}
-                            className="shadow-lg border-2 border-sky-200 overflow-hidden"
-                          >
+                    const isExpanded = expandedCards.has(participant.member_id);
+                    return (
+                      <Card
+                        key={participant.member_id}
+                        className="shadow-lg border-2 border-sky-200 overflow-hidden">
+                        
                             {/* Card Header - Always Visible */}
-                            <div 
-                              className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 cursor-pointer hover:bg-sky-100 transition-colors"
-                              onClick={() => toggleCard(participant.member_id)}
-                            >
+                            <div
+                          className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 cursor-pointer hover:bg-sky-100 transition-colors"
+                          onClick={() => toggleCard(participant.member_id)}>
+                          
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
@@ -432,8 +432,8 @@ export default function FiveFivePage() {
                                     </h3>
                                   </div>
 
-                                  {participant.handicap > 0 && (
-                                    <p className="text-xs text-sky-700 mb-2">
+                                  {participant.handicap > 0 &&
+                              <p className="text-xs text-sky-700 mb-2">
                                       Handicap:{" "}
                                       <span className="font-semibold">
                                         {participant.handicap}
@@ -444,47 +444,47 @@ export default function FiveFivePage() {
                                       </span>{" "}
                                       / game)
                                     </p>
-                                  )}
+                              }
 
                                   <div className="flex items-center gap-2">
-                                    <DollarSign className="w-5 h-5 text-yellow-600" />
+                                    
                                     <span className="text-2xl font-bold text-yellow-700 ">
                                       {formatCurrency(participant.total_prize)}
                                     </span>
                                   </div>
                                 </div>
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="shrink-0 text-sky-600"
-                                >
-                                  {isExpanded ? (
-                                    <ChevronUp className="w-6 h-6" />
-                                  ) : (
-                                    <ChevronDown className="w-6 h-6" />
-                                  )}
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0 text-sky-600">
+                              
+                                  {isExpanded ?
+                              <ChevronUp className="w-6 h-6" /> :
+
+                              <ChevronDown className="w-6 h-6" />
+                              }
                                 </Button>
                               </div>
                             </div>
 
                             {/* Expandable Game Details */}
-                            {isExpanded && (
-                              <CardContent className="p-4 space-y-3 bg-white">
+                            {isExpanded &&
+                        <CardContent className="p-4 space-y-3 bg-white">
                                 {[1, 2, 3, 4, 5].map((gameNum) => {
-                                  const rawKey = `raw_game${gameNum}_score` as keyof FiveFiveParticipant;
-                                  const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
-                                  const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
-                                  const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
-                                  
-                                  const rawScore = participant[rawKey] as number;
-                                  const finalScore = participant[scoreKey] as number;
-                                  const addedHcp = participant.per_game_handicap;
+                            const rawKey = `raw_game${gameNum}_score` as keyof FiveFiveParticipant;
+                            const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
+                            const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
+                            const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
 
-                                  return (
-                                    <div
-                                      key={gameNum}
-                                      className={`p-3 rounded-lg border-2 bg-gradient-to-r ${getGameGradient(gameNum)} ${getGameBorder(gameNum)}`}
-                                    >
+                            const rawScore = participant[rawKey] as number;
+                            const finalScore = participant[scoreKey] as number;
+                            const addedHcp = participant.per_game_handicap;
+
+                            return (
+                              <div
+                                key={gameNum}
+                                className={`p-3 rounded-lg border-2 bg-gradient-to-r ${getGameGradient(gameNum)} ${getGameBorder(gameNum)}`}>
+                                
                                       <div className="flex items-center justify-between mb-2">
                                         <Badge className={getGameBadgeColor(gameNum)}>
                                           🎯 Game {gameNum}
@@ -524,19 +524,19 @@ export default function FiveFivePage() {
                                           Prize
                                         </p>
                                         <p className="text-sm font-bold text-emerald-600">
-                                          {(participant[prizeKey] as number) > 0
-                                            ? formatCurrency(participant[prizeKey] as number)
-                                            : "-"}
+                                          {participant[prizeKey] as number > 0 ?
+                                    formatCurrency(participant[prizeKey] as number) :
+                                    "-"}
                                         </p>
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    </div>);
+
+                          })}
                               </CardContent>
-                            )}
-                          </Card>
-                        );
-                      })}
+                        }
+                          </Card>);
+
+                  })}
                     </div>
 
                     {/* DESKTOP VIEW - Table Layout */}
@@ -547,11 +547,11 @@ export default function FiveFivePage() {
                             <Award className="w-5 h-5" />
                             Keputusan FiveFive - Prize Per Game
                           </span>
-                          {selectedGame && (
-                            <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30 hover:bg-white/30">
+                          {selectedGame &&
+                      <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30 hover:bg-white/30">
                               {formatDate(selectedGame.game_date)}
                             </Badge>
-                          )}
+                      }
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-0 bg-white">
@@ -609,47 +609,47 @@ export default function FiveFivePage() {
                               <TableRow className="bg-sky-50/50">
                                 <TableHead className="sticky left-0 bg-sky-50 z-10"></TableHead>
                                 
-                                {[1, 2, 3, 4, 5].map((gameNum) => (
-                                  <>
+                                {[1, 2, 3, 4, 5].map((gameNum) =>
+                            <>
                                     <TableHead className="text-center text-xs font-semibold text-sky-600 border-l border-sky-200">Rank</TableHead>
                                     <TableHead className="text-center text-xs font-semibold text-sky-600">Score</TableHead>
                                     <TableHead className="text-right text-xs font-semibold text-sky-600">Prize</TableHead>
                                   </>
-                                ))}
+                            )}
                                 
                                 <TableHead className="sticky right-0 bg-yellow-50 z-10 border-l-2 border-yellow-300 "></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {participants.map((participant, index) => (
-                                <TableRow
-                                  key={participant.member_id}
-                                  className={`
+                              {participants.map((participant, index) =>
+                          <TableRow
+                            key={participant.member_id}
+                            className={`
                                     ${index % 2 === 0 ? "bg-white " : "bg-sky-50/30 "}
                                     hover:bg-blue-50 transition-all duration-200 border-b border-sky-200
-                                  `}
-                                >
+                                  `}>
+                            
                                   <TableCell className="font-semibold text-sky-900 sticky left-0 bg-inherit z-10 shadow-sm border-r border-sky-100">
                                     <div className="flex flex-col gap-0.5">
                                       <div className="flex items-center gap-2">
                                         <span className="text-sky-400 text-sm">#{index + 1}</span>
                                         <span>{participant.username}</span>
                                       </div>
-                                      {participant.handicap > 0 && (
-                                        <span className="text-[11px] text-sky-600">
+                                      {participant.handicap > 0 &&
+                                <span className="text-[11px] text-sky-600">
                                           HC: {participant.handicap} (+{participant.per_game_handicap}/gm)
                                         </span>
-                                      )}
+                                }
                                     </div>
                                   </TableCell>
 
                                   {[1, 2, 3, 4, 5].map((gameNum) => {
-                                    const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
-                                    const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
-                                    const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
-                                    
-                                    return (
-                                      <>
+                              const scoreKey = `game${gameNum}_score` as keyof FiveFiveParticipant;
+                              const rankKey = `game${gameNum}_rank` as keyof FiveFiveParticipant;
+                              const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
+
+                              return (
+                                <>
                                         <TableCell className="text-center text-lg border-l border-sky-200 bg-white/50">
                                           {getRankDisplay(participant[rankKey] as number)}
                                         </TableCell>
@@ -657,29 +657,29 @@ export default function FiveFivePage() {
                                           {participant[scoreKey]}
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums bg-white/50">
-                                          {(participant[prizeKey] as number) > 0 ? (
-                                            <span className="text-emerald-600 font-semibold">
+                                          {participant[prizeKey] as number > 0 ?
+                                    <span className="text-emerald-600 font-semibold">
                                               {formatCurrency(participant[prizeKey] as number)}
-                                            </span>
-                                          ) : (
-                                            <span className="text-gray-300 ">-</span>
-                                          )}
+                                            </span> :
+
+                                    <span className="text-gray-300 ">-</span>
+                                    }
                                         </TableCell>
-                                      </>
-                                    );
-                                  })}
+                                      </>);
+
+                            })}
 
                                   <TableCell className="text-right font-bold tabular-nums bg-gradient-to-r from-yellow-50 to-yellow-100 sticky right-0 z-10 shadow-lg border-l-2 border-yellow-300">
-                                    {participant.total_prize > 0 ? (
-                                      <span className="text-yellow-700 text-lg">
+                                    {participant.total_prize > 0 ?
+                              <span className="text-yellow-700 text-lg">
                                         {formatCurrency(participant.total_prize)}
-                                      </span>
-                                    ) : (
-                                      <span className="text-gray-400 ">-</span>
-                                    )}
+                                      </span> :
+
+                              <span className="text-gray-400 ">-</span>
+                              }
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                          )}
                             </TableBody>
                           </Table>
                         </div>
@@ -687,8 +687,8 @@ export default function FiveFivePage() {
                     </Card>
 
                     {/* Summary Card */}
-                    {participants.length > 0 && (
-                      <Card className="shadow-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-sky-50 to-blue-50">
+                    {participants.length > 0 &&
+                <Card className="shadow-xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-sky-50 to-blue-50">
                         <CardContent className="p-6">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/60 shadow-md">
@@ -716,14 +716,14 @@ export default function FiveFivePage() {
                           </div>
                         </CardContent>
                       </Card>
-                    )}
+                }
                   </>
-                )}
+              }
               </div>
-            )}
+            }
           </main>
         </div>
       </>
-    </MemberLayout>
-  );
+    </MemberLayout>);
+
 }
