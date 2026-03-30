@@ -1086,6 +1086,5 @@ export default function BlokPage() {
               </div>
           </>
       </MemberLayout>
-    </PageAccessGuard>);
-
+  );
 }
