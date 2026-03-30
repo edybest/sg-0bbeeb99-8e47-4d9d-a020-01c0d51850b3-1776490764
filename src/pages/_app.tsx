@@ -9,6 +9,7 @@ import { SplashScreen } from "@/components/pwa/SplashScreen";
 import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { useRouter } from "next/router";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -111,9 +112,18 @@ export default function App({ Component, pageProps }: AppProps) {
 
         {splashComplete && (
           <div className="min-h-screen flex flex-col">
-            <div className="flex-1">
-              <Component {...pageProps} />
-            </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={router.asPath}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="flex-1 flex flex-col"
+              >
+                <Component {...pageProps} />
+              </motion.div>
+            </AnimatePresence>
             {!shouldHideFooter && <SiteFooter />}
           </div>
         )}
