@@ -600,7 +600,7 @@ export default function FiveFivePage() {
                                 {/* Total */}
                                 <TableHead className="font-bold text-center bg-gradient-to-r from-yellow-100 to-yellow-200 border-l-2 border-yellow-300 sticky right-0 z-10 shadow-md min-w-[120px]">
                                   <div className="flex items-center justify-center gap-2 py-1">
-                                    <DollarSign className="w-4 h-4 text-yellow-700 " />
+                                    
                                     <span className="text-yellow-800 ">Total Prize</span>
                                   </div>
                                 </TableHead>
