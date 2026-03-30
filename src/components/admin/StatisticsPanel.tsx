@@ -43,27 +43,26 @@ export function StatisticsPanel() {
     try {
       setLoading(true);
 
-      const [membersResult, gamesResult, scoresResult, recentGamesResult] = await Promise.all([
-        supabase.from("members").select("id, is_active"),
+      const [membersResult, gamesResult, gamePlayersResult, recentGamesResult] = await Promise.all([
+        supabase.from("members").select("id, full_name"),
         supabase.from("games").select("id, game_name, game_date"),
-        supabase.from("scores").select("score, member_id, members(full_name)"),
+        supabase.from("game_players").select("id, overall_score, member_id, members(full_name)"),
         supabase.from("games").select("id, game_name, game_date").order("game_date", { ascending: false }).limit(5)
       ]);
 
       const members = membersResult.data || [];
       const games = gamesResult.data || [];
-      const scores = scoresResult.data || [];
+      const gamePlayers = gamePlayersResult.data || [];
       const recentGames = recentGamesResult.data || [];
 
-      const activeMembers = members.filter(m => m.is_active).length;
-      const totalScores = scores.length;
+      const totalScores = gamePlayers.length;
       const averageScore = totalScores > 0 
-        ? Math.round(scores.reduce((sum, s) => sum + (s.score || 0), 0) / totalScores)
+        ? Math.round(gamePlayers.reduce((sum, gp) => sum + (gp.overall_score || 0), 0) / totalScores)
         : 0;
 
-      const highestScoreData = scores.reduce((max, current) => 
-        (current.score || 0) > (max.score || 0) ? current : max
-      , { score: 0, members: { full_name: "-" } });
+      const highestScoreData = gamePlayers.reduce((max, current) => 
+        (current.overall_score || 0) > (max.overall_score || 0) ? current : max
+      , { overall_score: 0, members: { full_name: "-" } });
 
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
@@ -75,7 +74,7 @@ export function StatisticsPanel() {
       const recentGamesWithCount = await Promise.all(
         recentGames.map(async (game) => {
           const { count } = await supabase
-            .from("scores")
+            .from("game_players")
             .select("*", { count: "exact", head: true })
             .eq("game_id", game.id);
           
@@ -90,11 +89,11 @@ export function StatisticsPanel() {
 
       setStats({
         totalMembers: members.length,
-        activeMembers,
+        activeMembers: members.length,
         totalGames: games.length,
         totalScores,
         averageScore,
-        highestScore: highestScoreData.score || 0,
+        highestScore: highestScoreData.overall_score || 0,
         highestScoreMember: (highestScoreData.members as any)?.full_name || "-",
         gamesThisMonth,
         recentGames: recentGamesWithCount
@@ -127,7 +126,7 @@ export function StatisticsPanel() {
     {
       title: "Jumlah Ahli",
       value: stats.totalMembers,
-      subtitle: `${stats.activeMembers} aktif`,
+      subtitle: `${stats.activeMembers} ahli berdaftar`,
       icon: Users,
       color: "text-sky-600",
       bgColor: "bg-sky-50"
@@ -143,7 +142,7 @@ export function StatisticsPanel() {
     {
       title: "Purata Skor",
       value: stats.averageScore,
-      subtitle: `Dari ${stats.totalScores} skor`,
+      subtitle: `Dari ${stats.totalScores} rekod`,
       icon: TrendingUp,
       color: "text-violet-600",
       bgColor: "bg-violet-50"
