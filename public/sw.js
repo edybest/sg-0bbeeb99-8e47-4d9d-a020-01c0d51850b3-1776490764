@@ -1,7 +1,7 @@
 // Service Worker for AMBC Club PWA
-// Enhanced caching strategy for Next.js app with offline support
+// Advanced caching strategy: Stale-While-Revalidate for assets, Network-First for HTML
 
-const CACHE_VERSION = "ambc-club-v2";
+const CACHE_VERSION = "ambc-club-v3";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -10,15 +10,15 @@ const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const STATIC_ASSETS = [
   "/",
   "/login",
-  "/member",
   "/ambc-logo.png",
   "/manifest.json",
-  "/favicon.ico"
+  "/favicon.ico",
+  "/bowling-pattern.svg"
 ];
 
 // Install event - pre-cache critical assets
 self.addEventListener("install", (event) => {
-  console.log("[SW] Installing service worker...");
+  console.log("[SW] Installing service worker v3...");
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log("[SW] Pre-caching static assets");
@@ -36,7 +36,10 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName.startsWith("ambc-club-") && cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE && cacheName !== IMAGE_CACHE) {
+          if (cacheName.startsWith("ambc-club-") && 
+              cacheName !== STATIC_CACHE && 
+              cacheName !== DYNAMIC_CACHE && 
+              cacheName !== IMAGE_CACHE) {
             console.log("[SW] Deleting old cache:", cacheName);
             return caches.delete(cacheName);
           }
@@ -48,7 +51,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Fetch event - serve from cache with network fallback
+// Fetch event - handle different strategies based on request type
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -58,70 +61,70 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Skip cross-origin requests and chrome-extension
+  // Skip cross-origin requests (e.g., Supabase API, external fonts)
   if (url.origin !== location.origin) {
     return;
   }
 
-  // API routes - network first, cache fallback
+  // 1. API routes - Network Only (don't cache sensitive data)
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Don't cache API responses for now (can be enhanced later)
-          return response;
-        })
-        .catch(() => {
-          return new Response(
-            JSON.stringify({ error: "Offline - API not available" }),
-            { status: 503, headers: { "Content-Type": "application/json" } }
-          );
-        })
+      fetch(request).catch(() => {
+        return new Response(
+          JSON.stringify({ error: "Offline - API not available" }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      })
     );
     return;
   }
 
-  // Images - cache first, network fallback
+  // 2. Images - Stale-While-Revalidate
+  // Return cached image instantly, then update cache in background
   if (request.destination === "image") {
     event.respondWith(
-      caches.open(IMAGE_CACHE).then((cache) => {
-        return cache.match(request).then((cached) => {
-          if (cached) {
-            return cached;
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            caches.open(IMAGE_CACHE).then((cache) => {
+              cache.put(request, networkResponse.clone());
+            });
           }
-          return fetch(request).then((response) => {
-            if (response.ok) {
-              cache.put(request, response.clone());
-            }
-            return response;
-          });
+          return networkResponse;
+        }).catch(() => {
+          // If network fails and no cache, return empty response (broken image icon)
+          return cachedResponse;
         });
+
+        // Return cached immediately if exists, else wait for network
+        return cachedResponse || fetchPromise;
       })
     );
     return;
   }
 
-  // Next.js static assets (_next/*) - cache first
+  // 3. Next.js static assets (_next/*) - Stale-While-Revalidate
   if (url.pathname.startsWith("/_next/")) {
     event.respondWith(
-      caches.open(STATIC_CACHE).then((cache) => {
-        return cache.match(request).then((cached) => {
-          if (cached) {
-            return cached;
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            caches.open(STATIC_CACHE).then((cache) => {
+              cache.put(request, networkResponse.clone());
+            });
           }
-          return fetch(request).then((response) => {
-            if (response.ok) {
-              cache.put(request, response.clone());
-            }
-            return response;
-          });
+          return networkResponse;
+        }).catch(() => {
+          return cachedResponse;
         });
+
+        return cachedResponse || fetchPromise;
       })
     );
     return;
   }
 
-  // HTML pages - network first, cache fallback
+  // 4. HTML pages & Navigations - Network First, fallback to Cache
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
       fetch(request)
@@ -141,12 +144,12 @@ self.addEventListener("fetch", (event) => {
             if (cached) {
               return cached;
             }
-            // Last resort - serve offline page or root
+            // Last resort offline page
             return caches.match("/").then(rootCached => {
-              return rootCached || new Response('<html><body><h2>App is currently offline. Please check your connection.</h2></body></html>', { 
-                status: 503, 
-                headers: { 'Content-Type': 'text/html' }
-              });
+              return rootCached || new Response(
+                '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f0f9ff;color:#0369a1;text-align:center;padding:20px;}</style></head><body><h2>🔴 Aplikasi Offline</h2><p>Tiada sambungan internet. Sila semak capaian data/Wi-Fi anda dan cuba sebentar lagi.</p></body></html>', 
+                { status: 503, headers: { 'Content-Type': 'text/html' } }
+              );
             });
           });
         })
@@ -154,7 +157,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Default - try network, fallback to cache
+  // 5. Default - Network First
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -167,12 +170,7 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(request).then((cached) => {
-          return cached || new Response('{"error": "Offline and no cache available"}', { 
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        });
+        return caches.match(request);
       })
   );
 });
@@ -244,30 +242,9 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Background Sync (for future offline support)
-self.addEventListener("sync", (event) => {
-  console.log("[SW] Background sync:", event.tag);
-  if (event.tag === "sync-notifications") {
-    event.waitUntil(
-      // Future: sync offline actions when back online
-      Promise.resolve()
-    );
-  }
-});
-
 // Message handler (for communication with main thread)
 self.addEventListener("message", (event) => {
-  console.log("[SW] Message received:", event.data);
-  
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === "CACHE_URLS") {
-    event.waitUntil(
-      caches.open(DYNAMIC_CACHE).then((cache) => {
-        return cache.addAll(event.data.urls || []);
-      })
-    );
   }
 });
