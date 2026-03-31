@@ -404,7 +404,7 @@ export function ScoreManagement() {
     setShowRawText(false);
   }
 
-  function handleParseImage() {
+  async function handleParseImage() {
     if (!uploadedImage) return;
 
     setParsing(true);
@@ -414,12 +414,12 @@ export function ScoreManagement() {
       formData.append("image", uploadedImage);
       formData.append("members", JSON.stringify(allMembers));
 
-      const response = fetch("/api/parse-score-image", {
+      const response = await fetch("/api/parse-score-image", {
         method: "POST",
         body: formData,
       });
 
-      const data = response.json();
+      const data = await response.json();
 
       if (!response.ok || !data.success) {
         setOcrResult({
@@ -709,6 +709,21 @@ export function ScoreManagement() {
 
   async function handleApplyAllScores() {
     return handleApplyAllCsvScores();
+  }
+
+  async function handleApplyAllCsvScores() {
+    const highConfidenceScores = csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
+    
+    if (highConfidenceScores.length === 0) {
+      alert("Tiada skor dengan confidence tinggi (≥80%) untuk diaplikasikan");
+      return;
+    }
+
+    for (const score of highConfidenceScores) {
+      await handleApplyCsvScore(score);
+    }
+
+    alert(`${highConfidenceScores.length} skor telah berjaya diaplikasikan!`);
   }
 
   function resetCsvUpload() {
