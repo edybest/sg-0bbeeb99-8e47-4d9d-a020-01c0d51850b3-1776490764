@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +32,7 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
     member_id: string;
     member_name: string;
     is_fivefive: boolean;
+    clean_game?: boolean;
     username?: string;
     full_name?: string;
   }>;
@@ -229,6 +231,30 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: "Gagal mengemaskini status Five-Five",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleCleanGame = async (playerId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("game_players")
+        .update({ clean_game: !currentStatus })
+        .eq("id", playerId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: `Status Clean Game telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
+      loadGames();
+    } catch (error) {
+      console.error("Error updating Clean Game status:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini status Clean Game",
         variant: "destructive",
       });
     }
@@ -574,6 +600,7 @@ export function GameManagement() {
                                 >
                                   {player.username || "Unknown"}
                                   {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
                                 </Badge>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent className="w-56">
@@ -589,6 +616,15 @@ export function GameManagement() {
                                   {player.is_fivefive
                                     ? "Nyahaktifkan Five-Five"
                                     : "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleToggleCleanGame(player.id, !!player.clean_game)
+                                  }
+                                >
+                                  {player.clean_game
+                                    ? "Nyahaktifkan Clean Game"
+                                    : "Tandakan sebagai Clean Game"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
