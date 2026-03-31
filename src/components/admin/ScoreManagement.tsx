@@ -404,6 +404,75 @@ export function ScoreManagement() {
     setShowRawText(false);
   }
 
+  function handleParseImage() {
+    if (!uploadedImage) return;
+
+    setParsing(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("image", uploadedImage);
+      formData.append("members", JSON.stringify(allMembers));
+
+      const response = fetch("/api/parse-score-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = response.json();
+
+      if (!response.ok || !data.success) {
+        setOcrResult({
+          success: false,
+          error: data.error || "Failed to parse image"
+        });
+        return;
+      }
+
+      setOcrResult(data);
+      
+      if (data.scores && data.scores.length > 0) {
+        const scoresWithMatches = data.scores.map((score: any) => {
+          const match = findBestMemberMatch(score.name);
+          return {
+            ...score,
+            matchedMember: match?.member,
+            matchConfidence: match?.confidence
+          };
+        });
+        setParsedScores(scoresWithMatches);
+      } else {
+        setParsedScores([]);
+      }
+      
+    } catch (error) {
+      console.error("Error parsing image:", error);
+      setOcrResult({
+        success: false,
+        error: "Failed to parse image file"
+      });
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  function retryWithNewImage() {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setOcrResult(null);
+    setParsedScores([]);
+    setShowRawText(false);
+  }
+
+  function resetUpload() {
+    setUploadedImage(null);
+    setImagePreview(null);
+    setOcrResult(null);
+    setParsedScores([]);
+    setShowRawText(false);
+    setShowUploadModal(false);
+  }
+
   function fuzzyMatch(str1: string, str2: string): number {
     const s1 = str1.toLowerCase().trim();
     const s2 = str2.toLowerCase().trim();
@@ -634,108 +703,12 @@ export function ScoreManagement() {
     }, 100);
   }
 
-  async function handleApplyAllCsvScores() {
-    const highConfidenceScores = csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
-    
-    if (highConfidenceScores.length === 0) {
-      alert("No scores with high confidence (≥80%) to apply automatically.");
-      return;
-    }
+  async function handleApplyParsedScore(parsedScore: ParsedScore) {
+    return handleApplyCsvScore(parsedScore);
+  }
 
-    let targetGameId = selectedGameId;
-    const firstDate = highConfidenceScores.find(s => s.date)?.date;
-
-    if (firstDate) {
-      const existingGame = games.find(g => g.game_date === firstDate);
-      if (existingGame) {
-        targetGameId = existingGame.id;
-        setSelectedGameId(targetGameId);
-      } else {
-        try {
-          const newGame = await gameService.createGame({
-            game_name: "10 PIN",
-            game_type: "BLOK",
-            game_date: firstDate,
-            year: new Date(firstDate).getFullYear()
-          });
-          targetGameId = newGame.id;
-          
-          const updatedGames = await gameService.getAllGames();
-          setGames(updatedGames as unknown as Game[]);
-          setSelectedGameId(targetGameId);
-        } catch (err) {
-          console.error("Failed to create game:", err);
-          alert("Gagal mencipta permainan baru untuk tarikh " + firstDate);
-          return;
-        }
-      }
-    }
-
-    if (!targetGameId) {
-      alert("Sila pilih perlawanan (game) terlebih dahulu atau pastikan CSV mempunyai lajur date.");
-      return;
-    }
-
-    let currentPlayers = targetGameId === selectedGameId ? players : [];
-    if (targetGameId !== selectedGameId) {
-      const data = await gameService.getGamePlayers(targetGameId);
-      currentPlayers = data as unknown as GamePlayer[];
-    }
-
-    const missingScores = highConfidenceScores.filter(s => !currentPlayers.some(p => p.member_id === s.matchedMember!.id));
-
-    if (missingScores.length > 0) {
-      try {
-         for (const score of missingScores) {
-           await gameService.addPlayerToGame(targetGameId, score.matchedMember!.id, !!score.fivefive);
-         }
-         const updatedPlayers = await gameService.getGamePlayers(targetGameId);
-         currentPlayers = updatedPlayers as unknown as GamePlayer[];
-      } catch (err) {
-         console.error(err);
-         alert("Gagal menambah pemain baru ke dalam perlawanan.");
-         return;
-      }
-    }
-    
-    if (targetGameId !== selectedGameId || missingScores.length > 0) {
-      setPlayers(currentPlayers);
-      setFilteredPlayers(currentPlayers);
-    }
-    
-    for (const score of highConfidenceScores) {
-       const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
-       if (player && score.fivefive) {
-           await gameService.updatePlayerFiveFiveStatus(player.id, true);
-       }
-    }
-
-    setEditingScores(prev => {
-      const next = targetGameId === selectedGameId ? { ...prev } : {};
-      highConfidenceScores.forEach(score => {
-        const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
-        if (!player) return;
-
-        const updated = { ...(next[player.id] || player) };
-        if (score.scores.game1 !== undefined) updated.game1_score = score.scores.game1;
-        if (score.scores.game2 !== undefined) updated.game2_score = score.scores.game2;
-        if (score.scores.game3 !== undefined) updated.game3_score = score.scores.game3;
-        if (score.scores.game4 !== undefined) updated.game4_score = score.scores.game4;
-        if (score.scores.game5 !== undefined) updated.game5_score = score.scores.game5;
-        if (score.handicap !== undefined) updated.handicap = score.handicap;
-
-        const total = updated.game1_score + updated.game2_score + updated.game3_score + 
-                      updated.game4_score + updated.game5_score;
-        updated.total_score = total;
-        updated.overall_score = total + updated.handicap;
-
-        next[player.id] = updated;
-      });
-      return next;
-    });
-    
-    setShowCsvModal(false);
-    alert(`${highConfidenceScores.length} skor telah diisi. Sila semak jadual dan klik Save All.`);
+  async function handleApplyAllScores() {
+    return handleApplyAllCsvScores();
   }
 
   function resetCsvUpload() {
