@@ -4,8 +4,10 @@ import { memberService } from "@/services/memberService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText } from "lucide-react";
 import Image from "next/image";
+import { supabase } from "@/integrations/supabase/client";
 
 type GamePlayer = {
   id: string;
@@ -93,6 +95,14 @@ export function ScoreManagement() {
   const [csvParsing, setCsvParsing] = useState(false);
   const [csvParsedScores, setCsvParsedScores] = useState<ParsedScore[]>([]);
 
+  const [cleanGameWinners, setCleanGameWinners] = useState<{
+    game1: string[];
+    game2: string[];
+    game3: string[];
+    game4: string[];
+    game5: string[];
+  }>({ game1: [], game2: [], game3: [], game4: [], game5: [] });
+
   useEffect(() => {
     loadGames();
     loadAllMembers();
@@ -154,10 +164,35 @@ export function ScoreManagement() {
       setFilteredPlayers(sortedData);
       setSortField("rank");
       setSortDirection("asc");
+      
+      await loadCleanGameWinners(gameId);
     } catch (error) {
       console.error("Error loading players:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadCleanGameWinners(gameId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("games")
+        .select("clean_game_data")
+        .eq("id", gameId)
+        .single();
+
+      if (error) throw error;
+
+      const cleanGameData = data?.clean_game_data as any;
+      setCleanGameWinners({
+        game1: cleanGameData?.game1 || [],
+        game2: cleanGameData?.game2 || [],
+        game3: cleanGameData?.game3 || [],
+        game4: cleanGameData?.game4 || [],
+        game5: cleanGameData?.game5 || [],
+      });
+    } catch (error) {
+      console.error("Error loading clean game winners:", error);
     }
   }
 
@@ -309,6 +344,35 @@ export function ScoreManagement() {
     }
   }
 
+  async function handleToggleCleanGameWinner(memberId: string, gameNumber: 1 | 2 | 3 | 4 | 5) {
+    const gameKey = `game${gameNumber}` as keyof typeof cleanGameWinners;
+    const currentWinners = cleanGameWinners[gameKey];
+    const isWinner = currentWinners.includes(memberId);
+
+    const updatedWinners = isWinner
+      ? currentWinners.filter(id => id !== memberId)
+      : [...currentWinners, memberId];
+
+    const newCleanGameData = {
+      ...cleanGameWinners,
+      [gameKey]: updatedWinners
+    };
+
+    try {
+      const { error } = await supabase
+        .from("games")
+        .update({ clean_game_data: newCleanGameData })
+        .eq("id", selectedGameId);
+
+      if (error) throw error;
+
+      setCleanGameWinners(newCleanGameData);
+    } catch (error) {
+      console.error("Error updating clean game winner:", error);
+      alert("Gagal mengemaskini pemenang clean game");
+    }
+  }
+
   function getPlayerScore(player: GamePlayer, field: keyof GamePlayer): number {
     const editing = editingScores[player.id];
     if (editing && field in editing) {
@@ -379,185 +443,6 @@ export function ScoreManagement() {
     }
 
     return bestMatch ? { member: bestMatch, confidence: bestScore } : null;
-  }
-
-  async function handleParseImage() {
-    if (!uploadedImage) return;
-
-    setParsing(true);
-    setOcrResult(null);
-    setParsedScores([]);
-    
-    try {
-      const formData = new FormData();
-      formData.append("image", uploadedImage);
-
-      const response = await fetch("/api/parse-score-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        setOcrResult({
-          success: false,
-          error: data.error || "Failed to parse image"
-        });
-        return;
-      }
-
-      setOcrResult(data);
-      
-      // Match parsed names with members
-      const matchedScores: ParsedScore[] = (data.scores || []).map((score: ParsedScore) => {
-        const match = findBestMemberMatch(score.name);
-        return {
-          ...score,
-          matchedMember: match?.member,
-          matchConfidence: match?.confidence,
-        };
-      });
-
-      setParsedScores(matchedScores);
-      
-      // Auto-show raw text if no scores detected or low confidence
-      if (matchedScores.length === 0 || (data.confidence && data.confidence < 70)) {
-        setShowRawText(true);
-      }
-      
-    } catch (error) {
-      console.error("Error parsing image:", error);
-      setOcrResult({
-        success: false,
-        error: "Gagal memproses gambar. Sila cuba lagi."
-      });
-    } finally {
-      setParsing(false);
-    }
-  }
-
-  async function handleApplyParsedScore(parsedScore: ParsedScore) {
-    if (!parsedScore.matchedMember) return;
-
-    let player = players.find(p => p.member_id === parsedScore.matchedMember!.id);
-    let currentPlayers = players;
-
-    if (!player) {
-      try {
-        await gameService.addPlayerToGame(selectedGameId, parsedScore.matchedMember!.id);
-        const updatedData = await gameService.getGamePlayers(selectedGameId);
-        currentPlayers = updatedData as unknown as GamePlayer[];
-        setPlayers(currentPlayers);
-        setFilteredPlayers(currentPlayers);
-        player = currentPlayers.find(p => p.member_id === parsedScore.matchedMember!.id);
-      } catch (err) {
-        console.error(err);
-        alert("Gagal menambah pemain baru ke dalam perlawanan");
-        return;
-      }
-    }
-
-    if (!player) return;
-
-    setEditingScores(prev => {
-      const updated = { ...(prev[player.id] || player) };
-      if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
-      if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
-      if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
-      if (parsedScore.scores.game4 !== undefined) updated.game4_score = parsedScore.scores.game4;
-      if (parsedScore.scores.game5 !== undefined) updated.game5_score = parsedScore.scores.game5;
-      if (parsedScore.handicap !== undefined) updated.handicap = parsedScore.handicap;
-
-      const total = updated.game1_score + updated.game2_score + updated.game3_score + 
-                    updated.game4_score + updated.game5_score;
-      updated.total_score = total;
-      updated.overall_score = total + updated.handicap;
-
-      return { ...prev, [player.id]: updated };
-    });
-
-    // Scroll to player
-    const playerElement = document.getElementById(`player-${player.id}`);
-    if (playerElement) {
-      playerElement.scrollIntoView({ behavior: "smooth", block: "center" });
-      playerElement.classList.add("ring-4", "ring-green-500", "ring-opacity-50");
-      setTimeout(() => {
-        playerElement.classList.remove("ring-4", "ring-green-500", "ring-opacity-50");
-      }, 2000);
-    }
-  }
-
-  async function handleApplyAllScores() {
-    const highConfidenceScores = parsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80);
-    
-    if (highConfidenceScores.length === 0) {
-      alert("Tiada score dengan confidence tinggi (≥80%) untuk apply automatically.");
-      return;
-    }
-
-    const missingScores = highConfidenceScores.filter(s => !players.some(p => p.member_id === s.matchedMember!.id));
-    let currentPlayers = players;
-
-    if (missingScores.length > 0) {
-      try {
-         for (const score of missingScores) {
-           await gameService.addPlayerToGame(selectedGameId, score.matchedMember!.id);
-         }
-         const updatedPlayers = await gameService.getGamePlayers(selectedGameId);
-         currentPlayers = updatedPlayers as unknown as GamePlayer[];
-         setPlayers(currentPlayers);
-         setFilteredPlayers(currentPlayers);
-      } catch (err) {
-         console.error(err);
-         alert("Gagal menambah pemain baru ke dalam perlawanan.");
-         return;
-      }
-    }
-    
-    setEditingScores(prev => {
-      const next = { ...prev };
-      highConfidenceScores.forEach(score => {
-        const player = currentPlayers.find(p => p.member_id === score.matchedMember!.id);
-        if (!player) return;
-
-        const updated = { ...(next[player.id] || player) };
-        if (score.scores.game1 !== undefined) updated.game1_score = score.scores.game1;
-        if (score.scores.game2 !== undefined) updated.game2_score = score.scores.game2;
-        if (score.scores.game3 !== undefined) updated.game3_score = score.scores.game3;
-        if (score.scores.game4 !== undefined) updated.game4_score = score.scores.game4;
-        if (score.scores.game5 !== undefined) updated.game5_score = score.scores.game5;
-        if (score.handicap !== undefined) updated.handicap = score.handicap;
-
-        const total = updated.game1_score + updated.game2_score + updated.game3_score + 
-                      updated.game4_score + updated.game5_score;
-        updated.total_score = total;
-        updated.overall_score = total + updated.handicap;
-
-        next[player.id] = updated;
-      });
-      return next;
-    });
-    
-    setShowUploadModal(false);
-    alert(`${highConfidenceScores.length} skor (termasuk pemain baru) telah diisi. Sila semak dan simpan.`);
-  }
-
-  function resetUpload() {
-    setUploadedImage(null);
-    setImagePreview(null);
-    setParsedScores([]);
-    setOcrResult(null);
-    setShowRawText(false);
-    setShowUploadModal(false);
-  }
-
-  function retryWithNewImage() {
-    setUploadedImage(null);
-    setImagePreview(null);
-    setParsedScores([]);
-    setOcrResult(null);
-    setShowRawText(false);
   }
 
   function getConfidenceColor(confidence?: number): string {
@@ -720,7 +605,7 @@ export function ScoreManagement() {
 
     setEditingScores(prev => {
       const next = targetGameId === selectedGameId ? { ...prev } : {};
-      const updated = { ...(next[player!.id] || player!) };
+      const updated = { ...(next[player.id] || player) };
       if (parsedScore.scores.game1 !== undefined) updated.game1_score = parsedScore.scores.game1;
       if (parsedScore.scores.game2 !== undefined) updated.game2_score = parsedScore.scores.game2;
       if (parsedScore.scores.game3 !== undefined) updated.game3_score = parsedScore.scores.game3;
@@ -733,7 +618,7 @@ export function ScoreManagement() {
       updated.total_score = total;
       updated.overall_score = total + updated.handicap;
 
-      next[player!.id] = updated;
+      next[player.id] = updated;
       return next;
     });
 
@@ -1010,7 +895,7 @@ export function ScoreManagement() {
                           </div>
                           <div className="flex gap-2 mt-4">
                             <Button
-                              onClick={retryWithNewImage}
+                              onClick={() => setShowRawText(true)}
                               size="sm"
                               className="bg-red-600 hover:bg-red-700 text-white"
                             >
@@ -1613,235 +1498,302 @@ Eby,,168,116,153,152,176,18,no</pre>
 
       {/* Scores Table */}
       {selectedGameId && (
-        <Card className="bg-white border-gray-200">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("rank")}
-                        className="flex items-center hover:text-red-600 transition-colors"
-                      >
-                        Rank {getSortIcon("rank")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("username")}
-                        className="flex items-center hover:text-red-600 transition-colors"
-                      >
-                        Player {getSortIcon("username")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("game1_score")}
-                        className="flex items-center justify-center w-full hover:text-blue-600 transition-colors"
-                      >
-                        Game 1 {getSortIcon("game1_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("game2_score")}
-                        className="flex items-center justify-center w-full hover:text-green-600 transition-colors"
-                      >
-                        Game 2 {getSortIcon("game2_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("game3_score")}
-                        className="flex items-center justify-center w-full hover:text-purple-600 transition-colors"
-                      >
-                        Game 3 {getSortIcon("game3_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("game4_score")}
-                        className="flex items-center justify-center w-full hover:text-orange-600 transition-colors"
-                      >
-                        Game 4 {getSortIcon("game4_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("game5_score")}
-                        className="flex items-center justify-center w-full hover:text-pink-600 transition-colors"
-                      >
-                        Game 5 {getSortIcon("game5_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("handicap")}
-                        className="flex items-center justify-center w-full hover:text-yellow-600 transition-colors"
-                      >
-                        Handicap {getSortIcon("handicap")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("total_score")}
-                        className="flex items-center justify-center w-full hover:text-gray-900 transition-colors"
-                      >
-                        Total {getSortIcon("total_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      <button
-                        onClick={() => handleSort("overall_score")}
-                        className="flex items-center justify-center w-full hover:text-red-600 transition-colors"
-                      >
-                        Overall {getSortIcon("overall_score")}
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredPlayers.map((player, index) => {
-                    const hasChanges = !!editingScores[player.id];
-                    return (
-                      <tr 
-                        key={player.id}
-                        id={`player-${player.id}`}
-                        className={`transition-all duration-200 ${
-                          hasChanges 
-                            ? 'bg-yellow-50' 
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          <span className={`font-bold ${
-                            index === 0 ? 'text-yellow-500' :
-                            index === 1 ? 'text-gray-400' :
-                            index === 2 ? 'text-orange-600' :
-                            'text-gray-600'
-                          }`}>
-                            #{index + 1}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-3">
-                            {player.members.avatar_url ? (
-                              <Image 
-                                src={player.members.avatar_url} 
-                                alt={player.members.username} 
-                                width={32} 
-                                height={32} 
-                                className="rounded-full"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
-                                {player.members.username[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <div className="text-gray-900 font-medium">{player.members.username}</div>
-                              <div className="text-gray-500 text-xs">{player.members.full_name}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "game1_score")}
-                            onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                            className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "game2_score")}
-                            onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                            className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "game3_score")}
-                            onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                            className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "game4_score")}
-                            onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                            className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "game5_score")}
-                            onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                            className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <Input
-                            type="number"
-                            value={getPlayerScore(player, "handicap")}
-                            onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                            className="w-20 h-9 bg-yellow-50 border border-yellow-300 text-yellow-900 text-center font-semibold focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">
-                          {getPlayerScore(player, "total_score")}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center text-red-600 font-bold">
-                          {getPlayerScore(player, "overall_score")}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right">
-                          {hasChanges && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleSave(player.id)}
-                              disabled={saving === player.id}
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                            >
-                              {saving === player.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Save className="h-4 w-4 mr-1" />
-                                  Save
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <>
+          {/* Clean Game Prize Summary */}
+          <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
+            <CardContent className="p-4">
+              <h3 className="text-lg font-bold text-amber-900 mb-3 flex items-center gap-2">
+                <span className="text-2xl">✨</span>
+                Clean Game Prize Pool
+              </h3>
+              <div className="grid grid-cols-5 gap-3">
+                {[1, 2, 3, 4, 5].map((gameNum) => {
+                  const gameKey = `game${gameNum}` as keyof typeof cleanGameWinners;
+                  const winners = cleanGameWinners[gameKey];
+                  const totalPrize = players.length * 2;
+                  const prizePerWinner = winners.length > 0 ? totalPrize / winners.length : 0;
 
-            {filteredPlayers.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No scores found for this game</p>
-                <p className="text-gray-500 text-sm mt-1">Try selecting a different game or add players first</p>
+                  return (
+                    <div key={gameNum} className="bg-white rounded-lg p-3 border-2 border-yellow-300 text-center">
+                      <div className="text-xs font-semibold text-gray-600 mb-1">Game {gameNum}</div>
+                      <div className="text-lg font-bold text-amber-600">RM{totalPrize}</div>
+                      {winners.length > 0 && (
+                        <>
+                          <div className="text-xs text-gray-500 mt-1">{winners.length} pemenang</div>
+                          <div className="text-sm font-semibold text-green-600">RM{prizePerWinner.toFixed(2)}/org</div>
+                        </>
+                      )}
+                      {winners.length === 0 && (
+                        <div className="text-xs text-gray-400 mt-1">Tiada pemenang</div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-gray-200">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("rank")}
+                          className="flex items-center hover:text-red-600 transition-colors"
+                        >
+                          Rank {getSortIcon("rank")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("username")}
+                          className="flex items-center hover:text-red-600 transition-colors"
+                        >
+                          Player {getSortIcon("username")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("game1_score")}
+                          className="flex items-center justify-center w-full hover:text-blue-600 transition-colors"
+                        >
+                          Game 1 {getSortIcon("game1_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("game2_score")}
+                          className="flex items-center justify-center w-full hover:text-green-600 transition-colors"
+                        >
+                          Game 2 {getSortIcon("game2_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("game3_score")}
+                          className="flex items-center justify-center w-full hover:text-purple-600 transition-colors"
+                        >
+                          Game 3 {getSortIcon("game3_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("game4_score")}
+                          className="flex items-center justify-center w-full hover:text-orange-600 transition-colors"
+                        >
+                          Game 4 {getSortIcon("game4_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("game5_score")}
+                          className="flex items-center justify-center w-full hover:text-pink-600 transition-colors"
+                        >
+                          Game 5 {getSortIcon("game5_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("handicap")}
+                          className="flex items-center justify-center w-full hover:text-yellow-600 transition-colors"
+                        >
+                          Handicap {getSortIcon("handicap")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("total_score")}
+                          className="flex items-center justify-center w-full hover:text-gray-900 transition-colors"
+                        >
+                          Total {getSortIcon("total_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        <button
+                          onClick={() => handleSort("overall_score")}
+                          className="flex items-center justify-center w-full hover:text-red-600 transition-colors"
+                        >
+                          Overall {getSortIcon("overall_score")}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {filteredPlayers.map((player, index) => {
+                      const hasChanges = !!editingScores[player.id];
+                      return (
+                        <tr 
+                          key={player.id}
+                          id={`player-${player.id}`}
+                          className={`transition-all duration-200 ${
+                            hasChanges 
+                              ? 'bg-yellow-50' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <span className={`font-bold ${
+                              index === 0 ? 'text-yellow-500' :
+                              index === 1 ? 'text-gray-400' :
+                              index === 2 ? 'text-orange-600' :
+                              'text-gray-600'
+                            }`}>
+                              #{index + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex items-center gap-3">
+                              {player.members.avatar_url ? (
+                                <Image 
+                                  src={player.members.avatar_url} 
+                                  alt={player.members.username} 
+                                  width={32} 
+                                  height={32} 
+                                  className="rounded-full"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
+                                  {player.members.username[0].toUpperCase()}
+                                </div>
+                              )}
+                              <div>
+                                <div className="text-gray-900 font-medium">{player.members.username}</div>
+                                <div className="text-gray-500 text-xs">{player.members.full_name}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "game1_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
+                              className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <div className="flex items-center justify-center mt-1">
+                              <Checkbox
+                                checked={cleanGameWinners.game1.includes(player.member_id)}
+                                onCheckedChange={() => handleToggleCleanGameWinner(player.member_id, 1)}
+                                className="data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                              />
+                              <span className="ml-1 text-xs text-gray-500">Clean</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "game2_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
+                              className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <div className="flex items-center justify-center mt-1">
+                              <Checkbox
+                                checked={cleanGameWinners.game2.includes(player.member_id)}
+                                onCheckedChange={() => handleToggleCleanGameWinner(player.member_id, 2)}
+                                className="data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                              />
+                              <span className="ml-1 text-xs text-gray-500">Clean</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "game3_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
+                              className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <div className="flex items-center justify-center mt-1">
+                              <Checkbox
+                                checked={cleanGameWinners.game3.includes(player.member_id)}
+                                onCheckedChange={() => handleToggleCleanGameWinner(player.member_id, 3)}
+                                className="data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                              />
+                              <span className="ml-1 text-xs text-gray-500">Clean</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "game4_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
+                              className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <div className="flex items-center justify-center mt-1">
+                              <Checkbox
+                                checked={cleanGameWinners.game4.includes(player.member_id)}
+                                onCheckedChange={() => handleToggleCleanGameWinner(player.member_id, 4)}
+                                className="data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                              />
+                              <span className="ml-1 text-xs text-gray-500">Clean</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "game5_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
+                              className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
+                              onFocus={(e) => e.target.select()}
+                            />
+                            <div className="flex items-center justify-center mt-1">
+                              <Checkbox
+                                checked={cleanGameWinners.game5.includes(player.member_id)}
+                                onCheckedChange={() => handleToggleCleanGameWinner(player.member_id, 5)}
+                                className="data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500"
+                              />
+                              <span className="ml-1 text-xs text-gray-500">Clean</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">
+                            {getPlayerScore(player, "total_score")}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-center text-red-600 font-bold">
+                            {getPlayerScore(player, "overall_score")}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-right">
+                            {hasChanges && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSave(player.id)}
+                                disabled={saving === player.id}
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                              >
+                                {saving === player.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Save className="h-4 w-4 mr-1" />
+                                    Save
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredPlayers.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No scores found for this game</p>
+                  <p className="text-gray-500 text-sm mt-1">Try selecting a different game or add players first</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
