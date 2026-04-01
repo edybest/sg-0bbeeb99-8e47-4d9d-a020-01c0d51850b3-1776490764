@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
+ 
 export type Json =
   | string
   | number
@@ -1386,10 +1386,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_player_reaction: {
-        Args: { p_game_player_id: string; p_member_id: string; p_type: string }
-        Returns: undefined
-      }
+      add_player_reaction:
+        | {
+            Args: {
+              p_game_player_id: string
+              p_member_id: string
+              p_type: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: { p_member_id: string; p_player_id: string; p_type: string }
+            Returns: boolean
+          }
       current_member_id: { Args: never; Returns: string }
       generate_mini_blok_share: {
         Args: { p_mini_blok_id: string }

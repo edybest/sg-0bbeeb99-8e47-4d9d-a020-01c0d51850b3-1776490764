@@ -187,6 +187,36 @@ export default function BlokPage() {
       return;
     }
 
+    // DB Update & Limit Check
+    try {
+      const { error } = await supabase.rpc('add_player_reaction', {
+        p_player_id: entry.id,
+        p_type: type,
+        p_member_id: currentUser.id
+      });
+
+      if (error) {
+        if (error.message.includes('Daily limit reached') || error.code === 'P0001') {
+          toast({
+            title: "Had Harian Dicapai",
+            description: "Anda hanya boleh memberi satu reaksi sehari untuk setiap pemain.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Ralat",
+            description: "Gagal menghantar reaksi. Sila cuba lagi.",
+            variant: "destructive"
+          });
+        }
+        return; // Stop here if failed
+      }
+    } catch (err) {
+      console.error("Failed to save reaction:", err);
+      return;
+    }
+
+    // Proceed with Animation & Optimistic update if successful
     const id = Math.random().toString(36).substring(7);
     const xOffset = Math.floor(Math.random() * 80) - 40; // Random spread between -40px and +40px
 
@@ -197,7 +227,7 @@ export default function BlokPage() {
       setReactions((prev) => prev.filter((r) => r.id !== id));
     }, 2500);
 
-    // Optimistic update for counters
+    // Update counters locally
     setLeaderboard((prev) => prev.map((p) => {
       if (p.id === entry.id) {
         return {
@@ -219,13 +249,6 @@ export default function BlokPage() {
       }
       return p;
     }));
-
-    // DB Update
-    try {
-      await supabase.rpc('increment_game_player_reaction', { p_id: entry.id, p_type: type });
-    } catch (err) {
-      console.error("Failed to save reaction:", err);
-    }
   };
 
   const isInitialLoading = loadingGames && games.length === 0;
