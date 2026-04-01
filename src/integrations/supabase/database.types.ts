@@ -523,6 +523,8 @@ export type Database = {
           handicap: number | null
           id: string
           is_fivefive: boolean | null
+          likes_count: number | null
+          loves_count: number | null
           member_id: string
           overall_score: number | null
           total_score: number | null
@@ -541,6 +543,8 @@ export type Database = {
           handicap?: number | null
           id?: string
           is_fivefive?: boolean | null
+          likes_count?: number | null
+          loves_count?: number | null
           member_id: string
           overall_score?: number | null
           total_score?: number | null
@@ -559,6 +563,8 @@ export type Database = {
           handicap?: number | null
           id?: string
           is_fivefive?: boolean | null
+          likes_count?: number | null
+          loves_count?: number | null
           member_id?: string
           overall_score?: number | null
           total_score?: number | null
@@ -1383,6 +1389,10 @@ export type Database = {
         Returns: {
           room_id: string
         }[]
+      }
+      increment_game_player_reaction: {
+        Args: { p_id: string; p_type: string }
+        Returns: undefined
       }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }

@@ -41,6 +41,8 @@ interface RawPlayerScore extends Tables<"game_players"> {
     full_name: string;
     avatar_url: string | null;
   };
+  likes_count?: number;
+  loves_count?: number;
 }
 
 interface LeaderboardEntry {
@@ -63,6 +65,8 @@ interface LeaderboardEntry {
   difference: number;
   rank: number;
   clean_game: boolean;
+  likes_count: number;
+  loves_count: number;
 }
 
 type SortField =
@@ -137,6 +141,8 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
     difference: index === 0 ? 0 : topScore - (entry.overall_score ?? 0),
     rank: index + 1,
     clean_game: entry.clean_game ?? false,
+    likes_count: entry.likes_count ?? 0,
+    loves_count: entry.loves_count ?? 0,
   }));
 }
 
@@ -170,7 +176,7 @@ export default function BlokPage() {
   type Reaction = { id: string; type: "like" | "love"; username: string; xOffset: number };
   const [reactions, setReactions] = useState<Reaction[]>([]);
 
-  const handleReaction = (type: "like" | "love", username: string, e: React.MouseEvent) => {
+  const handleReaction = async (type: "like" | "love", entry: LeaderboardEntry, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -186,12 +192,42 @@ export default function BlokPage() {
     const id = Math.random().toString(36).substring(7);
     const xOffset = Math.floor(Math.random() * 80) - 40; // Random spread between -40px and +40px
 
-    setReactions((prev) => [...prev, { id, type, username, xOffset }]);
+    setReactions((prev) => [...prev, { id, type, username: entry.member.username, xOffset }]);
 
     // Remove the reaction after animation completes
     setTimeout(() => {
       setReactions((prev) => prev.filter((r) => r.id !== id));
     }, 2500);
+
+    // Optimistic update for counters
+    setLeaderboard((prev) => prev.map((p) => {
+      if (p.id === entry.id) {
+        return {
+          ...p,
+          likes_count: type === 'like' ? p.likes_count + 1 : p.likes_count,
+          loves_count: type === 'love' ? p.loves_count + 1 : p.loves_count
+        };
+      }
+      return p;
+    }));
+
+    setLeaderboardBase((prev) => prev.map((p) => {
+      if (p.id === entry.id) {
+        return {
+          ...p,
+          likes_count: type === 'like' ? p.likes_count + 1 : p.likes_count,
+          loves_count: type === 'love' ? p.loves_count + 1 : p.loves_count
+        };
+      }
+      return p;
+    }));
+
+    // DB Update
+    try {
+      await supabase.rpc('increment_game_player_reaction', { p_id: entry.id, p_type: type });
+    } catch (err) {
+      console.error("Failed to save reaction:", err);
+    }
   };
 
   const isInitialLoading = loadingGames && games.length === 0;
@@ -905,18 +941,20 @@ export default function BlokPage() {
                                     {entry.rank <= 3 && (
                                       <div className="flex items-center gap-1.5 ml-1">
                                         <button
-                                          onClick={(e) => handleReaction('like', entry.member.username, e)}
-                                          className="text-blue-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                          onClick={(e) => handleReaction('like', entry, e)}
+                                          className="flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 rounded-full"
                                           title="Tahniah!"
                                         >
                                           <ThumbsUp className="w-3.5 h-3.5 fill-blue-100" />
+                                          {entry.likes_count > 0 && <span className="text-[10px] font-bold">{entry.likes_count}</span>}
                                         </button>
                                         <button
-                                          onClick={(e) => handleReaction('love', entry.member.username, e)}
-                                          className="text-red-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                          onClick={(e) => handleReaction('love', entry, e)}
+                                          className="flex items-center gap-1 text-red-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-red-50 px-1.5 py-0.5 rounded-full"
                                           title="Terbaikla!"
                                         >
                                           <Heart className="w-3.5 h-3.5 fill-red-100" />
+                                          {entry.loves_count > 0 && <span className="text-[10px] font-bold">{entry.loves_count}</span>}
                                         </button>
                                       </div>
                                     )}
@@ -1187,20 +1225,22 @@ export default function BlokPage() {
                                         <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                       )}
                                       {entry.rank <= 3 && (
-                                        <div className="flex items-center gap-1.5 ml-1 opacity-80 hover:opacity-100">
+                                        <div className="flex items-center gap-2 ml-2 opacity-90 hover:opacity-100">
                                           <button
-                                            onClick={(e) => handleReaction('like', entry.member.username, e)}
-                                            className="text-blue-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                            onClick={(e) => handleReaction('like', entry, e)}
+                                            className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full"
                                             title="Tahniah!"
                                           >
                                             <ThumbsUp className="w-4 h-4 fill-blue-100" />
+                                            {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
                                           </button>
                                           <button
-                                            onClick={(e) => handleReaction('love', entry.member.username, e)}
-                                            className="text-red-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                            onClick={(e) => handleReaction('love', entry, e)}
+                                            className="flex items-center gap-1.5 text-red-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-red-50 px-2 py-0.5 rounded-full"
                                             title="Terbaikla!"
                                           >
                                             <Heart className="w-4 h-4 fill-red-100" />
+                                            {entry.loves_count > 0 && <span className="text-xs font-bold">{entry.loves_count}</span>}
                                           </button>
                                         </div>
                                       )}
