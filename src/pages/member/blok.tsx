@@ -256,7 +256,7 @@ export default function BlokPage() {
 
   const isAllGamesCompleted = useMemo(() => {
     return leaderboard.length > 0 && leaderboard.every(
-      p => p.game1_score > 0 && p.game2_score > 0 && p.game3_score > 0 && p.game4_score > 0 && p.game5_score > 0
+      p => p.game1_score !== null && p.game2_score !== null && p.game3_score !== null && p.game4_score !== null && p.game5_score !== null
     );
   }, [leaderboard]);
 
