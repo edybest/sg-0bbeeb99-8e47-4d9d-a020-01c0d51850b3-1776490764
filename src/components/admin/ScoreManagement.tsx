@@ -1750,6 +1750,15 @@ Eby,,168,116,153,152,176,18,no</pre>
                               <span className="ml-1 text-xs text-gray-500">Clean</span>
                             </div>
                           </td>
+                          <td className="px-4 py-3 text-sm text-center">
+                            <Input
+                              type="number"
+                              value={getPlayerScore(player, "handicap")}
+                              onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
+                              className="w-20 h-9 bg-gray-50 border border-gray-300 text-gray-900 text-center font-medium focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 mx-auto"
+                              onFocus={(e) => e.target.select()}
+                            />
+                          </td>
                           <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">
                             {getPlayerScore(player, "total_score")}
                           </td>
