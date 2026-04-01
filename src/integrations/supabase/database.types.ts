@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1181,6 +1181,45 @@ export type Database = {
         }
         Relationships: []
       }
+      player_reactions_log: {
+        Row: {
+          created_at: string | null
+          game_player_id: string | null
+          id: string
+          member_id: string | null
+          reaction_type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          game_player_id?: string | null
+          id?: string
+          member_id?: string | null
+          reaction_type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          game_player_id?: string | null
+          id?: string
+          member_id?: string | null
+          reaction_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_reactions_log_game_player_id_fkey"
+            columns: ["game_player_id"]
+            isOneToOne: false
+            referencedRelation: "game_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_reactions_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1347,6 +1386,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_player_reaction: {
+        Args: { p_game_player_id: string; p_member_id: string; p_type: string }
+        Returns: undefined
+      }
       current_member_id: { Args: never; Returns: string }
       generate_mini_blok_share: {
         Args: { p_mini_blok_id: string }
