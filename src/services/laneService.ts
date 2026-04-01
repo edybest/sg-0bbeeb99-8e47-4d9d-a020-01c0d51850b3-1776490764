@@ -37,14 +37,83 @@ export const laneService = {
   // Update lane configuration
   async updateLaneConfiguration(
     id: string,
-    laneSebenar: string
+    oldLaneSebenar: string,
+    newLaneSebenar: string,
+    gameId?: string
   ): Promise<void> {
     const { error } = await supabase
       .from("lane_configurations")
-      .update({ lane_sebenar: laneSebenar, updated_at: new Date().toISOString() })
+      .update({ lane_sebenar: newLaneSebenar, updated_at: new Date().toISOString() })
       .eq("id", id);
 
     if (error) throw error;
+
+    // Migrate assignments and spins so players stay in their slots
+    if (oldLaneSebenar && newLaneSebenar && oldLaneSebenar !== newLaneSebenar) {
+      const oldLanes = oldLaneSebenar.split("/");
+      const newLanes = newLaneSebenar.split("/");
+
+      if (oldLanes.length === 2 && newLanes.length === 2) {
+        const oldLeft = oldLanes[0].trim();
+        const oldRight = oldLanes[1].trim();
+        const newLeft = newLanes[0].trim();
+        const newRight = newLanes[1].trim();
+
+        // 1. Update lane_assignments
+        let query = supabase.from("lane_assignments").select("*");
+        if (gameId) query = query.eq("game_id", gameId);
+        
+        const { data: assignments } = await query;
+        
+        if (assignments) {
+          for (const assignment of assignments) {
+            let newPosition = null;
+            const matchOldLeft = ["A", "B", "C"].map(suffix => oldLeft + suffix);
+            const matchOldRight = ["A", "B", "C"].map(suffix => oldRight + suffix);
+
+            if (matchOldLeft.includes(assignment.lane_position)) {
+              newPosition = newLeft + assignment.lane_position.slice(oldLeft.length);
+            } else if (matchOldRight.includes(assignment.lane_position)) {
+              newPosition = newRight + assignment.lane_position.slice(oldRight.length);
+            }
+
+            if (newPosition) {
+              await supabase
+                .from("lane_assignments")
+                .update({ lane_position: newPosition })
+                .eq("id", assignment.id);
+            }
+          }
+        }
+
+        // 2. Update lane_spin_results
+        let spinQuery = supabase.from("lane_spin_results").select("*");
+        if (gameId) spinQuery = spinQuery.eq("game_id", gameId);
+        
+        const { data: spins } = await spinQuery;
+        
+        if (spins) {
+          for (const spin of spins) {
+            let newPosition = null;
+            const matchOldLeft = ["A", "B", "C"].map(suffix => oldLeft + suffix);
+            const matchOldRight = ["A", "B", "C"].map(suffix => oldRight + suffix);
+
+            if (matchOldLeft.includes(spin.lane_position)) {
+              newPosition = newLeft + spin.lane_position.slice(oldLeft.length);
+            } else if (matchOldRight.includes(spin.lane_position)) {
+              newPosition = newRight + spin.lane_position.slice(oldRight.length);
+            }
+
+            if (newPosition) {
+              await supabase
+                .from("lane_spin_results")
+                .update({ lane_position: newPosition })
+                .eq("id", spin.id);
+            }
+          }
+        }
+      }
+    }
   },
 
   // Get lane assignments for a specific game

@@ -133,24 +133,33 @@ export function LaneManagement() {
   }
 
   async function handleSaveConfig(configId: string) {
+    const config = laneConfigs.find(c => c.id === configId);
+    if (!config) return;
+
     try {
       setSaving(true);
       await withLoading("admin:lane:save-config", async () =>
-        laneService.updateLaneConfiguration(configId, editValue)
+        laneService.updateLaneConfiguration(configId, config.lane_sebenar, editValue, selectedGameId)
       );
       
       setLaneConfigs(prev => 
-        prev.map(config => 
-          config.id === configId 
-            ? { ...config, lane_sebenar: editValue }
-            : config
+        prev.map(c => 
+          c.id === configId 
+            ? { ...c, lane_sebenar: editValue }
+            : c
         )
       );
+
+      // Reload assignments to show players in new lane names
+      await loadLaneAssignments();
+      if (selectedGameId) {
+        await loadSpinResults(selectedGameId);
+      }
 
       setEditingConfig(null);
       toast({
         title: "Berjaya",
-        description: "Lane sebenar telah dikemaskini",
+        description: "Lane dikemaskini. Kedudukan pemain dikekalkan.",
       });
     } catch (error) {
       console.error("Error saving config:", error);
