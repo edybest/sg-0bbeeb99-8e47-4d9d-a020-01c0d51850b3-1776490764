@@ -254,6 +254,12 @@ export default function BlokPage() {
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
 
+  const isAllGamesCompleted = useMemo(() => {
+    return leaderboard.length > 0 && leaderboard.every(
+      p => p.game1_score > 0 && p.game2_score > 0 && p.game3_score > 0 && p.game4_score > 0 && p.game5_score > 0
+    );
+  }, [leaderboard]);
+
   const mostLikedPlayers = useMemo(() => {
     return [...leaderboard]
       .filter((p) => p.likes_count + p.loves_count > 0)
@@ -918,7 +924,7 @@ export default function BlokPage() {
                         </div>
                       </div>
 
-                      {mostLikedPlayers.length > 0 && (
+                      {mostLikedPlayers.length > 0 && isAllGamesCompleted && (
                         <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
                           <p className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
                             <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
@@ -1014,7 +1020,7 @@ export default function BlokPage() {
                                     {entry.clean_game && (
                                       <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                     )}
-                                    {entry.rank <= 3 && (
+                                    {entry.rank <= 3 && isAllGamesCompleted && (
                                       <div className="flex items-center gap-1.5 ml-1">
                                         <button
                                           onClick={(e) => handleReaction('like', entry, e)}
