@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export interface AuthUser {
   id: string;
