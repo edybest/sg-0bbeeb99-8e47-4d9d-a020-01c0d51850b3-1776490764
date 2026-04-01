@@ -46,17 +46,6 @@ const WHEEL_COLORS = [
   "#818CF8", // indigo-400
 ];
 
-type AudioGraph = {
-  ctx: AudioContext;
-  master: GainNode;
-  spinOsc: OscillatorNode;
-  spinLfo: OscillatorNode;
-  spinLfoGain: GainNode;
-  spinGain: GainNode;
-  isSpinning: boolean;
-  tickGain: GainNode;
-};
-
 export default function UndiLanePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -81,6 +70,67 @@ export default function UndiLanePage() {
   const wheelRef = useRef<SVGSVGElement>(null);
   const currentRotationRef = useRef(0);
 
+  // Audio Refs for MP3 files
+  const spinAudioRef = useRef<HTMLAudioElement | null>(null);
+  const winAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize Audio Objects
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Create audio instances
+      const spinAudio = new Audio("/spin.mp3");
+      const winAudio = new Audio("/win.mp3");
+      
+      // Preload them so there's no delay on button click
+      spinAudio.preload = "auto";
+      winAudio.preload = "auto";
+
+      spinAudioRef.current = spinAudio;
+      winAudioRef.current = winAudio;
+    }
+
+    // Cleanup audio when component unmounts
+    return () => {
+      if (spinAudioRef.current) {
+        spinAudioRef.current.pause();
+        spinAudioRef.current.src = "";
+      }
+      if (winAudioRef.current) {
+        winAudioRef.current.pause();
+        winAudioRef.current.src = "";
+      }
+    };
+  }, []);
+
+  const playSpinSound = useCallback(() => {
+    if (spinAudioRef.current) {
+      spinAudioRef.current.currentTime = 0;
+      spinAudioRef.current.loop = true; // Loop sound while spinning
+      
+      // We catch the promise rejection (e.g. if user hasn't interacted yet)
+      spinAudioRef.current.play().catch(e => {
+        console.warn("Audio play was blocked by browser:", e);
+      });
+    }
+  }, []);
+
+  const stopSpinSound = useCallback(() => {
+    if (spinAudioRef.current) {
+      spinAudioRef.current.pause();
+      spinAudioRef.current.currentTime = 0;
+    }
+  }, []);
+
+  const playWinSound = useCallback(() => {
+    if (winAudioRef.current) {
+      winAudioRef.current.currentTime = 0;
+      winAudioRef.current.loop = false;
+      winAudioRef.current.play().catch(e => {
+        console.warn("Win Audio play was blocked by browser:", e);
+      });
+    }
+  }, []);
+
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
@@ -103,215 +153,6 @@ export default function UndiLanePage() {
     animationFrameId = requestAnimationFrame(rotateWheel);
     return () => cancelAnimationFrame(animationFrameId);
   }, [spinning, myResult, availableLanes.length]);
-
-  const audioRef = useRef<AudioGraph | null>(null);
-  const [audioReady, setAudioReady] = useState(false);
-
-  const stopSpinSound = useCallback(() => {
-    const graph = audioRef.current;
-    if (!graph) return;
-    graph.isSpinning = false;
-    graph.spinGain.gain.cancelScheduledValues(graph.ctx.currentTime);
-    graph.spinGain.gain.setTargetAtTime(0.0001, graph.ctx.currentTime, 0.03);
-  }, []);
-
-  const ensureAudio = useCallback(async (): Promise<boolean> => {
-    if (typeof window === "undefined") return false;
-
-    if (!audioRef.current) {
-      const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextCtor) return false;
-
-      const ctx = new AudioContextCtor();
-
-      const master = ctx.createGain();
-      master.gain.value = 0.18;
-      master.connect(ctx.destination);
-
-      const spinOsc = ctx.createOscillator();
-      spinOsc.type = "sawtooth";
-      spinOsc.frequency.value = 160;
-
-      const spinGain = ctx.createGain();
-      spinGain.gain.value = 0.0001;
-
-      const spinFilter = ctx.createBiquadFilter();
-      spinFilter.type = "lowpass";
-      spinFilter.frequency.value = 1200;
-      spinFilter.Q.value = 0.7;
-
-      const spinLfo = ctx.createOscillator();
-      spinLfo.type = "sine";
-      spinLfo.frequency.value = 8;
-
-      const spinLfoGain = ctx.createGain();
-      spinLfoGain.gain.value = 45;
-
-      const tickGain = ctx.createGain();
-      tickGain.gain.value = 0.0001;
-      tickGain.connect(master);
-
-      spinLfo.connect(spinLfoGain);
-      spinLfoGain.connect(spinOsc.frequency);
-
-      spinOsc.connect(spinFilter);
-      spinFilter.connect(spinGain);
-      spinGain.connect(master);
-
-      spinOsc.start();
-      spinLfo.start();
-
-      audioRef.current = {
-        ctx,
-        master,
-        spinOsc,
-        spinLfo,
-        spinLfoGain,
-        spinGain,
-        tickGain,
-        isSpinning: false,
-      };
-    }
-
-    const graph = audioRef.current;
-    if (!graph) return false;
-
-    if (graph.ctx.state !== "running") {
-      try {
-        await graph.ctx.resume();
-      } catch {
-        return false;
-      }
-    }
-
-    if (graph.ctx.state === "running") {
-      setAudioReady(true);
-      return true;
-    }
-
-    return false;
-  }, []);
-
-  const playSpinSound = useCallback(async () => {
-    const ok = await ensureAudio();
-    if (!ok) return false;
-
-    const graph = audioRef.current;
-    if (!graph) return false;
-
-    graph.isSpinning = true;
-
-    const t = graph.ctx.currentTime;
-    graph.spinGain.gain.cancelScheduledValues(t);
-    graph.spinGain.gain.setTargetAtTime(0.14, t, 0.04);
-
-    graph.spinOsc.frequency.cancelScheduledValues(t);
-    graph.spinOsc.frequency.setTargetAtTime(220, t, 0.08);
-
-    graph.spinLfo.frequency.cancelScheduledValues(t);
-    graph.spinLfo.frequency.setTargetAtTime(12, t, 0.12);
-
-    return true;
-  }, [ensureAudio]);
-
-  const playWinSound = useCallback(async () => {
-    const ok = await ensureAudio();
-    if (!ok) return false;
-
-    const graph = audioRef.current;
-    if (!graph) return false;
-
-    const t0 = graph.ctx.currentTime;
-
-    const osc = graph.ctx.createOscillator();
-    const gain = graph.ctx.createGain();
-    const filter = graph.ctx.createBiquadFilter();
-
-    filter.type = "highpass";
-    filter.frequency.value = 250;
-
-    osc.type = "triangle";
-
-    gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
-
-    osc.frequency.setValueAtTime(880, t0);
-    osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.12);
-    osc.frequency.exponentialRampToValueAtTime(660, t0 + 0.32);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(graph.master);
-
-    osc.start(t0);
-    osc.stop(t0 + 0.5);
-
-    return true;
-  }, [ensureAudio]);
-
-  const playTick = useCallback((when: number, strength = 0.18) => {
-    const graph = audioRef.current;
-    if (!graph) return;
-    const osc = graph.ctx.createOscillator();
-    osc.type = "square";
-    osc.frequency.value = 1800;
-
-    const g = graph.ctx.createGain();
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, strength), when + 0.001);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.025);
-
-    osc.connect(g);
-    g.connect(graph.tickGain);
-
-    osc.start(when);
-    osc.stop(when + 0.03);
-  }, []);
-
-  const scheduleTicks = useCallback(
-    (durationMs: number, segments: number) => {
-      const graph = audioRef.current;
-      if (!graph) return;
-
-      const t0 = graph.ctx.currentTime;
-      const durationSec = durationMs / 1000;
-
-      const seg = Math.max(1, segments);
-
-      const ticksPerRevolution = Math.min(36, Math.max(12, Math.round(seg * 0.9)));
-      const revolutions = 5;
-      const tickCount = Math.min(90, Math.round(ticksPerRevolution * revolutions));
-
-      for (let i = 0; i < tickCount; i++) {
-        const x = i / Math.max(1, tickCount - 1);
-
-        const easeOutCubic = 1 - Math.pow(1 - x, 3);
-        const when = t0 + easeOutCubic * durationSec;
-
-        const strength = 0.05 + 0.12 * (1 - x);
-        playTick(when, strength);
-      }
-    },
-    [playTick]
-  );
-
-  useEffect(() => {
-    return () => {
-      try {
-        stopSpinSound();
-        const graph = audioRef.current;
-        if (graph) {
-          graph.spinOsc.stop();
-          graph.spinLfo.stop();
-          graph.ctx.close();
-        }
-      } catch {
-      } finally {
-        audioRef.current = null;
-      }
-    };
-  }, [stopSpinSound]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -413,16 +254,6 @@ export default function UndiLanePage() {
       return;
     }
 
-    if (!audioReady) {
-      const unlocked = await ensureAudio();
-      if (!unlocked) {
-        toast({
-          title: "Sound",
-          description: "Browser block audio. Tap SPIN sekali lagi untuk enable sound.",
-        });
-      }
-    }
-
     if (availableLanes.length === 0) {
       toast({
         title: "No lanes available",
@@ -433,14 +264,7 @@ export default function UndiLanePage() {
     }
 
     setSpinning(true);
-    const startedSound = await playSpinSound();
-    scheduleTicks(5200, availableLanes.length);
-    if (!startedSound && audioReady) {
-      toast({
-        title: "Sound",
-        description: "Tap SPIN sekali lagi untuk enable sound.",
-      });
-    }
+    playSpinSound(); // <--- Play MP3 directly on click!
 
     let winningLane: string | null = null;
 
@@ -481,8 +305,11 @@ export default function UndiLanePage() {
     setSpinAnimKey((k) => k + 1);
 
     setTimeout(async () => {
+      // 1. Stop MP3 spinning sound
       stopSpinSound();
-      await playWinSound();
+      
+      // 2. Play MP3 winning sound
+      playWinSound();
 
       setShowConfetti(true);
 
@@ -562,10 +389,8 @@ export default function UndiLanePage() {
       <MemberLayout>
         <SEO title="Undi Lane - AMBC Club" description="Sistem undian lane secara rawak" />
 
-        {/* Updated Background to Soft Blue (slate/sky) */}
         <div className="min-h-screen bg-slate-50 flex flex-col pb-20 sm:pb-0">
 
-          {/* Changed max-w-lg to max-w-7xl to allow grid layout to expand on desktop */}
           <main className="flex-1 container max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 relative">
             {showConfetti ? (
               <div className="fixed inset-0 pointer-events-none z-50">
@@ -593,7 +418,6 @@ export default function UndiLanePage() {
             ) : null}
 
             <div className="container mx-auto px-4 py-6 max-w-6xl">
-              {/* Game Selector Card */}
               <Card className="border-2 border-sky-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500"></div>
                 <CardContent className="p-6">
@@ -616,9 +440,7 @@ export default function UndiLanePage() {
                 </CardContent>
               </Card>
 
-              {/* Layout Grid: this will now sit side-by-side on desktop because max-w-7xl enables md:grid-cols-2 to stretch */}
               <div className="grid md:grid-cols-2 gap-6 items-start">
-                {/* WHEEL CARD */}
                 <Card className="flex flex-col border-sky-100 shadow-md overflow-hidden bg-white">
                   <CardHeader className="bg-blue-50 border-b border-sky-100 pb-4">
                     <CardTitle className="text-center text-blue-700 text-2xl font-black uppercase tracking-wider">
@@ -639,7 +461,6 @@ export default function UndiLanePage() {
                     ) : (
                       <div className="w-full flex flex-col items-center">
                         <div className="relative w-full max-w-[320px] aspect-square flex flex-col items-center mb-8">
-                          {/* Wheel Pointer/Arrow - Updated to blue */}
                           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20">
                             <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-blue-600 drop-shadow-xl" />
                           </div>
@@ -783,7 +604,6 @@ export default function UndiLanePage() {
                   </CardContent>
                 </Card>
 
-                {/* ALL RESULTS CARD */}
                 <Card className="flex flex-col border-sky-100 shadow-md bg-white">
                   <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-sky-100 bg-slate-50/50">
                     <CardTitle className="text-xl text-slate-800">All Results ({allResults.length})</CardTitle>
