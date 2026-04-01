@@ -859,16 +859,21 @@ export default function BlokPage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                  <Link
-                                    href={`/member/profile?id=${entry.member.id}`}
-                                    className={`font-semibold text-sm truncate hover:text-sky-600 transition-colors block ${
-                                      currentUser?.id === entry.member.id
-                                        ? "font-bold text-sky-600"
-                                        : ""
-                                    }`}
-                                  >
-                                    {entry.member.username}
-                                  </Link>
+                                  <div className="flex items-center gap-1">
+                                    <Link
+                                      href={`/member/profile?id=${entry.member.id}`}
+                                      className={`font-semibold text-sm truncate hover:text-sky-600 transition-colors block ${
+                                        currentUser?.id === entry.member.id
+                                          ? "font-bold text-sky-600"
+                                          : ""
+                                      }`}
+                                    >
+                                      {entry.member.username}
+                                    </Link>
+                                    {entry.clean_game && (
+                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2 text-xs text-sky-600">
                                     <span
                                       className="font-bold text-emerald-600"
@@ -1120,16 +1125,21 @@ export default function BlokPage() {
                                   <td
                                     className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}
                                   >
-                                    <Link
-                                      href={`/member/profile?id=${entry.member.id}`}
-                                      className={`font-medium hover:text-sky-600 transition-colors ${
-                                        currentUser?.id === entry.member.id
-                                          ? "font-bold text-sky-600"
-                                          : ""
-                                      }`}
-                                    >
-                                      {entry.member.username}
-                                    </Link>
+                                    <div className="flex items-center gap-1">
+                                      <Link
+                                        href={`/member/profile?id=${entry.member.id}`}
+                                        className={`font-medium hover:text-sky-600 transition-colors ${
+                                          currentUser?.id === entry.member.id
+                                            ? "font-bold text-sky-600"
+                                            : ""
+                                        }`}
+                                      >
+                                        {entry.member.username}
+                                      </Link>
+                                      {entry.clean_game && (
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                      )}
+                                    </div>
                                   </td>
 
                                   <td
