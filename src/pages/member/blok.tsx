@@ -41,8 +41,6 @@ interface RawPlayerScore extends Tables<"game_players"> {
     full_name: string;
     avatar_url: string | null;
   };
-  likes_count?: number;
-  loves_count?: number;
 }
 
 interface LeaderboardEntry {
