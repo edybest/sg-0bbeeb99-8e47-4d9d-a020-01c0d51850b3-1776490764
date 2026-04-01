@@ -165,6 +165,23 @@ export default function UndiLanePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, member, router]);
 
+  const [showAllParticipants, setShowAllParticipants] = useState(false);
+  const [showSpinModal, setShowSpinModal] = useState(false);
+
+  // Helper: Truncate long names for wheel display
+  const truncateName = (name: string, maxLength: number = 15): string => {
+    if (name.length <= maxLength) return name;
+    
+    // If has multiple words, show first word + initial
+    const words = name.trim().split(/\s+/);
+    if (words.length > 1) {
+      return `${words[0]} ${words[1][0]}.`;
+    }
+    
+    // Single word - truncate with ellipsis
+    return name.substring(0, maxLength - 1) + '…';
+  };
+
   async function loadGames() {
     try {
       await withLoading("member:undi-lane:load-games", async () => {
