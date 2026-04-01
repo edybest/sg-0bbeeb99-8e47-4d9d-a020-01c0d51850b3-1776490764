@@ -32,17 +32,18 @@ interface SpinResultWithMember {
   };
 }
 
+// Soft blue & cool colors for the wheel theme
 const WHEEL_COLORS = [
-  "#E74C3C",
-  "#3498DB",
-  "#F39C12",
-  "#2ECC71",
-  "#9B59B6",
-  "#E67E22",
-  "#1ABC9C",
-  "#E91E63",
-  "#F1C40F",
-  "#34495E",
+  "#3B82F6", // blue-500
+  "#0EA5E9", // sky-500
+  "#06B6D4", // cyan-500
+  "#14B8A6", // teal-500
+  "#6366F1", // indigo-500
+  "#8B5CF6", // violet-500
+  "#38BDF8", // sky-400
+  "#60A5FA", // blue-400
+  "#2DD4BF", // teal-400
+  "#818CF8", // indigo-400
 ];
 
 type AudioGraph = {
@@ -561,9 +562,11 @@ export default function UndiLanePage() {
       <MemberLayout>
         <SEO title="Undi Lane - AMBC Club" description="Sistem undian lane secara rawak" />
 
-        <div className="min-h-screen bg-rose-50 flex flex-col pb-20 sm:pb-0">
+        {/* Updated Background to Soft Blue (slate/sky) */}
+        <div className="min-h-screen bg-slate-50 flex flex-col pb-20 sm:pb-0">
 
-          <main className="flex-1 container max-w-lg mx-auto p-4 sm:p-6 lg:p-8 relative">
+          {/* Changed max-w-lg to max-w-7xl to allow grid layout to expand on desktop */}
+          <main className="flex-1 container max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 relative">
             {showConfetti ? (
               <div className="fixed inset-0 pointer-events-none z-50">
                 {[...Array(50)].map((_, i) => (
@@ -591,13 +594,13 @@ export default function UndiLanePage() {
 
             <div className="container mx-auto px-4 py-6 max-w-6xl">
               {/* Game Selector Card */}
-              <Card className="border-2 border-pink-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-2xl">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-400 via-rose-500 to-purple-500"></div>
+              <Card className="border-2 border-sky-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-2xl">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500"></div>
                 <CardContent className="p-6">
                   <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <div className="w-full sm:w-1/3">
                       <Select value={activeGameId} onValueChange={handleGameChange}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full border-sky-200 focus:ring-blue-500">
                           <SelectValue placeholder="Choose a game" />
                         </SelectTrigger>
                         <SelectContent>
@@ -613,11 +616,12 @@ export default function UndiLanePage() {
                 </CardContent>
               </Card>
 
+              {/* Layout Grid: this will now sit side-by-side on desktop because max-w-7xl enables md:grid-cols-2 to stretch */}
               <div className="grid md:grid-cols-2 gap-6 items-start">
                 {/* WHEEL CARD */}
-                <Card className="flex flex-col border-border shadow-md overflow-hidden bg-card">
-                  <CardHeader className="bg-pink-600/5 border-b border-border/50 pb-4">
-                    <CardTitle className="text-center text-pink-600 text-2xl font-black uppercase tracking-wider">
+                <Card className="flex flex-col border-sky-100 shadow-md overflow-hidden bg-white">
+                  <CardHeader className="bg-blue-50 border-b border-sky-100 pb-4">
+                    <CardTitle className="text-center text-blue-700 text-2xl font-black uppercase tracking-wider">
                       {myResult ? "Your Lane Assigned" : "Click to Spin!"}
                     </CardTitle>
                   </CardHeader>
@@ -625,18 +629,19 @@ export default function UndiLanePage() {
                   <CardContent className="flex flex-col items-center justify-center p-6 md:p-8">
                     {myResult ? (
                       <div className="text-center animate-in zoom-in-50 fade-in duration-500 ease-out py-16">
-                        <div className="text-[120px] md:text-[140px] leading-none font-black text-pink-600 mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
+                        <div className="text-[120px] md:text-[140px] leading-none font-black text-blue-600 mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
                           {myResult.lane_position}
                         </div>
-                        <div className="inline-block px-8 py-3 rounded-full bg-pink-600/10 text-pink-600 font-bold text-xl md:text-2xl animate-pulse border border-primary/20 shadow-sm">
+                        <div className="inline-block px-8 py-3 rounded-full bg-blue-50 text-blue-700 font-bold text-xl md:text-2xl animate-pulse border border-blue-200 shadow-sm">
                           🎉 Your Assigned Lane
                         </div>
                       </div>
                     ) : (
                       <div className="w-full flex flex-col items-center">
                         <div className="relative w-full max-w-[320px] aspect-square flex flex-col items-center mb-8">
+                          {/* Wheel Pointer/Arrow - Updated to blue */}
                           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20">
-                            <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-primary drop-shadow-xl" />
+                            <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-blue-600 drop-shadow-xl" />
                           </div>
 
                           <div className="relative w-full aspect-square">
@@ -670,7 +675,7 @@ export default function UndiLanePage() {
                               </defs>
 
                               <circle cx="200" cy="200" r="197" fill="none" stroke="url(#rimGrad)" strokeWidth="12" />
-                              <circle cx="200" cy="200" r="191" fill="none" stroke="var(--border)" strokeOpacity="0.2" strokeWidth="2" />
+                              <circle cx="200" cy="200" r="191" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
 
                               {availableLanes.map((lane, index) => {
                                 const segmentAngle = 360 / availableLanes.length;
@@ -722,14 +727,14 @@ export default function UndiLanePage() {
                                 );
                               })}
 
-                              <circle cx="200" cy="200" r="75" fill="var(--background)" fillOpacity="0.95" />
-                              <circle cx="200" cy="200" r="70" fill="var(--card)" stroke="var(--border)" strokeWidth="3" />
+                              <circle cx="200" cy="200" r="75" fill="#ffffff" fillOpacity="0.95" />
+                              <circle cx="200" cy="200" r="70" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="3" />
                               <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
                               <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
                             </svg>
 
                             <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
-                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-rose-200 flex items-center justify-center p-2.5">
+                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-blue-200 flex items-center justify-center p-2.5">
                                 <div className="relative w-full h-full">
                                   <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-contain" />
                                 </div>
@@ -744,8 +749,8 @@ export default function UndiLanePage() {
                             disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
                             className={`relative w-full text-xl sm:text-2xl font-black py-7 sm:py-8 rounded-2xl shadow-xl transition-all duration-300 uppercase tracking-widest overflow-hidden group ${
                               !spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame 
-                                ? "bg-pink-600 text-pink-600-foreground hover:bg-pink-600/90 hover:-translate-y-1" 
-                                : "opacity-50"
+                                ? "bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1 hover:shadow-blue-500/50" 
+                                : "opacity-50 bg-gray-300 text-gray-500"
                             }`}
                             style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
                           >
@@ -767,7 +772,7 @@ export default function UndiLanePage() {
                                 Anda tidak tersenarai untuk game ini. Sila hubungi admin.
                               </div>
                             ) : selectedLane ? (
-                              <div className="px-6 py-2 rounded-full bg-pink-600/10 text-pink-600 font-bold text-base sm:text-lg animate-in zoom-in border border-primary/20 shadow-inner">
+                              <div className="px-6 py-2 rounded-full bg-blue-50 text-blue-700 font-bold text-base sm:text-lg animate-in zoom-in border border-blue-200 shadow-inner">
                                 Target: <span className="text-xl sm:text-2xl ml-1">{selectedLane}</span>
                               </div>
                             ) : null}
@@ -779,9 +784,9 @@ export default function UndiLanePage() {
                 </Card>
 
                 {/* ALL RESULTS CARD */}
-                <Card className="flex flex-col border-border shadow-md bg-card">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/50">
-                    <CardTitle className="text-xl">All Results ({allResults.length})</CardTitle>
+                <Card className="flex flex-col border-sky-100 shadow-md bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-sky-100 bg-slate-50/50">
+                    <CardTitle className="text-xl text-slate-800">All Results ({allResults.length})</CardTitle>
                     {member?.is_admin ? (
                       <Button
                         onClick={handleResetSpins}
@@ -797,24 +802,24 @@ export default function UndiLanePage() {
                   <CardContent className="p-0">
                     <div className="p-4 space-y-2 max-h-[550px] overflow-y-auto">
                       {allResults.length === 0 ? (
-                        <div className="text-center py-16 text-muted-foreground">
+                        <div className="text-center py-16 text-slate-400">
                           <p>No spins yet. Be the first!</p>
                         </div>
                       ) : (
                         allResults.map((result) => (
                           <div
                             key={result.id}
-                            className="flex items-center justify-between p-3.5 bg-muted/40 hover:bg-muted/60 transition-colors rounded-xl border border-border"
+                            className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-blue-50 transition-colors rounded-xl border border-slate-100"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-full bg-pink-600 flex items-center justify-center text-pink-600-foreground font-black text-lg shadow-sm">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
                                 {result.lane_position}
                               </div>
                               <div>
-                                <p className="font-bold text-foreground">
+                                <p className="font-bold text-slate-800">
                                   {result.members?.full_name || result.members?.username || "Unknown"}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{new Date(result.spun_at).toLocaleString()}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{new Date(result.spun_at).toLocaleString()}</p>
                               </div>
                             </div>
                           </div>
@@ -825,10 +830,10 @@ export default function UndiLanePage() {
                 </Card>
               </div>
 
-              <Card className="mt-6 shadow-md border-border bg-card">
-                <CardHeader className="bg-muted/30 pb-4 border-b border-border/50">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+              <Card className="mt-6 shadow-md border-sky-100 bg-white">
+                <CardHeader className="bg-slate-50/80 pb-4 border-b border-sky-100">
+                  <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
                     Available Lanes ({availableLanes.length})
                   </CardTitle>
                 </CardHeader>
@@ -837,7 +842,7 @@ export default function UndiLanePage() {
                     {availableLanes.map((lane) => (
                       <div
                         key={lane}
-                        className="px-5 py-2.5 bg-background shadow-sm rounded-xl text-foreground font-bold border border-border flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-pink-600 hover:text-pink-600-foreground hover:shadow-lg hover:border-primary"
+                        className="px-5 py-2.5 bg-white shadow-sm rounded-xl text-slate-700 font-bold border border-slate-200 flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/30 hover:border-blue-500"
                       >
                         {lane}
                       </div>
@@ -864,9 +869,9 @@ export default function UndiLanePage() {
               }
 
               @keyframes buttonPulse {
-                0% { transform: scale(1); box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5); }
-                70% { transform: scale(1.02); box-shadow: 0 0 0 20px hsl(var(--primary) / 0); }
-                100% { transform: scale(1); box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); }
+                70% { transform: scale(1.02); box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
+                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
               }
 
               @keyframes resultBounce {
