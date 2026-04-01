@@ -428,11 +428,15 @@ export default function UndiLanePage() {
                           <SelectValue placeholder="Choose a game" />
                         </SelectTrigger>
                         <SelectContent>
-                          {games.map((game) => (
-                            <SelectItem key={game.id} value={game.id}>
-                              {game.name} - {new Date(game.game_date).toLocaleDateString()}
-                            </SelectItem>
-                          ))}
+                          {games.map((game) => {
+                            const d = new Date(game.game_date);
+                            const formattedDate = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+                            return (
+                              <SelectItem key={game.id} value={game.id}>
+                                {game.name} - {formattedDate}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
