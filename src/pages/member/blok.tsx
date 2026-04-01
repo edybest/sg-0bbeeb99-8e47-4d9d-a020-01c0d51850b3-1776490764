@@ -174,7 +174,7 @@ export default function BlokPage() {
   type Reaction = { id: string; type: "like" | "love"; username: string; xOffset: number };
   const [reactions, setReactions] = useState<Reaction[]>([]);
 
-  const handleReaction = async (type: "like" | "love", entry: LeaderboardEntry, e: React.MouseEvent) => {
+  const handleReaction = async (entry: LeaderboardEntry, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -189,7 +189,7 @@ export default function BlokPage() {
 
     console.log('Sending reaction:', { 
       p_player_id: entry.id, 
-      p_type: type, 
+      p_game_id: selectedGame,
       p_member_id: currentUser.id 
     });
 
@@ -197,7 +197,7 @@ export default function BlokPage() {
     try {
       const { data, error } = await supabase.rpc('add_player_reaction', {
         p_player_id: entry.id,
-        p_type: type,
+        p_game_id: selectedGame,
         p_member_id: currentUser.id
       });
 
@@ -205,16 +205,16 @@ export default function BlokPage() {
 
       if (error) {
         console.error('RPC Error details:', error);
-        if (error.message.includes('Daily limit reached') || error.code === 'P0001') {
+        if (error.message.includes('Daily limit reached') || error.message.includes('5 likes limit') || error.code === 'P0001') {
           toast({
-            title: "Had Harian Dicapai",
-            description: "Anda hanya boleh memberi satu reaksi sehari untuk setiap pemain.",
+            title: "Had Dicapai",
+            description: "Anda hanya boleh like 5 pemain dalam setiap permainan.",
             variant: "destructive"
           });
         } else {
           toast({
             title: "Ralat",
-            description: `Gagal menghantar reaksi: ${error.message}`,
+            description: `Gagal menghantar like: ${error.message}`,
             variant: "destructive"
           });
         }
@@ -224,7 +224,7 @@ export default function BlokPage() {
       console.error("Failed to save reaction:", err);
       toast({
         title: "Ralat",
-        description: "Gagal menghantar reaksi. Sila cuba lagi.",
+        description: "Gagal menghantar like. Sila cuba lagi.",
         variant: "destructive"
       });
       return;
@@ -234,7 +234,7 @@ export default function BlokPage() {
     const id = Math.random().toString(36).substring(7);
     const xOffset = Math.floor(Math.random() * 80) - 40; // Random spread between -40px and +40px
 
-    setReactions((prev) => [...prev, { id, type, username: entry.member.username, xOffset }]);
+    setReactions((prev) => [...prev, { id, type: "like", username: entry.member.username, xOffset }]);
 
     // Remove the reaction after animation completes
     setTimeout(() => {
@@ -246,8 +246,7 @@ export default function BlokPage() {
       if (p.id === entry.id) {
         return {
           ...p,
-          likes_count: type === 'like' ? p.likes_count + 1 : p.likes_count,
-          loves_count: type === 'love' ? p.loves_count + 1 : p.loves_count
+          likes_count: p.likes_count + 1
         };
       }
       return p;
@@ -257,8 +256,7 @@ export default function BlokPage() {
       if (p.id === entry.id) {
         return {
           ...p,
-          likes_count: type === 'like' ? p.likes_count + 1 : p.likes_count,
-          loves_count: type === 'love' ? p.loves_count + 1 : p.loves_count
+          likes_count: p.likes_count + 1
         };
       }
       return p;
@@ -268,38 +266,10 @@ export default function BlokPage() {
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
 
-  const isAllGamesCompleted = useMemo(() => {
-    if (leaderboard.length === 0) return false;
-    
-    // Check if ALL players have completed ALL 5 games (scores are not null)
-    const allCompleted = leaderboard.every(p => 
-      p.game1_score !== null && 
-      p.game2_score !== null && 
-      p.game3_score !== null && 
-      p.game4_score !== null && 
-      p.game5_score !== null
-    );
-    
-    console.log('isAllGamesCompleted check:', { 
-      totalPlayers: leaderboard.length, 
-      allCompleted,
-      sample: leaderboard[0] ? {
-        player: leaderboard[0].member.username,
-        g1: leaderboard[0].game1_score,
-        g2: leaderboard[0].game2_score,
-        g3: leaderboard[0].game3_score,
-        g4: leaderboard[0].game4_score,
-        g5: leaderboard[0].game5_score,
-      } : null
-    });
-    
-    return allCompleted;
-  }, [leaderboard]);
-
   const mostLikedPlayers = useMemo(() => {
     return [...leaderboard]
-      .filter((p) => p.likes_count + p.loves_count > 0)
-      .sort((a, b) => (b.likes_count + b.loves_count) - (a.likes_count + a.loves_count))
+      .filter((p) => p.likes_count > 0)
+      .sort((a, b) => b.likes_count - a.likes_count)
       .slice(0, 3);
   }, [leaderboard]);
 
@@ -960,10 +930,10 @@ export default function BlokPage() {
                         </div>
                       </div>
 
-                      {mostLikedPlayers.length > 0 && isAllGamesCompleted && (
+                      {mostLikedPlayers.length > 0 && (
                         <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
                           <p className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                            <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
+                            <ThumbsUp className="w-4 h-4 text-blue-500 fill-blue-500 animate-pulse" />
                             Pemain Paling Popular
                           </p>
                           <div className="flex flex-wrap gap-3">
@@ -997,9 +967,8 @@ export default function BlokPage() {
                                   <Link href={`/member/profile?id=${player.member.id}`} className="text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors">
                                     {player.member.username}
                                   </Link>
-                                  <div className="text-[11px] font-medium text-slate-500 flex items-center gap-2 mt-0.5">
-                                    <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3 text-blue-500" /> {player.likes_count}</span>
-                                    <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-red-500" /> {player.loves_count}</span>
+                                  <div className="text-[11px] font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+                                    <ThumbsUp className="w-3 h-3 text-blue-500" /> {player.likes_count} Likes
                                   </div>
                                 </div>
                               </motion.div>
@@ -1056,26 +1025,14 @@ export default function BlokPage() {
                                     {entry.clean_game && (
                                       <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                     )}
-                                    {entry.rank <= 3 && isAllGamesCompleted && (
-                                      <div className="flex items-center gap-1.5 ml-1">
-                                        <button
-                                          onClick={(e) => handleReaction('like', entry, e)}
-                                          className="flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 rounded-full"
-                                          title="Tahniah!"
-                                        >
-                                          <ThumbsUp className="w-3.5 h-3.5 fill-blue-100" />
-                                          {entry.likes_count > 0 && <span className="text-[10px] font-bold">{entry.likes_count}</span>}
-                                        </button>
-                                        <button
-                                          onClick={(e) => handleReaction('love', entry, e)}
-                                          className="flex items-center gap-1 text-red-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-red-50 px-1.5 py-0.5 rounded-full"
-                                          title="Terbaikla!"
-                                        >
-                                          <Heart className="w-3.5 h-3.5 fill-red-100" />
-                                          {entry.loves_count > 0 && <span className="text-[10px] font-bold">{entry.loves_count}</span>}
-                                        </button>
-                                      </div>
-                                    )}
+                                    <button
+                                      onClick={(e) => handleReaction(entry, e)}
+                                      className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100"
+                                      title="Tahniah!"
+                                    >
+                                      <ThumbsUp className="w-4 h-4 fill-blue-100" />
+                                      {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
+                                    </button>
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-sky-600">
                                     <span
@@ -1342,26 +1299,14 @@ export default function BlokPage() {
                                       {entry.clean_game && (
                                         <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                       )}
-                                      {entry.rank <= 3 && (
-                                        <div className="flex items-center gap-2 ml-2 opacity-90 hover:opacity-100">
-                                          <button
-                                            onClick={(e) => handleReaction('like', entry, e)}
-                                            className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full"
-                                            title="Tahniah!"
-                                          >
-                                            <ThumbsUp className="w-4 h-4 fill-blue-100" />
-                                            {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
-                                          </button>
-                                          <button
-                                            onClick={(e) => handleReaction('love', entry, e)}
-                                            className="flex items-center gap-1.5 text-red-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-red-50 px-2 py-0.5 rounded-full"
-                                            title="Terbaikla!"
-                                          >
-                                            <Heart className="w-4 h-4 fill-red-100" />
-                                            {entry.loves_count > 0 && <span className="text-xs font-bold">{entry.loves_count}</span>}
-                                          </button>
-                                        </div>
-                                      )}
+                                      <button
+                                        onClick={(e) => handleReaction(entry, e)}
+                                        className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100"
+                                        title="Tahniah!"
+                                      >
+                                        <ThumbsUp className="w-4 h-4 fill-blue-100" />
+                                        {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
+                                      </button>
                                     </div>
                                   </td>
 
@@ -1439,13 +1384,9 @@ export default function BlokPage() {
                 transition={{ duration: 2.5, ease: "easeOut" }}
                 className="absolute flex items-center gap-2 px-5 py-2.5 bg-white/95 backdrop-blur-sm shadow-2xl rounded-full border border-sky-100"
               >
-                {r.type === "like" ? (
-                  <ThumbsUp className="w-7 h-7 text-blue-500 fill-blue-500 drop-shadow-md" />
-                ) : (
-                  <Heart className="w-7 h-7 text-red-500 fill-red-500 drop-shadow-md" />
-                )}
-                <span className={`font-extrabold text-base tracking-wide ${r.type === 'like' ? 'text-blue-600' : 'text-red-600'}`}>
-                  {r.type === "like" ? `Tahniah ${r.username}!` : `Terbaikla ${r.username}!`}
+                <ThumbsUp className="w-7 h-7 text-blue-500 fill-blue-500 drop-shadow-md" />
+                <span className="font-extrabold text-base tracking-wide text-blue-600">
+                  Tahniah {r.username}!
                 </span>
               </motion.div>
             ))}
