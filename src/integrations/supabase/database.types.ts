@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -1387,7 +1387,7 @@ export type Database = {
     }
     Functions: {
       add_player_reaction: {
-        Args: { p_game_id: string; p_member_id: string; p_player_id: string }
+        Args: { p_member_id: string; p_player_id: string }
         Returns: boolean
       }
       current_member_id: { Args: never; Returns: string }
