@@ -254,6 +254,13 @@ export default function BlokPage() {
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
 
+  const mostLikedPlayers = useMemo(() => {
+    return [...leaderboard]
+      .filter((p) => p.likes_count + p.loves_count > 0)
+      .sort((a, b) => (b.likes_count + b.loves_count) - (a.likes_count + a.loves_count))
+      .slice(0, 3);
+  }, [leaderboard]);
+
   const applyCurrentSort = useMemo(() => {
     return (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
       if (field === "rank") {
@@ -910,6 +917,54 @@ export default function BlokPage() {
                           ))}
                         </div>
                       </div>
+
+                      {mostLikedPlayers.length > 0 && (
+                        <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
+                          <p className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
+                            <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
+                            Pemain Paling Popular
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            {mostLikedPlayers.map((player, idx) => (
+                              <motion.div 
+                                key={player.id} 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-indigo-100 hover:shadow-md transition-shadow"
+                              >
+                                <div className="relative">
+                                  {player.member.avatar_url ? (
+                                    <Image
+                                      src={player.member.avatar_url}
+                                      alt={player.member.username}
+                                      width={36}
+                                      height={36}
+                                      className="w-9 h-9 rounded-full object-cover border-2 border-indigo-50"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
+                                      {player.member.username[0].toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-amber-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm border border-white">
+                                    {idx + 1}
+                                  </div>
+                                </div>
+                                <div>
+                                  <Link href={`/member/profile?id=${player.member.id}`} className="text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors">
+                                    {player.member.username}
+                                  </Link>
+                                  <div className="text-[11px] font-medium text-slate-500 flex items-center gap-2 mt-0.5">
+                                    <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3 text-blue-500" /> {player.likes_count}</span>
+                                    <span className="flex items-center gap-1"><Heart className="w-3 h-3 text-red-500" /> {player.loves_count}</span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="block md:hidden space-y-2 p-2">
                         {leaderboard.map((entry) => (
