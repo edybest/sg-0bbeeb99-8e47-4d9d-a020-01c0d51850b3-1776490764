@@ -187,15 +187,24 @@ export default function BlokPage() {
       return;
     }
 
+    console.log('Sending reaction:', { 
+      p_player_id: entry.id, 
+      p_type: type, 
+      p_member_id: currentUser.id 
+    });
+
     // DB Update & Limit Check
     try {
-      const { error } = await supabase.rpc('add_player_reaction', {
+      const { data, error } = await supabase.rpc('add_player_reaction', {
         p_player_id: entry.id,
         p_type: type,
         p_member_id: currentUser.id
       });
 
+      console.log('RPC Response:', { data, error });
+
       if (error) {
+        console.error('RPC Error details:', error);
         if (error.message.includes('Daily limit reached') || error.code === 'P0001') {
           toast({
             title: "Had Harian Dicapai",
@@ -205,7 +214,7 @@ export default function BlokPage() {
         } else {
           toast({
             title: "Ralat",
-            description: "Gagal menghantar reaksi. Sila cuba lagi.",
+            description: `Gagal menghantar reaksi: ${error.message}`,
             variant: "destructive"
           });
         }
@@ -213,6 +222,11 @@ export default function BlokPage() {
       }
     } catch (err) {
       console.error("Failed to save reaction:", err);
+      toast({
+        title: "Ralat",
+        description: "Gagal menghantar reaksi. Sila cuba lagi.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -255,9 +269,31 @@ export default function BlokPage() {
   const isPageLoading = authLoading || isInitialLoading;
 
   const isAllGamesCompleted = useMemo(() => {
-    return leaderboard.length > 0 && leaderboard.every(
-      p => p.game1_score !== null && p.game2_score !== null && p.game3_score !== null && p.game4_score !== null && p.game5_score !== null
+    if (leaderboard.length === 0) return false;
+    
+    // Check if ALL players have completed ALL 5 games (scores are not null)
+    const allCompleted = leaderboard.every(p => 
+      p.game1_score !== null && 
+      p.game2_score !== null && 
+      p.game3_score !== null && 
+      p.game4_score !== null && 
+      p.game5_score !== null
     );
+    
+    console.log('isAllGamesCompleted check:', { 
+      totalPlayers: leaderboard.length, 
+      allCompleted,
+      sample: leaderboard[0] ? {
+        player: leaderboard[0].member.username,
+        g1: leaderboard[0].game1_score,
+        g2: leaderboard[0].game2_score,
+        g3: leaderboard[0].game3_score,
+        g4: leaderboard[0].game4_score,
+        g5: leaderboard[0].game5_score,
+      } : null
+    });
+    
+    return allCompleted;
   }, [leaderboard]);
 
   const mostLikedPlayers = useMemo(() => {
