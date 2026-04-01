@@ -21,12 +21,24 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<Member | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const isMountedRef = useRef(true);
+  const authCheckInProgress = useRef(false);
   
   const subscribe = options?.subscribe ?? true;
   const checkingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const checkAuth = useCallback(async () => {
     // Prevent concurrent checks

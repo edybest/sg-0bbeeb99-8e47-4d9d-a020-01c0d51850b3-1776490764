@@ -35,14 +35,37 @@ const getURL = () => {
 
 export const authService = {
   // Get current user
-  async getCurrentUser(): Promise<AuthUser | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user ? {
-      id: user.id,
-      email: user.email || "",
-      user_metadata: user.user_metadata,
-      created_at: user.created_at
-    } : null;
+  getCurrentUser: async (): Promise<Member | null> => {
+    try {
+      // Get session with timeout
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => {
+        setTimeout(() => resolve({ data: { session: null } }), 4000);
+      });
+
+      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+
+      if (!session?.user) {
+        return null;
+      }
+
+      // Get member data
+      const { data: member, error } = await supabase
+        .from("members")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching member:", error);
+        return null;
+      }
+
+      return member;
+    } catch (error) {
+      console.error("Error in getCurrentUser:", error);
+      return null;
+    }
   },
 
   // Get current session
