@@ -46,6 +46,7 @@ class GameService {
             id,
             member_id,
             is_fivefive,
+            clean_game,
             members (
               id,
               username,
@@ -67,6 +68,7 @@ class GameService {
           member_id: gp.member_id,
           member_name: gp.members?.username || "Unknown",
           is_fivefive: gp.is_fivefive,
+          clean_game: gp.clean_game,
           username: gp.members?.username,
           full_name: gp.members?.full_name,
         }));
@@ -76,6 +78,7 @@ class GameService {
           players,
           player_count: players.length,
           five_five_count: players.filter((p: any) => p.is_fivefive).length,
+          clean_game_count: players.filter((p: any) => p.clean_game).length,
         };
       });
 

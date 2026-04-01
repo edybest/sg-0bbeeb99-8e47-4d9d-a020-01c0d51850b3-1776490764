@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
   five_five_count?: number;
+  clean_game_count?: number;
   players?: Array<{
     id: string;
     member_id: string;
@@ -573,7 +574,7 @@ export function GameManagement() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Statistics */}
-                      <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg flex-wrap">
                         <div className="flex items-center gap-2">
                           <Users className="w-5 h-5 text-blue-600" />
                           <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
@@ -582,19 +583,27 @@ export function GameManagement() {
                           <Target className="w-5 h-5 text-pink-600" />
                           <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-amber-500" />
+                          <span className="font-medium">{game.clean_game_count || 0} main Clean Game</span>
+                        </div>
                       </div>
 
                       {/* Players List */}
                       {game.players && game.players.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mt-4">
                           {game.players.map((player) => (
                             <DropdownMenu key={player.id}>
                               <DropdownMenuTrigger asChild>
                                 <Badge
-                                  variant={player.is_fivefive ? "default" : "secondary"}
-                                  className={`cursor-pointer hover:scale-105 transition-all ${
-                                    player.is_fivefive
-                                      ? "bg-pink-500 hover:bg-pink-600 text-white"
+                                  variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                                  className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                                    player.is_fivefive && player.clean_game
+                                      ? "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
+                                      : player.is_fivefive
+                                      ? "bg-pink-500 hover:bg-pink-600 text-white border-0"
+                                      : player.clean_game
+                                      ? "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
                                       : ""
                                   }`}
                                 >
