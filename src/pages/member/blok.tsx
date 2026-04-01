@@ -21,9 +21,11 @@ import {
   ArrowDown,
   ChevronRight,
   Sparkles,
+  ThumbsUp,
+  Heart,
 } from "lucide-react";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -164,6 +166,33 @@ export default function BlokPage() {
   const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
   const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
   const [loadingCleanGame, setLoadingCleanGame] = useState(false);
+
+  type Reaction = { id: string; type: "like" | "love"; username: string; xOffset: number };
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+
+  const handleReaction = (type: "like" | "love", username: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!currentUser) {
+      toast({
+        title: "Sila Log Masuk",
+        description: "Hanya ahli berdaftar boleh memberi sokongan.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const id = Math.random().toString(36).substring(7);
+    const xOffset = Math.floor(Math.random() * 80) - 40; // Random spread between -40px and +40px
+
+    setReactions((prev) => [...prev, { id, type, username, xOffset }]);
+
+    // Remove the reaction after animation completes
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== id));
+    }, 2500);
+  };
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -873,6 +902,24 @@ export default function BlokPage() {
                                     {entry.clean_game && (
                                       <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                     )}
+                                    {entry.rank <= 3 && (
+                                      <div className="flex items-center gap-1.5 ml-1">
+                                        <button
+                                          onClick={(e) => handleReaction('like', entry.member.username, e)}
+                                          className="text-blue-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                          title="Tahniah!"
+                                        >
+                                          <ThumbsUp className="w-3.5 h-3.5 fill-blue-100" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => handleReaction('love', entry.member.username, e)}
+                                          className="text-red-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                          title="Terbaikla!"
+                                        >
+                                          <Heart className="w-3.5 h-3.5 fill-red-100" />
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-2 text-xs text-sky-600">
                                     <span
@@ -1139,6 +1186,24 @@ export default function BlokPage() {
                                       {entry.clean_game && (
                                         <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                       )}
+                                      {entry.rank <= 3 && (
+                                        <div className="flex items-center gap-1.5 ml-1 opacity-80 hover:opacity-100">
+                                          <button
+                                            onClick={(e) => handleReaction('like', entry.member.username, e)}
+                                            className="text-blue-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                            title="Tahniah!"
+                                          >
+                                            <ThumbsUp className="w-4 h-4 fill-blue-100" />
+                                          </button>
+                                          <button
+                                            onClick={(e) => handleReaction('love', entry.member.username, e)}
+                                            className="text-red-500 hover:scale-125 transition-transform drop-shadow-sm active:scale-95"
+                                            title="Terbaikla!"
+                                          >
+                                            <Heart className="w-4 h-4 fill-red-100" />
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   </td>
 
@@ -1192,6 +1257,41 @@ export default function BlokPage() {
               </Card>
             )}
           </main>
+        </div>
+
+        {/* TikTok style floating reactions overlay */}
+        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+          <AnimatePresence>
+            {reactions.map((r) => (
+              <motion.div
+                key={r.id}
+                initial={{ opacity: 0, bottom: "10%", left: "50%", scale: 0.5, translateX: `calc(-50% + ${r.xOffset}px)` }}
+                animate={{
+                  opacity: [0, 1, 1, 0],
+                  bottom: ["10%", "30%", "60%", "90%"],
+                  translateX: [
+                    `calc(-50% + ${r.xOffset}px)`,
+                    `calc(-50% + ${r.xOffset - 30}px)`,
+                    `calc(-50% + ${r.xOffset + 30}px)`,
+                    `calc(-50% + ${r.xOffset}px)`
+                  ],
+                  scale: [0.5, 1.2, 1, 0.9]
+                }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 2.5, ease: "easeOut" }}
+                className="absolute flex items-center gap-2 px-5 py-2.5 bg-white/95 backdrop-blur-sm shadow-2xl rounded-full border border-sky-100"
+              >
+                {r.type === "like" ? (
+                  <ThumbsUp className="w-7 h-7 text-blue-500 fill-blue-500 drop-shadow-md" />
+                ) : (
+                  <Heart className="w-7 h-7 text-red-500 fill-red-500 drop-shadow-md" />
+                )}
+                <span className={`font-extrabold text-base tracking-wide ${r.type === 'like' ? 'text-blue-600' : 'text-red-600'}`}>
+                  {r.type === "like" ? `Tahniah ${r.username}!` : `Terbaikla ${r.username}!`}
+                </span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {cleanGameDialogOpen && (
