@@ -69,7 +69,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
       // Check if we're still mounted
       if (!mountedRef.current) {
-        console.log("⏸️ Component unmounted, ignoring auth result");
         return;
       }
 
