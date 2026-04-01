@@ -39,6 +39,7 @@ interface RawPlayerScore extends Tables<"game_players"> {
     full_name: string;
     avatar_url: string | null;
   };
+  clean_game?: boolean;
 }
 
 interface LeaderboardEntry {
@@ -60,6 +61,7 @@ interface LeaderboardEntry {
   average_score: number;
   difference: number;
   rank: number;
+  clean_game: boolean;
 }
 
 type SortField =
@@ -133,6 +135,7 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
     average_score: entry.average_score ?? 0,
     difference: index === 0 ? 0 : topScore - (entry.overall_score ?? 0),
     rank: index + 1,
+    clean_game: entry.clean_game ?? false,
   }));
 }
 
@@ -376,7 +379,7 @@ export default function BlokPage() {
 
       const cleanGameData = gameData?.clean_game_data as any;
       const gameKey = `game${gameNumber}`;
-      const winnerIds = cleanGameData?.[gameKey] || [];
+      const winnerIds = (cleanGameData?.[gameKey] || []).filter(Boolean);
 
       if (winnerIds.length === 0) {
         setCleanGameWinners([]);
@@ -384,8 +387,8 @@ export default function BlokPage() {
         return;
       }
 
-      const totalPlayers = leaderboard.length;
-      const totalPrize = totalPlayers * 2;
+      const cleanGamePlayersCount = leaderboard.filter(p => p.clean_game).length;
+      const totalPrize = cleanGamePlayersCount * 2;
       const prizePerWinner = totalPrize / winnerIds.length;
 
       const { data: winners, error: winnersError } = await supabase
@@ -1193,19 +1196,20 @@ export default function BlokPage() {
               </DialogHeader>
 
               {loadingCleanGame ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
+                  <p className="text-sm text-sky-600">Menyemak pemenang...</p>
                 </div>
               ) : cleanGameWinners.length === 0 ? (
                 <div className="text-center py-8">
                   <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-600">Tiada pemenang clean game untuk game ini</p>
+                  <p className="text-gray-600 font-medium text-lg">Tiada pemenang Clean Game</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
                     <p className="text-sm text-amber-900 mb-1">
-                      Jumlah Hadiah: <span className="font-bold">RM{(leaderboard.length * 2).toFixed(2)}</span>
+                      Jumlah Hadiah: <span className="font-bold">RM{((leaderboard.filter(p => p.clean_game).length) * 2).toFixed(2)}</span>
                     </p>
                     <p className="text-xs text-amber-700">
                       {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
