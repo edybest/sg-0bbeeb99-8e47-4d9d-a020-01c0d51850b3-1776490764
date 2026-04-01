@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText } from "lucide-react";
+import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,6 +20,7 @@ type GamePlayer = {
   handicap: number;
   total_score: number;
   overall_score: number;
+  clean_game?: boolean;
   members: {
     id: string;
     username: string;
@@ -1498,7 +1499,8 @@ Eby,,168,116,153,152,176,18,no</pre>
                 {[1, 2, 3, 4, 5].map((gameNum) => {
                   const gameKey = `game${gameNum}` as keyof typeof cleanGameWinners;
                   const winners = cleanGameWinners[gameKey];
-                  const totalPrize = players.length * 2;
+                  const cleanGamePlayersCount = players.filter(p => p.clean_game).length;
+                  const totalPrize = cleanGamePlayersCount * 2;
                   const prizePerWinner = winners.length > 0 ? totalPrize / winners.length : 0;
 
                   return (
@@ -1651,7 +1653,14 @@ Eby,,168,116,153,152,176,18,no</pre>
                                 </div>
                               )}
                               <div>
-                                <div className="text-gray-900 font-medium">{player.members.username}</div>
+                                <div className="text-gray-900 font-medium flex items-center gap-1">
+                                  {player.members.username}
+                                  {player.clean_game && (
+                                    <span title="Joined Clean Game">
+                                      <Sparkles className="w-3 h-3 text-amber-500" />
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="text-gray-500 text-xs">{player.members.full_name}</div>
                               </div>
                             </div>
