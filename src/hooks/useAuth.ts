@@ -58,10 +58,10 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
       
-      console.warn("⏱️ Auth check timeout (3s) - releasing UI lock");
+      console.warn("⏱️ Auth check timeout (5s) - releasing UI lock");
       checkingRef.current = false;
       setLoading(false);
-    }, 3000);
+    }, 5000);
 
     try {
       console.log("🔍 Starting auth check...");
@@ -69,7 +69,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       // Use Promise.race to forcefully break out if Supabase Web Locks get stuck
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => 
-        setTimeout(() => resolve({ data: { session: null }, error: new Error("Auth check timed out due to lock") }), 3000)
+        setTimeout(() => resolve({ data: { session: null }, error: new Error("Auth check timed out due to lock") }), 5000)
       );
       
       const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
