@@ -140,13 +140,13 @@ export default function MemberDashboard() {
     badgeColor: "bg-sky-100 text-sky-700"
   },
   {
-    title: "Five-Five",
+    title: "Five+Five",
     description: "Sertai pertandingan five-five",
     href: "/member/five-five",
     icon: Star,
     gradient: "from-blue-400 to-indigo-500",
     iconColor: "text-blue-100",
-    badgeText: "5-5",
+    badgeText: "5+5",
     badgeColor: "bg-blue-100 text-blue-700"
   },
   {
@@ -244,7 +244,7 @@ export default function MemberDashboard() {
               </div>
               
               <h1 className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-lg">
-                {member?.full_name || "Ahli AMBC"}
+                {member?.full_name || "Tetamu"}
               </h1>
               <p className="text-lg text-white/90 max-w-2xl mx-auto">
                 Dashboard anda untuk semua aktiviti bowling di AMBC Club 🎳
