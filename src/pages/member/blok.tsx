@@ -39,7 +39,6 @@ interface RawPlayerScore extends Tables<"game_players"> {
     full_name: string;
     avatar_url: string | null;
   };
-  clean_game?: boolean;
 }
 
 interface LeaderboardEntry {
