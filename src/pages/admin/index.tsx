@@ -15,14 +15,35 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
 import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
-import { LogOut, Users, Trophy, BarChart3, Settings, Loader2, Bell, MessageSquare, ListChecks, ArrowRightLeft } from "lucide-react";
+import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3, MessageCircle } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
+import { CommentManagementPanel } from "@/components/admin/CommentManagementPanel";
+import {
+  Settings,
+  Trophy,
+  Users,
+  Target,
+  Grid3x3,
+  MessageSquare,
+  MessageCircle,
+  LogOut,
+} from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [adminData, setAdminData] = useState<{ full_name: string } | null>(null);
+
+  const tabs = [
+    { id: "settings", label: "Club Settings", icon: Settings },
+    { id: "games", label: "Games", icon: Trophy },
+    { id: "members", label: "Members", icon: Users },
+    { id: "scores", label: "Scores", icon: Target },
+    { id: "lanes", label: "Lanes", icon: Grid3x3 },
+    { id: "feedback", label: "Feedback", icon: MessageSquare },
+    { id: "comments", label: "Comments", icon: MessageCircle },
+  ];
 
   useEffect(() => {
     checkAdminAuth();
