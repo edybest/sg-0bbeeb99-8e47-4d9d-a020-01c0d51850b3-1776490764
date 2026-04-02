@@ -166,23 +166,29 @@ class GameService {
   /**
    * Add a player to an existing game
    */
-  async addPlayerToGame(gameId: string, memberId: string, isFiveFive: boolean = false) {
-    try {
-      // Insert player
-      const { error: insertError } = await supabase
-        .from("game_players")
-        .insert({
-          game_id: gameId,
-          member_id: memberId,
-          is_fivefive: isFiveFive,
-        });
+  async addPlayerToGame(gameId: string, memberId: string): Promise<void> {
+    // First, get the member's handicap
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .select("handicap")
+      .eq("id", memberId)
+      .single();
 
-      if (insertError) throw insertError;
-      return true;
-    } catch (error) {
-      console.error("Error adding player to game:", error);
-      throw error;
+    if (memberError) {
+      console.error("Error fetching member handicap:", memberError);
+      throw memberError;
     }
+
+    // Add player with handicap from member profile
+    const { error } = await supabase
+      .from("game_players")
+      .insert({
+        game_id: gameId,
+        member_id: memberId,
+        handicap: member?.handicap || 0,
+      });
+
+    if (error) throw error;
   }
 
   // Get all games
