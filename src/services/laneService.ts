@@ -27,8 +27,9 @@ export const laneService = {
   async getLaneConfigurations(): Promise<LaneConfigurationWithDetails[]> {
     const { data, error } = await supabase
       .from("lane_configurations")
-      .select("*")
-      .order("position_order");
+      .select("id, lane_sebenar, position_order, created_at, updated_at")
+      .order("position_order")
+      .limit(20); // Limit to 20 configurations
 
     if (error) throw error;
     return data || [];
@@ -121,7 +122,12 @@ export const laneService = {
     const { data, error } = await supabase
       .from("lane_assignments")
       .select(`
-        *,
+        id,
+        game_id,
+        member_id,
+        lane_position,
+        created_at,
+        updated_at,
         member:members!lane_assignments_member_id_fkey(
           id,
           username,
@@ -129,7 +135,8 @@ export const laneService = {
           avatar_url
         )
       `)
-      .eq("game_id", gameId);
+      .eq("game_id", gameId)
+      .limit(100); // Limit to 100 assignments
 
     if (error) throw error;
     return (data || []) as LaneAssignmentWithMember[];
@@ -236,7 +243,8 @@ export const laneService = {
       .from("members")
       .select("id, username, full_name, avatar_url")
       .eq("is_verified", true)
-      .order("username");
+      .order("username")
+      .limit(200); // Limit to 200 members for performance
 
     if (error) throw error;
     return data || [];

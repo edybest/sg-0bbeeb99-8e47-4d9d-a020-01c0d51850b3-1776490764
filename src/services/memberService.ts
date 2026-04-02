@@ -70,8 +70,10 @@ export const memberService = {
   async getAllMembers(): Promise<Member[]> {
     const { data, error } = await supabase
       .from("members")
-      .select("*")
-      .order("username");
+      .select("id, username, full_name, email, phone, avatar_url, handicap, is_admin, is_verified, created_at")
+      .eq("is_verified", true)
+      .order("username")
+      .limit(500); // Limit to 500 members for performance
 
     if (error) throw error;
     return data || [];

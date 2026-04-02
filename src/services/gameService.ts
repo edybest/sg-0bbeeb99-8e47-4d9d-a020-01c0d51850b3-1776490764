@@ -41,7 +41,14 @@ class GameService {
       const { data: games, error } = await supabase
         .from("games")
         .select(`
-          *,
+          id,
+          game_name,
+          game_type,
+          game_date,
+          year,
+          location,
+          is_official,
+          game_format,
           game_players (
             id,
             member_id,
@@ -54,7 +61,8 @@ class GameService {
             )
           )
         `)
-        .order("game_date", { ascending: false });
+        .order("game_date", { ascending: false })
+        .limit(50); // Limit to 50 most recent games for performance
 
       if (error) {
         console.error("Error fetching games:", error);
@@ -196,8 +204,9 @@ class GameService {
   async getAllGames() {
     const { data, error } = await supabase
       .from("games")
-      .select("*")
-      .order("game_date", { ascending: false });
+      .select("id, game_name, game_type, game_date, year, location, is_official, game_format")
+      .order("game_date", { ascending: false })
+      .limit(100); // Limit to 100 most recent games
     
     if (error) throw error;
     return data as Game[];
@@ -365,7 +374,19 @@ class GameService {
     const { data, error } = await supabase
       .from("game_players")
       .select(`
-        *,
+        id,
+        member_id,
+        game1_score,
+        game2_score,
+        game3_score,
+        game4_score,
+        game5_score,
+        handicap,
+        total_score,
+        overall_score,
+        average_score,
+        is_fivefive,
+        clean_game,
         members (
           id,
           username,
@@ -385,10 +406,19 @@ class GameService {
     const { data, error } = await supabase
       .from("game_players")
       .select(`
-        *,
+        id,
+        game1_score,
+        game2_score,
+        game3_score,
+        game4_score,
+        game5_score,
+        total_score,
+        overall_score,
+        average_score,
+        created_at,
         games (
           id,
-          name,
+          game_name,
           game_type,
           game_date
         )

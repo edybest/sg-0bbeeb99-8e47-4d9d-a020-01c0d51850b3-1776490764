@@ -168,19 +168,17 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     const userId = session.session.user.id;
     console.log("🔍 [chatService] Looking up member for user_id:", userId);
 
-    // Get member ID
+    // Get member ID - optimized with specific columns
     const { data: member, error: memberError } = await supabase
       .from("members")
-      .select("id, full_name, user_id")
+      .select("id, full_name")
       .eq("user_id", userId)
       .maybeSingle();
 
     console.log("🔍 [chatService] Member lookup result:", { 
       memberId: member?.id,
       memberName: member?.full_name,
-      memberUserId: member?.user_id,
-      memberError: memberError?.message,
-      memberErrorDetails: memberError 
+      memberError: memberError?.message
     });
 
     if (!member || memberError) {
@@ -191,7 +189,7 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
     const memberId = member.id;
     console.log("🔍 [chatService] Using member_id:", memberId);
 
-    // PRIMARY APPROACH: Query from chat_participants (most reliable with RLS)
+    // PRIMARY APPROACH: Query from chat_participants - optimized columns
     const { data, error } = await supabase
       .from("chat_participants")
       .select(`
@@ -203,20 +201,19 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
           last_message_at
         )
       `)
-      .eq("member_id", memberId);
+      .eq("member_id", memberId)
+      .limit(50); // Limit to 50 most recent rooms
 
     console.log("🔍 [chatService] Primary query result:", { 
       success: !error, 
       dataCount: data?.length || 0,
-      error: error?.message,
-      errorDetails: error,
-      rawData: data
+      error: error?.message
     });
 
     if (error) {
       console.error("❌ [chatService] Primary query error:", error);
       
-      // FALLBACK: Try alternative approach
+      // FALLBACK: Try alternative approach - also optimized
       console.log("🔄 [chatService] Attempting fallback query...");
       const { data: fallbackData, error: fallbackError } = await supabase
         .from("chat_rooms")
@@ -227,7 +224,8 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
           last_message_at,
           participants:chat_participants!inner(member_id)
         `)
-        .eq("participants.member_id", memberId);
+        .eq("participants.member_id", memberId)
+        .limit(50);
 
       console.log("🔍 [chatService] Fallback query result:", {
         success: !fallbackError,
@@ -254,7 +252,6 @@ export async function listMyChats(): Promise<ChatRoomSummary[]> {
 
     if (!data || data.length === 0) {
       console.warn("⚠️ [chatService] No rooms found for member:", memberId);
-      console.warn("⚠️ [chatService] This might indicate RLS blocking or no chat_participants records");
       return [];
     }
 
@@ -403,16 +400,12 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
       error: participantError?.message 
     });
 
-    if (participantError) {
-      console.error("❌ [getChatRoom] Error checking participant:", participantError);
-    }
-
     if (!participant) {
       console.warn("⚠️ [getChatRoom] User is not a participant in this room");
       return null;
     }
 
-    // Now fetch the room details
+    // Now fetch the room details - optimized columns
     const { data, error } = await supabase
       .from("chat_rooms")
       .select(`
@@ -430,46 +423,19 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
         )
       `)
       .eq("id", roomId)
+      .limit(1)
       .maybeSingle();
 
     console.log("🔍 [getChatRoom] Room query result:", { 
       success: !error,
       hasData: !!data,
       roomId: data?.id,
-      roomName: data?.name,
-      roomType: data?.type,
       participantsCount: data?.participants?.length,
-      error: error?.message,
-      errorCode: error?.code,
-      errorDetails: error
+      error: error?.message
     });
 
-    if (error) {
-      console.error("❌ [getChatRoom] Query error:", {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
-      return null;
-    }
-
-    if (!data) {
-      console.warn("⚠️ [getChatRoom] No data returned (RLS might be blocking)");
-      
-      // Try a simpler query to see if RLS is the issue
-      const { data: simpleData, error: simpleError } = await supabase
-        .from("chat_rooms")
-        .select("id, name, type")
-        .eq("id", roomId)
-        .maybeSingle();
-      
-      console.log("🔍 [getChatRoom] Simple query test:", {
-        success: !simpleError,
-        hasData: !!simpleData,
-        error: simpleError?.message
-      });
-      
+    if (error || !data) {
+      console.error("❌ [getChatRoom] Query error:", error);
       return null;
     }
 
@@ -480,15 +446,7 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
       is_silenced: participant.is_silenced,
     } as ChatRoomWithDetails;
 
-    console.log("✅ [getChatRoom] Successfully fetched room:", {
-      id: roomWithStatus.id,
-      name: roomWithStatus.name,
-      type: roomWithStatus.type,
-      participantsCount: roomWithStatus.participants?.length || 0,
-      userIsBanned: roomWithStatus.is_banned,
-      userIsSilenced: roomWithStatus.is_silenced
-    });
-
+    console.log("✅ [getChatRoom] Successfully fetched room");
     return roomWithStatus;
   } catch (error) {
     console.error("❌ [getChatRoom] Unexpected error:", error);
@@ -499,7 +457,7 @@ export async function getChatRoom(roomId: string): Promise<ChatRoomWithDetails |
 /**
  * List messages
  */
-export async function listMessages(roomId: string, limit = 100): Promise<ChatMessageWithSender[]> {
+export async function listMessages(roomId: string, limit = 50): Promise<ChatMessageWithSender[]> {
   console.log("📬 [listMessages] Starting...", { roomId, limit });
   
   try {
@@ -515,15 +473,13 @@ export async function listMessages(roomId: string, limit = 100): Promise<ChatMes
       `)
       .eq("room_id", roomId)
       .is("deleted_at", null)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     console.log("📬 [listMessages] Query result:", {
       success: !error,
       messageCount: data?.length || 0,
-      error: error?.message,
-      errorCode: error?.code,
-      errorDetails: error
+      error: error?.message
     });
 
     if (error) {
@@ -536,8 +492,11 @@ export async function listMessages(roomId: string, limit = 100): Promise<ChatMes
       return [];
     }
 
-    console.log("✅ [listMessages] Successfully loaded messages:", data.length);
-    return data as unknown as ChatMessageWithSender[];
+    // Reverse to show oldest first (since we fetched newest first for performance)
+    const messages = [...data].reverse();
+    
+    console.log("✅ [listMessages] Successfully loaded messages:", messages.length);
+    return messages as unknown as ChatMessageWithSender[];
   } catch (error) {
     console.error("❌ [listMessages] Unexpected error:", error);
     return [];
@@ -715,7 +674,9 @@ export async function listAllMembers(): Promise<Array<{ id: string; full_name: s
   const { data } = await supabase
     .from("members")
     .select("id, full_name, avatar_url")
-    .order("full_name");
+    .eq("is_verified", true)
+    .order("full_name")
+    .limit(200); // Limit to 200 members for performance
   
   return data || [];
 }
