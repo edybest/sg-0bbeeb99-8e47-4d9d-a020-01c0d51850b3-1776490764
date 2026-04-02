@@ -96,28 +96,21 @@ export function CommentManagementPanel() {
     }
   };
 
-  const handleDeleteComment = async () => {
-    if (!selectedComment) return;
-
+  const handleDeleteComment = async (commentId: string) => {
     try {
-      await gameCommentService.deleteComment(selectedComment.id);
-
-      setComments((prev) => prev.filter((c) => c.id !== selectedComment.id));
-
-      toast({
-        title: "Berjaya",
-        description: "Komen telah dipadam",
-      });
-
-      setDeleteDialogOpen(false);
-      setSelectedComment(null);
-    } catch (error) {
+      if (!currentUser?.id) {
+        toast({ title: "Ralat", description: "Admin ID tidak dijumpai", variant: "destructive" });
+        return;
+      }
+      
+      await gameCommentService.adminDeleteComment(commentId, currentUser.id);
+      
+      // Update UI
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      toast({ title: "Komen Dipadam", description: "Komen telah berjaya dipadam." });
+    } catch (error: any) {
       console.error("Error deleting comment:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal memadam komen",
-        variant: "destructive",
-      });
+      toast({ title: "Ralat", description: error.message || "Gagal memadam komen.", variant: "destructive" });
     }
   };
 
@@ -351,7 +344,7 @@ export function CommentManagementPanel() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteComment}
+              onClick={() => handleDeleteComment(selectedComment?.id || "")}
               className="bg-red-600 hover:bg-red-700"
             >
               Padam Komen
