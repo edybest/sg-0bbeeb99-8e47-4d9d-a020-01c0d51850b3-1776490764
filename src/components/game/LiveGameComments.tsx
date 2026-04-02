@@ -103,35 +103,103 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   // Load initial comments
   useEffect(() => {
+    if (!gameId) return;
+
+    const loadComments = async () => {
+      try {
+        const data = await gameCommentService.getComments(gameId);
+        setComments(data);
+      } catch (error) {
+        console.error("Error loading comments:", error);
+      }
+    };
+
     loadComments();
-  }, [gameId]);
 
-  // Subscribe to real-time updates (AUTO WITHOUT REFRESH)
-  useEffect(() => {
-    const unsubscribe = gameCommentService.subscribeToGameComments(gameId, (newComment) => {
-      setComments((prev) => {
-        // Avoid duplicates
-        if (prev.some(c => c.id === newComment.id)) return prev;
-        
-        // Play sound for new comments
-        playPopSound();
-        
-        // Add new comment to top, keep only last 20
-        return [newComment, ...prev].slice(0, 20);
+    // Set up real-time subscription for new comments
+    const channel = supabase
+      .channel(`game-comments-${gameId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "game_comments",
+          filter: `game_id=eq.${gameId}`,
+        },
+        async (payload) => {
+          console.log("New comment received:", payload);
+          
+          // Fetch the full comment with member details
+          const { data: newCommentData } = await supabase
+            .from("game_comments")
+            .select(`
+              *,
+              member:members!game_comments_member_id_fkey (
+                id,
+                username,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+
+          if (newCommentData) {
+            setComments((prev) => {
+              // Check if comment already exists (prevent duplicates)
+              const exists = prev.some(c => c.id === newCommentData.id);
+              if (exists) return prev;
+              
+              // Add new comment to the beginning of the array
+              return [newCommentData as GameCommentWithMember, ...prev];
+            });
+            
+            // Play pop sound for new comments
+            playPopSound();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "game_comments",
+          filter: `game_id=eq.${gameId}`,
+        },
+        (payload) => {
+          console.log("Comment updated:", payload);
+          
+          // If comment was deleted (deleted_at set), remove from UI
+          if (payload.new.deleted_at) {
+            setComments((prev) => prev.filter(c => c.id !== payload.new.id));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "game_comments",
+          filter: `game_id=eq.${gameId}`,
+        },
+        (payload) => {
+          console.log("Comment deleted:", payload);
+          setComments((prev) => prev.filter(c => c.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log("Realtime subscription status:", status);
       });
-    });
 
-    return unsubscribe;
+    // Cleanup subscription on unmount
+    return () => {
+      console.log("Unsubscribing from game comments");
+      supabase.removeChannel(channel);
+    };
   }, [gameId]);
-
-  const loadComments = async () => {
-    try {
-      const data = await gameCommentService.getGameComments(gameId);
-      setComments(data.slice(0, 20)); // Show latest 20
-    } catch (error) {
-      console.error("Error loading comments:", error);
-    }
-  };
 
   const handlePostComment = async () => {
     if (!currentMemberId) {
