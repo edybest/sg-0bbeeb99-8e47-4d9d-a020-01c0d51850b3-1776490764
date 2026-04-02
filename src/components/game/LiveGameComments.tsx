@@ -176,27 +176,52 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleDeleteComment = async (commentId: string) => {
     try {
+      // Log current user for debugging
+      console.log("Delete attempt by user:", { 
+        userId: currentUser?.id, 
+        isAdmin: isAdmin,
+        commentId 
+      });
+
+      // Verify admin status
+      if (!isAdmin) {
+        toast({
+          title: "Tiada Kebenaran",
+          description: "Hanya admin boleh memadam komen.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Soft delete by updating deleted_at and deleted_by
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("game_comments")
         .update({ 
           deleted_at: new Date().toISOString(),
           deleted_by: currentUser?.id 
         })
-        .eq("id", commentId);
+        .eq("id", commentId)
+        .select();
 
-      if (error) throw error;
+      console.log("Delete result:", { data, error });
 
+      if (error) {
+        console.error("Delete error details:", error);
+        throw error;
+      }
+
+      // Remove from UI immediately
       setComments(prev => prev.filter(c => c.id !== commentId));
+      
       toast({
         title: "Komen Dipadam",
         description: "Komen telah berjaya dipadam."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting comment:", error);
       toast({
         title: "Ralat",
-        description: "Gagal memadam komen.",
+        description: error.message || "Gagal memadam komen.",
         variant: "destructive"
       });
     }
@@ -204,32 +229,64 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleBanUser = async (userId: string, username: string) => {
     try {
-      if (!currentUser?.id) return;
+      console.log("Ban attempt:", { 
+        userId, 
+        username, 
+        adminId: currentUser?.id, 
+        isAdmin 
+      });
+
+      if (!isAdmin) {
+        toast({
+          title: "Tiada Kebenaran",
+          description: "Hanya admin boleh ban pengguna.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!currentUser?.id) {
+        toast({
+          title: "Ralat",
+          description: "User tidak dijumpai.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Insert into comment_bans table
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("comment_bans")
         .insert({
           member_id: userId,
           banned_by: currentUser.id,
-          reason: "Banned by admin from live comments"
-        });
+          game_id: gameId, // Ban for specific game
+          reason: "Banned by admin from live comments",
+          is_active: true
+        })
+        .select();
 
-      if (error && error.code !== '23505') throw error; // Ignore duplicate ban error
+      console.log("Ban result:", { data, error });
+
+      // Ignore duplicate ban error (23505 is unique constraint violation)
+      if (error && error.code !== '23505') {
+        console.error("Ban error details:", error);
+        throw error;
+      }
 
       // Remove all visible comments from this user from the UI immediately
       setComments(prev => prev.filter(c => c.member_id !== userId));
 
       toast({
         title: "Pengguna Diban",
-        description: `${username} telah diban dari memberi komen.`,
+        description: `${username} telah diban dari memberi komen pada game ini.`,
         variant: "destructive"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error banning user:", error);
       toast({
         title: "Ralat",
-        description: "Gagal ban pengguna.",
+        description: error.message || "Gagal ban pengguna.",
         variant: "destructive"
       });
     }
