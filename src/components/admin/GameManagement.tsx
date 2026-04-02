@@ -198,46 +198,22 @@ export function GameManagement() {
     }
   };
 
-  const handleUpdateGame = async (gameId: string, updates: Partial<typeof newGame>) => {
-    try {
-      await gameService.updateGame(gameId, updates);
-      toast({
-        title: "Berjaya",
-        description: "Maklumat game telah dikemaskini.",
-      });
-      fetchGames();
-    } catch (error) {
-      console.error("Error updating game:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal mengemaskini game.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteGame = async (gameId: string, gameName: string) => {
-    if (!confirm(`⚠️ AMARAN: Padam game "${gameName}"?\n\nSemua data berkaitan akan dipadamkan:\n- Lane assignments\n- Scores\n- Comments\n- Viewer stats\n\nTindakan ini tidak boleh dibatalkan!`)) {
-      return;
-    }
-
-    // Double confirmation for safety
-    if (!confirm(`Pengesahan terakhir: Padam "${gameName}" sekarang?`)) {
-      return;
-    }
+  const handleDeleteGame = async () => {
+    if (!deleteGameDialog.game) return;
 
     try {
-      await gameService.deleteGame(gameId);
+      await gameService.deleteGame(deleteGameDialog.game.id);
       toast({
         title: "Berjaya Dipadam",
-        description: `Game "${gameName}" telah dipadam bersama semua data berkaitan.`,
+        description: `Permainan "${deleteGameDialog.game.game_name}" telah dipadam.`,
       });
-      fetchGames();
+      setDeleteGameDialog({ open: false, game: null });
+      loadGames();
     } catch (error: any) {
       console.error("Error deleting game:", error);
       toast({
         title: "Ralat",
-        description: error.message || "Gagal memadam game.",
+        description: error.message || "Gagal memadam permainan.",
         variant: "destructive",
       });
     }
@@ -594,6 +570,19 @@ export function GameManagement() {
                           </TooltipTrigger>
                           <TooltipContent>Edit Permainan</TooltipContent>
                         </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteGameDialog({ open: true, game })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Padam Permainan</TooltipContent>
+                        </Tooltip>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -682,27 +671,6 @@ export function GameManagement() {
                         </p>
                       )}
                     </CardContent>
-                    <div className="flex items-center justify-end gap-2 p-3 bg-muted/50 rounded-lg">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedGame(game);
-                          setIsUpdateOpen(true);
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteGame(game.id, game.name)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Padam
-                      </Button>
-                    </div>
                   </Card>
                 </motion.div>
               ))}
