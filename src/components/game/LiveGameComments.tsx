@@ -107,7 +107,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
     const loadComments = async () => {
       try {
-        const data = await gameCommentService.getComments(gameId);
+        const data = await gameCommentService.getGameComments(gameId);
         setComments(data);
       } catch (error) {
         console.error("Error loading comments:", error);
