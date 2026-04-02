@@ -166,7 +166,7 @@ class GameService {
   /**
    * Add a player to an existing game
    */
-  async addPlayerToGame(gameId: string, memberId: string): Promise<void> {
+  async addPlayerToGame(gameId: string, memberId: string, fivefive?: boolean): Promise<void> {
     // First, get the member's handicap
     const { data: member, error: memberError } = await supabase
       .from("members")
@@ -186,6 +186,7 @@ class GameService {
         game_id: gameId,
         member_id: memberId,
         handicap: member?.handicap || 0,
+        fivefive: fivefive || false,
       });
 
     if (error) throw error;
