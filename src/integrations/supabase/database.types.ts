@@ -571,6 +571,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           edited_at: string | null
+          edited_by: string | null
           emoji_code: string | null
           game_id: string
           id: string
@@ -583,6 +584,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           edited_at?: string | null
+          edited_by?: string | null
           emoji_code?: string | null
           game_id: string
           id?: string
@@ -595,6 +597,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           edited_at?: string | null
+          edited_by?: string | null
           emoji_code?: string | null
           game_id?: string
           id?: string

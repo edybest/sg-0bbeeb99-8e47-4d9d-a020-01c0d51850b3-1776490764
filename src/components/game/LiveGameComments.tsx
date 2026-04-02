@@ -554,12 +554,12 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               <span className="hidden sm:inline font-semibold">Comment</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl z-[9999]">
+          <SheetContent side="bottom" className="h-[65vh] rounded-t-3xl z-[9999]">
             <SheetHeader>
               <SheetTitle className="text-lg">💬 Live Comments - {gameName}</SheetTitle>
             </SheetHeader>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 pb-24">
               {/* Emoji Picker - Display ICONS only */}
               <div className="grid grid-cols-5 gap-2">
                 {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
