@@ -38,19 +38,57 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [memberToBan, setMemberToBan] = useState<{ id: string; name: string } | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize Web Audio API for pop sound
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Play pop sound effect
+  const playPopSound = () => {
+    if (!audioContextRef.current) return;
+
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.1);
+  };
 
   // Load initial comments
   useEffect(() => {
     loadComments();
   }, [gameId]);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates (AUTO WITHOUT REFRESH)
   useEffect(() => {
     const unsubscribe = gameCommentService.subscribeToGameComments(gameId, (newComment) => {
       setComments((prev) => {
         // Avoid duplicates
         if (prev.some(c => c.id === newComment.id)) return prev;
-        // Keep only last 20 comments for performance
+        
+        // Play sound for new comments
+        playPopSound();
+        
+        // Add new comment to top, keep only last 20
         return [newComment, ...prev].slice(0, 20);
       });
     });
@@ -163,7 +201,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   return (
     <>
-      {/* Floating Comments Display - TikTok Style */}
+      {/* Floating Comments Display - TikTok Style with SLOW animation */}
       {showComments && (
         <div className="fixed left-0 right-0 bottom-24 md:bottom-20 pointer-events-none z-[9999] px-4">
           <div className="max-w-screen-xl mx-auto">
@@ -171,9 +209,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               {comments.slice(0, 5).map((comment, index) => (
                 <div
                   key={comment.id}
-                  className="animate-slide-up opacity-0 pointer-events-auto"
+                  className="animate-slide-up-slow opacity-0 pointer-events-auto"
                   style={{
-                    animationDelay: `${index * 100}ms`,
+                    animationDelay: `${index * 200}ms`,
                     animationFillMode: "forwards",
                   }}
                 >
@@ -251,7 +289,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
             </SheetHeader>
 
             <div className="mt-6 space-y-4">
-              {/* Emoji Picker */}
+              {/* Emoji Picker - Display ICONS only */}
               <div className="grid grid-cols-5 gap-2">
                 {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
                   <Button
@@ -262,6 +300,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                     className={`text-2xl h-14 ${emoji.animated ? "hover:animate-bounce" : ""} ${
                       selectedEmoji === key ? "ring-2 ring-sky-500 ring-offset-2" : ""
                     }`}
+                    title={key}
                   >
                     {emoji.code}
                   </Button>
@@ -390,22 +429,38 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
       </AlertDialog>
 
       <style jsx global>{`
-        @keyframes slideUpSmooth {
+        @keyframes slideUpSlow {
           0% {
-            transform: translateY(100px);
+            transform: translateY(120px);
             opacity: 0;
           }
-          20% {
+          15% {
+            opacity: 0.5;
+          }
+          25% {
             opacity: 1;
           }
-          100% {
+          85% {
             transform: translateY(0);
             opacity: 1;
           }
+          100% {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
         }
 
-        .animate-slide-up {
-          animation: slideUpSmooth 0.5s ease-out;
+        .animate-slide-up-slow {
+          animation: slideUpSlow 6s ease-in-out forwards;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .overflow-y-auto {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .overflow-y-auto::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </>
