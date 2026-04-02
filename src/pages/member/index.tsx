@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Shuffle } from
 "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type Member = {
   id: string;
