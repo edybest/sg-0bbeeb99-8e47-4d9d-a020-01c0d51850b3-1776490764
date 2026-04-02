@@ -149,10 +149,14 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
     const unsubscribe = gameCommentService.subscribeToGameComments(
       gameId,
       (comment: any) => {
+        const emojiCode = comment.emoji_code || comment.emoji;
+        const commentText = comment.comment_text || comment.text;
+        const username = comment.member?.username || comment.username || "Anonymous";
+
         // Check for emoji burst
-        if (comment.emoji) {
+        if (emojiCode) {
           const now = Date.now();
-          const tracker = emojiTrackerRef.current.get(comment.emoji) || { emoji: comment.emoji, count: 0, lastTime: now };
+          const tracker = emojiTrackerRef.current.get(emojiCode) || { emoji: emojiCode, count: 0, lastTime: now };
           
           // Reset if too much time passed
           if (now - tracker.lastTime > BURST_TIMEFRAME) {
@@ -162,30 +166,30 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
           }
           
           tracker.lastTime = now;
-          emojiTrackerRef.current.set(comment.emoji, tracker);
+          emojiTrackerRef.current.set(emojiCode, tracker);
 
-          const emojiData = BOWLING_EMOJIS[comment.emoji as keyof typeof BOWLING_EMOJIS];
+          const emojiData = BOWLING_EMOJIS[emojiCode as keyof typeof BOWLING_EMOJIS];
           
           // Trigger burst if threshold reached
           if (tracker.count >= BURST_THRESHOLD) {
-            addEmojiBurst(emojiData?.code || comment.emoji);
+            addEmojiBurst(emojiData?.code || emojiCode);
             // Reset counter after burst
-            emojiTrackerRef.current.delete(comment.emoji);
+            emojiTrackerRef.current.delete(emojiCode);
           } else {
-            addFloatingEmoji(emojiData?.code || comment.emoji);
+            addFloatingEmoji(emojiData?.code || emojiCode);
           }
         }
 
         // Add sliding message
-        if (comment.text) {
+        if (commentText) {
           const msgId = `msg-${Date.now()}-${Math.random()}`;
           setSlidingMessages((prev) => [
             ...prev,
             {
               id: msgId,
-              username: comment.username || "Anonymous",
-              text: comment.text,
-              emoji: comment.emoji,
+              username: username,
+              text: commentText,
+              emoji: emojiCode,
             },
           ]);
 
