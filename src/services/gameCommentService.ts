@@ -1,110 +1,33 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type GameComment = Database["public"]["Tables"]["game_comments"]["Row"];
-type CommentBan = Database["public"]["Tables"]["comment_bans"]["Row"];
+type GameCommentInsert = Database["public"]["Tables"]["game_comments"]["Insert"];
 
-export interface GameCommentWithMember extends GameComment {
+interface GameCommentWithMember extends GameComment {
   member?: {
     id: string;
     username: string;
-    full_name: string;
-    avatar_url: string | null;
+    full_name?: string;
+    avatar_url?: string;
   };
 }
 
-export interface CommentBanWithDetails extends CommentBan {
-  member?: {
-    id: string;
-    username: string;
-    full_name: string;
-  };
-  banned_by_member?: {
-    id: string;
-    username: string;
-    full_name: string;
-  };
+// Helper function to emit debug logs (works on mobile!)
+function emitDebugLog(
+  type: "success" | "error" | "info" | "warning",
+  message: string,
+  details?: any
+) {
+  console.log(`[${type.toUpperCase()}] ${message}`, details);
+  const event = new CustomEvent("comment-debug", {
+    detail: { type, message, details },
+  });
+  window.dispatchEvent(event);
 }
-
-// Bowling-related emojis and animated icons
-export const BOWLING_EMOJIS = {
-  strike: { code: "🎳", label: "Strike", animated: true },
-  spare: { code: "🎯", label: "Spare", animated: true },
-  fire: { code: "🔥", label: "On Fire", animated: true },
-  star: { code: "⭐", label: "Star", animated: true },
-  trophy: { code: "🏆", label: "Trophy", animated: true },
-  clap: { code: "👏", label: "Clap", animated: true },
-  muscle: { code: "💪", label: "Strong", animated: true },
-  thumbsup: { code: "👍", label: "Good", animated: false },
-  heart: { code: "❤️", label: "Love", animated: true },
-  laugh: { code: "😂", label: "LOL", animated: false },
-  cool: { code: "😎", label: "Cool", animated: false },
-  wow: { code: "😮", label: "Wow", animated: false },
-  perfect: { code: "💯", label: "Perfect", animated: true },
-  rocket: { code: "🚀", label: "Rocket", animated: true },
-  celebrate: { code: "🎉", label: "Celebrate", animated: true },
-};
 
 export const gameCommentService = {
-  /**
-   * Get all comments (admin only)
-   */
-  async getAllComments(limit = 100): Promise<any[]> {
-    const { data, error } = await supabase
-      .from("game_comments")
-      .select(`
-        *,
-        member:members!game_comments_member_id_fkey(
-          id,
-          username,
-          full_name,
-          avatar_url
-        ),
-        game:games(
-          game_name,
-          game_date
-        )
-      `)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error("Error fetching all comments:", error);
-      throw error;
-    }
-
-    return data || [];
-  },
-
-  /**
-   * Get comments for a specific game (real-time)
-   */
-  async getGameComments(gameId: string, limit = 50): Promise<GameCommentWithMember[]> {
-    const { data, error } = await supabase
-      .from("game_comments")
-      .select(`
-        *,
-        member:members!game_comments_member_id_fkey(
-          id,
-          username,
-          full_name,
-          avatar_url
-        )
-      `)
-      .eq("game_id", gameId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error("Error fetching game comments:", error);
-      throw error;
-    }
-
-    return (data || []) as GameCommentWithMember[];
-  },
-
   /**
    * Post a new comment
    */
@@ -113,12 +36,11 @@ export const gameCommentService = {
     memberId: string,
     content: { text?: string; emoji?: string; isAnimated?: boolean }
   ): Promise<GameComment> {
-    console.log("=== POST COMMENT DEBUG START ===");
-    console.log("Input params:", { gameId, memberId, content });
+    emitDebugLog("info", "🚀 Memulakan post comment...", { gameId, memberId });
     
-    // Get current auth user for debugging
+    // Get current auth user
     const { data: { user } } = await supabase.auth.getUser();
-    console.log("Current auth user:", user?.id);
+    emitDebugLog("info", `Auth user: ${user?.id || "None"}`, { userId: user?.id });
     
     // Check if this member_id belongs to current user
     const { data: memberCheck, error: memberCheckError } = await supabase
@@ -127,23 +49,33 @@ export const gameCommentService = {
       .eq("id", memberId)
       .single();
     
-    console.log("Member check result:", { memberCheck, memberCheckError });
-    console.log("Does member belong to current user?", memberCheck?.user_id === user?.id);
+    if (memberCheckError) {
+      emitDebugLog("error", "❌ Member check failed", memberCheckError);
+    } else {
+      const belongsToUser = memberCheck?.user_id === user?.id;
+      emitDebugLog(
+        belongsToUser ? "success" : "warning",
+        `Member check: ${belongsToUser ? "OK" : "MISMATCH"}`,
+        { memberCheck, belongsToUser }
+      );
+    }
     
-    // Check if user is banned first
+    // Check if user is banned
     try {
       const isBanned = await this.isUserBanned(memberId, gameId);
-      console.log("Is user banned?", isBanned);
-      
       if (isBanned) {
+        emitDebugLog("error", "🚫 User is banned from posting", { memberId, gameId });
         throw new Error("You are banned from posting comments");
       }
-    } catch (banCheckError) {
-      console.error("Error checking ban status:", banCheckError);
-      // Continue anyway if ban check fails
+      emitDebugLog("success", "✅ User not banned, can post");
+    } catch (banCheckError: any) {
+      if (banCheckError.message === "You are banned from posting comments") {
+        throw banCheckError;
+      }
+      emitDebugLog("warning", "⚠️ Ban check error (continuing anyway)", banCheckError);
     }
 
-    // Prepare insert data - CRITICAL: Use correct column names
+    // Prepare insert data
     const insertData = {
       game_id: gameId,
       member_id: memberId,
@@ -152,7 +84,7 @@ export const gameCommentService = {
       is_animated: content.isAnimated || false,
     };
     
-    console.log("Insert data:", insertData);
+    emitDebugLog("info", "📝 Insert data prepared", insertData);
     
     // Attempt insert
     const { data, error } = await supabase
@@ -161,208 +93,18 @@ export const gameCommentService = {
       .select()
       .single();
 
-    console.log("Insert result:", { data, error });
-    
     if (error) {
-      console.error("Error posting comment:", error);
-      console.error("Error details:", {
+      emitDebugLog("error", `❌ Insert failed: ${error.message}`, {
         code: error.code,
         message: error.message,
         details: error.details,
-        hint: error.hint
+        hint: error.hint,
       });
       throw error;
     }
 
-    console.log("=== POST COMMENT DEBUG END ===");
-    console.log("✅ Comment posted successfully, ID:", data.id);
+    emitDebugLog("success", `✅ Comment posted! ID: ${data.id}`, data);
     return data;
-  },
-
-  /**
-   * Delete a comment (soft delete) - Admin version using database function
-   */
-  async adminDeleteComment(commentId: string, adminMemberId: string): Promise<void> {
-    const { error } = await supabase.rpc("admin_delete_game_comment", {
-      comment_id: commentId,
-      admin_member_id: adminMemberId,
-    });
-
-    if (error) {
-      console.error("Error deleting comment (admin):", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Delete a comment (soft delete) - Member version using regular update
-   */
-  async deleteComment(commentId: string, memberId: string): Promise<void> {
-    const { error } = await supabase
-      .from("game_comments")
-      .update({
-        deleted_at: new Date().toISOString(),
-        deleted_by: memberId,
-      })
-      .eq("id", commentId)
-      .eq("member_id", memberId); // Member can only delete own comments
-
-    if (error) {
-      console.error("Error deleting comment:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Edit a comment (user can edit their own comment)
-   */
-  async editComment(
-    commentId: string,
-    content: { text?: string; emoji?: string; isAnimated?: boolean }
-  ): Promise<GameComment> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const updateData: any = {
-      edited_at: new Date().toISOString(),
-      edited_by: user?.id,
-    };
-
-    if (content.text !== undefined) {
-      updateData.comment_text = content.text || null;
-    }
-    
-    if (content.emoji !== undefined) {
-      updateData.emoji_code = content.emoji || null;
-      updateData.is_animated = content.isAnimated || false;
-    }
-
-    const { data, error } = await supabase
-      .from("game_comments")
-      .update(updateData)
-      .eq("id", commentId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error editing comment:", error);
-      throw error;
-    }
-
-    return data;
-  },
-
-  /**
-   * Check if user is banned from posting comments
-   */
-  async isUserBanned(memberId: string, gameId?: string): Promise<boolean> {
-    const now = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .from("comment_bans")
-      .select("*")
-      .eq("member_id", memberId)
-      .eq("is_active", true)
-      .or(`game_id.is.null,game_id.eq.${gameId}`)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .limit(1);
-
-    if (error) {
-      console.error("Error checking ban status:", error);
-      return false;
-    }
-
-    return (data || []).length > 0;
-  },
-
-  /**
-   * Ban a user from posting comments (admin only)
-   */
-  async banUser(
-    memberId: string,
-    bannedBy?: string,
-    options: {
-      gameId?: string;
-      reason?: string;
-      expiresAt?: string;
-    } = {}
-  ): Promise<CommentBan> {
-    let adminId = bannedBy;
-    if (!adminId) {
-      const { data } = await supabase.auth.getSession();
-      adminId = data.session?.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from("comment_bans")
-      .insert({
-        member_id: memberId,
-        game_id: options.gameId || null,
-        banned_by: adminId,
-        reason: options.reason || null,
-        expires_at: options.expiresAt || null,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error banning user:", error);
-      throw error;
-    }
-
-    return data;
-  },
-
-  /**
-   * Unban a user (admin only)
-   */
-  async unbanUser(memberId: string): Promise<void> {
-    const { error } = await supabase
-      .from("comment_bans")
-      .update({ is_active: false })
-      .eq("member_id", memberId)
-      .eq("is_active", true);
-
-    if (error) {
-      console.error("Error unbanning user:", error);
-      throw error;
-    }
-  },
-
-  /**
-   * Get all banned users (admin only)
-   */
-  async getBannedUsers(gameId?: string): Promise<CommentBanWithDetails[]> {
-    let query = supabase
-      .from("comment_bans")
-      .select(`
-        *,
-        member:members!comment_bans_member_id_fkey(
-          id,
-          username,
-          full_name
-        ),
-        banned_by_member:members!comment_bans_banned_by_fkey(
-          id,
-          username,
-          full_name
-        )
-      `)
-      .eq("is_active", true)
-      .order("banned_at", { ascending: false });
-
-    if (gameId) {
-      query = query.eq("game_id", gameId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching banned users:", error);
-      throw error;
-    }
-
-    return (data || []) as CommentBanWithDetails[];
   },
 
   /**
@@ -372,7 +114,7 @@ export const gameCommentService = {
     gameId: string,
     callback: (comment: GameCommentWithMember) => void
   ) {
-    console.log("🔌 Setting up real-time subscription for game:", gameId);
+    emitDebugLog("info", `🔌 Connecting real-time for game: ${gameId}`);
     
     const channel = supabase
       .channel(`game-comments-${gameId}`)
@@ -385,7 +127,7 @@ export const gameCommentService = {
           filter: `game_id=eq.${gameId}`,
         },
         async (payload) => {
-          console.log("📨 New comment event received:", payload);
+          emitDebugLog("info", "📨 New comment detected!", { commentId: payload.new.id });
           
           try {
             // Fetch the full comment with member details
@@ -403,30 +145,33 @@ export const gameCommentService = {
               .eq("id", payload.new.id)
               .single();
 
-            console.log("Fetched comment data:", { data, error });
-
             if (error) {
-              console.error("❌ Error fetching comment:", error);
+              emitDebugLog("error", "❌ Failed to fetch comment data", error);
               return;
             }
 
             if (data) {
-              console.log("✅ Broadcasting comment to UI:", data);
+              emitDebugLog("success", "✅ Comment fetched, sending to UI", {
+                id: data.id,
+                hasText: !!data.comment_text,
+                hasEmoji: !!data.emoji_code,
+                username: data.member?.username,
+              });
               callback(data as GameCommentWithMember);
             } else {
-              console.warn("⚠️ No data returned for comment ID:", payload.new.id);
+              emitDebugLog("warning", "⚠️ No data returned for comment", { commentId: payload.new.id });
             }
           } catch (err) {
-            console.error("❌ Exception in subscription callback:", err);
+            emitDebugLog("error", "❌ Exception in subscription", err);
           }
         }
       )
       .subscribe((status) => {
-        console.log("📡 Subscription status:", status);
+        emitDebugLog("info", `📡 Subscription status: ${status}`, { gameId, status });
       });
 
     return () => {
-      console.log("🔌 Unsubscribing from game-comments-" + gameId);
+      emitDebugLog("info", `🔌 Disconnecting from game: ${gameId}`);
       supabase.removeChannel(channel);
     };
   },

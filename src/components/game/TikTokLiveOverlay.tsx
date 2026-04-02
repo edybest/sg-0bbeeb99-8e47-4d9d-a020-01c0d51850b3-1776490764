@@ -7,6 +7,7 @@ import { MessageCircle, Send, X, Eye, EyeOff, Users } from "lucide-react";
 import { gameCommentService } from "@/services/gameCommentService";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { CommentDebugPanel } from "./CommentDebugPanel";
 
 interface Comment {
   id: string;
@@ -307,6 +308,9 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
 
   return (
     <>
+      {/* Debug Panel - Mobile Friendly */}
+      <CommentDebugPanel />
+
       {/* Viewer Count Badge - Top Left */}
       <div className="fixed top-4 left-4 z-[9998] bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
         <Users className="w-4 h-4 text-green-400" />
