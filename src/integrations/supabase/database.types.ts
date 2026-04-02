@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -570,6 +570,7 @@ export type Database = {
           created_at: string | null
           deleted_at: string | null
           deleted_by: string | null
+          edited_at: string | null
           emoji_code: string | null
           game_id: string
           id: string
@@ -581,6 +582,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           emoji_code?: string | null
           game_id: string
           id?: string
@@ -592,6 +594,7 @@ export type Database = {
           created_at?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          edited_at?: string | null
           emoji_code?: string | null
           game_id?: string
           id?: string
