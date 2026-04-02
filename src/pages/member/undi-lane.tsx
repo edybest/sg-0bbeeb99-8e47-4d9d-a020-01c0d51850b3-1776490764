@@ -615,7 +615,7 @@ export default function UndiLanePage() {
                             <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
                               <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-blue-200 flex items-center justify-center p-2.5">
                                 <div className="relative w-full h-full">
-                                  <Image src="/ambc-logo.png" alt="AMBC Logo" fill className="object-contain" />
+                                  <Image src="/ambc-logo.png" alt="AMBC Logo" fill sizes="100vw" className="object-contain" />
                                 </div>
                               </div>
                             </div>
