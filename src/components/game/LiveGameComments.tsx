@@ -431,7 +431,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                   className={`text-2xl drop-shadow-lg ${comment.is_animated ? "animate-bounce" : ""}`}
                   style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}
                 >
-                  {comment.emoji_code}
+                  {BOWLING_EMOJIS[comment.emoji_code as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji_code}
                 </span>
               )}
               
@@ -570,7 +570,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           {comment.emoji_code && (
-                            <span className="text-xl">{comment.emoji_code}</span>
+                            <span className="text-xl">
+                              {BOWLING_EMOJIS[comment.emoji_code as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji_code}
+                            </span>
                           )}
                           {comment.comment_text && (
                             <span className="text-sm">{comment.comment_text}</span>
