@@ -175,6 +175,18 @@ export default function BlokPage() {
   type Reaction = { id: string; type: "like" | "love"; username: string; xOffset: number };
   const [reactions, setReactions] = useState<Reaction[]>([]);
 
+  type HeartParticle = { 
+    id: string; 
+    playerId: string; 
+    x: number; 
+    y: number; 
+    rotation: number; 
+    scale: number;
+    delay: number;
+  };
+  const [heartParticles, setHeartParticles] = useState<HeartParticle[]>([]);
+  const [heartPops, setHeartPops] = useState<Set<string>>(new Set());
+
   const handleReaction = async (entry: LeaderboardEntry, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -186,6 +198,74 @@ export default function BlokPage() {
         variant: "destructive"
       });
       return;
+    }
+
+    // Trigger heart pop animation
+    setHeartPops(prev => new Set(prev).add(entry.id));
+    setTimeout(() => {
+      setHeartPops(prev => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
+    }, 600);
+
+    // Get button position for particle burst
+    const button = e.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // Create particle burst (6-8 hearts)
+    const particleCount = Math.floor(Math.random() * 3) + 6; // 6-8 particles
+    const newParticles: HeartParticle[] = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
+      const distance = 50 + Math.random() * 30;
+      const x = centerX + Math.cos(angle) * distance;
+      const y = centerY + Math.sin(angle) * distance;
+      
+      newParticles.push({
+        id: `${entry.id}-${Date.now()}-${i}`,
+        playerId: entry.id,
+        x,
+        y,
+        rotation: Math.random() * 360,
+        scale: 0.6 + Math.random() * 0.4,
+        delay: i * 0.05
+      });
+    }
+    
+    setHeartParticles(prev => [...prev, ...newParticles]);
+    
+    // Clean up particles after animation
+    setTimeout(() => {
+      setHeartParticles(prev => 
+        prev.filter(p => !newParticles.find(np => np.id === p.id))
+      );
+    }, 1200);
+
+    // Play pop sound using Web Audio API
+    try {
+      const audioContext = new AudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Sweet pop sound (higher frequency)
+      oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.15);
+    } catch (err) {
+      console.log("Audio playback not available");
     }
 
     console.log('Sending reaction:', { 
@@ -777,6 +857,31 @@ export default function BlokPage() {
           .score-changed {
             animation: scoreChange 1s ease-in-out;
           }
+
+          @keyframes heartPop {
+            0% {
+              transform: scale(1);
+            }
+            20% {
+              transform: scale(1.4) rotate(-10deg);
+            }
+            40% {
+              transform: scale(1.2) rotate(10deg);
+            }
+            60% {
+              transform: scale(1.3) rotate(-5deg);
+            }
+            80% {
+              transform: scale(1.1) rotate(5deg);
+            }
+            100% {
+              transform: scale(1) rotate(0deg);
+            }
+          }
+
+          .animate-heart-pop {
+            animation: heartPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
         `}</style>
 
         <SEO
@@ -810,8 +915,11 @@ export default function BlokPage() {
           <main className="container mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-6 pb-32 md:pb-8">
             <Card className="bg-white border-sky-200 shadow-md">
               <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
-                <CardTitle className="text-base md:text-lg text-sky-900">Pilih Game</CardTitle>
-                <CardDescription className="text-xs md:text-sm text-sky-600">
+                <CardTitle className="text-sky-900 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-500" />
+                  Pilih Game
+                </CardTitle>
+                <CardDescription className="text-sky-600">
                   Pilih tarikh untuk melihat kedudukan
                 </CardDescription>
               </CardHeader>
@@ -1028,10 +1136,16 @@ export default function BlokPage() {
                                     )}
                                     <button
                                       onClick={(e) => handleReaction(entry, e)}
-                                      className="flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 md:px-2 rounded-full ml-1 md:ml-2 opacity-90 hover:opacity-100"
+                                      className={`relative flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 md:px-2 rounded-full ml-1 md:ml-2 opacity-90 hover:opacity-100 ${
+                                        heartPops.has(entry.id) ? "animate-heart-pop" : ""
+                                      }`}
                                       title="Tahniah!"
                                     >
-                                      <ThumbsUp className="w-3 h-3 md:w-4 md:h-4 fill-blue-100" />
+                                      <Heart 
+                                        className={`w-3 h-3 md:w-4 md:h-4 transition-all duration-300 ${
+                                          entry.likes_count > 0 ? "fill-red-500 text-red-500" : "fill-blue-100"
+                                        }`}
+                                      />
                                       {entry.likes_count > 0 && <span className="text-[10px] md:text-xs font-bold">{entry.likes_count}</span>}
                                     </button>
                                   </div>
@@ -1302,10 +1416,16 @@ export default function BlokPage() {
                                       )}
                                       <button
                                         onClick={(e) => handleReaction(entry, e)}
-                                        className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100"
+                                        className={`relative flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100 ${
+                                          heartPops.has(entry.id) ? "animate-heart-pop" : ""
+                                        }`}
                                         title="Tahniah!"
                                       >
-                                        <ThumbsUp className="w-4 h-4 fill-blue-100" />
+                                        <Heart 
+                                          className={`w-4 h-4 transition-all duration-300 ${
+                                            entry.likes_count > 0 ? "fill-red-500 text-red-500" : "fill-blue-100"
+                                          }`}
+                                        />
                                         {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
                                       </button>
                                     </div>
@@ -1389,6 +1509,46 @@ export default function BlokPage() {
                 <span className="font-extrabold text-base tracking-wide text-blue-600">
                   Tahniah {r.username}!
                 </span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Heart Particle Burst Overlay */}
+        <div className="fixed inset-0 pointer-events-none z-[101] overflow-hidden">
+          <AnimatePresence>
+            {heartParticles.map((particle) => (
+              <motion.div
+                key={particle.id}
+                initial={{ 
+                  x: particle.x, 
+                  y: particle.y, 
+                  scale: 0,
+                  rotate: 0,
+                  opacity: 0
+                }}
+                animate={{ 
+                  x: particle.x,
+                  y: particle.y - 100,
+                  scale: [0, particle.scale * 1.5, particle.scale, 0],
+                  rotate: [0, particle.rotation, particle.rotation + 180],
+                  opacity: [0, 1, 1, 0]
+                }}
+                exit={{ opacity: 0, scale: 0 }}
+                transition={{ 
+                  duration: 1.2, 
+                  delay: particle.delay,
+                  ease: [0.34, 1.56, 0.64, 1] // Elastic ease out
+                }}
+                className="absolute"
+                style={{ left: 0, top: 0 }}
+              >
+                <Heart 
+                  className="w-6 h-6 fill-red-500 text-red-500 drop-shadow-lg" 
+                  style={{
+                    filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))"
+                  }}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
