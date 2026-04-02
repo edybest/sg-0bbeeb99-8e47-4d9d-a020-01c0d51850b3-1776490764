@@ -45,19 +45,23 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Query members table instead of profiles for is_admin
+        // Query members table to get member_id and is_admin
         const { data: memberData } = await supabase
           .from("members")
           .select("*, is_admin")
           .eq("user_id", user.id)
           .single();
         
+        console.log("Fetched member data:", memberData);
+        
         setCurrentUser(memberData);
+        setCurrentMemberId(memberData?.id || null);
         setIsAdmin(memberData?.is_admin === true);
       }
     };
@@ -130,7 +134,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   };
 
   const handlePostComment = async () => {
-    if (!member) {
+    if (!currentMemberId) {
       toast({
         title: "Login Required",
         description: "Please login to post comments",
@@ -150,7 +154,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
     setIsPosting(true);
     try {
-      await gameCommentService.postComment(gameId, member.id, {
+      console.log("Posting comment with member_id:", currentMemberId);
+      
+      await gameCommentService.postComment(gameId, currentMemberId, {
         text: newComment.trim() || undefined,
         emoji: selectedEmoji || undefined,
         isAnimated: selectedEmoji ? BOWLING_EMOJIS[selectedEmoji as keyof typeof BOWLING_EMOJIS]?.animated : false,
@@ -164,6 +170,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         description: "Your comment is now live",
       });
     } catch (error: any) {
+      console.error("Error posting comment:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to post comment",
