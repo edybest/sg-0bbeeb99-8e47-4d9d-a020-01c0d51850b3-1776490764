@@ -289,16 +289,6 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         commentId 
       });
 
-      // Verify admin status
-      if (!isAdmin) {
-        toast({
-          title: "Tiada Kebenaran",
-          description: "Hanya admin boleh memadam komen.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       // Soft delete by updating deleted_at and deleted_by
       const { data, error } = await supabase
         .from("game_comments")
@@ -579,7 +569,8 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                           )}
                         </div>
                       </div>
-                      {isAdmin && (
+                      {/* Delete button - Show for admins OR own comments */}
+                      {(isAdmin || comment.member_id === currentMemberId) && (
                         <div className="flex gap-1 flex-shrink-0">
                           <Button
                             size="sm"
@@ -589,19 +580,22 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-orange-500 hover:bg-orange-500/10"
-                            onClick={() =>
-                              setMemberToBan({
-                                id: comment.member_id,
-                                name: comment.member?.username || "User",
-                              })
-                            }
-                          >
-                            <Ban className="h-4 w-4" />
-                          </Button>
+                          {/* Ban button - Only for admins */}
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-orange-500 hover:bg-orange-500/10"
+                              onClick={() =>
+                                setMemberToBan({
+                                  id: comment.member_id,
+                                  name: comment.member?.username || "User",
+                                })
+                              }
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
