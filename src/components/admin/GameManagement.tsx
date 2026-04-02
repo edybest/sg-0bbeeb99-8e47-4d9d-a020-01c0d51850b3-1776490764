@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer, Sparkles } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer, Sparkles, Edit2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -198,22 +198,46 @@ export function GameManagement() {
     }
   };
 
-  const handleDeleteGame = async () => {
-    if (!deleteGameDialog.game) return;
-
+  const handleUpdateGame = async (gameId: string, updates: Partial<typeof newGame>) => {
     try {
-      await gameService.deleteGame(deleteGameDialog.game.id);
+      await gameService.updateGame(gameId, updates);
       toast({
         title: "Berjaya",
-        description: "Permainan telah dipadam",
+        description: "Maklumat game telah dikemaskini.",
       });
-      setDeleteGameDialog({ open: false, game: null });
-      loadGames();
+      fetchGames();
     } catch (error) {
+      console.error("Error updating game:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini game.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteGame = async (gameId: string, gameName: string) => {
+    if (!confirm(`⚠️ AMARAN: Padam game "${gameName}"?\n\nSemua data berkaitan akan dipadamkan:\n- Lane assignments\n- Scores\n- Comments\n- Viewer stats\n\nTindakan ini tidak boleh dibatalkan!`)) {
+      return;
+    }
+
+    // Double confirmation for safety
+    if (!confirm(`Pengesahan terakhir: Padam "${gameName}" sekarang?`)) {
+      return;
+    }
+
+    try {
+      await gameService.deleteGame(gameId);
+      toast({
+        title: "Berjaya Dipadam",
+        description: `Game "${gameName}" telah dipadam bersama semua data berkaitan.`,
+      });
+      fetchGames();
+    } catch (error: any) {
       console.error("Error deleting game:", error);
       toast({
         title: "Ralat",
-        description: "Gagal memadam permainan",
+        description: error.message || "Gagal memadam game.",
         variant: "destructive",
       });
     }
@@ -658,6 +682,27 @@ export function GameManagement() {
                         </p>
                       )}
                     </CardContent>
+                    <div className="flex items-center justify-end gap-2 p-3 bg-muted/50 rounded-lg">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedGame(game);
+                          setIsUpdateOpen(true);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteGame(game.id, game.name)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Padam
+                      </Button>
+                    </div>
                   </Card>
                 </motion.div>
               ))}
