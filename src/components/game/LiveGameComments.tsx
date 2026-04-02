@@ -50,19 +50,29 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log("Auth user:", user);
+      
       if (user) {
         // Query members table to get member_id and is_admin
-        const { data: memberData } = await supabase
+        const { data: memberData, error } = await supabase
           .from("members")
           .select("*, is_admin")
           .eq("user_id", user.id)
           .single();
         
-        console.log("Fetched member data:", memberData);
+        console.log("Fetched member data:", memberData, "Error:", error);
         
-        setCurrentUser(memberData);
-        setCurrentMemberId(memberData?.id || null);
-        setIsAdmin(memberData?.is_admin === true);
+        if (memberData) {
+          setCurrentUser(memberData);
+          setCurrentMemberId(memberData.id);
+          setIsAdmin(memberData.is_admin === true);
+          
+          console.log("State set - currentMemberId:", memberData.id, "isAdmin:", memberData.is_admin);
+        } else {
+          console.error("No member data found for user:", user.id);
+        }
+      } else {
+        console.log("No authenticated user");
       }
     };
     fetchUser();
@@ -202,7 +212,10 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   }, [gameId]);
 
   const handlePostComment = async () => {
+    console.log("handlePostComment called - currentMemberId:", currentMemberId);
+    
     if (!currentMemberId) {
+      console.error("currentMemberId is null or undefined");
       toast({
         title: "Login Required",
         description: "Please login to post comments",
@@ -212,6 +225,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
     }
 
     if (!newComment.trim() && !selectedEmoji) {
+      console.log("Comment is empty");
       toast({
         title: "Empty Comment",
         description: "Please enter a comment or select an emoji",
@@ -222,7 +236,12 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
     setIsPosting(true);
     try {
-      console.log("Posting comment with member_id:", currentMemberId);
+      console.log("Posting comment with:", {
+        gameId,
+        currentMemberId,
+        text: newComment.trim() || undefined,
+        emoji: selectedEmoji || undefined
+      });
       
       await gameCommentService.postComment(gameId, currentMemberId, {
         text: newComment.trim() || undefined,
@@ -230,6 +249,8 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         isAnimated: selectedEmoji ? BOWLING_EMOJIS[selectedEmoji as keyof typeof BOWLING_EMOJIS]?.animated : false,
       });
 
+      console.log("Comment posted successfully!");
+      
       setNewComment("");
       setSelectedEmoji(null);
       
