@@ -305,11 +305,12 @@ export const gameCommentService = {
   /**
    * Unban a user (admin only)
    */
-  async unbanUser(banId: string): Promise<void> {
+  async unbanUser(memberId: string): Promise<void> {
     const { error } = await supabase
       .from("comment_bans")
       .update({ is_active: false })
-      .eq("id", banId);
+      .eq("member_id", memberId)
+      .eq("is_active", true);
 
     if (error) {
       console.error("Error unbanning user:", error);
