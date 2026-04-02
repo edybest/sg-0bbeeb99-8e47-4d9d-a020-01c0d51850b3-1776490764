@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -262,6 +262,61 @@ export type Database = {
         }
         Relationships: []
       }
+      comment_bans: {
+        Row: {
+          banned_at: string | null
+          banned_by: string
+          expires_at: string | null
+          game_id: string | null
+          id: string
+          is_active: boolean | null
+          member_id: string
+          reason: string | null
+        }
+        Insert: {
+          banned_at?: string | null
+          banned_by: string
+          expires_at?: string | null
+          game_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id: string
+          reason?: string | null
+        }
+        Update: {
+          banned_at?: string | null
+          banned_by?: string
+          expires_at?: string | null
+          game_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          member_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_bans_banned_by_fkey"
+            columns: ["banned_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_bans_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_bans_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fivefive_games: {
         Row: {
           created_at: string | null
@@ -504,6 +559,64 @@ export type Database = {
             foreignKeyName: "gallery_permissions_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_comments: {
+        Row: {
+          comment_text: string | null
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          emoji_code: string | null
+          game_id: string
+          id: string
+          is_animated: boolean | null
+          member_id: string
+        }
+        Insert: {
+          comment_text?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          emoji_code?: string | null
+          game_id: string
+          id?: string
+          is_animated?: boolean | null
+          member_id: string
+        }
+        Update: {
+          comment_text?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          emoji_code?: string | null
+          game_id?: string
+          id?: string
+          is_animated?: boolean | null
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_comments_deleted_by_fkey"
+            columns: ["deleted_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_comments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_comments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
