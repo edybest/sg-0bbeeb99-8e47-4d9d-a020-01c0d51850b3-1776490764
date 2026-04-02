@@ -202,40 +202,57 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   return (
     <>
-      {/* Floating Comments Display - TikTok Style */}
+      {/* Floating Comments Display - Smoky Float Style */}
       {showComments && (
         <div className="fixed bottom-40 right-4 w-[85%] max-w-[400px] space-y-2 pointer-events-none z-40">
           {comments.slice(0, 5).map((comment, index) => (
             <motion.div
               key={comment.id}
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{
-                duration: 0.6,
-                delay: index * 0.15,
-                ease: "easeOut"
+              initial={{ opacity: 0, y: 100, x: 0 }}
+              animate={{ 
+                opacity: [0, 1, 1, 0],
+                y: [100, 0, -20, -40],
+                x: [0, -8, 8, -5, 0]
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-black/80 to-transparent backdrop-blur-md rounded-full shadow-2xl border border-white/20"
+              transition={{
+                duration: 6,
+                delay: index * 0.15,
+                ease: "easeInOut",
+                times: [0, 0.15, 0.85, 1]
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-black/30 backdrop-blur-sm rounded-full shadow-2xl border border-white/40"
               style={{
-                animation: "slideUpSlow 6s ease-out forwards"
+                animation: "smokyFloat 6s ease-in-out forwards"
               }}
             >
               {/* Display emoji icon if available */}
               {comment.emoji_code && (
-                <span className={`text-2xl ${comment.is_animated ? "animate-bounce" : ""}`}>
+                <span 
+                  className={`text-2xl drop-shadow-lg ${comment.is_animated ? "animate-bounce" : ""}`}
+                  style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8))" }}
+                >
                   {comment.emoji_code}
                 </span>
               )}
               
               {/* Username */}
-              <span className="font-semibold text-sky-400 text-sm">
+              <span 
+                className="font-bold text-white text-sm drop-shadow-lg"
+                style={{ 
+                  textShadow: "0 0 10px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(56,189,248,0.6)"
+                }}
+              >
                 {comment.member?.username}:
               </span>
 
               {/* Comment text */}
               {comment.comment_text && (
-                <span className="text-white text-sm font-medium">
+                <span 
+                  className="text-white text-sm font-semibold drop-shadow-lg"
+                  style={{ 
+                    textShadow: "0 0 10px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)"
+                  }}
+                >
                   {comment.comment_text}
                 </span>
               )}
@@ -258,7 +275,8 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         <Sheet>
           <SheetTrigger asChild>
             <Button 
-              size="lg" 
+              size="lg"
+              onClick={() => setShowComments(false)}
               className="h-12 px-4 shadow-2xl rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-2 border-white/20 transition-all duration-300 hover:scale-110 flex items-center gap-2"
             >
               <Send className="h-5 w-5" />
@@ -373,37 +391,45 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         </Sheet>
       </div>
 
-      <style jsx global>{`
-        @keyframes slideUpSlow {
+      <style jsx>{`
+        @keyframes smokyFloat {
           0% {
-            transform: translateY(120px);
+            transform: translateY(100px) translateX(0px);
             opacity: 0;
+          }
+          10% {
+            opacity: 0.3;
           }
           15% {
-            opacity: 0.5;
-          }
-          25% {
             opacity: 1;
+            transform: translateY(80px) translateX(-8px);
+          }
+          30% {
+            transform: translateY(60px) translateX(8px);
+          }
+          45% {
+            transform: translateY(40px) translateX(-5px);
+          }
+          60% {
+            transform: translateY(20px) translateX(3px);
+          }
+          75% {
+            transform: translateY(0px) translateX(-2px);
           }
           85% {
-            transform: translateY(0);
             opacity: 1;
+            transform: translateY(-10px) translateX(0px);
+          }
+          95% {
+            opacity: 0.5;
+            transform: translateY(-30px) translateX(0px);
           }
           100% {
-            transform: translateY(-20px);
             opacity: 0;
+            transform: translateY(-40px) translateX(0px);
           }
         }
 
-        .animate-slide-up-slow {
-          animation: slideUpSlow 6s ease-in-out forwards;
-        }
-
-        /* Hide scrollbar but keep functionality */
-        .overflow-y-auto {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
         .overflow-y-auto::-webkit-scrollbar {
           display: none;
         }
