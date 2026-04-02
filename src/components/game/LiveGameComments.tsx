@@ -285,25 +285,29 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      console.log("Delete attempt by user:", {
-        userId: currentUser?.id,
-        isAdmin: isAdmin,
-        commentId,
-      });
-
-      const { error } = await supabase
-        .from("game_comments")
-        .update({
-          deleted_at: new Date().toISOString(),
-          deleted_by: currentUser?.id ?? null,
-        })
-        .eq("id", commentId);
-
-      if (error) {
-        console.error("Delete error details:", error);
-        throw error;
+      if (!currentUser?.id) {
+        toast({
+          title: "Ralat",
+          description: "User ID tidak ditemui",
+          variant: "destructive",
+        });
+        return;
       }
 
+      console.log("Delete attempt:", {
+        commentId,
+        userId: currentUser.id,
+        isAdmin,
+      });
+
+      // Use admin function for admins, regular delete for members
+      if (isAdmin) {
+        await gameCommentService.adminDeleteComment(commentId, currentUser.id);
+      } else {
+        await gameCommentService.deleteComment(commentId, currentUser.id);
+      }
+
+      // Remove from UI
       setComments((prev) => prev.filter((c) => c.id !== commentId));
 
       toast({

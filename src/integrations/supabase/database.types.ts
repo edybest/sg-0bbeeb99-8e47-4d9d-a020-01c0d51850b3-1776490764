@@ -1509,6 +1509,10 @@ export type Database = {
         Args: { p_game_id: string; p_member_id: string; p_player_id: string }
         Returns: boolean
       }
+      admin_delete_game_comment: {
+        Args: { admin_member_id: string; comment_id: string }
+        Returns: undefined
+      }
       current_member_id: { Args: never; Returns: string }
       generate_mini_blok_share: {
         Args: { p_mini_blok_id: string }

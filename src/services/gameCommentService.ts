@@ -179,22 +179,32 @@ export const gameCommentService = {
   },
 
   /**
-   * Delete a comment (admin only)
+   * Delete a comment (soft delete) - Admin version using database function
    */
-  async deleteComment(commentId: string, adminId?: string): Promise<void> {
-    let deletedBy = adminId;
-    if (!deletedBy) {
-      const { data } = await supabase.auth.getSession();
-      deletedBy = data.session?.user.id;
-    }
+  async adminDeleteComment(commentId: string, adminMemberId: string): Promise<void> {
+    const { error } = await supabase.rpc("admin_delete_game_comment", {
+      comment_id: commentId,
+      admin_member_id: adminMemberId,
+    });
 
+    if (error) {
+      console.error("Error deleting comment (admin):", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a comment (soft delete) - Member version using regular update
+   */
+  async deleteComment(commentId: string, memberId: string): Promise<void> {
     const { error } = await supabase
       .from("game_comments")
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: deletedBy,
+        deleted_by: memberId,
       })
-      .eq("id", commentId);
+      .eq("id", commentId)
+      .eq("member_id", memberId); // Member can only delete own comments
 
     if (error) {
       console.error("Error deleting comment:", error);
