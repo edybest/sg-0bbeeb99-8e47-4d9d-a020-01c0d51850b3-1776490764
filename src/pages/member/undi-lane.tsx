@@ -518,108 +518,56 @@ export default function UndiLanePage() {
                       </div>
                     ) : (
                       <div className="w-full flex flex-col items-center">
-                        <div className="relative w-full max-w-[320px] aspect-square flex flex-col items-center mb-8">
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20">
-                            <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-blue-600 drop-shadow-xl" />
+                        {/* Spinning Wheel - Half Visible (Bottom Only) */}
+                        <div className="relative w-full max-w-2xl mx-auto mb-8">
+                          {/* Title Above Wheel */}
+                          <div className="text-center mb-6">
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                              UNDI LANE HARI INI
+                            </h2>
+                            <p className="text-muted-foreground mt-2">
+                              Tekan butang untuk undi lane secara rawak
+                            </p>
                           </div>
 
-                          <div className="relative w-full aspect-square">
-                            <svg
-                              ref={wheelRef}
-                              key={spinAnimKey}
-                              viewBox="0 0 400 400"
-                              className="w-full h-full drop-shadow-2xl"
-                              style={{
-                                transform: `rotate(${spinning ? spinFromRotation : currentRotationRef.current}deg)`,
-                                animation: spinning ? "wheel-spin-realistic 5.2s forwards cubic-bezier(0.2, 0.8, 0.1, 1)" : undefined,
-                                ["--spin-to" as any]: `${rotation}deg`,
-                                willChange: "transform",
-                              }}
-                            >
-                              <defs>
-                                <radialGradient id="rimGrad" cx="50%" cy="50%" r="60%">
-                                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                                  <stop offset="55%" stopColor="#e5e7eb" stopOpacity="0.9" />
-                                  <stop offset="100%" stopColor="#9ca3af" stopOpacity="0.95" />
-                                </radialGradient>
-                                <radialGradient id="innerShadow" cx="50%" cy="45%" r="60%">
-                                  <stop offset="0%" stopColor="#000000" stopOpacity="0" />
-                                  <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
-                                </radialGradient>
-                                <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-                                  <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
-                                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                                </linearGradient>
-                              </defs>
-
-                              <circle cx="200" cy="200" r="197" fill="none" stroke="url(#rimGrad)" strokeWidth="12" />
-                              <circle cx="200" cy="200" r="191" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
-
-                              {availableLanes.map((lane, index) => {
-                                const segmentAngle = 360 / availableLanes.length;
-                                const startAngle = index * segmentAngle - 90;
-                                const endAngle = startAngle + segmentAngle;
-
-                                const startRad = (startAngle * Math.PI) / 180;
-                                const endRad = (endAngle * Math.PI) / 180;
-
-                                const x1 = 200 + 190 * Math.cos(startRad);
-                                const y1 = 200 + 190 * Math.sin(startRad);
-                                const x2 = 200 + 190 * Math.cos(endRad);
-                                const y2 = 200 + 190 * Math.sin(endRad);
-
-                                const largeArc = segmentAngle > 180 ? 1 : 0;
-                                const pathData = `M 200 200 L ${x1} ${y1} A 190 190 0 ${largeArc} 1 ${x2} ${y2} Z`;
-
-                                const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
-
-                                const midAngle = startAngle + segmentAngle / 2;
-                                const textRadius = 130;
-                                const textX = 200 + textRadius * Math.cos((midAngle * Math.PI) / 180);
-                                const textY = 200 + textRadius * Math.sin((midAngle * Math.PI) / 180);
-
-                                return (
-                                  <g key={lane}>
-                                    <path d={pathData} fill={color} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-                                    <text
-                                      x={textX}
-                                      y={textY}
-                                      fill="white"
-                                      fontSize="28"
-                                      fontWeight="800"
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                      transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
-                                      style={{
-                                        paintOrder: "stroke",
-                                        stroke: "rgba(0,0,0,0.3)",
-                                        strokeWidth: 4,
-                                        textShadow: "1px 2px 4px rgba(0,0,0,0.6)",
-                                        fontFamily: "var(--font-sans), sans-serif",
-                                        letterSpacing: "1px"
-                                      }}
-                                    >
-                                      {lane}
-                                    </text>
-                                  </g>
-                                );
-                              })}
-
-                              <circle cx="200" cy="200" r="75" fill="#ffffff" fillOpacity="0.95" />
-                              <circle cx="200" cy="200" r="70" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="3" />
-                              <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
-                              <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
-                            </svg>
-
-                            <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
-                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-blue-200 flex items-center justify-center p-2.5">
-                                <div className="relative w-full h-full">
-                                  <Image src="/ambc-logo.png" alt="AMBC Logo" fill sizes="100vw" className="object-contain" />
-                                </div>
+                          {/* Wheel Container - Only Bottom Half Visible */}
+                          <div className="relative h-[300px] overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background rounded-b-full">
+                            {/* Pointer/Arrow - Fixed at Top Center */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
+                              <div className="relative">
+                                <div className="w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[40px] border-t-yellow-400 drop-shadow-lg"></div>
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-6 h-6 bg-yellow-400 rounded-full border-4 border-yellow-500 shadow-xl"></div>
                               </div>
                             </div>
+
+                            {/* Wheel Canvas - Positioned to show bottom half */}
+                            <canvas
+                              ref={canvasRef}
+                              width={600}
+                              height={600}
+                              className="absolute left-1/2 -translate-x-1/2"
+                              style={{
+                                top: '-150px', // Move up to show only bottom half
+                                maxWidth: '600px',
+                                height: 'auto',
+                                filter: isSpinning ? 'blur(0)' : 'none',
+                                transition: 'filter 0.3s ease',
+                              }}
+                            />
+
+                            {/* Gradient Overlay - Fade edges */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background/80 pointer-events-none"></div>
                           </div>
+
+                          {/* Result Display */}
+                          {selectedLane && !isSpinning && (
+                            <div className="mt-8 text-center animate-in zoom-in duration-500">
+                              <div className="inline-block bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-full shadow-2xl">
+                                <div className="text-sm font-medium mb-1">Lane Anda:</div>
+                                <div className="text-4xl font-bold">LANE {selectedLane}</div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-col items-center space-y-4 w-full max-w-[280px] sm:max-w-[320px] relative z-10">
