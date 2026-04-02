@@ -138,10 +138,10 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
           filter: `game_id=eq.${gameId}`,
         },
         async (payload) => {
-          console.log("New comment received:", payload);
+          console.log("🔴 New comment INSERT event:", payload);
           
           // Fetch the full comment with member details
-          const { data: newCommentData } = await supabase
+          const { data: newCommentData, error } = await supabase
             .from("game_comments")
             .select(`
               *,
@@ -155,12 +155,18 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
             .eq("id", payload.new.id)
             .single();
 
+          console.log("🔴 Fetched new comment data:", newCommentData, "Error:", error);
+
           if (newCommentData) {
             setComments((prev) => {
               // Check if comment already exists (prevent duplicates)
               const exists = prev.some(c => c.id === newCommentData.id);
-              if (exists) return prev;
+              if (exists) {
+                console.log("⚠️ Comment already exists, skipping");
+                return prev;
+              }
               
+              console.log("✅ Adding new comment to state");
               // Add new comment to the beginning of the array
               return [newCommentData as GameCommentWithMember, ...prev];
             });
@@ -179,10 +185,11 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
           filter: `game_id=eq.${gameId}`,
         },
         (payload) => {
-          console.log("Comment updated:", payload);
+          console.log("🔴 Comment UPDATE event:", payload);
           
           // If comment was deleted (deleted_at set), remove from UI
           if (payload.new.deleted_at) {
+            console.log("🗑️ Comment deleted, removing from UI");
             setComments((prev) => prev.filter(c => c.id !== payload.new.id));
           }
         }
@@ -196,17 +203,17 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
           filter: `game_id=eq.${gameId}`,
         },
         (payload) => {
-          console.log("Comment deleted:", payload);
+          console.log("🔴 Comment DELETE event:", payload);
           setComments((prev) => prev.filter(c => c.id !== payload.old.id));
         }
       )
       .subscribe((status) => {
-        console.log("Realtime subscription status:", status);
+        console.log("🔴 Realtime subscription status:", status);
       });
 
     // Cleanup subscription on unmount
     return () => {
-      console.log("Unsubscribing from game comments");
+      console.log("🔴 Unsubscribing from game comments");
       supabase.removeChannel(channel);
     };
   }, [gameId]);
