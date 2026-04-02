@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
-import { Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   getMemberSpinResult,
@@ -23,6 +22,17 @@ import { MemberLayout } from "@/components/member/MemberLayout";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SpinResultWithMember {
   id: string;
@@ -170,6 +180,7 @@ export default function UndiLanePage() {
 
   const [showAllParticipants, setShowAllParticipants] = useState(false);
   const [showSpinModal, setShowSpinModal] = useState(false);
+  const [deleteSpinId, setDeleteSpinId] = useState<string | null>(null);
 
   // Helper: Truncate long names for wheel display
   const truncateName = (name: string, maxLength: number = 15): string => {
@@ -387,6 +398,29 @@ export default function UndiLanePage() {
       toast({
         title: "Error",
         description: "Failed to reset spins",
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function handleDeleteSpin(spinId: string) {
+    try {
+      await withLoading("member:undi-lane:delete-spin", async () =>
+        laneService.deleteSpinResult(spinId)
+      );
+      
+      await loadLaneData(member.id, activeGameId);
+      setDeleteSpinId(null);
+      
+      toast({
+        title: "Berjaya",
+        description: "Rekod spin telah dipadam.",
+      });
+    } catch (error) {
+      console.error("Error deleting spin:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal padam rekod spin.",
         variant: "destructive",
       });
     }
@@ -668,6 +702,16 @@ export default function UndiLanePage() {
                               <Badge variant="secondary" className="font-mono">
                                 {result.lane_position}
                               </Badge>
+                              {member?.is_admin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteSpinId(result.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -698,6 +742,27 @@ export default function UndiLanePage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deleteSpinId} onOpenChange={(open) => !open && setDeleteSpinId(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Padam Rekod Spin?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tindakan ini tidak boleh dibatalkan. Rekod spin akan dipadam secara kekal.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => deleteSpinId && handleDeleteSpin(deleteSpinId)}
+                  >
+                    Padam
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             <style jsx>{`
               @keyframes wheel-spin-realistic {

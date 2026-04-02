@@ -288,4 +288,18 @@ export const laneService = {
     if (error) throw error;
     return (data || []).map((r) => r.lane_position);
   },
+
+  // Delete a spin result
+  async deleteSpinResult(spinId: string): Promise<void> {
+    const { error } = await supabase
+      .from("lane_spin_results")
+      .delete()
+      .eq("id", spinId);
+
+    if (error) throw error;
+  },
+
+  // Subscribe to lane spin changes
+  subscribeLaneSpins(gameId: string, callback: (payload: any) => void) {
+  },
 };
