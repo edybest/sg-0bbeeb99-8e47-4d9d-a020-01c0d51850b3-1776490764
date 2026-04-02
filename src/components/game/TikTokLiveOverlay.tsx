@@ -41,7 +41,7 @@ const BOWLING_EMOJIS = {
 export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameName: string }) {
   const { toast } = useToast();
   const { member: currentUser } = useAuth();
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false); // Default hidden
   const [scrollingComments, setScrollingComments] = useState<ScrollingComment[]>([]);
   const [recentComments, setRecentComments] = useState<ScrollingComment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -291,7 +291,7 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       <div className="fixed top-4 left-4 z-[9998] bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300 animate-pulse-soft">
         <Users className="w-4 h-4 text-green-400" />
         <span className="font-semibold text-sm">{viewerCount}</span>
-        <span className="text-xs text-gray-300">menonton</span>
+        <span className="text-xs text-gray-300">online</span>
       </div>
 
       {/* Toggle Visibility Button - Top Right */}
