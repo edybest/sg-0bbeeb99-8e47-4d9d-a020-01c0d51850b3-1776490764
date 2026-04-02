@@ -122,8 +122,6 @@ import {
   generateShareUrl,
   generateShareTokenUrl,
   generateShareText,
-  type MiniBlokTournament,
-  type MiniBlokPlayer,
   type MiniBlokWithPlayers,
   type MiniBlokPublicShared
 } from "@/services/miniBlokService";
