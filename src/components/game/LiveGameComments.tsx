@@ -38,7 +38,6 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [memberToBan, setMemberToBan] = useState<{ id: string; name: string } | null>(null);
-  const commentsContainerRef = useRef<HTMLDivElement>(null);
 
   // Load initial comments
   useEffect(() => {
@@ -48,22 +47,21 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   // Subscribe to real-time updates
   useEffect(() => {
     const unsubscribe = gameCommentService.subscribeToGameComments(gameId, (newComment) => {
-      setComments((prev) => [newComment, ...prev].slice(0, 50));
-      
-      // Auto-scroll animation
-      if (showComments && commentsContainerRef.current) {
-        const container = commentsContainerRef.current;
-        container.scrollTop = container.scrollHeight;
-      }
+      setComments((prev) => {
+        // Avoid duplicates
+        if (prev.some(c => c.id === newComment.id)) return prev;
+        // Keep only last 20 comments for performance
+        return [newComment, ...prev].slice(0, 20);
+      });
     });
 
     return unsubscribe;
-  }, [gameId, showComments]);
+  }, [gameId]);
 
   const loadComments = async () => {
     try {
       const data = await gameCommentService.getGameComments(gameId);
-      setComments(data.reverse()); // Reverse to show oldest first (bottom to top)
+      setComments(data.slice(0, 20)); // Show latest 20
     } catch (error) {
       console.error("Error loading comments:", error);
     }
@@ -165,91 +163,94 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   return (
     <>
-      {/* Floating Comments Display */}
+      {/* Floating Comments Display - TikTok Style */}
       {showComments && (
-        <div className="fixed bottom-20 left-0 right-0 pointer-events-none z-40">
-          <div
-            ref={commentsContainerRef}
-            className="max-h-[50vh] overflow-y-auto px-4 space-y-2 scrollbar-hide"
-          >
-            {comments.slice(-10).map((comment) => (
-              <div
-                key={comment.id}
-                className="animate-slide-up-fade pointer-events-auto"
-                style={{
-                  animation: "slideUpFade 8s ease-out forwards",
-                }}
-              >
-                <div className="inline-flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white px-3 py-2 rounded-full shadow-lg max-w-[80%]">
-                  <span className="font-semibold text-sm">
-                    {comment.member?.username || "Unknown"}:
-                  </span>
-                  {comment.emoji_code && (
-                    <span
-                      className={`text-xl ${comment.is_animated ? "animate-bounce" : ""}`}
-                    >
-                      {comment.emoji_code}
+        <div className="fixed left-0 right-0 bottom-24 md:bottom-20 pointer-events-none z-[9999] px-4">
+          <div className="max-w-screen-xl mx-auto">
+            <div className="space-y-2">
+              {comments.slice(0, 5).map((comment, index) => (
+                <div
+                  key={comment.id}
+                  className="animate-slide-up opacity-0 pointer-events-auto"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    animationFillMode: "forwards",
+                  }}
+                >
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-r from-black/80 to-black/70 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-2xl border border-white/10 max-w-[85%] md:max-w-md">
+                    <span className="font-bold text-sm bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
+                      {comment.member?.username || "Unknown"}:
                     </span>
-                  )}
-                  {comment.comment_text && (
-                    <span className="text-sm">{comment.comment_text}</span>
-                  )}
-                  {isAdmin && (
-                    <div className="flex gap-1 ml-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                        onClick={() => setCommentToDelete(comment.id)}
+                    {comment.emoji_code && (
+                      <span
+                        className={`text-2xl ${comment.is_animated ? "animate-bounce" : ""}`}
                       >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20"
-                        onClick={() =>
-                          setMemberToBan({
-                            id: comment.member_id,
-                            name: comment.member?.username || "User",
-                          })
-                        }
-                      >
-                        <Ban className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                        {comment.emoji_code}
+                      </span>
+                    )}
+                    {comment.comment_text && (
+                      <span className="text-sm font-medium">{comment.comment_text}</span>
+                    )}
+                    {isAdmin && (
+                      <div className="flex gap-1 ml-2 border-l border-white/20 pl-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                          onClick={() => setCommentToDelete(comment.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20"
+                          onClick={() =>
+                            setMemberToBan({
+                              id: comment.member_id,
+                              name: comment.member?.username || "User",
+                            })
+                          }
+                        >
+                          <Ban className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Comment Controls */}
-      <div className="fixed bottom-4 right-4 z-50 flex gap-2">
+      {/* Comment Controls - Fixed Bottom Right */}
+      <div className="fixed bottom-4 right-4 z-[9999] flex gap-2">
         <Button
           size="sm"
           variant={showComments ? "default" : "outline"}
           onClick={() => setShowComments(!showComments)}
-          className="shadow-lg"
+          className="shadow-2xl h-12 w-12 rounded-full p-0 bg-gradient-to-br from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 border-2 border-white/20"
         >
-          {showComments ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+          {showComments ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
         </Button>
 
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="sm" className="shadow-lg">
+            <Button 
+              size="sm" 
+              className="shadow-2xl h-12 px-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-2 border-white/20"
+            >
               <Send className="h-4 w-4 mr-2" />
-              Comment
+              <span className="hidden sm:inline">Comment</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[60vh]">
+          <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl">
             <SheetHeader>
-              <SheetTitle>Live Comments - {gameName}</SheetTitle>
+              <SheetTitle className="text-lg">💬 Live Comments - {gameName}</SheetTitle>
             </SheetHeader>
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-6 space-y-4">
               {/* Emoji Picker */}
               <div className="grid grid-cols-5 gap-2">
                 {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
@@ -258,7 +259,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                     size="sm"
                     variant={selectedEmoji === key ? "default" : "outline"}
                     onClick={() => setSelectedEmoji(selectedEmoji === key ? null : key)}
-                    className={`text-2xl h-12 ${emoji.animated ? "hover:animate-bounce" : ""}`}
+                    className={`text-2xl h-14 ${emoji.animated ? "hover:animate-bounce" : ""} ${
+                      selectedEmoji === key ? "ring-2 ring-sky-500 ring-offset-2" : ""
+                    }`}
                   >
                     {emoji.code}
                   </Button>
@@ -277,58 +280,72 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                     }
                   }}
                   maxLength={100}
+                  className="text-base h-12"
                 />
-                <Button onClick={handlePostComment} disabled={isPosting}>
-                  <Send className="h-4 w-4" />
+                <Button 
+                  onClick={handlePostComment} 
+                  disabled={isPosting}
+                  className="h-12 w-12 p-0 bg-gradient-to-br from-green-500 to-emerald-600"
+                >
+                  <Send className="h-5 w-5" />
                 </Button>
               </div>
 
               {/* Recent Comments Preview */}
-              <div className="max-h-[30vh] overflow-y-auto space-y-2 border-t pt-2">
-                <p className="text-sm text-muted-foreground font-semibold">Recent Comments:</p>
-                {comments.slice(0, 20).map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="flex items-start gap-2 p-2 rounded-lg bg-muted/50"
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold">{comment.member?.username}</p>
-                      <div className="flex items-center gap-2">
-                        {comment.emoji_code && (
-                          <span className="text-lg">{comment.emoji_code}</span>
-                        )}
-                        {comment.comment_text && (
-                          <span className="text-sm">{comment.comment_text}</span>
-                        )}
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-destructive"
-                          onClick={() => setCommentToDelete(comment.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-orange-500"
-                          onClick={() =>
-                            setMemberToBan({
-                              id: comment.member_id,
-                              name: comment.member?.username || "User",
-                            })
-                          }
-                        >
-                          <Ban className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+              <div className="max-h-[35vh] overflow-y-auto space-y-2 border-t pt-4">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Recent Comments:</p>
+                {comments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">No comments yet. Be the first!</p>
                   </div>
-                ))}
+                ) : (
+                  comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-muted/30 to-muted/50 hover:from-muted/50 hover:to-muted/70 transition-all"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-sky-600 truncate">
+                          {comment.member?.username}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {comment.emoji_code && (
+                            <span className="text-xl">{comment.emoji_code}</span>
+                          )}
+                          {comment.comment_text && (
+                            <span className="text-sm">{comment.comment_text}</span>
+                          )}
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                            onClick={() => setCommentToDelete(comment.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-orange-500 hover:bg-orange-500/10"
+                            onClick={() =>
+                              setMemberToBan({
+                                id: comment.member_id,
+                                name: comment.member?.username || "User",
+                              })
+                            }
+                          >
+                            <Ban className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </SheetContent>
@@ -373,34 +390,22 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
       </AlertDialog>
 
       <style jsx global>{`
-        @keyframes slideUpFade {
+        @keyframes slideUpSmooth {
           0% {
-            transform: translateY(100%);
+            transform: translateY(100px);
             opacity: 0;
           }
-          10% {
-            opacity: 1;
-          }
-          90% {
+          20% {
             opacity: 1;
           }
           100% {
-            transform: translateY(-200%);
-            opacity: 0;
+            transform: translateY(0);
+            opacity: 1;
           }
         }
 
-        .animate-slide-up-fade {
-          animation: slideUpFade 8s ease-out forwards;
-        }
-
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        .animate-slide-up {
+          animation: slideUpSmooth 0.5s ease-out;
         }
       `}</style>
     </>
