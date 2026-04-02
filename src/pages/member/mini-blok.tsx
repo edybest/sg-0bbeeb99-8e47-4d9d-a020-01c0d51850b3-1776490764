@@ -113,6 +113,7 @@ export default function MiniBlokPage() {
   const [expandedEntryPlayers, setExpandedEntryPlayers] = useState<Record<string, boolean>>({});
   const [expandedEntryPlayerScores, setExpandedEntryPlayerScores] = useState<Record<string, Record<string, boolean>>>({});
   const [expandedScores, setExpandedScores] = useState<Record<string, boolean>>({});
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
 
   const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -828,8 +829,8 @@ export default function MiniBlokPage() {
   }
 
   // Show public shared view if token is present
-  if (shareToken && sharedTournament) {
-    return <PublicSharedView tournament={sharedTournament} />;
+  if (shareToken && publicShared) {
+    return <PublicSharedView shared={publicShared} onBack={() => router.replace("/member/mini-blok")} />;
   }
 
   if (loading) {
