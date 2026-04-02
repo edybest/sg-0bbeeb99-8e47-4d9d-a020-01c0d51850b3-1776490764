@@ -189,38 +189,6 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
     };
   }, [gameId]);
 
-  // Auto-scroll animation (continuous loop)
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || scrollingComments.length === 0) return;
-
-    let animationId: number;
-    let scrollPosition = 0;
-    const scrollSpeed = 0.5; // pixels per frame (slow scrolling)
-
-    const animate = () => {
-      scrollPosition += scrollSpeed;
-      
-      // Get total height of all comments
-      const totalHeight = container.scrollHeight;
-      const visibleHeight = container.clientHeight;
-
-      // Reset to bottom when scrolled past all comments
-      if (scrollPosition >= totalHeight) {
-        scrollPosition = 0;
-      }
-
-      container.scrollTop = scrollPosition;
-      animationId = requestAnimationFrame(animate);
-    };
-
-    animationId = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [scrollingComments]);
-
   const handlePostComment = async () => {
     if (!newComment.trim() && !selectedEmoji) {
       toast({
@@ -306,33 +274,32 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         </Button>
       </div>
 
-      {/* Auto-Scrolling Comments - Bottom Left (Reduced Height) */}
-      <div 
-        ref={scrollContainerRef}
-        className="fixed left-4 bottom-24 w-80 h-[30vh] z-[9997] overflow-hidden pointer-events-none"
-      >
-        <div className="space-y-2">
-          {/* Duplicate comments for infinite loop effect */}
-          {[...scrollingComments, ...scrollingComments].map((comment, index) => (
+      {/* Horizontal Scrolling Billboard - Bottom */}
+      <div className="fixed bottom-20 left-0 right-0 z-[9997] overflow-hidden pointer-events-none bg-gradient-to-r from-black/80 via-black/60 to-black/80 backdrop-blur-sm py-2 shadow-lg border-y border-white/10">
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-4 whitespace-nowrap animate-marquee"
+        >
+          {/* Show 30 recent comments, duplicate for infinite loop */}
+          {[...scrollingComments.slice(-30), ...scrollingComments.slice(-30)].map((comment, index) => (
             <div
               key={`${comment.id}-${index}`}
-              className="bg-black/60 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300"
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg border border-white/20"
             >
-              <div className="flex items-start gap-2">
-                {comment.emoji && (
-                  <span className="text-2xl flex-shrink-0">
-                    {BOWLING_EMOJIS[comment.emoji as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji}
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-xs text-blue-300 mb-0.5">
-                    {comment.username}
-                  </div>
-                  {comment.text && (
-                    <div className="text-sm break-words">{comment.text}</div>
-                  )}
-                </div>
-              </div>
+              {comment.emoji && (
+                <span className="text-xl flex-shrink-0">
+                  {BOWLING_EMOJIS[comment.emoji as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji}
+                </span>
+              )}
+              <span className="font-semibold text-sm text-blue-300">
+                {comment.username}
+              </span>
+              {comment.text && (
+                <>
+                  <span className="text-white/40">•</span>
+                  <span className="text-sm">{comment.text}</span>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -454,6 +421,25 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
 
       {/* Custom Animations */}
       <style>{`
+        @keyframes marquee {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        .animate-marquee {
+          animation: marquee 60s linear infinite;
+          will-change: transform;
+        }
+
+        /* Pause on hover for readability */
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+
         @keyframes glow {
           0%, 100% {
             box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
@@ -480,14 +466,11 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
           animation: pulse 2s ease-in-out infinite;
         }
 
-        /* Smooth scrolling container */
-        .fixed.overflow-hidden::-webkit-scrollbar {
-          display: none;
-        }
-
-        .fixed.overflow-hidden {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        /* Smooth hardware acceleration */
+        .animate-marquee {
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          perspective: 1000px;
         }
       `}</style>
     </>
