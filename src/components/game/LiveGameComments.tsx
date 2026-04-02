@@ -50,14 +50,15 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*, member_type")
-          .eq("id", user.id)
+        // Query members table instead of profiles for is_admin
+        const { data: memberData } = await supabase
+          .from("members")
+          .select("*, is_admin")
+          .eq("user_id", user.id)
           .single();
         
-        setCurrentUser(profile);
-        setIsAdmin(profile?.member_type === "admin");
+        setCurrentUser(memberData);
+        setIsAdmin(memberData?.is_admin === true);
       }
     };
     fetchUser();
@@ -175,23 +176,27 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleDeleteComment = async (commentId: string) => {
     try {
+      // Soft delete by updating deleted_at and deleted_by
       const { error } = await supabase
         .from("game_comments")
-        .delete()
+        .update({ 
+          deleted_at: new Date().toISOString(),
+          deleted_by: currentUser?.id 
+        })
         .eq("id", commentId);
 
       if (error) throw error;
 
       setComments(prev => prev.filter(c => c.id !== commentId));
       toast({
-        title: "Comment Deleted",
-        description: "Comment has been removed successfully."
+        title: "Komen Dipadam",
+        description: "Komen telah berjaya dipadam."
       });
     } catch (error) {
       console.error("Error deleting comment:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete comment.",
+        title: "Ralat",
+        description: "Gagal memadam komen.",
         variant: "destructive"
       });
     }
@@ -199,27 +204,32 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleBanUser = async (userId: string, username: string) => {
     try {
-      // Update user to banned status
+      if (!currentUser?.id) return;
+
+      // Insert into comment_bans table
       const { error } = await supabase
-        .from("profiles")
-        .update({ is_banned: true })
-        .eq("id", userId);
+        .from("comment_bans")
+        .insert({
+          member_id: userId,
+          banned_by: currentUser.id,
+          reason: "Banned by admin from live comments"
+        });
 
-      if (error) throw error;
+      if (error && error.code !== '23505') throw error; // Ignore duplicate ban error
 
-      // Remove all comments from this user
+      // Remove all visible comments from this user from the UI immediately
       setComments(prev => prev.filter(c => c.member_id !== userId));
 
       toast({
-        title: "User Banned",
-        description: `${username} has been banned and all comments removed.`,
+        title: "Pengguna Diban",
+        description: `${username} telah diban dari memberi komen.`,
         variant: "destructive"
       });
     } catch (error) {
       console.error("Error banning user:", error);
       toast({
-        title: "Error",
-        description: "Failed to ban user.",
+        title: "Ralat",
+        description: "Gagal ban pengguna.",
         variant: "destructive"
       });
     }
@@ -241,22 +251,22 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               }}
               transition={{
                 duration: 6,
-                delay: index * 1.0, // 1 second delay between each comment
+                delay: index * 1.5, // 1.5 seconds delay between each comment so they rise one by one
                 ease: "easeInOut",
                 times: [0, 0.15, 0.85, 1]
               }}
-              className="relative flex items-center gap-2 px-4 py-2.5 rounded-full"
+              className="relative flex items-center gap-2 px-4 py-2.5"
               style={{
                 animation: "smokyFloat 6s ease-in-out forwards",
-                animationDelay: `${index * 1.0}s` // Stagger by 1 second
+                animationDelay: `${index * 1.5}s` // Stagger by 1.5 seconds
               }}
             >
-              {/* Truly transparent - no background, only text shadows */}
+              {/* Truly transparent - NO background, NO border, just text! */}
               {/* Display emoji icon if available */}
               {comment.emoji_code && (
                 <span 
                   className={`text-2xl drop-shadow-lg ${comment.is_animated ? "animate-bounce" : ""}`}
-                  style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.8))" }}
+                  style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.6))" }}
                 >
                   {comment.emoji_code}
                 </span>
@@ -264,9 +274,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               
               {/* Username */}
               <span 
-                className="font-bold text-white text-sm drop-shadow-lg"
+                className="font-bold text-white text-sm"
                 style={{ 
-                  textShadow: "0 0 10px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(56,189,248,0.6)"
+                  textShadow: "2px 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(56,189,248,0.8)"
                 }}
               >
                 {comment.member?.username}:
@@ -275,31 +285,31 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               {/* Comment text */}
               {comment.comment_text && (
                 <span 
-                  className="text-white text-sm font-semibold drop-shadow-lg"
+                  className="text-white text-sm font-bold"
                   style={{ 
-                    textShadow: "0 0 10px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)"
+                    textShadow: "2px 2px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8)"
                   }}
                 >
                   {comment.comment_text}
                 </span>
               )}
 
-              {/* Admin Controls - Only visible to admins */}
+              {/* Admin Controls - Only visible to admins and clickable */}
               {isAdmin && (
-                <div className="flex items-center gap-1 ml-2 pointer-events-auto">
+                <div className="flex items-center gap-1.5 ml-2 pointer-events-auto">
                   <button
                     onClick={() => handleDeleteComment(comment.id)}
-                    className="p-1 rounded-full bg-red-500/80 hover:bg-red-600 transition-colors"
+                    className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 transition-colors shadow-lg"
                     title="Delete Comment"
                   >
-                    <X className="w-3 h-3 text-white" />
+                    <X className="w-3.5 h-3.5 text-white" />
                   </button>
                   <button
                     onClick={() => handleBanUser(comment.member_id, comment.member?.username || "user")}
-                    className="p-1 rounded-full bg-red-700/80 hover:bg-red-800 transition-colors"
+                    className="p-1.5 rounded-full bg-gray-800/90 hover:bg-black transition-colors shadow-lg"
                     title="Ban User"
                   >
-                    <Ban className="w-3 h-3 text-white" />
+                    <Ban className="w-3.5 h-3.5 text-white" />
                   </button>
                 </div>
               )}
