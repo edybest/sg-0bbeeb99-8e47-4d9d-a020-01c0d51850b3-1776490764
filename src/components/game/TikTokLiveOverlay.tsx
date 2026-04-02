@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, Eye, EyeOff, Users, Clock } from "lucide-react";
+import { MessageCircle, Send, Eye, EyeOff, Users, Clock, Settings } from "lucide-react";
 import { gameCommentService } from "@/services/gameCommentService";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,8 +50,33 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
+  const [scrollSpeed, setScrollSpeed] = useState<number>(60); // Default 60s
   const presenceIntervalRef = useRef<NodeJS.Timeout>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load scroll speed from localStorage
+  useEffect(() => {
+    const savedSpeed = localStorage.getItem("billboard_scroll_speed");
+    if (savedSpeed) {
+      setScrollSpeed(Number(savedSpeed));
+    }
+  }, []);
+
+  // Save scroll speed to localStorage
+  const handleSpeedChange = (value: number[]) => {
+    const newSpeed = value[0];
+    setScrollSpeed(newSpeed);
+    localStorage.setItem("billboard_scroll_speed", String(newSpeed));
+  };
+
+  // Get speed label
+  const getSpeedLabel = (speed: number) => {
+    if (speed >= 90) return "Sangat Perlahan";
+    if (speed >= 60) return "Perlahan";
+    if (speed >= 40) return "Sederhana";
+    if (speed >= 20) return "Pantas";
+    return "Sangat Pantas";
+  };
 
   // Format timestamp
   const formatTime = (timestamp: string) => {
@@ -264,6 +291,86 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
 
       {/* Toggle Visibility Button - Top Right */}
       <div className="fixed top-4 right-4 z-[9998] flex gap-2">
+        {/* Settings Button */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="shadow-lg"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Tetapan Billboard</h4>
+                <p className="text-sm text-muted-foreground">
+                  Laraskan kelajuan skrol komen
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Kelajuan Skrol</span>
+                  <span className="text-sm text-muted-foreground">
+                    {getSpeedLabel(scrollSpeed)}
+                  </span>
+                </div>
+                
+                <Slider
+                  value={[scrollSpeed]}
+                  onValueChange={handleSpeedChange}
+                  min={10}
+                  max={120}
+                  step={10}
+                  className="w-full"
+                />
+                
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Pantas</span>
+                  <span>Perlahan</span>
+                </div>
+
+                <div className="pt-2 border-t">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSpeedChange([30])}
+                      className="flex-1 text-xs"
+                    >
+                      Pantas
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSpeedChange([60])}
+                      className="flex-1 text-xs"
+                    >
+                      Normal
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSpeedChange([90])}
+                      className="flex-1 text-xs"
+                    >
+                      Perlahan
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-xs text-muted-foreground">
+                  <p>💡 Tip: Hover pada billboard untuk pause semasa membaca</p>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Eye Button */}
         <Button
           size="sm"
           variant="secondary"
@@ -278,7 +385,11 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       <div className="fixed bottom-20 left-0 right-0 z-[9997] overflow-hidden pointer-events-none bg-gradient-to-r from-black/80 via-black/60 to-black/80 backdrop-blur-sm py-2 shadow-lg border-y border-white/10">
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 whitespace-nowrap animate-marquee"
+          className="flex gap-4 whitespace-nowrap"
+          style={{
+            animation: `marquee ${scrollSpeed}s linear infinite`,
+            willChange: 'transform',
+          }}
         >
           {/* Show 30 recent comments, duplicate for infinite loop */}
           {[...scrollingComments.slice(-30), ...scrollingComments.slice(-30)].map((comment, index) => (
@@ -431,7 +542,7 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         }
 
         .animate-marquee {
-          animation: marquee 60s linear infinite;
+          animation: marquee ${scrollSpeed}s linear infinite;
           will-change: transform;
         }
 
