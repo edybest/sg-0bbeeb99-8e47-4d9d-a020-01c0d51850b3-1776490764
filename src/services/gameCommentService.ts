@@ -143,7 +143,7 @@ export const gameCommentService = {
       // Continue anyway if ban check fails
     }
 
-    // Prepare insert data
+    // Prepare insert data - CRITICAL: Use correct column names
     const insertData = {
       game_id: gameId,
       member_id: memberId,
@@ -162,8 +162,7 @@ export const gameCommentService = {
       .single();
 
     console.log("Insert result:", { data, error });
-    console.log("=== POST COMMENT DEBUG END ===");
-
+    
     if (error) {
       console.error("Error posting comment:", error);
       console.error("Error details:", {
@@ -175,6 +174,8 @@ export const gameCommentService = {
       throw error;
     }
 
+    console.log("=== POST COMMENT DEBUG END ===");
+    console.log("✅ Comment posted successfully, ID:", data.id);
     return data;
   },
 
@@ -371,6 +372,8 @@ export const gameCommentService = {
     gameId: string,
     callback: (comment: GameCommentWithMember) => void
   ) {
+    console.log("🔌 Setting up real-time subscription for game:", gameId);
+    
     const channel = supabase
       .channel(`game-comments-${gameId}`)
       .on(
@@ -382,29 +385,48 @@ export const gameCommentService = {
           filter: `game_id=eq.${gameId}`,
         },
         async (payload) => {
-          // Fetch the full comment with member details
-          const { data } = await supabase
-            .from("game_comments")
-            .select(`
-              *,
-              member:members!game_comments_member_id_fkey(
-                id,
-                username,
-                full_name,
-                avatar_url
-              )
-            `)
-            .eq("id", payload.new.id)
-            .single();
+          console.log("📨 New comment event received:", payload);
+          
+          try {
+            // Fetch the full comment with member details
+            const { data, error } = await supabase
+              .from("game_comments")
+              .select(`
+                *,
+                member:members!game_comments_member_id_fkey(
+                  id,
+                  username,
+                  full_name,
+                  avatar_url
+                )
+              `)
+              .eq("id", payload.new.id)
+              .single();
 
-          if (data) {
-            callback(data as GameCommentWithMember);
+            console.log("Fetched comment data:", { data, error });
+
+            if (error) {
+              console.error("❌ Error fetching comment:", error);
+              return;
+            }
+
+            if (data) {
+              console.log("✅ Broadcasting comment to UI:", data);
+              callback(data as GameCommentWithMember);
+            } else {
+              console.warn("⚠️ No data returned for comment ID:", payload.new.id);
+            }
+          } catch (err) {
+            console.error("❌ Exception in subscription callback:", err);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("📡 Subscription status:", status);
+      });
 
     return () => {
+      console.log("🔌 Unsubscribing from game-comments-" + gameId);
       supabase.removeChannel(channel);
     };
   },
