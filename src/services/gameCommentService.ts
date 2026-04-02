@@ -5,7 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 type GameComment = Database["public"]["Tables"]["game_comments"]["Row"];
 type GameCommentInsert = Database["public"]["Tables"]["game_comments"]["Insert"];
 
-interface GameCommentWithMember extends GameComment {
+export interface GameCommentWithMember extends GameComment {
   member?: {
     id: string;
     username: string;
@@ -13,6 +13,19 @@ interface GameCommentWithMember extends GameComment {
     avatar_url?: string;
   };
 }
+
+export const BOWLING_EMOJIS = {
+  strike: { code: "🎳", animated: true },
+  spare: { code: "🎯", animated: false },
+  fire: { code: "🔥", animated: true },
+  trophy: { code: "🏆", animated: false },
+  clap: { code: "👏", animated: true },
+  heart: { code: "❤️", animated: false },
+  star: { code: "⭐", animated: true },
+  rocket: { code: "🚀", animated: false },
+  party: { code: "🎉", animated: true },
+  thumbsup: { code: "👍", animated: false },
+};
 
 // Helper function to emit debug logs (works on mobile!)
 function emitDebugLog(
@@ -174,5 +187,198 @@ export const gameCommentService = {
       emitDebugLog("info", `🔌 Disconnecting from game: ${gameId}`);
       supabase.removeChannel(channel);
     };
+  },
+
+  /**
+   * Get all comments for a game
+   */
+  async getGameComments(gameId: string): Promise<GameCommentWithMember[]> {
+    const { data, error } = await supabase
+      .from("game_comments")
+      .select(`
+        *,
+        member:members!game_comments_member_id_fkey(
+          id,
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("game_id", gameId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching game comments:", error);
+      throw error;
+    }
+
+    return (data || []) as GameCommentWithMember[];
+  },
+
+  /**
+   * Get all comments (admin)
+   */
+  async getAllComments(): Promise<GameCommentWithMember[]> {
+    const { data, error } = await supabase
+      .from("game_comments")
+      .select(`
+        *,
+        member:members!game_comments_member_id_fkey(
+          id,
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error("Error fetching all comments:", error);
+      throw error;
+    }
+
+    return (data || []) as GameCommentWithMember[];
+  },
+
+  /**
+   * Delete a comment (admin version using database function)
+   */
+  async adminDeleteComment(commentId: string, adminMemberId: string): Promise<void> {
+    const { error } = await supabase.rpc("admin_delete_game_comment", {
+      comment_id: commentId,
+      admin_member_id: adminMemberId,
+    });
+
+    if (error) {
+      console.error("Error deleting comment (admin):", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a comment (member version)
+   */
+  async deleteComment(commentId: string, memberId: string): Promise<void> {
+    const { error } = await supabase
+      .from("game_comments")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: memberId,
+      })
+      .eq("id", commentId)
+      .eq("member_id", memberId);
+
+    if (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Edit a comment
+   */
+  async editComment(commentId: string, text: string): Promise<void> {
+    const { error } = await supabase
+      .from("game_comments")
+      .update({ comment_text: text })
+      .eq("id", commentId);
+
+    if (error) {
+      console.error("Error editing comment:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Ban a user from posting comments
+   */
+  async banUser(
+    memberId: string,
+    gameId?: string,
+    bannedBy?: string,
+    reason?: string
+  ): Promise<void> {
+    const { error } = await supabase.from("comment_bans").insert({
+      member_id: memberId,
+      game_id: gameId || null,
+      banned_by: bannedBy || null,
+      reason: reason || "Banned by admin",
+      is_active: true,
+    });
+
+    if (error) {
+      console.error("Error banning user:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Unban a user
+   */
+  async unbanUser(memberId: string): Promise<void> {
+    const { error } = await supabase
+      .from("comment_bans")
+      .update({ is_active: false })
+      .eq("member_id", memberId)
+      .eq("is_active", true);
+
+    if (error) {
+      console.error("Error unbanning user:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check if a user is banned
+   */
+  async isUserBanned(memberId: string, gameId?: string): Promise<boolean> {
+    const query = supabase
+      .from("comment_bans")
+      .select("id")
+      .eq("member_id", memberId)
+      .eq("is_active", true);
+
+    if (gameId) {
+      query.or(`game_id.eq.${gameId},game_id.is.null`);
+    } else {
+      query.is("game_id", null);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("Error checking ban status:", error);
+      return false;
+    }
+
+    return (data?.length || 0) > 0;
+  },
+
+  /**
+   * Get all banned users (admin)
+   */
+  async getBannedUsers(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from("comment_bans")
+      .select(`
+        *,
+        member:members!comment_bans_member_id_fkey(
+          id,
+          username,
+          full_name
+        )
+      `)
+      .eq("is_active", true)
+      .order("banned_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching banned users:", error);
+      throw error;
+    }
+
+    return data || [];
   },
 };
