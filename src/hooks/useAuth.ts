@@ -21,15 +21,11 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   const [member, setMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<Member | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const isMountedRef = useRef(true);
   const authCheckInProgress = useRef(false);
   
   const subscribe = options?.subscribe ?? true;
   const checkingRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
 
@@ -58,21 +54,24 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
       
-      console.warn("⏱️ Auth check timeout (5s) - releasing UI lock");
+      console.warn("⏱️ Auth check timeout (3s) - releasing UI lock");
       checkingRef.current = false;
       setLoading(false);
-    }, 5000);
+    }, 3000);
 
     try {
       console.log("🔍 Starting auth check...");
       
-      // Use Promise.race to forcefully break out if Supabase Web Locks get stuck
+      // Use Promise.race to forcefully break out if Supabase gets stuck
       const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: null }, error: Error }>((resolve) => 
-        setTimeout(() => resolve({ data: { session: null }, error: new Error("Auth check timed out due to lock") }), 5000)
+      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => 
+        setTimeout(() => {
+          console.warn("⏱️ Session fetch timeout - resolving as null");
+          resolve({ data: { session: null } });
+        }, 3000)
       );
       
-      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
       
       // Clear timeout if we got a response
       if (timeoutRef.current) {
@@ -81,16 +80,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
       // Check if we're still mounted
       if (!mountedRef.current) {
-        return;
-      }
-
-      if (error) {
-        console.error("❌ Session error:", error);
-        setIsAuthenticated(false);
-        setLoading(false);
-        if (requireAuth) {
-          router.push("/login");
-        }
         return;
       }
 
@@ -125,7 +114,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
         checkingRef.current = false;
       }
     }
-  }, [requireAuth, requireAdmin, router, isAuthenticated]);
+  }, [requireAuth, requireAdmin, router]);
 
   async function loadMemberData(userId: string, email: string | null) {
     try {
