@@ -319,12 +319,20 @@ export default function UndiLanePage() {
 
     const winningIndex = Math.max(0, availableLanes.indexOf(winningLane));
     const segmentAngle = 360 / availableLanes.length;
-    const winningAngle = winningIndex * segmentAngle;
-    const spins = 6;
+    // Angle of the winning segment's center relative to top (0 degrees)
+    const winningAngle = winningIndex * segmentAngle + (segmentAngle / 2);
     
+    // The pointer is now at the BOTTOM of the wheel, which is 180 degrees from the top.
+    // To make the winning segment align with the bottom pointer, we need the wheel to rotate 
+    // such that the winning segment is at 180 degrees.
+    // Desired rotation = 180 - winningAngle
+    
+    const spins = 6;
     const currentRotation = currentRotationRef.current;
-    const targetMod = (360 - winningAngle) - segmentAngle / 2;
+    
+    const targetMod = (180 - winningAngle) % 360;
     const currentMod = currentRotation % 360;
+    
     let diff = targetMod - currentMod;
     if (diff <= 0) diff += 360;
     
@@ -332,7 +340,7 @@ export default function UndiLanePage() {
 
     setSpinFromRotation(currentRotation);
     setRotation(finalRotation);
-    currentRotationRef.current = finalRotation % 360;
+    currentRotationRef.current = finalRotation;
     setSpinAnimKey((k) => k + 1);
 
     setTimeout(async () => {
@@ -522,45 +530,120 @@ export default function UndiLanePage() {
                         <div className="relative w-full max-w-2xl mx-auto mb-8">
                           {/* Title Above Wheel */}
                           <div className="text-center mb-6">
-                            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              UNDI LANE HARI INI
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent uppercase tracking-wider">
+                              Undi Lane Hari Ini
                             </h2>
-                            <p className="text-muted-foreground mt-2">
-                              Tekan butang untuk undi lane secara rawak
+                            <p className="text-muted-foreground mt-2 font-medium">
+                              Tekan SPIN untuk undi lane anda
                             </p>
                           </div>
 
                           {/* Wheel Container - Only Bottom Half Visible */}
-                          <div className="relative h-[300px] overflow-hidden bg-gradient-to-b from-transparent via-background/50 to-background rounded-b-full">
-                            {/* Pointer/Arrow - Fixed at Top Center */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20">
-                              <div className="relative">
-                                <div className="w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[40px] border-t-yellow-400 drop-shadow-lg"></div>
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-6 h-6 bg-yellow-400 rounded-full border-4 border-yellow-500 shadow-xl"></div>
-                              </div>
+                          {/* We use a container that crops the top half. 
+                              The SVG itself is a full circle, but we shift it up and hide overflow.
+                          */}
+                          <div className="relative overflow-hidden flex justify-center pb-8" style={{ height: '240px' }}>
+                            
+                            {/* Inner wrapper positioned to show ONLY the bottom half of the 400x400 wheel */}
+                            <div className="relative w-[400px] h-[400px]" style={{ top: '-200px' }}>
+                              
+                              {/* The SVG Wheel */}
+                              <svg
+                                ref={wheelRef}
+                                viewBox="0 0 400 400"
+                                className="w-full h-full drop-shadow-2xl"
+                                style={{
+                                  transition: spinning ? 'none' : 'transform 0.1s ease',
+                                }}
+                              >
+                                {/* Outer Gold Rim */}
+                                <circle cx="200" cy="200" r="195" fill="#fcd34d" stroke="#d97706" strokeWidth="10" />
+                                <circle cx="200" cy="200" r="185" fill="#b45309" />
+                                
+                                {/* Segments */}
+                                <g transform="translate(200, 200)">
+                                  {availableLanes.map((lane, index) => {
+                                    const total = availableLanes.length;
+                                    const angle = 360 / total;
+                                    const startAngle = index * angle;
+                                    const endAngle = startAngle + angle;
+                                    
+                                    // Math for pie slice
+                                    const x1 = 180 * Math.cos((startAngle - 90) * (Math.PI / 180));
+                                    const y1 = 180 * Math.sin((startAngle - 90) * (Math.PI / 180));
+                                    const x2 = 180 * Math.cos((endAngle - 90) * (Math.PI / 180));
+                                    const y2 = 180 * Math.sin((endAngle - 90) * (Math.PI / 180));
+                                    
+                                    const largeArcFlag = angle > 180 ? 1 : 0;
+                                    const pathData = `M 0 0 L ${x1} ${y1} A 180 180 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                                    
+                                    const bgColor = index % 2 === 0 ? "#dc2626" : "#f8fafc"; // Red & White alternating
+                                    const textColor = index % 2 === 0 ? "#ffffff" : "#1e293b";
+                                    
+                                    // Text positioning (center of the slice)
+                                    const textAngle = startAngle + angle / 2;
+                                    const textRadius = 130;
+                                    const tx = textRadius * Math.cos((textAngle - 90) * (Math.PI / 180));
+                                    const ty = textRadius * Math.sin((textAngle - 90) * (Math.PI / 180));
+                                    
+                                    return (
+                                      <g key={lane}>
+                                        <path d={pathData} fill={bgColor} stroke="#fcd34d" strokeWidth="2" />
+                                        
+                                        {/* Text inside segment */}
+                                        <text
+                                          x={tx}
+                                          y={ty}
+                                          fill={textColor}
+                                          fontSize="28"
+                                          fontWeight="bold"
+                                          textAnchor="middle"
+                                          dominantBaseline="middle"
+                                          transform={`rotate(${textAngle}, ${tx}, ${ty})`}
+                                          className="drop-shadow-sm"
+                                        >
+                                          {lane}
+                                        </text>
+
+                                        {/* Little gold dot on the edge */}
+                                        <circle 
+                                          cx={188 * Math.cos((startAngle - 90) * (Math.PI / 180))} 
+                                          cy={188 * Math.sin((startAngle - 90) * (Math.PI / 180))} 
+                                          r="3" 
+                                          fill="#fef08a" 
+                                        />
+                                      </g>
+                                    );
+                                  })}
+                                </g>
+
+                                {/* Inner Gold Center (Hidden since it's at the top edge of the visible area, 
+                                    but let's draw it anyway for completeness) */}
+                                <circle cx="200" cy="200" r="40" fill="#fcd34d" stroke="#d97706" strokeWidth="4" />
+                                <circle cx="200" cy="200" r="25" fill="#fbbf24" />
+                              </svg>
+
                             </div>
 
-                            {/* Wheel Canvas - Positioned to show bottom half */}
-                            <canvas
-                              ref={canvasRef}
-                              width={600}
-                              height={600}
-                              className="absolute left-1/2 -translate-x-1/2"
-                              style={{
-                                top: '-150px', // Move up to show only bottom half
-                                maxWidth: '600px',
-                                height: 'auto',
-                                filter: isSpinning ? 'blur(0)' : 'none',
-                                transition: 'filter 0.3s ease',
-                              }}
-                            />
-
-                            {/* Gradient Overlay - Fade edges */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background/80 pointer-events-none"></div>
+                            {/* Pointer/Arrow - Fixed at BOTTOM Center, pointing UP */}
+                            {/* Since the wheel is at top: -200, its center is at y=0 relative to the container.
+                                The wheel radius is 200, so its bottom edge is at y=200 relative to the container.
+                                The container height is 240px. The bottom edge of the wheel is at y=200.
+                            */}
+                            <div className="absolute z-20" style={{ top: '190px' }}>
+                              <div className="relative flex flex-col items-center">
+                                {/* The Triangle Arrow pointing UP */}
+                                <div className="w-0 h-0 border-l-[15px] border-l-transparent border-r-[15px] border-r-transparent border-b-[35px] border-b-yellow-400 drop-shadow-xl z-10"></div>
+                                {/* The Base of the pointer */}
+                                <div className="w-12 h-12 bg-gradient-to-br from-yellow-300 to-yellow-600 rounded-full border-4 border-yellow-200 shadow-2xl -mt-2 flex items-center justify-center">
+                                  <div className="w-6 h-6 bg-yellow-500 rounded-full shadow-inner"></div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Result Display */}
-                          {selectedLane && !isSpinning && (
+                          {selectedLane && !spinning && (
                             <div className="mt-8 text-center animate-in zoom-in duration-500">
                               <div className="inline-block bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-full shadow-2xl">
                                 <div className="text-sm font-medium mb-1">Lane Anda:</div>
