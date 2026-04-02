@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabase";
 
 interface LiveGameCommentsProps {
   gameId: string;
@@ -30,7 +31,7 @@ interface LiveGameCommentsProps {
 }
 
 export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
-  const { member, isAdmin } = useAuth();
+  const { member } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<GameCommentWithMember[]>([]);
   const [showComments, setShowComments] = useState(true);
@@ -39,7 +40,28 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   const [isPosting, setIsPosting] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [memberToBan, setMemberToBan] = useState<{ id: string; name: string } | null>(null);
+  const [emojiSearchQuery, setEmojiSearchQuery] = useState("");
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*, member_type")
+          .eq("id", user.id)
+          .single();
+        
+        setCurrentUser(profile);
+        setIsAdmin(profile?.member_type === "admin");
+      }
+    };
+    fetchUser();
+  }, []);
 
   // Initialize Web Audio API for pop sound
   useEffect(() => {
@@ -151,52 +173,55 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
     }
   };
 
-  const handleDeleteComment = async () => {
-    if (!commentToDelete || !member) return;
-
+  const handleDeleteComment = async (commentId: string) => {
     try {
-      await gameCommentService.deleteComment(commentToDelete, member.id);
-      setComments((prev) => prev.filter((c) => c.id !== commentToDelete));
-      
+      const { error } = await supabase
+        .from("game_comments")
+        .delete()
+        .eq("id", commentId);
+
+      if (error) throw error;
+
+      setComments(prev => prev.filter(c => c.id !== commentId));
       toast({
         title: "Comment Deleted",
-        description: "The comment has been removed",
+        description: "Comment has been removed successfully."
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error deleting comment:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete comment",
-        variant: "destructive",
+        description: "Failed to delete comment.",
+        variant: "destructive"
       });
-    } finally {
-      setCommentToDelete(null);
     }
   };
 
-  const handleBanUser = async () => {
-    if (!memberToBan || !member) return;
-
+  const handleBanUser = async (userId: string, username: string) => {
     try {
-      await gameCommentService.banUser(memberToBan.id, member.id, {
-        gameId: gameId,
-        reason: "Banned from posting comments",
-      });
-      
+      // Update user to banned status
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_banned: true })
+        .eq("id", userId);
+
+      if (error) throw error;
+
       // Remove all comments from this user
-      setComments((prev) => prev.filter((c) => c.member_id !== memberToBan.id));
-      
+      setComments(prev => prev.filter(c => c.member_id !== userId));
+
       toast({
         title: "User Banned",
-        description: `${memberToBan.name} has been banned from posting comments on this game`,
+        description: `${username} has been banned and all comments removed.`,
+        variant: "destructive"
       });
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error banning user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to ban user",
-        variant: "destructive",
+        description: "Failed to ban user.",
+        variant: "destructive"
       });
-    } finally {
-      setMemberToBan(null);
     }
   };
 
@@ -216,15 +241,17 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               }}
               transition={{
                 duration: 6,
-                delay: index * 0.15,
+                delay: index * 1.0, // 1 second delay between each comment
                 ease: "easeInOut",
                 times: [0, 0.15, 0.85, 1]
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-black/30 backdrop-blur-sm rounded-full shadow-2xl border border-white/40"
+              className="relative flex items-center gap-2 px-4 py-2.5 rounded-full"
               style={{
-                animation: "smokyFloat 6s ease-in-out forwards"
+                animation: "smokyFloat 6s ease-in-out forwards",
+                animationDelay: `${index * 1.0}s` // Stagger by 1 second
               }}
             >
+              {/* Truly transparent - no background, only text shadows */}
               {/* Display emoji icon if available */}
               {comment.emoji_code && (
                 <span 
@@ -255,6 +282,26 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                 >
                   {comment.comment_text}
                 </span>
+              )}
+
+              {/* Admin Controls - Only visible to admins */}
+              {isAdmin && (
+                <div className="flex items-center gap-1 ml-2 pointer-events-auto">
+                  <button
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="p-1 rounded-full bg-red-500/80 hover:bg-red-600 transition-colors"
+                    title="Delete Comment"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                  <button
+                    onClick={() => handleBanUser(comment.member_id, comment.member?.username || "user")}
+                    className="p-1 rounded-full bg-red-700/80 hover:bg-red-800 transition-colors"
+                    title="Ban User"
+                  >
+                    <Ban className="w-3 h-3 text-white" />
+                  </button>
+                </div>
               )}
             </motion.div>
           ))}
