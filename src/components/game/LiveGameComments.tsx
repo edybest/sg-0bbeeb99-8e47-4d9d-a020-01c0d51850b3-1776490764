@@ -41,6 +41,9 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [memberToBan, setMemberToBan] = useState<{ id: string; name: string } | null>(null);
   const [emojiSearchQuery, setEmojiSearchQuery] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editEmoji, setEditEmoji] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -388,6 +391,64 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
     }
   };
 
+  const handleEditComment = (comment: GameCommentWithMember) => {
+    setEditingCommentId(comment.id);
+    setEditText(comment.comment_text || "");
+    setEditEmoji(comment.emoji_code || null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditText("");
+    setEditEmoji(null);
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    try {
+      if (!editText.trim() && !editEmoji) {
+        toast({
+          title: "Ralat",
+          description: "Komen tidak boleh kosong",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await gameCommentService.editComment(commentId, {
+        text: editText.trim() || undefined,
+        emoji: editEmoji || undefined,
+        isAnimated: editEmoji ? BOWLING_EMOJIS[editEmoji as keyof typeof BOWLING_EMOJIS]?.animated : false,
+      });
+
+      // Update local state immediately
+      setComments(prev => prev.map(c => 
+        c.id === commentId 
+          ? { 
+              ...c, 
+              comment_text: editText.trim() || null,
+              emoji_code: editEmoji || null,
+              is_animated: editEmoji ? BOWLING_EMOJIS[editEmoji as keyof typeof BOWLING_EMOJIS]?.animated : false,
+              edited_at: new Date().toISOString()
+            }
+          : c
+      ));
+
+      handleCancelEdit();
+
+      toast({
+        title: "Komen Dikemaskini",
+        description: "Komen telah berjaya dikemaskini."
+      });
+    } catch (error: any) {
+      console.error("Error editing comment:", error);
+      toast({
+        title: "Ralat",
+        description: error.message || "Gagal mengemaskini komen.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <>
       {/* Floating Comments Display - Smoky Float Style */}
@@ -554,49 +615,113 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                       key={comment.id}
                       className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-br from-muted/30 to-muted/50 hover:from-muted/50 hover:to-muted/70 transition-all"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-sky-600 truncate">
-                          {comment.member?.username}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          {comment.emoji_code && (
-                            <span className="text-xl">
-                              {BOWLING_EMOJIS[comment.emoji_code as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji_code}
-                            </span>
-                          )}
-                          {comment.comment_text && (
-                            <span className="text-sm">{comment.comment_text}</span>
-                          )}
-                        </div>
-                      </div>
-                      {/* Delete button - Show for admins OR own comments */}
-                      {(isAdmin || comment.member_id === currentMemberId) && (
-                        <div className="flex gap-1 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-                            onClick={() => setCommentToDelete(comment.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          {/* Ban button - Only for admins */}
-                          {isAdmin && (
+                      {editingCommentId === comment.id ? (
+                        // Edit Mode
+                        <div className="flex-1 space-y-3">
+                          <div className="grid grid-cols-5 gap-2">
+                            {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
+                              <Button
+                                key={key}
+                                size="sm"
+                                variant={editEmoji === key ? "default" : "outline"}
+                                onClick={() => setEditEmoji(editEmoji === key ? null : key)}
+                                className={`text-xl h-10 ${emoji.animated ? "hover:animate-bounce" : ""}`}
+                              >
+                                {emoji.code}
+                              </Button>
+                            ))}
+                          </div>
+                          <Input
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            placeholder="Edit komen..."
+                            maxLength={100}
+                            className="text-sm"
+                          />
+                          <div className="flex gap-2">
                             <Button
                               size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-orange-500 hover:bg-orange-500/10"
-                              onClick={() =>
-                                setMemberToBan({
-                                  id: comment.member_id,
-                                  name: comment.member?.username || "User",
-                                })
-                              }
+                              onClick={() => handleSaveEdit(comment.id)}
+                              className="flex-1 bg-green-600 hover:bg-green-700"
                             >
-                              <Ban className="h-4 w-4" />
+                              Simpan
                             </Button>
-                          )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={handleCancelEdit}
+                              className="flex-1"
+                            >
+                              Batal
+                            </Button>
+                          </div>
                         </div>
+                      ) : (
+                        // View Mode
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-sky-600 truncate">
+                                {comment.member?.username}
+                              </p>
+                              {comment.edited_at && (
+                                <span className="text-xs text-muted-foreground">(edited)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {comment.emoji_code && (
+                                <span className="text-xl">
+                                  {BOWLING_EMOJIS[comment.emoji_code as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji_code}
+                                </span>
+                              )}
+                              {comment.comment_text && (
+                                <span className="text-sm">{comment.comment_text}</span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Edit/Delete buttons - Show for admins OR own comments */}
+                          {(isAdmin || comment.member_id === currentMemberId) && (
+                            <div className="flex gap-1 flex-shrink-0">
+                              {/* Edit button - Only for own comments (not admin editing others) */}
+                              {comment.member_id === currentMemberId && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-blue-500 hover:bg-blue-500/10"
+                                  onClick={() => handleEditComment(comment)}
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                                onClick={() => setCommentToDelete(comment.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              {/* Ban button - Only for admins */}
+                              {isAdmin && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-orange-500 hover:bg-orange-500/10"
+                                  onClick={() =>
+                                    setMemberToBan({
+                                      id: comment.member_id,
+                                      name: comment.member?.username || "User",
+                                    })
+                                  }
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   ))

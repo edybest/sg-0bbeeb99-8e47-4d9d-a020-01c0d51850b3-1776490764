@@ -203,6 +203,44 @@ export const gameCommentService = {
   },
 
   /**
+   * Edit a comment (user can edit their own comment)
+   */
+  async editComment(
+    commentId: string,
+    content: { text?: string; emoji?: string; isAnimated?: boolean }
+  ): Promise<GameComment> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const updateData: any = {
+      edited_at: new Date().toISOString(),
+      edited_by: user?.id,
+    };
+
+    if (content.text !== undefined) {
+      updateData.comment_text = content.text || null;
+    }
+    
+    if (content.emoji !== undefined) {
+      updateData.emoji_code = content.emoji || null;
+      updateData.is_animated = content.isAnimated || false;
+    }
+
+    const { data, error } = await supabase
+      .from("game_comments")
+      .update(updateData)
+      .eq("id", commentId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error editing comment:", error);
+      throw error;
+    }
+
+    return data;
+  },
+
+  /**
    * Check if user is banned from posting comments
    */
   async isUserBanned(memberId: string, gameId?: string): Promise<boolean> {
