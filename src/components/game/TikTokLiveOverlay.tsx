@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Send, X, Eye, EyeOff, Users } from "lucide-react";
+import { MessageCircle, Send, Eye, EyeOff, Users, Clock } from "lucide-react";
 import { gameCommentService } from "@/services/gameCommentService";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,24 +18,12 @@ interface Comment {
   created_at: string;
 }
 
-interface FloatingEmoji {
-  id: string;
-  emoji: string;
-  left: number;
-  isBurst?: boolean;
-}
-
-interface SlidingMessage {
+interface ScrollingComment {
   id: string;
   username: string;
   text: string;
   emoji?: string;
-}
-
-interface EmojiTracker {
-  emoji: string;
-  count: number;
-  lastTime: number;
+  timestamp: string;
 }
 
 const BOWLING_EMOJIS = {
@@ -51,21 +39,32 @@ const BOWLING_EMOJIS = {
   thumbsup: { code: "👍", animated: false },
 };
 
-const BURST_THRESHOLD = 3; // 3 same emojis within timeframe
-const BURST_TIMEFRAME = 3000; // 3 seconds
-
 export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameName: string }) {
   const { toast } = useToast();
   const { member: currentUser } = useAuth();
   const [isVisible, setIsVisible] = useState(true);
-  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
-  const [slidingMessages, setSlidingMessages] = useState<SlidingMessage[]>([]);
+  const [scrollingComments, setScrollingComments] = useState<ScrollingComment[]>([]);
+  const [recentComments, setRecentComments] = useState<ScrollingComment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
-  const emojiTrackerRef = useRef<Map<string, EmojiTracker>>(new Map());
   const presenceIntervalRef = useRef<NodeJS.Timeout>();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Format timestamp
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Baru sahaja";
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}j`;
+    return date.toLocaleDateString("ms-MY", { day: "numeric", month: "short" });
+  };
 
   // Update viewer presence every 30 seconds
   useEffect(() => {
@@ -87,18 +86,13 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       }
     };
 
-    // Initial presence
     updatePresence();
-
-    // Update every 30 seconds
     presenceIntervalRef.current = setInterval(updatePresence, 30000);
 
-    // Cleanup on unmount
     return () => {
       if (presenceIntervalRef.current) {
         clearInterval(presenceIntervalRef.current);
       }
-      // Remove presence when leaving
       supabase
         .from("game_viewers")
         .delete()
@@ -115,14 +109,13 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         .from("game_viewers")
         .select("*", { count: "exact", head: true })
         .eq("game_id", gameId)
-        .gte("last_seen", new Date(Date.now() - 120000).toISOString()); // Active in last 2 min
+        .gte("last_seen", new Date(Date.now() - 120000).toISOString());
 
       setViewerCount(count || 0);
     };
 
     fetchViewerCount();
 
-    // Subscribe to changes
     const channel = supabase
       .channel(`game_viewers:${gameId}`)
       .on(
@@ -150,66 +143,16 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       try {
         const comments = await gameCommentService.getGameComments(gameId);
         
-        // Process each existing comment (limited to last 10 for performance)
-        const recentComments = comments.slice(-10);
-        recentComments.forEach((comment: any, index: number) => {
-          const emojiCode = comment.emoji_code || comment.emoji;
-          const commentText = comment.comment_text || comment.text;
-          const username = comment.member?.username || comment.username || "Anonymous";
+        const formattedComments = comments.map((comment: any) => ({
+          id: comment.id,
+          username: comment.member?.username || "Anonymous",
+          text: comment.comment_text || comment.text || "",
+          emoji: comment.emoji_code || comment.emoji,
+          timestamp: comment.created_at,
+        })).filter((c: ScrollingComment) => c.text || c.emoji);
 
-          // Add emojis (without animation on initial load)
-          if (emojiCode) {
-            const emojiData = BOWLING_EMOJIS[emojiCode as keyof typeof BOWLING_EMOJIS];
-            if (emojiData) {
-              // Just add to state without animation
-              setTimeout(() => {
-                const id = `emoji-initial-${comment.id}`;
-                setFloatingEmojis((prev) => [
-                  ...prev,
-                  {
-                    id,
-                    emoji: emojiData.code,
-                    left: Math.random() * 50,
-                    isBurst: false,
-                  },
-                ]);
-
-                // Remove after animation
-                setTimeout(() => {
-                  setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
-                }, 3100);
-              }, index * 200); // Stagger initial animations
-            }
-          }
-
-          // Add messages
-          if (commentText) {
-            setTimeout(() => {
-              const msgId = `msg-initial-${comment.id}`;
-              setSlidingMessages((prev) => [
-                ...prev,
-                {
-                  id: msgId,
-                  username: username,
-                  text: commentText,
-                  emoji: emojiCode,
-                },
-              ]);
-
-              // Fade out and remove
-              setTimeout(() => {
-                const element = document.querySelector(`[data-msg-id="${msgId}"]`);
-                if (element) {
-                  element.classList.add('animate-fade-out-scale');
-                }
-              }, 4500);
-
-              setTimeout(() => {
-                setSlidingMessages((prev) => prev.filter((msg) => msg.id !== msgId));
-              }, 5000);
-            }, index * 200); // Stagger initial messages
-          }
-        });
+        setScrollingComments(formattedComments);
+        setRecentComments(formattedComments.slice(-20)); // Keep last 20 for history
       } catch (error) {
         console.error("Error loading existing comments:", error);
       }
@@ -227,57 +170,17 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         const commentText = comment.comment_text || comment.text;
         const username = comment.member?.username || comment.username || "Anonymous";
 
-        // Check for emoji burst
-        if (emojiCode) {
-          const now = Date.now();
-          const tracker = emojiTrackerRef.current.get(emojiCode) || { emoji: emojiCode, count: 0, lastTime: now };
-          
-          // Reset if too much time passed
-          if (now - tracker.lastTime > BURST_TIMEFRAME) {
-            tracker.count = 1;
-          } else {
-            tracker.count += 1;
-          }
-          
-          tracker.lastTime = now;
-          emojiTrackerRef.current.set(emojiCode, tracker);
-
-          const emojiData = BOWLING_EMOJIS[emojiCode as keyof typeof BOWLING_EMOJIS];
-          
-          // Trigger burst if threshold reached
-          if (tracker.count >= BURST_THRESHOLD) {
-            addEmojiBurst(emojiData?.code || emojiCode);
-            // Reset counter after burst
-            emojiTrackerRef.current.delete(emojiCode);
-          } else {
-            addFloatingEmoji(emojiData?.code || emojiCode);
-          }
-        }
-
-        // Add sliding message
-        if (commentText) {
-          const msgId = `msg-${Date.now()}-${Math.random()}`;
-          const newMsg = {
-            id: msgId,
+        if (commentText || emojiCode) {
+          const newScrollComment: ScrollingComment = {
+            id: comment.id,
             username: username,
-            text: commentText,
+            text: commentText || "",
             emoji: emojiCode,
+            timestamp: comment.created_at || new Date().toISOString(),
           };
-          
-          setSlidingMessages((prev) => [...prev, newMsg]);
 
-          // Add fade-out class before removal
-          setTimeout(() => {
-            const element = document.querySelector(`[data-msg-id="${msgId}"]`);
-            if (element) {
-              element.classList.add('animate-fade-out-scale');
-            }
-          }, 4500);
-
-          // Remove after fade animation
-          setTimeout(() => {
-            setSlidingMessages((prev) => prev.filter((msg) => msg.id !== msgId));
-          }, 5000);
+          setScrollingComments((prev) => [...prev, newScrollComment]);
+          setRecentComments((prev) => [...prev.slice(-19), newScrollComment]); // Keep last 20
         }
       }
     );
@@ -287,51 +190,37 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
     };
   }, [gameId]);
 
-  const addFloatingEmoji = (emoji: string) => {
-    const id = `emoji-${Date.now()}-${Math.random()}`;
-    setFloatingEmojis((prev) => [
-      ...prev,
-      {
-        id,
-        emoji,
-        left: Math.random() * 50,
-        isBurst: false,
-      },
-    ]);
+  // Auto-scroll animation (continuous loop)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || scrollingComments.length === 0) return;
 
-    // Smooth removal after animation
-    setTimeout(() => {
-      setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
-    }, 3100); // Slightly longer than animation duration
-  };
+    let animationId: number;
+    let scrollPosition = 0;
+    const scrollSpeed = 0.5; // pixels per frame (slow scrolling)
 
-  const addEmojiBurst = (emoji: string) => {
-    // Create multiple burst particles with varied timing
-    const burstCount = 8;
-    const delays = [0, 80, 120, 180, 220, 280, 320, 380]; // Staggered delays
-    
-    for (let i = 0; i < burstCount; i++) {
-      setTimeout(() => {
-        const id = `burst-${Date.now()}-${Math.random()}-${i}`;
-        const spreadAngle = (i / burstCount) * 360; // Circular spread
-        const spreadRadius = 15 + Math.random() * 30; // Varied distance
-        
-        setFloatingEmojis((prev) => [
-          ...prev,
-          {
-            id,
-            emoji,
-            left: Math.cos(spreadAngle * Math.PI / 180) * spreadRadius + 25, // Centered spread
-            isBurst: true,
-          },
-        ]);
+    const animate = () => {
+      scrollPosition += scrollSpeed;
+      
+      // Get total height of all comments
+      const totalHeight = container.scrollHeight;
+      const visibleHeight = container.clientHeight;
 
-        setTimeout(() => {
-          setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
-        }, 2600);
-      }, delays[i] || i * 100);
-    }
-  };
+      // Reset to bottom when scrolled past all comments
+      if (scrollPosition >= totalHeight) {
+        scrollPosition = 0;
+      }
+
+      container.scrollTop = scrollPosition;
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  }, [scrollingComments]);
 
   const handlePostComment = async () => {
     if (!newComment.trim() && !selectedEmoji) {
@@ -421,45 +310,36 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         </Button>
       </div>
 
-      {/* Floating Emojis - Left Side */}
-      <div className="fixed left-4 bottom-24 w-20 h-[60vh] z-[9997] pointer-events-none">
-        {floatingEmojis.map((emoji) => (
-          <div
-            key={emoji.id}
-            className={`absolute bottom-0 ${emoji.isBurst ? "animate-burst" : "animate-float-up"}`}
-            style={{
-              left: `${emoji.left}px`,
-              fontSize: emoji.isBurst ? "3rem" : "2rem",
-              animationDelay: emoji.isBurst ? "0s" : undefined,
-            }}
-          >
-            {emoji.emoji}
-          </div>
-        ))}
-      </div>
-
-      {/* Sliding Messages - Right Side */}
-      <div className="fixed right-4 bottom-24 w-72 max-h-[50vh] z-[9997] pointer-events-none flex flex-col gap-2 items-end">
-        {slidingMessages.map((msg, index) => (
-          <div
-            key={msg.id}
-            data-msg-id={msg.id}
-            className={`bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg animate-slide-in-right max-w-full transition-all duration-300 ${
-              index < 5 ? `stagger-${(index % 5) + 1}` : ''
-            }`}
-            style={{
-              animationFillMode: 'both',
-            }}
-          >
-            <div className="font-semibold text-xs text-blue-300 mb-1">
-              {msg.emoji && (
-                <span className="mr-1">{BOWLING_EMOJIS[msg.emoji as keyof typeof BOWLING_EMOJIS]?.code}</span>
-              )}
-              {msg.username}
+      {/* Auto-Scrolling Comments - Bottom Left */}
+      <div 
+        ref={scrollContainerRef}
+        className="fixed left-4 bottom-24 w-80 h-[50vh] z-[9997] overflow-hidden pointer-events-none"
+      >
+        <div className="space-y-2">
+          {/* Duplicate comments for infinite loop effect */}
+          {[...scrollingComments, ...scrollingComments].map((comment, index) => (
+            <div
+              key={`${comment.id}-${index}`}
+              className="bg-black/60 backdrop-blur-md text-white px-3 py-2 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300"
+            >
+              <div className="flex items-start gap-2">
+                {comment.emoji && (
+                  <span className="text-2xl flex-shrink-0">
+                    {BOWLING_EMOJIS[comment.emoji as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji}
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-xs text-blue-300 mb-0.5">
+                    {comment.username}
+                  </div>
+                  {comment.text && (
+                    <div className="text-sm break-words">{comment.text}</div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="text-sm break-words">{msg.text}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Input Button - Bottom Right (Floating) */}
@@ -472,10 +352,51 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
             <MessageCircle className="w-6 h-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[65vh] z-[9999]">
+        <SheetContent side="bottom" className="h-[75vh] z-[9999] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="text-center">Komen Live - {gameName}</SheetTitle>
           </SheetHeader>
+
+          {/* Recent Comments History */}
+          {recentComments.length > 0 && (
+            <div className="mt-4 mb-6">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-600 mb-3">
+                <Clock className="w-4 h-4" />
+                <span>Komen Terkini</span>
+              </div>
+              <div className="max-h-[30vh] overflow-y-auto space-y-2 bg-gray-50 rounded-lg p-3">
+                {recentComments.slice().reverse().map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="bg-white rounded-lg p-3 shadow-sm border border-gray-100"
+                  >
+                    <div className="flex items-start gap-2">
+                      {comment.emoji && (
+                        <span className="text-xl flex-shrink-0">
+                          {BOWLING_EMOJIS[comment.emoji as keyof typeof BOWLING_EMOJIS]?.code || comment.emoji}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-sm text-blue-600">
+                            {comment.username}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {formatTime(comment.timestamp)}
+                          </span>
+                        </div>
+                        {comment.text && (
+                          <div className="text-sm text-gray-700 break-words">
+                            {comment.text}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 space-y-6">
             {/* Emoji Picker */}
@@ -537,87 +458,6 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
 
       {/* Custom Animations */}
       <style>{`
-        @keyframes floatUp {
-          0% {
-            transform: translateY(0) translateX(0) scale(0.5) rotate(0deg);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-            transform: translateY(-5vh) translateX(2px) scale(1.1) rotate(15deg);
-          }
-          30% {
-            transform: translateY(-15vh) translateX(-3px) scale(1.15) rotate(90deg);
-          }
-          50% {
-            transform: translateY(-30vh) translateX(5px) scale(1.2) rotate(180deg);
-          }
-          70% {
-            transform: translateY(-45vh) translateX(-2px) scale(1.1) rotate(270deg);
-          }
-          100% {
-            transform: translateY(-65vh) translateX(0) scale(0.7) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        @keyframes burst {
-          0% {
-            transform: translateY(0) translateX(0) scale(0.3) rotate(0deg);
-            opacity: 0;
-          }
-          15% {
-            opacity: 1;
-            transform: translateY(-10vh) translateX(5px) scale(1.5) rotate(45deg);
-          }
-          30% {
-            transform: translateY(-25vh) translateX(-8px) scale(2.2) rotate(120deg);
-          }
-          50% {
-            transform: translateY(-35vh) translateX(10px) scale(2.5) rotate(200deg);
-          }
-          70% {
-            transform: translateY(-45vh) translateX(-5px) scale(2) rotate(280deg);
-          }
-          100% {
-            transform: translateY(-60vh) translateX(0) scale(1.2) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        @keyframes slideInRight {
-          0% {
-            transform: translateX(120%) scale(0.8);
-            opacity: 0;
-          }
-          60% {
-            transform: translateX(-5%) scale(1.05);
-            opacity: 1;
-          }
-          80% {
-            transform: translateX(2%) scale(0.98);
-          }
-          100% {
-            transform: translateX(0) scale(1);
-            opacity: 1;
-          }
-        }
-
-        @keyframes fadeOutScale {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(0.95);
-            opacity: 0.5;
-          }
-          100% {
-            transform: scale(0.9);
-            opacity: 0;
-          }
-        }
-
         @keyframes glow {
           0%, 100% {
             box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
@@ -636,25 +476,6 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
           }
         }
 
-        .animate-float-up {
-          animation: floatUp 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-          will-change: transform, opacity;
-        }
-
-        .animate-burst {
-          animation: burst 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-          will-change: transform, opacity;
-        }
-
-        .animate-slide-in-right {
-          animation: slideInRight 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-          will-change: transform, opacity;
-        }
-
-        .animate-fade-out-scale {
-          animation: fadeOutScale 0.5s ease-out forwards;
-        }
-
         .animate-glow {
           animation: glow 2s ease-in-out infinite;
         }
@@ -663,21 +484,15 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
           animation: pulse 2s ease-in-out infinite;
         }
 
-        /* Smooth hardware acceleration */
-        .animate-float-up,
-        .animate-burst,
-        .animate-slide-in-right {
-          transform: translateZ(0);
-          backface-visibility: hidden;
-          perspective: 1000px;
+        /* Smooth scrolling container */
+        .fixed.overflow-hidden::-webkit-scrollbar {
+          display: none;
         }
 
-        /* Stagger effect for multiple items */
-        .stagger-1 { animation-delay: 0.05s; }
-        .stagger-2 { animation-delay: 0.10s; }
-        .stagger-3 { animation-delay: 0.15s; }
-        .stagger-4 { animation-delay: 0.20s; }
-        .stagger-5 { animation-delay: 0.25s; }
+        .fixed.overflow-hidden {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
       `}</style>
     </>
   );
