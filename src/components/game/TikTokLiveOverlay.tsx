@@ -183,17 +183,24 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         // Add sliding message
         if (commentText) {
           const msgId = `msg-${Date.now()}-${Math.random()}`;
-          setSlidingMessages((prev) => [
-            ...prev,
-            {
-              id: msgId,
-              username: username,
-              text: commentText,
-              emoji: emojiCode,
-            },
-          ]);
+          const newMsg = {
+            id: msgId,
+            username: username,
+            text: commentText,
+            emoji: emojiCode,
+          };
+          
+          setSlidingMessages((prev) => [...prev, newMsg]);
 
-          // Remove after 5 seconds
+          // Add fade-out class before removal
+          setTimeout(() => {
+            const element = document.querySelector(`[data-msg-id="${msgId}"]`);
+            if (element) {
+              element.classList.add('animate-fade-out-scale');
+            }
+          }, 4500);
+
+          // Remove after fade animation
           setTimeout(() => {
             setSlidingMessages((prev) => prev.filter((msg) => msg.id !== msgId));
           }, 5000);
@@ -218,31 +225,37 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       },
     ]);
 
+    // Smooth removal after animation
     setTimeout(() => {
       setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
-    }, 3000);
+    }, 3100); // Slightly longer than animation duration
   };
 
   const addEmojiBurst = (emoji: string) => {
-    // Create multiple burst particles
+    // Create multiple burst particles with varied timing
     const burstCount = 8;
+    const delays = [0, 80, 120, 180, 220, 280, 320, 380]; // Staggered delays
+    
     for (let i = 0; i < burstCount; i++) {
       setTimeout(() => {
         const id = `burst-${Date.now()}-${Math.random()}-${i}`;
+        const spreadAngle = (i / burstCount) * 360; // Circular spread
+        const spreadRadius = 15 + Math.random() * 30; // Varied distance
+        
         setFloatingEmojis((prev) => [
           ...prev,
           {
             id,
             emoji,
-            left: 15 + Math.random() * 40, // Spread wider
+            left: Math.cos(spreadAngle * Math.PI / 180) * spreadRadius + 25, // Centered spread
             isBurst: true,
           },
         ]);
 
         setTimeout(() => {
           setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
-        }, 2500);
-      }, i * 100); // Stagger the burst
+        }, 2600);
+      }, delays[i] || i * 100);
     }
   };
 
@@ -316,7 +329,7 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       <CommentDebugPanel />
 
       {/* Viewer Count Badge - Top Left */}
-      <div className="fixed top-4 left-4 z-[9998] bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="fixed top-4 left-4 z-[9998] bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300 animate-pulse-soft">
         <Users className="w-4 h-4 text-green-400" />
         <span className="font-semibold text-sm">{viewerCount}</span>
         <span className="text-xs text-gray-300">menonton</span>
@@ -353,10 +366,16 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
 
       {/* Sliding Messages - Right Side */}
       <div className="fixed right-4 bottom-24 w-72 max-h-[50vh] z-[9997] pointer-events-none flex flex-col gap-2 items-end">
-        {slidingMessages.map((msg) => (
+        {slidingMessages.map((msg, index) => (
           <div
             key={msg.id}
-            className="bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg animate-slide-in-right max-w-full"
+            data-msg-id={msg.id}
+            className={`bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg shadow-lg animate-slide-in-right max-w-full transition-all duration-300 ${
+              index < 5 ? `stagger-${(index % 5) + 1}` : ''
+            }`}
+            style={{
+              animationFillMode: 'both',
+            }}
           >
             <div className="font-semibold text-xs text-blue-300 mb-1">
               {msg.emoji && (
@@ -374,7 +393,7 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         <SheetTrigger asChild>
           <Button
             size="lg"
-            className="fixed bottom-6 right-6 z-[9998] rounded-full w-14 h-14 shadow-2xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            className="fixed bottom-6 right-6 z-[9998] rounded-full w-14 h-14 shadow-2xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 animate-glow transition-all duration-300 hover:scale-110"
           >
             <MessageCircle className="w-6 h-6" />
           </Button>
@@ -446,65 +465,145 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
       <style>{`
         @keyframes floatUp {
           0% {
-            transform: translateY(0) scale(1) rotate(0deg);
+            transform: translateY(0) translateX(0) scale(0.5) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
             opacity: 1;
+            transform: translateY(-5vh) translateX(2px) scale(1.1) rotate(15deg);
+          }
+          30% {
+            transform: translateY(-15vh) translateX(-3px) scale(1.15) rotate(90deg);
           }
           50% {
-            transform: translateY(-30vh) scale(1.2) rotate(180deg);
-            opacity: 0.8;
+            transform: translateY(-30vh) translateX(5px) scale(1.2) rotate(180deg);
+          }
+          70% {
+            transform: translateY(-45vh) translateX(-2px) scale(1.1) rotate(270deg);
           }
           100% {
-            transform: translateY(-60vh) scale(0.8) rotate(360deg);
+            transform: translateY(-65vh) translateX(0) scale(0.7) rotate(360deg);
             opacity: 0;
           }
         }
 
         @keyframes burst {
           0% {
-            transform: translateY(0) scale(0.5) rotate(0deg);
+            transform: translateY(0) translateX(0) scale(0.3) rotate(0deg);
+            opacity: 0;
+          }
+          15% {
             opacity: 1;
+            transform: translateY(-10vh) translateX(5px) scale(1.5) rotate(45deg);
           }
           30% {
-            transform: translateY(-20vh) scale(2) rotate(90deg);
-            opacity: 1;
+            transform: translateY(-25vh) translateX(-8px) scale(2.2) rotate(120deg);
+          }
+          50% {
+            transform: translateY(-35vh) translateX(10px) scale(2.5) rotate(200deg);
+          }
+          70% {
+            transform: translateY(-45vh) translateX(-5px) scale(2) rotate(280deg);
           }
           100% {
-            transform: translateY(-50vh) scale(1.5) rotate(180deg);
+            transform: translateY(-60vh) translateX(0) scale(1.2) rotate(360deg);
             opacity: 0;
           }
         }
 
         @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
+          0% {
+            transform: translateX(120%) scale(0.8);
             opacity: 0;
           }
-          to {
-            transform: translateX(0);
+          60% {
+            transform: translateX(-5%) scale(1.05);
             opacity: 1;
+          }
+          80% {
+            transform: translateX(2%) scale(0.98);
+          }
+          100% {
+            transform: translateX(0) scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeOutScale {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(0.95);
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(0.9);
+            opacity: 0;
+          }
+        }
+
+        @keyframes glow {
+          0%, 100% {
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(147, 51, 234, 0.5);
+          }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
           }
         }
 
         .animate-float-up {
-          animation: floatUp 3s ease-out forwards;
+          animation: floatUp 3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          will-change: transform, opacity;
         }
 
         .animate-burst {
-          animation: burst 2.5s ease-out forwards;
+          animation: burst 2.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          will-change: transform, opacity;
         }
 
         .animate-slide-in-right {
-          animation: slideInRight 0.5s ease-out;
+          animation: slideInRight 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+          will-change: transform, opacity;
         }
 
-        @keyframes fadeOut {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
+        .animate-fade-out-scale {
+          animation: fadeOutScale 0.5s ease-out forwards;
         }
+
+        .animate-glow {
+          animation: glow 2s ease-in-out infinite;
+        }
+
+        .animate-pulse-soft {
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Smooth hardware acceleration */
+        .animate-float-up,
+        .animate-burst,
+        .animate-slide-in-right {
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          perspective: 1000px;
+        }
+
+        /* Stagger effect for multiple items */
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.10s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.20s; }
+        .stagger-5 { animation-delay: 0.25s; }
       `}</style>
     </>
   );
