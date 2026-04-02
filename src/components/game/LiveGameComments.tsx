@@ -285,43 +285,37 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
   const handleDeleteComment = async (commentId: string) => {
     try {
-      // Log current user for debugging
-      console.log("Delete attempt by user:", { 
-        userId: currentUser?.id, 
+      console.log("Delete attempt by user:", {
+        userId: currentUser?.id,
         isAdmin: isAdmin,
-        commentId 
+        commentId,
       });
 
-      // Soft delete by updating deleted_at and deleted_by
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("game_comments")
-        .update({ 
+        .update({
           deleted_at: new Date().toISOString(),
-          deleted_by: currentUser?.id 
+          deleted_by: currentUser?.id ?? null,
         })
-        .eq("id", commentId)
-        .select();
-
-      console.log("Delete result:", { data, error });
+        .eq("id", commentId);
 
       if (error) {
         console.error("Delete error details:", error);
         throw error;
       }
 
-      // Remove from UI immediately
-      setComments(prev => prev.filter(c => c.id !== commentId));
-      
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+
       toast({
         title: "Komen Dipadam",
-        description: "Komen telah berjaya dipadam."
+        description: "Komen telah berjaya dipadam.",
       });
     } catch (error: any) {
       console.error("Error deleting comment:", error);
       toast({
         title: "Ralat",
-        description: error.message || "Gagal memadam komen.",
-        variant: "destructive"
+        description: error?.message || "Gagal memadam komen.",
+        variant: "destructive",
       });
     }
   };
@@ -561,14 +555,14 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
             <div className="mt-6 flex h-[calc(72vh-4.5rem)] flex-col gap-4 pb-2">
               {/* Emoji Picker - Display ICONS only */}
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-8 gap-1 sm:grid-cols-5">
                 {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
                   <Button
                     key={key}
                     size="sm"
                     variant={selectedEmoji === key ? "default" : "outline"}
                     onClick={() => setSelectedEmoji(selectedEmoji === key ? null : key)}
-                    className={`text-xl h-12 ${emoji.animated ? "hover:animate-bounce" : ""} ${
+                    className={`text-lg h-10 px-0 ${emoji.animated ? "hover:animate-bounce" : ""} ${
                       selectedEmoji === key ? "ring-2 ring-sky-500 ring-offset-2" : ""
                     }`}
                     title={key}
@@ -618,14 +612,14 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                       {editingCommentId === comment.id ? (
                         // Edit Mode
                         <div className="flex-1 space-y-3">
-                          <div className="grid grid-cols-5 gap-1.5">
+                          <div className="grid grid-cols-8 gap-1 sm:grid-cols-5">
                             {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
                               <Button
                                 key={key}
                                 size="sm"
                                 variant={editEmoji === key ? "default" : "outline"}
                                 onClick={() => setEditEmoji(editEmoji === key ? null : key)}
-                                className={`text-lg h-9 ${emoji.animated ? "hover:animate-bounce" : ""}`}
+                                className={`text-base h-9 px-0 ${emoji.animated ? "hover:animate-bounce" : ""}`}
                               >
                                 {emoji.code}
                               </Button>
