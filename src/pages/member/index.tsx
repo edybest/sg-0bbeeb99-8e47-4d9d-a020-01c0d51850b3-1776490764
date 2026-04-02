@@ -247,35 +247,35 @@ export default function MemberDashboard() {
         <div className="relative overflow-hidden bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-500 text-white">
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           
-          <div className="relative container max-w-6xl mx-auto px-4 py-12">
+          <div className="relative container max-w-6xl mx-auto px-4 py-8 md:py-12">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="text-center">
               
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4">
-                <Sparkles className="h-4 w-4" />
-                <span className="text-sm font-medium">Selamat Datang</span>
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 md:px-4 md:py-2 mb-3 md:mb-4">
+                <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="text-xs md:text-sm font-medium">Selamat Datang</span>
               </div>
               
-              <h1 className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-lg">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 drop-shadow-lg">
                 {member?.full_name || "Tetamu"}
               </h1>
-              <p className="text-lg text-white/90 max-w-2xl mx-auto">
+              <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto px-4">
                 Dashboard anda untuk semua aktiviti bowling di AMBC Club 🎳
               </p>
             </motion.div>
           </div>
         </div>
 
-        <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
+        <div className="container max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
           {/* Quick Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             
             {quickStats.map((stat, index) =>
             <motion.div
@@ -286,16 +286,16 @@ export default function MemberDashboard() {
               
                 <Card className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden">
                   <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
-                  <CardContent className="pt-6 pb-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.gradient} bg-opacity-10`}>
-                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <CardContent className="pt-4 md:pt-6 pb-3 md:pb-4 px-3 md:px-4">
+                    <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-2">
+                      <div className={`p-1.5 md:p-2 rounded-lg bg-gradient-to-br ${stat.gradient} bg-opacity-10`}>
+                        <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color}`} />
                       </div>
                     </div>
-                    <p className="text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
+                    <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
                       {stat.value}
                     </p>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -308,15 +308,15 @@ export default function MemberDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mb-6">
+              className="mb-4 md:mb-6 px-1">
               
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent mb-2">
+              <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent mb-1.5 md:mb-2">
                 Menu Utama
               </h2>
-              <p className="text-muted-foreground">Pilih aktiviti yang anda ingin akses</p>
+              <p className="text-sm md:text-base text-muted-foreground">Pilih aktiviti yang anda ingin akses</p>
             </motion.div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {navigationCards.map((card, index) =>
               <motion.div
                 key={card.href}
@@ -328,30 +328,30 @@ export default function MemberDashboard() {
                     <Card className="group h-full border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden cursor-pointer">
                       <div className={`absolute top-0 left-0 right-0 h-2 bg-gradient-to-r ${card.gradient} transition-all duration-300 group-hover:h-full group-hover:opacity-10`} />
                       
-                      <CardHeader className="relative">
+                      <CardHeader className="relative pb-3 md:pb-4">
                         <div className="flex items-start justify-between mb-2">
-                          <div className={`p-3 rounded-xl bg-gradient-to-br ${card.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                            <card.icon className={`h-6 w-6 ${card.iconColor}`} />
+                          <div className={`p-2.5 md:p-3 rounded-xl bg-gradient-to-br ${card.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                            <card.icon className={`h-5 w-5 md:h-6 md:w-6 ${card.iconColor}`} />
                           </div>
-                          {card.badgeText
-
-
-
-                        }
+                          {card.badgeText && (
+                            <Badge className={`${card.badgeColor} text-xs`}>
+                              {card.badgeText}
+                            </Badge>
+                          )}
                         </div>
-                        <CardTitle className="text-xl group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                        <CardTitle className="text-lg md:text-xl group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                           {card.title}
                         </CardTitle>
                       </CardHeader>
                       
-                      <CardContent className="relative">
-                        <p className="text-sm text-muted-foreground mb-4">
+                      <CardContent className="relative pt-0">
+                        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">
                           {card.description}
                         </p>
                         <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:text-white transition-all duration-300">
+                        className="w-full text-xs md:text-sm group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:text-white transition-all duration-300">
                         
                           Buka
                         </Button>
@@ -371,19 +371,20 @@ export default function MemberDashboard() {
             
             <Link href="/member/profile">
               <Card className="border-2 border-sky-200 bg-gradient-to-br from-sky-50/50 to-blue-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
-                <CardContent className="py-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                <CardContent className="py-4 md:py-6 px-4 md:px-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                      <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-base md:text-lg shadow-md flex-shrink-0">
                         {member?.full_name?.charAt(0) || "?"}
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Profil Anda</p>
-                        <p className="text-lg font-bold text-sky-600">{member?.full_name}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs md:text-sm text-muted-foreground">Profil Anda</p>
+                        <p className="text-base md:text-lg font-bold text-sky-600 truncate">{member?.full_name}</p>
                       </div>
                     </div>
-                    <Button variant="outline" className="border-sky-200 text-sky-600 hover:bg-sky-50">
-                      Lihat Profil
+                    <Button variant="outline" className="border-sky-200 text-sky-600 hover:bg-sky-50 text-xs md:text-sm px-3 md:px-4 flex-shrink-0">
+                      <span className="hidden sm:inline">Lihat Profil</span>
+                      <span className="sm:hidden">Profil</span>
                     </Button>
                   </div>
                 </CardContent>

@@ -786,36 +786,36 @@ export default function BlokPage() {
 
         <div className="min-h-screen bg-white">
           <header className="sticky top-0 z-40 bg-white border-b border-sky-200 shadow-sm">
-            <div className="container mx-auto px-4 py-4">
+            <div className="container mx-auto px-3 md:px-4 py-3 md:py-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-sky-700 hover:text-blue-600"
+                    className="text-sky-700 hover:text-blue-600 flex-shrink-0"
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
                   </Button>
 
-                  <div>
-                    <h1 className="text-xl font-bold text-sky-900">Blok Leaderboard</h1>
-                    <p className="text-sm text-sky-600">Kedudukan Semasa</p>
+                  <div className="min-w-0">
+                    <h1 className="text-lg md:text-xl font-bold text-sky-900 truncate">Blok Leaderboard</h1>
+                    <p className="text-xs md:text-sm text-sky-600">Kedudukan Semasa</p>
                   </div>
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="container mx-auto px-4 py-6 space-y-6">
+          <main className="container mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-6 pb-32 md:pb-8">
             <Card className="bg-white border-sky-200 shadow-md">
-              <CardHeader className="border-b border-sky-200">
-                <CardTitle className="text-sky-900">Pilih Game</CardTitle>
-                <CardDescription className="text-sky-600">
+              <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
+                <CardTitle className="text-base md:text-lg text-sky-900">Pilih Game</CardTitle>
+                <CardDescription className="text-xs md:text-sm text-sky-600">
                   Pilih tarikh untuk melihat kedudukan
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 {loadingGames ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
@@ -991,8 +991,8 @@ export default function BlokPage() {
                               setExpandedRow((current) => (current === entry.id ? null : entry.id))
                             }
                           >
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3">
+                            <CardContent className="p-3 md:p-4">
+                              <div className="flex items-center gap-2 md:gap-3">
                                 <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
 
                                 <div className="flex-shrink-0">
@@ -1000,22 +1000,22 @@ export default function BlokPage() {
                                     <Image
                                       src={entry.member.avatar_url}
                                       alt={entry.member.username}
-                                      width={60}
-                                      height={60}
-                                      className="w-[60px] h-[60px] rounded-full object-cover border-2 border-sky-200"
+                                      width={50}
+                                      height={50}
+                                      className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200"
                                     />
                                   ) : (
-                                    <div className="w-[60px] h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-2xl">
+                                    <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
                                       {entry.member.username[0].toUpperCase()}
                                     </div>
                                   )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1 flex-wrap">
                                     <Link
                                       href={`/member/profile?id=${entry.member.id}`}
-                                      className={`font-semibold text-sm truncate hover:text-sky-600 transition-colors block ${
+                                      className={`font-semibold text-xs md:text-sm truncate hover:text-sky-600 transition-colors block ${
                                         currentUser?.id === entry.member.id
                                           ? "font-bold text-sky-600"
                                           : ""
@@ -1024,21 +1024,21 @@ export default function BlokPage() {
                                       {entry.member.username}
                                     </Link>
                                     {entry.clean_game && (
-                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                      <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500 flex-shrink-0" />
                                     )}
                                     <button
                                       onClick={(e) => handleReaction(entry, e)}
-                                      className="flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100"
+                                      className="flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 md:px-2 rounded-full ml-1 md:ml-2 opacity-90 hover:opacity-100"
                                       title="Tahniah!"
                                     >
-                                      <ThumbsUp className="w-4 h-4 fill-blue-100" />
-                                      {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
+                                      <ThumbsUp className="w-3 h-3 md:w-4 md:h-4 fill-blue-100" />
+                                      {entry.likes_count > 0 && <span className="text-[10px] md:text-xs font-bold">{entry.likes_count}</span>}
                                     </button>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-sky-600">
+                                  <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                     <span
-                                      className="font-bold text-emerald-600"
-                                      style={{ fontSize: "18px", color: "#16a34a" }}
+                                      className="font-bold text-emerald-600 text-base md:text-lg"
+                                      style={{ color: "#16a34a" }}
                                     >
                                       {entry.overall_score || "-"}
                                     </span>
@@ -1050,59 +1050,59 @@ export default function BlokPage() {
                                 </div>
 
                                 <ChevronRight
-                                  className={`w-5 h-5 text-gray-400 transition-transform ${
+                                  className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform flex-shrink-0 ${
                                     expandedRow === entry.id ? "rotate-90" : ""
                                   }`}
                                 />
                               </div>
 
                               {expandedRow === entry.id && (
-                                <div className="mt-4 pt-4 border-t border-sky-200 space-y-3">
-                                  <div className="grid grid-cols-5 gap-2">
+                                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-sky-200 space-y-2 md:space-y-3">
+                                  <div className="grid grid-cols-5 gap-1.5 md:gap-2">
                                     <div className="text-center">
-                                      <div className="text-xs text-sky-500 mb-1">G1</div>
-                                      <div className="text-sm font-semibold">
+                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G1</div>
+                                      <div className="text-xs md:text-sm font-semibold">
                                         {formatScore(entry.game1_score, entry.id)}
                                       </div>
                                     </div>
                                     <div className="text-center">
-                                      <div className="text-xs text-sky-500 mb-1">G2</div>
-                                      <div className="text-sm font-semibold">
+                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G2</div>
+                                      <div className="text-xs md:text-sm font-semibold">
                                         {formatScore(entry.game2_score, entry.id)}
                                       </div>
                                     </div>
                                     <div className="text-center">
-                                      <div className="text-xs text-sky-500 mb-1">G3</div>
-                                      <div className="text-sm font-semibold">
+                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G3</div>
+                                      <div className="text-xs md:text-sm font-semibold">
                                         {formatScore(entry.game3_score, entry.id)}
                                       </div>
                                     </div>
                                     <div className="text-center">
-                                      <div className="text-xs text-sky-500 mb-1">G4</div>
-                                      <div className="text-sm font-semibold">
+                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G4</div>
+                                      <div className="text-xs md:text-sm font-semibold">
                                         {formatScore(entry.game4_score, entry.id)}
                                       </div>
                                     </div>
                                     <div className="text-center">
-                                      <div className="text-xs text-sky-500 mb-1">G5</div>
-                                      <div className="text-sm font-semibold">
+                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G5</div>
+                                      <div className="text-xs md:text-sm font-semibold">
                                         {formatScore(entry.game5_score, entry.id)}
                                       </div>
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-3 gap-3 text-sm">
-                                    <div className="bg-sky-50 p-2 rounded">
-                                      <div className="text-xs text-sky-500">Handicap</div>
-                                      <div className="font-semibold">{entry.handicap || "-"}</div>
+                                  <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
+                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
+                                      <div className="text-[10px] md:text-xs text-sky-500">Handicap</div>
+                                      <div className="font-semibold text-xs md:text-sm">{entry.handicap || "-"}</div>
                                     </div>
-                                    <div className="bg-sky-50 p-2 rounded">
-                                      <div className="text-xs text-sky-500">Total</div>
-                                      <div className="font-semibold">{entry.total_score || "-"}</div>
+                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
+                                      <div className="text-[10px] md:text-xs text-sky-500">Total</div>
+                                      <div className="font-semibold text-xs md:text-sm">{entry.total_score || "-"}</div>
                                     </div>
-                                    <div className="bg-sky-50 p-2 rounded">
-                                      <div className="text-xs text-sky-500">Average</div>
-                                      <div className="font-semibold">{entry.average_score || "-"}</div>
+                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
+                                      <div className="text-[10px] md:text-xs text-sky-500">Average</div>
+                                      <div className="font-semibold text-xs md:text-sm">{entry.average_score || "-"}</div>
                                     </div>
                                   </div>
                                 </div>

@@ -300,43 +300,43 @@ export default function ProfilePage() {
         <SEO title="Profile - AMBC Club" description="Profil ahli AMBC Club" />
         <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
           <MemberLayout>
-            <div className="container mx-auto px-4 py-6 pb-24 md:pb-6 max-w-4xl">
+            <div className="container mx-auto px-3 md:px-4 py-4 md:py-6 pb-24 md:pb-6 max-w-4xl">
               
               {/* Hero Header */}
-              <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-3xl shadow-2xl p-8 sm:p-12 mb-8">
+              <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 lg:p-12 mb-6 md:mb-8">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
                 <div className="relative z-10">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-sm font-medium mb-4">
-                    <User className="w-4 h-4" />
+                  <div className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium mb-3 md:mb-4">
+                    <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     <span>Maklumat Ahli</span>
                   </div>
-                  <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-lg">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-2 md:mb-3 tracking-tight drop-shadow-lg">
                     My Profile 👤
                   </h1>
-                  <p className="text-pink-50 text-lg max-w-2xl">
+                  <p className="text-pink-50 text-sm md:text-base lg:text-lg max-w-2xl">
                     Kemaskini maklumat peribadi anda
                   </p>
                 </div>
               </div>
 
               <Tabs defaultValue="details" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="details">Butiran Diri</TabsTrigger>
-                  <TabsTrigger value="history">Sejarah Game</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-4 md:mb-6 h-auto">
+                  <TabsTrigger value="details" className="text-xs md:text-sm py-2 md:py-2.5">Butiran Diri</TabsTrigger>
+                  <TabsTrigger value="history" className="text-xs md:text-sm py-2 md:py-2.5">Sejarah Game</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details">
-                  <div className="grid md:grid-cols-3 gap-6">
+                  <div className="grid md:grid-cols-3 gap-4 md:gap-6">
                     {/* Avatar Section */}
                     <Card className="md:col-span-1">
-                      <CardContent className="pt-6 flex flex-col items-center">
-                        <div className="relative mb-4">
+                      <CardContent className="pt-4 md:pt-6 flex flex-col items-center">
+                        <div className="relative mb-3 md:mb-4">
                           {member.avatar_url ? (
                             isBase64Image(member.avatar_url) ? (
                               <img
                                 src={member.avatar_url}
                                 alt={member.username}
-                                className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
+                                className="rounded-full border-4 border-primary/20 object-cover w-[120px] h-[120px] md:w-[150px] md:h-[150px]"
                               />
                             ) : (
                               <Image
@@ -344,12 +344,12 @@ export default function ProfilePage() {
                                 alt={member.username}
                                 width={150}
                                 height={150}
-                                className="rounded-full border-4 border-primary/20 object-cover w-[150px] h-[150px]"
+                                className="rounded-full border-4 border-primary/20 object-cover w-[120px] h-[120px] md:w-[150px] md:h-[150px]"
                                 unoptimized
                               />
                             )
                           ) : (
-                            <div className="w-[150px] h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-4xl font-bold border-4 border-primary/20 shadow">
+                            <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-3xl md:text-4xl font-bold border-4 border-primary/20 shadow">
                               {member.username[0].toUpperCase()}
                             </div>
                           )}
@@ -357,14 +357,14 @@ export default function ProfilePage() {
                           {isOwnProfile && (
                             <Button
                               size="icon"
-                              className="absolute bottom-0 right-0 rounded-full shadow-lg"
+                              className="absolute bottom-0 right-0 rounded-full shadow-lg h-9 w-9 md:h-10 md:w-10"
                               onClick={() => fileInputRef.current?.click()}
                               disabled={uploading}
                             >
                               {uploading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
                               ) : (
-                                <Camera className="h-4 w-4" />
+                                <Camera className="h-3.5 w-3.5 md:h-4 md:w-4" />
                               )}
                             </Button>
                           )}
@@ -377,9 +377,9 @@ export default function ProfilePage() {
                           />
                         </div>
                         
-                        <h2 className="text-2xl font-bold text-center">{member.full_name}</h2>
-                        <p className="text-rose-500 text-center mb-2">@{member.username}</p>
-                        <Badge variant="outline" className="mb-4">
+                        <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-center">{member.full_name}</h2>
+                        <p className="text-rose-500 text-center mb-1.5 md:mb-2 text-sm md:text-base">@{member.username}</p>
+                        <Badge variant="outline" className="mb-3 md:mb-4 text-xs md:text-sm">
                           Handicap: {member.handicap}
                         </Badge>
                       </CardContent>
@@ -387,58 +387,61 @@ export default function ProfilePage() {
 
                     {/* Edit Form */}
                     <Card className="md:col-span-2">
-                      <CardHeader>
-                        <CardTitle>Maklumat Peribadi</CardTitle>
-                        <CardDescription>
+                      <CardHeader className="pb-3 md:pb-4">
+                        <CardTitle className="text-base md:text-lg">Maklumat Peribadi</CardTitle>
+                        <CardDescription className="text-xs md:text-sm">
                           {isOwnProfile ? "Kemaskini maklumat anda di sini." : "Maklumat lengkap ahli."}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <form onSubmit={handleUpdateProfile} className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="username">Username</Label>
-                              <Input id="username" value={member.username} disabled />
+                        <form onSubmit={handleUpdateProfile} className="space-y-3 md:space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="username" className="text-xs md:text-sm">Username</Label>
+                              <Input id="username" value={member.username} disabled className="text-sm" />
                             </div>
                             
-                            <div className="space-y-2">
-                              <Label htmlFor="email">Email</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="email" className="text-xs md:text-sm">Email</Label>
                               <Input 
                                 id="email" 
                                 value={maskEmail(member.email)} 
                                 disabled={!isOwnProfile}
+                                className="text-sm"
                               />
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="full_name">Nama Penuh</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="full_name" className="text-xs md:text-sm">Nama Penuh</Label>
                               <Input 
                                 id="full_name" 
                                 value={member.full_name} 
                                 onChange={(e) => setMember({...member, full_name: e.target.value})}
                                 disabled={!isOwnProfile}
+                                className="text-sm"
                               />
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="phone">No. Telefon</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="phone" className="text-xs md:text-sm">No. Telefon</Label>
                               <Input 
                                 id="phone" 
                                 value={isOwnProfile ? (member.phone || "") : maskPhone(member.phone)} 
                                 onChange={(e) => setMember({...member, phone: e.target.value})}
                                 placeholder="+60123456789"
                                 disabled={!isOwnProfile}
+                                className="text-sm"
                               />
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="sex">Jantina</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="sex" className="text-xs md:text-sm">Jantina</Label>
                               <Select 
                                 value={member.sex || "men"} 
                                 onValueChange={(val) => setMember({...member, sex: val})}
                                 disabled={!isOwnProfile}
                               >
-                                <SelectTrigger>
+                                <SelectTrigger className="text-sm">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -448,25 +451,26 @@ export default function ProfilePage() {
                               </Select>
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="birthday">Tarikh Lahir</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="birthday" className="text-xs md:text-sm">Tarikh Lahir</Label>
                               <Input 
                                 id="birthday" 
                                 type={isOwnProfile ? "date" : "text"}
                                 value={isOwnProfile ? (member.birthday || "") : formatBirthday(member.birthday, false)} 
                                 onChange={(e) => setMember({...member, birthday: e.target.value})}
                                 disabled={!isOwnProfile}
+                                className="text-sm"
                               />
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="technique">Teknik Balingan</Label>
+                            <div className="space-y-1.5 md:space-y-2">
+                              <Label htmlFor="technique" className="text-xs md:text-sm">Teknik Balingan</Label>
                               <Select 
                                 value={member.technique || "Straight"} 
                                 onValueChange={(val) => setMember({...member, technique: val})}
                                 disabled={!isOwnProfile}
                               >
-                                <SelectTrigger>
+                                <SelectTrigger className="text-sm">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -481,16 +485,16 @@ export default function ProfilePage() {
                           </div>
 
                           {isOwnProfile && (
-                            <div className="pt-4 flex justify-end">
-                              <Button type="submit" disabled={saving} className="bg-pink-600 hover:bg-pink-600">
+                            <div className="pt-3 md:pt-4 flex justify-end">
+                              <Button type="submit" disabled={saving} className="bg-pink-600 hover:bg-pink-600 text-sm md:text-base px-4 md:px-6 h-9 md:h-10">
                                 {saving ? (
                                   <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4 animate-spin" />
                                     Saving...
                                   </>
                                 ) : (
                                   <>
-                                    <Save className="mr-2 h-4 w-4" />
+                                    <Save className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                                     Simpan Perubahan
                                   </>
                                 )}
@@ -505,60 +509,60 @@ export default function ProfilePage() {
 
                 <TabsContent value="history">
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <History className="h-5 w-5" />
+                    <CardHeader className="pb-3 md:pb-4">
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <History className="h-4 w-4 md:h-5 md:w-5" />
                         Sejarah Permainan
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-xs md:text-sm">
                         10 game terkini yang disertai
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {history.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
+                        <div className="text-center py-6 md:py-8 text-muted-foreground text-sm md:text-base">
                           Belum ada rekod permainan.
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3 md:space-y-4">
                           {history.map((game) => (
                             <div 
                               key={game.id} 
-                              className="border rounded-lg p-4 hover:bg-rose-50 transition-colors"
+                              className="border rounded-lg p-3 md:p-4 hover:bg-rose-50 transition-colors"
                             >
-                              <div className="flex justify-between items-start mb-3">
-                                <div>
-                                  <h3 className="font-bold">{game.games.game_name}</h3>
-                                  <p className="text-sm text-muted-foreground">
+                              <div className="flex justify-between items-start mb-2 md:mb-3 gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <h3 className="font-bold text-sm md:text-base truncate">{game.games.game_name}</h3>
+                                  <p className="text-xs md:text-sm text-muted-foreground">
                                     {new Date(game.games.game_date).toLocaleDateString("ms-MY")} • {game.games.game_type}
                                   </p>
                                 </div>
-                                <div className="text-right">
-                                  <span className="text-xs text-muted-foreground">Overall</span>
-                                  <p className="text-xl font-bold text-pink-600">{game.overall_score}</p>
+                                <div className="text-right flex-shrink-0">
+                                  <span className="text-[10px] md:text-xs text-muted-foreground">Overall</span>
+                                  <p className="text-lg md:text-xl font-bold text-pink-600">{game.overall_score}</p>
                                 </div>
                               </div>
                               
-                              <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                              <div className="grid grid-cols-5 gap-1.5 md:gap-2 text-center text-xs md:text-sm">
                                 <div className="bg-rose-100 rounded p-1">
-                                  <span className="text-xs text-rose-500 block">G1</span>
-                                  <span className="font-medium">{game.game1_score}</span>
+                                  <span className="text-[10px] md:text-xs text-rose-500 block">G1</span>
+                                  <span className="font-medium text-xs md:text-sm">{game.game1_score}</span>
                                 </div>
                                 <div className="bg-rose-100 rounded p-1">
-                                  <span className="text-xs text-rose-500 block">G2</span>
-                                  <span className="font-medium">{game.game2_score}</span>
+                                  <span className="text-[10px] md:text-xs text-rose-500 block">G2</span>
+                                  <span className="font-medium text-xs md:text-sm">{game.game2_score}</span>
                                 </div>
                                 <div className="bg-rose-100 rounded p-1">
-                                  <span className="text-xs text-rose-500 block">G3</span>
-                                  <span className="font-medium">{game.game3_score}</span>
+                                  <span className="text-[10px] md:text-xs text-rose-500 block">G3</span>
+                                  <span className="font-medium text-xs md:text-sm">{game.game3_score}</span>
                                 </div>
                                 <div className="bg-rose-100 rounded p-1">
-                                  <span className="text-xs text-rose-500 block">G4</span>
-                                  <span className="font-medium">{game.game4_score}</span>
+                                  <span className="text-[10px] md:text-xs text-rose-500 block">G4</span>
+                                  <span className="font-medium text-xs md:text-sm">{game.game4_score}</span>
                                 </div>
                                 <div className="bg-rose-100 rounded p-1">
-                                  <span className="text-xs text-rose-500 block">G5</span>
-                                  <span className="font-medium">{game.game5_score}</span>
+                                  <span className="text-[10px] md:text-xs text-rose-500 block">G5</span>
+                                  <span className="font-medium text-xs md:text-sm">{game.game5_score}</span>
                                 </div>
                               </div>
                             </div>
