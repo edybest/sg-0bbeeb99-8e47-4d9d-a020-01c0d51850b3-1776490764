@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Comment {
   id: string;
@@ -51,10 +52,26 @@ export function CommentManagementPanel() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
+  const [currentUser, setCurrentUser] = useState<{id: string} | null>(null);
 
   useEffect(() => {
     loadData();
+    fetchCurrentUser();
   }, []);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setCurrentUser(data);
+      }
+    }
+  };
 
   const loadData = async () => {
     try {
