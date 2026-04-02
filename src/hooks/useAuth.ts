@@ -28,6 +28,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   const checkingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
+  const emergencyTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -179,6 +180,15 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   useEffect(() => {
     mountedRef.current = true;
     
+    // EMERGENCY BAILOUT: Force release loading after 5 seconds
+    emergencyTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        console.error("🚨 EMERGENCY: Auth check exceeded 5s - forcing loading=false");
+        setLoading(false);
+        checkingRef.current = false;
+      }
+    }, 5000);
+    
     // Initial check
     checkAuth();
 
@@ -229,6 +239,10 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      
+      if (emergencyTimeoutRef.current) {
+        clearTimeout(emergencyTimeoutRef.current);
       }
       
       if (authSubscription) {

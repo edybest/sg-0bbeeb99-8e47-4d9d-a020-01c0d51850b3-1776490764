@@ -23,9 +23,20 @@ export function PageAccessGuard({
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
+  const emergencyTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     mountedRef.current = true;
+
+    // EMERGENCY BAILOUT: Force release loading after 3 seconds
+    emergencyTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current && loading) {
+        console.error("🚨 EMERGENCY: PageAccessGuard exceeded 3s - forcing access");
+        checkingRef.current = false;
+        setHasAccess(true);
+        setLoading(false);
+      }
+    }, 3000);
 
     // Wait for router to be ready
     if (!router.isReady) return;
@@ -38,9 +49,12 @@ export function PageAccessGuard({
     // Cleanup
     return () => {
       mountedRef.current = false;
-      checkingRef.current = false; // CRITICAL FIX: reset lock so remounts can execute
+      checkingRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (emergencyTimeoutRef.current) {
+        clearTimeout(emergencyTimeoutRef.current);
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();

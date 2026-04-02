@@ -12,7 +12,7 @@ interface GlobalLoadingContextValue {
 
 const GlobalLoadingContext = createContext<GlobalLoadingContextValue | null>(null);
 
-const MAX_LOADING_TIME = 8000; // Reduced to 8 seconds emergency timeout
+const MAX_LOADING_TIME = 5000; // Reduced to 5 seconds emergency timeout
 
 export function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<LoadingState>({});

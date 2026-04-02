@@ -14,6 +14,14 @@ export function MemberLayout({ children }: MemberLayoutProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // EMERGENCY BAILOUT: Force release loading after 2 seconds
+    const emergencyTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn("⚠️ MemberLayout loading timeout - forcing display");
+        setLoading(false);
+      }
+    }, 2000);
+
     loadNavigationSettings();
 
     // Listen for navigation settings updates from admin panel
@@ -26,6 +34,7 @@ export function MemberLayout({ children }: MemberLayoutProps) {
     window.addEventListener("nav-settings-updated", handleNavSettingsUpdate as EventListener);
 
     return () => {
+      clearTimeout(emergencyTimeout);
       window.removeEventListener("nav-settings-updated", handleNavSettingsUpdate as EventListener);
     };
   }, []);
