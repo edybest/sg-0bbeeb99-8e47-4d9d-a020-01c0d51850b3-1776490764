@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -21,13 +22,19 @@ import {
   ExternalLink,
   Share2,
   Copy,
-  Check
+  Check,
+  ArrowLeft,
+  X,
+  Lock,
+  Unlock,
+  UserPlus,
+  Edit2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -35,18 +42,41 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
+import { useMemberDebug } from "@/hooks/useMemberDebug";
 import { TournamentCard } from "@/components/mini-blok/TournamentCard";
 import { PublicSharedView } from "@/components/mini-blok/PublicSharedView";
 import { 
   MINI_BLOK_FORMATS,
   calculatePayouts,
+  GAME_COLORS,
+  INITIAL_PLAYER_FORM,
+  calculatePlayerStats,
+  generateShareUrl,
+  generateShareTokenUrl,
+  generateShareText,
   type MiniBlokTournament,
-  type MiniBlokPlayer
+  type MiniBlokPlayer,
+  type MiniBlokWithPlayers,
+  type MiniBlokPublicShared,
+  type PlayerForm
 } from "@/components/mini-blok/constants";
 import { 
-  miniBlokService
+  getMiniBlokEntries,
+  getMiniBlokById,
+  createMiniBlok,
+  updateMiniBlok,
+  deleteMiniBlok,
+  addPlayer,
+  updatePlayer,
+  deletePlayer,
+  shareAccess,
+  revokeAccess,
+  generateShareToken,
+  revokeShareToken,
+  getMiniBlokSharedByToken
 } from "@/services/miniBlokService";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { MemberDebugPanel } from "@/components/member/MemberDebugPanel";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 export default function MiniBlokPage() {
@@ -797,14 +827,23 @@ export default function MiniBlokPage() {
     return null;
   }
 
-  if (isPublicSharedMode) {
-    if (loading)
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-          <BowlingBallLoader />
-        </div>
-      );
+  // Show public shared view if token is present
+  if (shareToken && sharedTournament) {
+    return <PublicSharedView tournament={sharedTournament} />;
+  }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
+          <p className="text-sky-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPublicSharedMode) {
     return (
       <>
         <SEO title="Shared Mini Blok - AMBC CLUB" description="View-only mini blok tournament shared with public" />
@@ -857,7 +896,7 @@ export default function MiniBlokPage() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-        <BowlingBallLoader />
+        <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
       </div>
     );
   }
@@ -1779,6 +1818,14 @@ export default function MiniBlokPage() {
             </div>
           </DialogContent>
         </Dialog>
+        {loadingPlayers && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                  <p className="text-sm text-sky-600 font-medium">Updating players...</p>
+                </div>
+              </div>
+            )}
       </div>
       </MemberLayout>
     </PageAccessGuard>
