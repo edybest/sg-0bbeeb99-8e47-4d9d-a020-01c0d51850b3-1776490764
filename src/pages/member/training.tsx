@@ -23,7 +23,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SEO } from "@/components/SEO";
-import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import {
   Trophy,
@@ -67,7 +66,6 @@ export default function TrainingPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { member, isAuthenticated, loading: authLoading } = useAuth(false);
-    const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<TrainingScoreWithDate[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingScore, setEditingScore] = useState<TrainingScoreWithDate | null>(null);
@@ -106,9 +104,7 @@ export default function TrainingPage() {
   }, [authLoading, isAuthenticated, member, router]);
 
   async function fetchScores() {
-    setLoading(true);
     await loadScores();
-    setLoading(false);
   }
 
   async function loadScores() {
@@ -453,7 +449,7 @@ export default function TrainingPage() {
   const availablePinValues = getAvailablePins();
   const availablePinButtons = pinButtons.filter(btn => availablePinValues.includes(btn.value));
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-rose-50">
         <Loader2 className="h-12 w-12 animate-spin text-pink-600" />

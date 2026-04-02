@@ -1,89 +1,53 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import Head from "next/head";
-import { motion } from "framer-motion";
-import { SEO } from "@/components/SEO";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  Loader2,
+  Trophy, 
+  Calendar, 
+  Users, 
+  Target, 
+  Shuffle, 
+  Upload, 
+  FileUp,
+  Sparkles,
+  Medal,
+  Crown,
+  Star,
+  Plus,
+  Trash2,
+  RefreshCw,
+  ExternalLink,
+  Share2,
+  Copy,
+  Check
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Share2,
-  Calendar,
-  MapPin,
-  Users,
-  Trophy,
-  Copy,
-  Check,
-  UserPlus,
-  X,
-  Lock,
-  Unlock,
-  Eye,
-  ArrowLeft,
-  Globe,
-  Crown,
-} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SEO } from "@/components/SEO";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { useMemberDebug } from "@/hooks/useMemberDebug";
-import { PageAccessGuard } from "@/components/PageAccessGuard";
-import { MemberLayout } from "@/components/member/MemberLayout";
-import { MemberDebugPanel } from "@/components/member/MemberDebugPanel";
-import { BowlingBallLoader } from "@/components/BowlingBallLoader";
-import {
-  getMiniBlokEntries,
-  getMiniBlokById,
-  createMiniBlok,
-  updateMiniBlok,
-  deleteMiniBlok,
-  addPlayer,
-  updatePlayer,
-  deletePlayer,
-  shareAccess,
-  revokeAccess,
-  revokeShareToken,
-  getMiniBlokSharedByToken,
-  generateShareTokenUrl,
-  generateShareUrl,
-  generateShareText,
-  generateShareToken,
-  calculatePlayerStats,
-  type MiniBlokWithPlayers,
-  type MiniBlokPublicShared,
-} from "@/services/miniBlokService";
-import { supabase } from "@/integrations/supabase/client";
-
-import { type PlayerForm, INITIAL_PLAYER_FORM, GAME_COLORS } from "@/components/mini-blok/constants";
-import { PublicSharedView } from "@/components/mini-blok/PublicSharedView";
 import { TournamentCard } from "@/components/mini-blok/TournamentCard";
+import { PublicSharedView } from "@/components/mini-blok/PublicSharedView";
+import { 
+  MINI_BLOK_FORMATS,
+  calculatePayouts,
+  type MiniBlokTournament,
+  type MiniBlokPlayer
+} from "@/components/mini-blok/constants";
+import { 
+  miniBlokService
+} from "@/services/miniBlokService";
+import { MemberLayout } from "@/components/member/MemberLayout";
+import { PageAccessGuard } from "@/components/PageAccessGuard";
 
 export default function MiniBlokPage() {
   const router = useRouter();

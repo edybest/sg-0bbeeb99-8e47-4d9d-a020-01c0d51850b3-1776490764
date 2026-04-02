@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, User, Save, Loader2, Camera, History, Calendar, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 
@@ -277,7 +276,7 @@ export default function ProfilePage() {
 
   // Show loading while checking auth
   if (authLoading || loading) {
-    return <BowlingBallLoaderOverlay />;
+    return null;
   }
 
   if (!member) {

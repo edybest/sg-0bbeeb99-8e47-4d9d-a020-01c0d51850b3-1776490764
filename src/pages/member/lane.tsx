@@ -14,7 +14,6 @@ import { ArrowLeft, Save, Users, Loader2, GripVertical, X, Target, Calendar } fr
 import Link from "next/link";
 import { MobileNav } from "@/components/member/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
-import { BowlingBallLoaderOverlay } from "@/components/BowlingBallLoader";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
