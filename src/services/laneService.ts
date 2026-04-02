@@ -27,7 +27,7 @@ export const laneService = {
   async getLaneConfigurations(): Promise<LaneConfigurationWithDetails[]> {
     const { data, error } = await supabase
       .from("lane_configurations")
-      .select("id, lane_sebenar, position_order, created_at, updated_at")
+      .select("*")
       .order("position_order")
       .limit(20); // Limit to 20 configurations
 
