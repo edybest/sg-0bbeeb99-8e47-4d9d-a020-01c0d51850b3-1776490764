@@ -1736,10 +1736,12 @@ Eby,,168,116,153,152,176,18,no</pre>
                           <td className="px-4 py-3 text-sm text-center">
                             <Input
                               type="number"
-                              value={getPlayerScore(player, "game5_score")}
-                              onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
-                              className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center font-medium focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
-                              onFocus={(e) => e.target.select()}
+                              min="0"
+                              max="300"
+                              value={score.score || ""}
+                              onChange={(e) => handleScoreChange(score.id, parseInt(e.target.value) || 0)}
+                              className="w-20 text-center transition-all duration-200 focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500 focus:bg-blue-50 dark:focus:bg-blue-950/30 focus:scale-105 focus:shadow-lg"
+                              disabled={isGeneratingPDF}
                             />
                             <div className="flex items-center justify-center mt-1">
                               <Checkbox
@@ -1749,15 +1751,6 @@ Eby,,168,116,153,152,176,18,no</pre>
                               />
                               <span className="ml-1 text-xs text-gray-500">Clean</span>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-center">
-                            <Input
-                              type="number"
-                              value={getPlayerScore(player, "handicap")}
-                              onChange={(e) => handleScoreChange(player.id, "handicap", e.target.value)}
-                              className="w-20 h-9 bg-gray-50 border border-gray-300 text-gray-900 text-center font-medium focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 mx-auto"
-                              onFocus={(e) => e.target.select()}
-                            />
                           </td>
                           <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">
                             {getPlayerScore(player, "total_score")}
