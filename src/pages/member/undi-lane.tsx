@@ -647,24 +647,27 @@ export default function UndiLanePage() {
                           <p>No spins yet. Be the first!</p>
                         </div>
                       ) : (
-                        allResults.map((result) => (
-                          <div
-                            key={result.id}
-                            className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-blue-50 transition-colors rounded-xl border border-slate-100"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-                                {result.lane_position}
+                        <div className="space-y-3">
+                          {allResults.map((result, index) => (
+                            <div
+                              key={result.id}
+                              className="flex items-center gap-3 p-3 bg-card rounded-lg border"
+                            >
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                                {index + 1}
                               </div>
-                              <div>
-                                <p className="font-bold text-slate-800">
-                                  {result.members?.full_name || result.members?.username || "Unknown"}
+                              <div className="flex-1">
+                                <p className="font-medium">{result.members?.username}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(result.spun_at).toLocaleString("ms-MY")}
                                 </p>
-                                <p className="text-xs text-slate-500 mt-0.5">{new Date(result.spun_at).toLocaleString()}</p>
                               </div>
+                              <Badge variant="secondary" className="font-mono">
+                                {result.lane_position}
+                              </Badge>
                             </div>
-                          </div>
-                        ))
+                          ))}
+                        </div>
                       )}
                     </div>
                   </CardContent>
