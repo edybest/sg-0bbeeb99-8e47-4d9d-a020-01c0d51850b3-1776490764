@@ -230,7 +230,7 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
               
               {/* Username */}
               <span className="font-semibold text-sky-400 text-sm">
-                {comment.username}:
+                {comment.member?.username}:
               </span>
 
               {/* Comment text */}
@@ -244,54 +244,28 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
         </div>
       )}
 
-      {/* Floating Control Buttons - Fixed Position */}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-3 pointer-events-auto">
+      {/* Comment Controls - Adjusted higher to bottom-24 to avoid mobile bottom nav */}
+      <div className="fixed bottom-24 right-4 z-[90] flex flex-col gap-3 pointer-events-auto">
         {/* Toggle View/Hide Button */}
         <Button
-          onClick={() => setShowComments(!showComments)}
           size="lg"
-          className="h-12 w-12 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-2xl border-2 border-white/50 transition-all duration-300 hover:scale-110"
-        >
-          {showComments ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <Eye className="w-6 h-6" />
-          )}
-        </Button>
-
-        {/* Comment Button */}
-        <Button
-          onClick={() => setIsOpen(true)}
-          size="lg"
-          className="h-12 px-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-2xl border-2 border-white/50 transition-all duration-300 hover:scale-110 flex items-center gap-2"
-        >
-          <Send className="w-5 h-5" />
-          <span className="hidden sm:inline font-semibold">Comment</span>
-        </Button>
-      </div>
-
-      {/* Comment Controls - Adjusted higher to bottom-24 to avoid mobile bottom nav */}
-      <div className="fixed bottom-24 right-4 z-[9999] flex gap-2">
-        <Button
-          size="sm"
-          variant={showComments ? "default" : "outline"}
           onClick={() => setShowComments(!showComments)}
-          className="shadow-2xl h-12 w-12 rounded-full p-0 bg-gradient-to-br from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 border-2 border-white/20"
+          className="h-12 w-12 rounded-full p-0 shadow-2xl bg-gradient-to-br from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 border-2 border-white/20 transition-all duration-300 hover:scale-110"
         >
-          {showComments ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+          {showComments ? <X className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
         </Button>
 
         <Sheet>
           <SheetTrigger asChild>
             <Button 
-              size="sm" 
-              className="shadow-2xl h-12 px-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-2 border-white/20"
+              size="lg" 
+              className="h-12 px-4 shadow-2xl rounded-full bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-2 border-white/20 transition-all duration-300 hover:scale-110 flex items-center gap-2"
             >
-              <Send className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Comment</span>
+              <Send className="h-5 w-5" />
+              <span className="hidden sm:inline font-semibold">Comment</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl">
+          <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl z-[9999]">
             <SheetHeader>
               <SheetTitle className="text-lg">💬 Live Comments - {gameName}</SheetTitle>
             </SheetHeader>
