@@ -47,6 +47,37 @@ export const BOWLING_EMOJIS = {
 
 export const gameCommentService = {
   /**
+   * Get all comments (admin only)
+   */
+  async getAllComments(limit = 100): Promise<any[]> {
+    const { data, error } = await supabase
+      .from("game_comments")
+      .select(`
+        *,
+        member:members!game_comments_member_id_fkey(
+          id,
+          username,
+          full_name,
+          avatar_url
+        ),
+        game:games(
+          game_name,
+          game_date
+        )
+      `)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Error fetching all comments:", error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  /**
    * Get comments for a specific game (real-time)
    */
   async getGameComments(gameId: string, limit = 50): Promise<GameCommentWithMember[]> {
@@ -111,12 +142,18 @@ export const gameCommentService = {
   /**
    * Delete a comment (admin only)
    */
-  async deleteComment(commentId: string, adminId: string): Promise<void> {
+  async deleteComment(commentId: string, adminId?: string): Promise<void> {
+    let deletedBy = adminId;
+    if (!deletedBy) {
+      const { data } = await supabase.auth.getSession();
+      deletedBy = data.session?.user.id;
+    }
+
     const { error } = await supabase
       .from("game_comments")
       .update({
         deleted_at: new Date().toISOString(),
-        deleted_by: adminId,
+        deleted_by: deletedBy,
       })
       .eq("id", commentId);
 
@@ -154,19 +191,25 @@ export const gameCommentService = {
    */
   async banUser(
     memberId: string,
-    bannedBy: string,
+    bannedBy?: string,
     options: {
       gameId?: string;
       reason?: string;
       expiresAt?: string;
     } = {}
   ): Promise<CommentBan> {
+    let adminId = bannedBy;
+    if (!adminId) {
+      const { data } = await supabase.auth.getSession();
+      adminId = data.session?.user.id;
+    }
+
     const { data, error } = await supabase
       .from("comment_bans")
       .insert({
         member_id: memberId,
         game_id: options.gameId || null,
-        banned_by: bannedBy,
+        banned_by: adminId,
         reason: options.reason || null,
         expires_at: options.expiresAt || null,
         is_active: true,
