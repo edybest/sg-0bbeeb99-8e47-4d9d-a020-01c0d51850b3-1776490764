@@ -144,6 +144,80 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
     };
   }, [gameId]);
 
+  // Load existing comments on mount
+  useEffect(() => {
+    const loadExistingComments = async () => {
+      try {
+        const comments = await gameCommentService.getGameComments(gameId);
+        
+        // Process each existing comment (limited to last 10 for performance)
+        const recentComments = comments.slice(-10);
+        recentComments.forEach((comment: any, index: number) => {
+          const emojiCode = comment.emoji_code || comment.emoji;
+          const commentText = comment.comment_text || comment.text;
+          const username = comment.member?.username || comment.username || "Anonymous";
+
+          // Add emojis (without animation on initial load)
+          if (emojiCode) {
+            const emojiData = BOWLING_EMOJIS[emojiCode as keyof typeof BOWLING_EMOJIS];
+            if (emojiData) {
+              // Just add to state without animation
+              setTimeout(() => {
+                const id = `emoji-initial-${comment.id}`;
+                setFloatingEmojis((prev) => [
+                  ...prev,
+                  {
+                    id,
+                    emoji: emojiData.code,
+                    left: Math.random() * 50,
+                    isBurst: false,
+                  },
+                ]);
+
+                // Remove after animation
+                setTimeout(() => {
+                  setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
+                }, 3100);
+              }, index * 200); // Stagger initial animations
+            }
+          }
+
+          // Add messages
+          if (commentText) {
+            setTimeout(() => {
+              const msgId = `msg-initial-${comment.id}`;
+              setSlidingMessages((prev) => [
+                ...prev,
+                {
+                  id: msgId,
+                  username: username,
+                  text: commentText,
+                  emoji: emojiCode,
+                },
+              ]);
+
+              // Fade out and remove
+              setTimeout(() => {
+                const element = document.querySelector(`[data-msg-id="${msgId}"]`);
+                if (element) {
+                  element.classList.add('animate-fade-out-scale');
+                }
+              }, 4500);
+
+              setTimeout(() => {
+                setSlidingMessages((prev) => prev.filter((msg) => msg.id !== msgId));
+              }, 5000);
+            }, index * 200); // Stagger initial messages
+          }
+        });
+      } catch (error) {
+        console.error("Error loading existing comments:", error);
+      }
+    };
+
+    loadExistingComments();
+  }, [gameId]);
+
   // Subscribe to real-time comments
   useEffect(() => {
     const unsubscribe = gameCommentService.subscribeToGameComments(
