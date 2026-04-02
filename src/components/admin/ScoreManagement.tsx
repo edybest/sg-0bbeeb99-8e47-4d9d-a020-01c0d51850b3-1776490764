@@ -1670,7 +1670,7 @@ Eby,,168,116,153,152,176,18,no</pre>
                               type="number"
                               value={getPlayerScore(player, "game1_score")}
                               onChange={(e) => handleScoreChange(player.id, "game1_score", e.target.value)}
-                              className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              className="w-20 h-9 bg-blue-50 border border-blue-200 text-blue-900 text-center font-bold transition-all duration-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/50 focus:bg-white focus:scale-110 focus:shadow-xl relative z-0 focus:z-10"
                               onFocus={(e) => e.target.select()}
                             />
                             <div className="flex items-center justify-center mt-1">
@@ -1687,7 +1687,7 @@ Eby,,168,116,153,152,176,18,no</pre>
                               type="number"
                               value={getPlayerScore(player, "game2_score")}
                               onChange={(e) => handleScoreChange(player.id, "game2_score", e.target.value)}
-                              className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center font-medium focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                              className="w-20 h-9 bg-green-50 border border-green-200 text-green-900 text-center font-bold transition-all duration-200 focus:border-green-600 focus:ring-4 focus:ring-green-500/50 focus:bg-white focus:scale-110 focus:shadow-xl relative z-0 focus:z-10"
                               onFocus={(e) => e.target.select()}
                             />
                             <div className="flex items-center justify-center mt-1">
@@ -1704,7 +1704,7 @@ Eby,,168,116,153,152,176,18,no</pre>
                               type="number"
                               value={getPlayerScore(player, "game3_score")}
                               onChange={(e) => handleScoreChange(player.id, "game3_score", e.target.value)}
-                              className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center font-medium focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                              className="w-20 h-9 bg-purple-50 border border-purple-200 text-purple-900 text-center font-bold transition-all duration-200 focus:border-purple-600 focus:ring-4 focus:ring-purple-500/50 focus:bg-white focus:scale-110 focus:shadow-xl relative z-0 focus:z-10"
                               onFocus={(e) => e.target.select()}
                             />
                             <div className="flex items-center justify-center mt-1">
@@ -1721,7 +1721,7 @@ Eby,,168,116,153,152,176,18,no</pre>
                               type="number"
                               value={getPlayerScore(player, "game4_score")}
                               onChange={(e) => handleScoreChange(player.id, "game4_score", e.target.value)}
-                              className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center font-medium focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                              className="w-20 h-9 bg-orange-50 border border-orange-200 text-orange-900 text-center font-bold transition-all duration-200 focus:border-orange-600 focus:ring-4 focus:ring-orange-500/50 focus:bg-white focus:scale-110 focus:shadow-xl relative z-0 focus:z-10"
                               onFocus={(e) => e.target.select()}
                             />
                             <div className="flex items-center justify-center mt-1">
@@ -1736,12 +1736,10 @@ Eby,,168,116,153,152,176,18,no</pre>
                           <td className="px-4 py-3 text-sm text-center">
                             <Input
                               type="number"
-                              min="0"
-                              max="300"
-                              value={score.score || ""}
-                              onChange={(e) => handleScoreChange(score.id, parseInt(e.target.value) || 0)}
-                              className="w-20 text-center transition-all duration-200 focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500 focus:bg-blue-50 dark:focus:bg-blue-950/30 focus:scale-105 focus:shadow-lg"
-                              disabled={isGeneratingPDF}
+                              value={getPlayerScore(player, "game5_score")}
+                              onChange={(e) => handleScoreChange(player.id, "game5_score", e.target.value)}
+                              className="w-20 h-9 bg-pink-50 border border-pink-200 text-pink-900 text-center font-bold transition-all duration-200 focus:border-pink-600 focus:ring-4 focus:ring-pink-500/50 focus:bg-white focus:scale-110 focus:shadow-xl relative z-0 focus:z-10"
+                              onFocus={(e) => e.target.select()}
                             />
                             <div className="flex items-center justify-center mt-1">
                               <Checkbox
