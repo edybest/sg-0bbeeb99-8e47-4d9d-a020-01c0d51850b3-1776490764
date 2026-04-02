@@ -212,10 +212,13 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
   }, [gameId]);
 
   const handlePostComment = async () => {
-    console.log("handlePostComment called - currentMemberId:", currentMemberId);
+    // Use currentMemberId if available, otherwise fallback to member.id from useAuth
+    const memberId = currentMemberId || member?.id;
     
-    if (!currentMemberId) {
-      console.error("currentMemberId is null or undefined");
+    console.log("handlePostComment called - currentMemberId:", currentMemberId, "member.id:", member?.id, "using:", memberId);
+    
+    if (!memberId) {
+      console.error("No member ID available");
       toast({
         title: "Login Required",
         description: "Please login to post comments",
@@ -238,12 +241,12 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
     try {
       console.log("Posting comment with:", {
         gameId,
-        currentMemberId,
+        memberId,
         text: newComment.trim() || undefined,
         emoji: selectedEmoji || undefined
       });
       
-      await gameCommentService.postComment(gameId, currentMemberId, {
+      await gameCommentService.postComment(gameId, memberId, {
         text: newComment.trim() || undefined,
         emoji: selectedEmoji || undefined,
         isAnimated: selectedEmoji ? BOWLING_EMOJIS[selectedEmoji as keyof typeof BOWLING_EMOJIS]?.animated : false,
