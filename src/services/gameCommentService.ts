@@ -280,10 +280,14 @@ export const gameCommentService = {
   /**
    * Edit a comment
    */
-  async editComment(commentId: string, text: string): Promise<void> {
+  async editComment(commentId: string, content: { text?: string; emoji?: string; isAnimated?: boolean }): Promise<void> {
     const { error } = await supabase
       .from("game_comments")
-      .update({ comment_text: text })
+      .update({ 
+        comment_text: content.text || null,
+        emoji_code: content.emoji || null,
+        is_animated: content.isAnimated || false
+      })
       .eq("id", commentId);
 
     if (error) {
