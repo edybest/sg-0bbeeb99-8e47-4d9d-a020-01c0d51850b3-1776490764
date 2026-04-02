@@ -706,6 +706,45 @@ export type Database = {
           },
         ]
       }
+      game_viewers: {
+        Row: {
+          game_id: string
+          id: string
+          joined_at: string | null
+          last_seen: string | null
+          member_id: string
+        }
+        Insert: {
+          game_id: string
+          id?: string
+          joined_at?: string | null
+          last_seen?: string | null
+          member_id: string
+        }
+        Update: {
+          game_id?: string
+          id?: string
+          joined_at?: string | null
+          last_seen?: string | null
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_viewers_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_viewers_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           clean_game_data: Json | null
@@ -1513,6 +1552,7 @@ export type Database = {
         Args: { admin_member_id: string; comment_id: string }
         Returns: undefined
       }
+      cleanup_stale_viewers: { Args: never; Returns: undefined }
       current_member_id: { Args: never; Returns: string }
       generate_mini_blok_share: {
         Args: { p_mini_blok_id: string }
