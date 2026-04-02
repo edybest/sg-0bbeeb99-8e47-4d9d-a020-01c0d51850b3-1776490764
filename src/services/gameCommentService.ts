@@ -113,26 +113,65 @@ export const gameCommentService = {
     memberId: string,
     content: { text?: string; emoji?: string; isAnimated?: boolean }
   ): Promise<GameComment> {
+    console.log("=== POST COMMENT DEBUG START ===");
+    console.log("Input params:", { gameId, memberId, content });
+    
+    // Get current auth user for debugging
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("Current auth user:", user?.id);
+    
+    // Check if this member_id belongs to current user
+    const { data: memberCheck, error: memberCheckError } = await supabase
+      .from("members")
+      .select("id, user_id, username")
+      .eq("id", memberId)
+      .single();
+    
+    console.log("Member check result:", { memberCheck, memberCheckError });
+    console.log("Does member belong to current user?", memberCheck?.user_id === user?.id);
+    
     // Check if user is banned first
-    const isBanned = await this.isUserBanned(memberId, gameId);
-    if (isBanned) {
-      throw new Error("You are banned from posting comments");
+    try {
+      const isBanned = await this.isUserBanned(memberId, gameId);
+      console.log("Is user banned?", isBanned);
+      
+      if (isBanned) {
+        throw new Error("You are banned from posting comments");
+      }
+    } catch (banCheckError) {
+      console.error("Error checking ban status:", banCheckError);
+      // Continue anyway if ban check fails
     }
 
+    // Prepare insert data
+    const insertData = {
+      game_id: gameId,
+      member_id: memberId,
+      comment_text: content.text || null,
+      emoji_code: content.emoji || null,
+      is_animated: content.isAnimated || false,
+    };
+    
+    console.log("Insert data:", insertData);
+    
+    // Attempt insert
     const { data, error } = await supabase
       .from("game_comments")
-      .insert({
-        game_id: gameId,
-        member_id: memberId,
-        comment_text: content.text || null,
-        emoji_code: content.emoji || null,
-        is_animated: content.isAnimated || false,
-      })
+      .insert(insertData)
       .select()
       .single();
 
+    console.log("Insert result:", { data, error });
+    console.log("=== POST COMMENT DEBUG END ===");
+
     if (error) {
       console.error("Error posting comment:", error);
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       throw error;
     }
 
