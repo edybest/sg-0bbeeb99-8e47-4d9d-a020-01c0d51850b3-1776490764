@@ -561,14 +561,14 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
 
             <div className="mt-6 flex h-[calc(72vh-4.5rem)] flex-col gap-4 pb-2">
               {/* Emoji Picker - Display ICONS only */}
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1.5">
                 {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
                   <Button
                     key={key}
                     size="sm"
                     variant={selectedEmoji === key ? "default" : "outline"}
                     onClick={() => setSelectedEmoji(selectedEmoji === key ? null : key)}
-                    className={`text-2xl h-14 ${emoji.animated ? "hover:animate-bounce" : ""} ${
+                    className={`text-xl h-12 ${emoji.animated ? "hover:animate-bounce" : ""} ${
                       selectedEmoji === key ? "ring-2 ring-sky-500 ring-offset-2" : ""
                     }`}
                     title={key}
@@ -618,14 +618,14 @@ export function LiveGameComments({ gameId, gameName }: LiveGameCommentsProps) {
                       {editingCommentId === comment.id ? (
                         // Edit Mode
                         <div className="flex-1 space-y-3">
-                          <div className="grid grid-cols-5 gap-2">
+                          <div className="grid grid-cols-5 gap-1.5">
                             {Object.entries(BOWLING_EMOJIS).map(([key, emoji]) => (
                               <Button
                                 key={key}
                                 size="sm"
                                 variant={editEmoji === key ? "default" : "outline"}
                                 onClick={() => setEditEmoji(editEmoji === key ? null : key)}
-                                className={`text-xl h-10 ${emoji.animated ? "hover:animate-bounce" : ""}`}
+                                className={`text-lg h-9 ${emoji.animated ? "hover:animate-bounce" : ""}`}
                               >
                                 {emoji.code}
                               </Button>
