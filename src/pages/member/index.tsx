@@ -4,10 +4,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SEO } from "@/components/SEO";
 import { MemberLayout } from "@/components/member/MemberLayout";
-import { BowlingBallLoader } from "@/components/BowlingBallLoader";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -218,6 +217,23 @@ export default function MemberDashboard() {
     iconColor: "text-sky-100"
   }];
 
+
+  if (loading) {
+    return (
+      <MemberLayout>
+        <SEO 
+          title="Dashboard | AMBC Club" 
+          description="Member dashboard for AMBC Bowling Club"
+        />
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
+            <p className="text-sky-600 font-medium">Loading dashboard...</p>
+          </div>
+        </div>
+      </MemberLayout>
+    );
+  }
 
   return (
     <MemberLayout>

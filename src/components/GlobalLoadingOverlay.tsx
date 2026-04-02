@@ -1,7 +1,7 @@
 "use client";
 
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
-import { BowlingBallLoaderOverlay } from "./BowlingBallLoader";
+import { Loader2 } from "lucide-react";
 
 /**
  * Global loading overlay component
@@ -11,9 +11,14 @@ import { BowlingBallLoaderOverlay } from "./BowlingBallLoader";
 export function GlobalLoadingOverlay() {
   const { isLoading } = useGlobalLoading();
 
-  if (!isLoading) {
-    return null;
-  }
+  if (!isLoading) return null;
 
-  return <BowlingBallLoaderOverlay />;
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-16 h-16 animate-spin text-white" />
+        <p className="text-white font-medium text-lg">Loading...</p>
+      </div>
+    </div>
+  );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
+import { Loader2 } from "lucide-react";
 import { pageAccessService } from "@/services/pageAccessService";
-import { BowlingBallLoader } from "@/components/BowlingBallLoader";
 
 interface PageAccessGuardProps {
   children: React.ReactNode;
@@ -205,14 +205,17 @@ export function PageAccessGuard({
     }
   };
 
+  // Show loading state
   if (loading) {
     if (renderLoading) {
       return renderLoading();
     }
-
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <BowlingBallLoader />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
+          <p className="text-sky-600 font-medium">Loading...</p>
+        </div>
       </div>
     );
   }
