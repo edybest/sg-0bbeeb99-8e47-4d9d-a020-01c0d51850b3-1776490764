@@ -64,8 +64,26 @@ export function CommentManagementPanel() {
         gameCommentService.getBannedUsers(),
       ]);
 
-      setComments(commentsData);
-      setBannedUsers(bannedData);
+      const formattedComments: Comment[] = commentsData.map((c: any) => ({
+        id: c.id,
+        game_id: c.game_id,
+        member_id: c.member_id,
+        username: c.member?.username || c.member?.full_name || "Unknown",
+        content: c.comment_text || (c.emoji_code ? `[Emoji: ${c.emoji_code}]` : ""),
+        created_at: c.created_at,
+        game: c.game,
+      }));
+
+      const formattedBannedUsers: BannedUser[] = bannedData.map((b) => ({
+        id: b.id,
+        member_id: b.member_id,
+        username: b.member?.username || b.member?.full_name || "Unknown",
+        banned_at: b.banned_at || b.created_at || new Date().toISOString(),
+        reason: b.reason,
+      }));
+
+      setComments(formattedComments);
+      setBannedUsers(formattedBannedUsers);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
