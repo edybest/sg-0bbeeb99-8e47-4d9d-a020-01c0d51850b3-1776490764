@@ -84,10 +84,15 @@ self.addEventListener("fetch", (event) => {
   if (request.destination === "image") {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request).then((networkResponse) => {
-          if (networkResponse.ok) {
+        // Clone the request before using it
+        const fetchRequest = request.clone();
+
+        const fetchPromise = fetch(fetchRequest).then((networkResponse) => {
+          // Clone the response BEFORE using it
+          if (networkResponse && networkResponse.ok) {
+            const responseToCache = networkResponse.clone();
             caches.open(IMAGE_CACHE).then((cache) => {
-              cache.put(request, networkResponse.clone());
+              cache.put(request, responseToCache);
             });
           }
           return networkResponse;
@@ -107,10 +112,15 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/_next/")) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request).then((networkResponse) => {
-          if (networkResponse.ok) {
+        // Clone the request before using it
+        const fetchRequest = request.clone();
+
+        const fetchPromise = fetch(fetchRequest).then((networkResponse) => {
+          // Clone the response BEFORE using it
+          if (networkResponse && networkResponse.ok) {
+            const responseToCache = networkResponse.clone();
             caches.open(STATIC_CACHE).then((cache) => {
-              cache.put(request, networkResponse.clone());
+              cache.put(request, responseToCache);
             });
           }
           return networkResponse;
