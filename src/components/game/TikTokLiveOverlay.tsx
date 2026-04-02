@@ -134,7 +134,7 @@ export function TikTokLiveOverlay({ gameId, gameName }: { gameId: string; gameNa
         gameId, 
         currentUser.id, 
         {
-          comment_text: newComment.trim() || undefined,
+          text: newComment.trim() || undefined,
           emoji: selectedEmoji || undefined,
         }
       );

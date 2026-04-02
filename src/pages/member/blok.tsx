@@ -1617,14 +1617,6 @@ export default function BlokPage() {
             gameName={games.find(g => g.id === selectedGame)?.game_name || "Game"}
           />
         )}
-
-        {/* TikTok-Style Live Comments Overlay */}
-        {selectedGame && (
-          <TikTokLiveOverlay
-            gameId={selectedGame.id}
-            gameName={selectedGame.game_name || `Game ${selectedGame.game_number}`}
-          />
-        )}
       </>
     </MemberLayout>
   );
