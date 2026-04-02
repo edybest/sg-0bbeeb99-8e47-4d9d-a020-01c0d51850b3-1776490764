@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { MobileNav } from "@/components/member/MobileNav";
 import { MemberLayout } from "@/components/member/MemberLayout";
+import { LiveGameComments } from "@/components/game/LiveGameComments";
 
 import {
   Trophy,
@@ -1447,6 +1448,14 @@ export default function BlokPage() {
               )}
             </DialogContent>
           </Dialog>
+        )}
+
+        {/* Live Game Comments - TikTok Style */}
+        {selectedGame && games.find(g => g.id === selectedGame) && (
+          <LiveGameComments 
+            gameId={selectedGame}
+            gameName={games.find(g => g.id === selectedGame)?.game_name || "Game"}
+          />
         )}
       </>
     </MemberLayout>
