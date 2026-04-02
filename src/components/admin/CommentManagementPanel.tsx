@@ -78,7 +78,7 @@ export function CommentManagementPanel() {
         id: b.id,
         member_id: b.member_id,
         username: b.member?.username || b.member?.full_name || "Unknown",
-        banned_at: b.banned_at || b.created_at || new Date().toISOString(),
+        banned_at: b.banned_at || new Date().toISOString(),
         reason: b.reason,
       }));
 
