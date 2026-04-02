@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWithMember } from "@/services/laneService";
 import { gameService } from "@/services/gameService";
-import { Save, Users, GripVertical, X, RotateCcw, Shuffle, Plus } from "lucide-react";
+import { Save, Users, GripVertical, X, RotateCcw, Shuffle } from "lucide-react";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 interface Game {
@@ -293,6 +293,79 @@ export function LaneManagement() {
     }
   }
 
+  async function handleAutoRandomAssign() {
+    if (!selectedGameId || members.length === 0) {
+      toast({
+        title: "Tiada Ahli",
+        description: "Tiada ahli dalam senarai yang belum disusun.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!confirm(`Anda pasti mahu menyusun secara automatik (rawak) ${members.length} ahli ke dalam lane yang masih kosong?`)) return;
+
+    try {
+      await withLoading("admin:lane:auto-assign", async () => {
+        // Find all empty slots
+        const emptySlots: string[] = [];
+        laneConfigs.forEach(config => {
+          const lanes = config.lane_sebenar.split("/");
+          const leftLane = lanes[0] || "?";
+          const rightLane = lanes[1] || "?";
+          const positions = [
+            `${leftLane}A`, `${leftLane}B`, `${leftLane}C`,
+            `${rightLane}A`, `${rightLane}B`, `${rightLane}C`
+          ];
+          
+          positions.forEach(pos => {
+            if (!assignments.some(a => a.lane_position === pos)) {
+              emptySlots.push(pos);
+            }
+          });
+        });
+
+        if (emptySlots.length < members.length) {
+          toast({
+            title: "Slot Tidak Mencukupi",
+            description: `Terdapat ${members.length} ahli tetapi hanya ${emptySlots.length} slot lane kosong! Sila tambah konfigurasi lane.`,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Shuffle empty slots to be fully random
+        const shuffledSlots = [...emptySlots].sort(() => Math.random() - 0.5);
+        // Shuffle members to be fully random
+        const shuffledMembers = [...members].sort(() => Math.random() - 0.5);
+
+        // Assign each member to a random empty slot
+        const promises = shuffledMembers.map((member, i) => {
+          const slot = shuffledSlots[i];
+          return laneService.assignMemberToLane(selectedGameId, member.id, slot);
+        });
+
+        // Execute all inserts
+        await Promise.all(promises);
+
+        // Reload the UI
+        await loadLaneAssignments();
+      });
+
+      toast({
+        title: "Berjaya!",
+        description: `Telah berjaya menyusun rawak ${members.length} ahli ke dalam lane.`,
+      });
+    } catch (error) {
+      console.error("Error auto assigning:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal menyusun lane automatik",
+        variant: "destructive",
+      });
+    }
+  }
+
   async function handleDownloadScreenshot() {
     if (!screenshotRef.current || !activeGame) return;
 
@@ -460,118 +533,16 @@ export function LaneManagement() {
     );
   }
 
-  const handleRemoveMember = async (memberId: string) => {
-    try {
-      await laneService.updateMemberLane(memberId, null);
-      toast({
-        title: "Berjaya",
-        description: "Ahli telah dikeluarkan dari lane.",
-      });
-      fetchLaneData();
-    } catch (error) {
-      console.error("Error removing member:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal mengeluarkan ahli dari lane.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAutoRandomAssign = async () => {
-    if (!selectedGame) {
-      toast({
-        title: "Pilih Game",
-        description: "Sila pilih game terlebih dahulu.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (availableLanes.length === 0) {
-      toast({
-        title: "Tiada Lane",
-        description: "Tiada lane tersedia untuk game ini.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const unassignedMembers = allMembers.filter(m => !m.lane_number);
-    
-    if (unassignedMembers.length === 0) {
-      toast({
-        title: "Tiada Ahli",
-        description: "Semua ahli sudah ada lane.",
-      });
-      return;
-    }
-
-    try {
-      // Shuffle unassigned members for random distribution
-      const shuffled = [...unassignedMembers].sort(() => Math.random() - 0.5);
-      
-      // Distribute members evenly across lanes
-      const assignments: Array<{ memberId: string; lane: number }> = [];
-      shuffled.forEach((member, index) => {
-        const laneIndex = index % availableLanes.length;
-        const lane = availableLanes[laneIndex];
-        assignments.push({ memberId: member.id, lane });
-      });
-
-      // Execute all assignments
-      await Promise.all(
-        assignments.map(({ memberId, lane }) =>
-          laneService.updateMemberLane(memberId, lane)
-        )
-      );
-
-      toast({
-        title: "Berjaya! 🎲",
-        description: `${unassignedMembers.length} ahli telah diagihkan secara rawak ke ${availableLanes.length} lane.`,
-      });
-      
-      fetchLaneData();
-    } catch (error) {
-      console.error("Error auto assigning:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal mengagihkan ahli secara automatik.",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (loading && games.length === 0) {
     return <div className="p-8 text-center text-gray-500">Memuatkan data lane...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Top Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="space-y-1">
-          <h3 className="text-2xl font-bold">Pengurusan Lane</h3>
-          <p className="text-sm text-muted-foreground">
-            Urus pembahagian lane untuk ahli
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            onClick={handleAutoRandomAssign}
-            variant="default"
-            size="sm"
-            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-            disabled={!selectedGame || availableLanes.length === 0}
-          >
-            <Shuffle className="w-4 h-4 mr-2" />
-            Auto Random
-          </Button>
-          <Button onClick={() => setIsAddMemberOpen(true)} size="sm">
-            <Plus className="w-4 h-4 mr-2" />
-            Tambah Ahli ke Lane
-          </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Pengurusan Lane & Undian</h2>
+          <p className="text-sm text-gray-500">Urus kedudukan pemain dan status undian roda (Spin)</p>
         </div>
       </div>
 
@@ -605,6 +576,15 @@ export function LaneManagement() {
               </div>
 
               <div className="w-full sm:w-auto flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={handleAutoRandomAssign}
+                  disabled={!selectedGameId || members.length === 0}
+                  className="mr-2 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+                >
+                  <Shuffle className="w-4 h-4 mr-2" />
+                  Auto Random
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleDownloadScreenshot}
