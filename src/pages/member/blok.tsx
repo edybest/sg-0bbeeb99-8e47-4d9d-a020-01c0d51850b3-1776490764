@@ -14,13 +14,19 @@ import { MemberLayout } from "@/components/member/MemberLayout";
 
 import {
   Trophy,
+  Medal,
+  Award,
+  Crown,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Minus,
   Loader2,
   ArrowLeft,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   ChevronRight,
-  Sparkles,
   ThumbsUp,
   Heart,
 } from "lucide-react";
@@ -170,6 +176,9 @@ export default function BlokPage() {
   const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
   const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
   const [loadingCleanGame, setLoadingCleanGame] = useState(false);
+
+  const [reactions, setReactions] = useState<{ id: string; playerId: string; x: number; y: number }[]>([]);
+  const [particles, setParticles] = useState<{ id: string; x: number; y: number }[]>([]);
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -567,6 +576,65 @@ export default function BlokPage() {
     );
   };
 
+  const handleReaction = async (playerId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!currentUser || !selectedGame) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top;
+
+    // Add reaction animation
+    const reactionId = `reaction-${Date.now()}-${Math.random()}`;
+    setReactions(prev => [...prev, { id: reactionId, playerId, x, y }]);
+
+    // Add particles
+    const particleIds = Array.from({ length: 8 }, (_, i) => ({
+      id: `particle-${Date.now()}-${i}`,
+      x,
+      y
+    }));
+    setParticles(prev => [...prev, ...particleIds]);
+
+    // Remove animations after completion
+    setTimeout(() => {
+      setReactions(prev => prev.filter(r => r.id !== reactionId));
+      setParticles(prev => prev.filter(p => !particleIds.some(pid => pid.id === p.id)));
+    }, 2000);
+
+    try {
+      // Toggle like in database
+      const { data: existingLike } = await supabase
+        .from('game_player_likes')
+        .select('id')
+        .eq('game_id', selectedGame.id)
+        .eq('player_id', playerId)
+        .eq('liked_by', currentUser.id)
+        .maybeSingle();
+
+      if (existingLike) {
+        // Unlike
+        await supabase
+          .from('game_player_likes')
+          .delete()
+          .eq('id', existingLike.id);
+      } else {
+        // Like
+        await supabase
+          .from('game_player_likes')
+          .insert({
+            game_id: selectedGame.id,
+            player_id: playerId,
+            liked_by: currentUser.id
+          });
+      }
+
+      // Reload leaderboard to update like counts
+      await loadLeaderboard();
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+
   if (error && !loadingGames) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
@@ -683,6 +751,25 @@ export default function BlokPage() {
 
           .score-changed {
             animation: scoreChange 1s ease-in-out;
+          }
+
+          @keyframes heartPop {
+            0% {
+              transform: translate(-50%, 0) scale(0);
+              opacity: 1;
+            }
+            50% {
+              transform: translate(-50%, -30px) scale(1.2);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -80px) scale(0.8);
+              opacity: 0;
+            }
+          }
+
+          .heart-pop {
+            animation: heartPop 1s ease-out forwards;
           }
         `}</style>
 
@@ -939,15 +1026,21 @@ export default function BlokPage() {
                                   </div>
                                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                     <span
-                                      className="font-bold text-emerald-600 text-base md:text-lg"
-                                      style={{ color: "#16a34a" }}
+                                      onClick={() =>
+                                        setMyRankDialog({ open: true, rank: entry })
+                                      }
+                                      className="flex items-center gap-1 cursor-pointer hover:underline"
                                     >
-                                      {entry.overall_score || "-"}
+                                      <Trophy className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                      {entry.total_score}
                                     </span>
-                                    <span className="text-gray-400">•</span>
-                                    <span>
-                                      {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
-                                    </span>
+                                    <button
+                                      onClick={(e) => handleReaction(entry.player_id, e)}
+                                      className="flex items-center gap-1 hover:scale-110 transition-transform"
+                                    >
+                                      <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.like_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                                      <span className="text-[9px] md:text-xs">{entry.like_count || 0}</span>
+                                    </button>
                                   </div>
                                 </div>
 
@@ -1237,11 +1330,22 @@ export default function BlokPage() {
                                   <td className="px-3 py-4 whitespace-nowrap text-center font-semibold border-l border-gray-100">
                                     {entry.handicap || "-"}
                                   </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {entry.total_score || "-"}
+                                  <td
+                                    onClick={() =>
+                                      setMyRankDialog({ open: true, rank: entry })
+                                    }
+                                    className="px-3 py-2.5 text-sm font-semibold text-center cursor-pointer hover:bg-sky-50 transition-colors"
+                                  >
+                                    {entry.total_score}
                                   </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {entry.average_score || "-"}
+                                  <td className="px-3 py-2.5 text-center">
+                                    <button
+                                      onClick={(e) => handleReaction(entry.player_id, e)}
+                                      className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform"
+                                    >
+                                      <Heart className={`w-4 h-4 ${entry.like_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                                      <span className="text-sm font-medium">{entry.like_count || 0}</span>
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
@@ -1312,6 +1416,70 @@ export default function BlokPage() {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Floating Reaction Hearts */}
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="heart-pop fixed pointer-events-none z-50 text-6xl"
+            style={{
+              left: `${reaction.x}px`,
+              top: `${reaction.y}px`,
+            }}
+          >
+            ❤️
+          </div>
+        ))}
+
+        {/* Particle Effects */}
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="fixed pointer-events-none z-50"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`,
+            }}
+          >
+            <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+          </div>
+        ))}
+
+        <style>{`
+          @keyframes particle-0 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-1 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-2 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-3 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-4 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-5 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-6 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-7 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
+          }
+        `}</style>
       </>
     </MemberLayout>
   );
