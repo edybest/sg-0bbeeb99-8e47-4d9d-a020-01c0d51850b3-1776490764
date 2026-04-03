@@ -8,7 +8,6 @@ import { Loader2, Trophy, TrendingUp, Medal, Award, Target, Zap, Crown } from "l
 import { useToast } from "@/hooks/use-toast";
 import { SEO } from "@/components/SEO";
 import MemberLayout from "@/components/member/MemberLayout";
-import { TikTokLiveOverlay } from "@/components/game/TikTokLiveOverlay";
 
 import {
   Trophy,
@@ -156,163 +155,6 @@ export default function BlokPage() {
   useEffect(() => {
     fetchGames();
   }, []);
-
-  const handleReaction = async (entry: LeaderboardEntry, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!currentUser) {
-      toast({
-        title: "Sila Log Masuk",
-        description: "Hanya ahli berdaftar boleh memberi sokongan.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Trigger heart pop animation
-    setHeartPops(prev => new Set(prev).add(entry.id));
-    setTimeout(() => {
-      setHeartPops(prev => {
-        const next = new Set(prev);
-        next.delete(entry.id);
-        return next;
-      });
-    }, 600);
-
-    // Get button position for particle burst
-    const button = e.currentTarget as HTMLElement;
-    const rect = button.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    // Create particle burst (6-8 hearts)
-    const particleCount = Math.floor(Math.random() * 3) + 6; // 6-8 particles
-    const newParticles: HeartParticle[] = [];
-    
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (Math.PI * 2 * i) / particleCount + Math.random() * 0.5;
-      const distance = 50 + Math.random() * 30;
-      const x = centerX + Math.cos(angle) * distance;
-      const y = centerY + Math.sin(angle) * distance;
-      
-      newParticles.push({
-        id: `${entry.id}-${Date.now()}-${i}`,
-        playerId: entry.id,
-        x,
-        y,
-        rotation: Math.random() * 360,
-        scale: 0.6 + Math.random() * 0.4,
-        delay: i * 0.05
-      });
-    }
-    
-    setHeartParticles(prev => [...prev, ...newParticles]);
-    
-    // Clean up particles after animation
-    setTimeout(() => {
-      setHeartParticles(prev => 
-        prev.filter(p => !newParticles.find(np => np.id === p.id))
-      );
-    }, 1200);
-
-    // Play pop sound using Web Audio API
-    try {
-      const audioContext = new AudioContext();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Sweet pop sound (higher frequency)
-      oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
-      
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.15);
-    } catch (err) {
-      console.log("Audio playback not available");
-    }
-
-    console.log('Sending reaction:', { 
-      p_player_id: entry.id, 
-      p_game_id: selectedGame,
-      p_member_id: currentUser.id 
-    });
-
-    // DB Update & Limit Check
-    try {
-      const { data, error } = await supabase.rpc('add_player_reaction', {
-        p_player_id: entry.id,
-        p_game_id: selectedGame,
-        p_member_id: currentUser.id
-      });
-
-      console.log('RPC Response:', { data, error });
-
-      if (error) {
-        console.error('RPC Error details:', error);
-        if (error.message.includes('Daily limit reached') || error.message.includes('5 likes limit') || error.code === 'P0001') {
-          toast({
-            title: "Had Dicapai",
-            description: "Anda hanya boleh like 5 pemain dalam setiap permainan.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Ralat",
-            description: `Gagal menghantar like: ${error.message}`,
-            variant: "destructive"
-          });
-        }
-        return; // Stop here if failed
-      }
-    } catch (err) {
-      console.error("Failed to save reaction:", err);
-      toast({
-        title: "Ralat",
-        description: "Gagal menghantar like. Sila cuba lagi.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Proceed with Animation & Optimistic update if successful
-    const id = Math.random().toString(36).substring(7);
-    const xOffset = Math.floor(Math.random() * 80) - 40; // Random spread between -40px and +40px
-
-    setReactions((prev) => [...prev, { id, type: "like", username: entry.member.username, xOffset }]);
-
-    // Remove the reaction after animation completes
-    setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== id));
-    }, 2500);
-
-    // Update counters locally
-    setLeaderboard((prev) => prev.map((p) => {
-      if (p.id === entry.id) {
-        return {
-          ...p,
-          likes_count: p.likes_count + 1
-        };
-      }
-      return p;
-    }));
-
-    setLeaderboardBase((prev) => prev.map((p) => {
-      if (p.id === entry.id) {
-        return {
-          ...p,
-          likes_count: p.likes_count + 1
-        };
-      }
-      return p;
-    }));
-  };
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -1129,20 +971,6 @@ export default function BlokPage() {
                                   {entry.clean_game && (
                                     <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500 flex-shrink-0" />
                                   )}
-                                  <button
-                                    onClick={(e) => handleReaction(entry, e)}
-                                    className={`relative flex items-center gap-1 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-1.5 py-0.5 md:px-2 rounded-full ml-1 md:ml-2 opacity-90 hover:opacity-100 ${
-                                      heartPops.has(entry.id) ? "animate-heart-pop" : ""
-                                    }`}
-                                    title="Tahniah!"
-                                  >
-                                    <Heart 
-                                      className={`w-3 h-3 md:w-4 md:h-4 transition-all duration-300 ${
-                                        entry.likes_count > 0 ? "fill-red-500 text-red-500" : "fill-blue-100"
-                                      }`}
-                                    />
-                                    {entry.likes_count > 0 && <span className="text-[10px] md:text-xs font-bold">{entry.likes_count}</span>}
-                                  </button>
                                 </div>
                                 <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                   <span
@@ -1409,20 +1237,6 @@ export default function BlokPage() {
                                     {entry.clean_game && (
                                       <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                                     )}
-                                    <button
-                                      onClick={(e) => handleReaction(entry, e)}
-                                      className={`relative flex items-center gap-1.5 text-blue-500 hover:scale-110 transition-transform drop-shadow-sm active:scale-95 bg-blue-50 px-2 py-0.5 rounded-full ml-2 opacity-90 hover:opacity-100 ${
-                                        heartPops.has(entry.id) ? "animate-heart-pop" : ""
-                                      }`}
-                                      title="Tahniah!"
-                                    >
-                                      <Heart 
-                                        className={`w-4 h-4 transition-all duration-300 ${
-                                          entry.likes_count > 0 ? "fill-red-500 text-red-500" : "fill-blue-100"
-                                        }`}
-                                      />
-                                      {entry.likes_count > 0 && <span className="text-xs font-bold">{entry.likes_count}</span>}
-                                    </button>
                                   </div>
                                 </td>
 
@@ -1475,136 +1289,64 @@ export default function BlokPage() {
               </CardContent>
             </Card>
           )}
-        </div>
 
-        {/* TikTok style floating reactions overlay */}
-        <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-          <AnimatePresence>
-            {reactions.map((r) => (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, bottom: "10%", left: "50%", scale: 0.5, translateX: `calc(-50% + ${r.xOffset}px)` }}
-                animate={{
-                  opacity: [0, 1, 1, 0],
-                  bottom: ["10%", "30%", "60%", "90%"],
-                  translateX: [
-                    `calc(-50% + ${r.xOffset}px)`,
-                    `calc(-50% + ${r.xOffset - 30}px)`,
-                    `calc(-50% + ${r.xOffset + 30}px)`,
-                    `calc(-50% + ${r.xOffset}px)`
-                  ],
-                  scale: [0.5, 1.2, 1, 0.9]
-                }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 2.5, ease: "easeOut" }}
-                className="absolute flex items-center gap-2 px-5 py-2.5 bg-white/95 backdrop-blur-sm shadow-2xl rounded-full border border-sky-100"
-              >
-                <ThumbsUp className="w-7 h-7 text-blue-500 fill-blue-500 drop-shadow-md" />
-                <span className="font-extrabold text-base tracking-wide text-blue-600">
-                  Tahniah {r.username}!
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+          {cleanGameDialogOpen && (
+            <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-xl">
+                    <Sparkles className="w-6 h-6 text-yellow-500" />
+                    Clean Game {selectedGameForCleanGame} Winners
+                  </DialogTitle>
+                </DialogHeader>
 
-        {/* Heart Particle Burst Overlay */}
-        <div className="fixed inset-0 pointer-events-none z-[101] overflow-hidden">
-          <AnimatePresence>
-            {heartParticles.map((particle) => (
-              <motion.div
-                key={particle.id}
-                initial={{ 
-                  x: particle.x, 
-                  y: particle.y, 
-                  scale: 0,
-                  rotate: 0,
-                  opacity: 0
-                }}
-                animate={{ 
-                  x: particle.x,
-                  y: particle.y - 100,
-                  scale: [0, particle.scale * 1.5, particle.scale, 0],
-                  rotate: [0, particle.rotation, particle.rotation + 180],
-                  opacity: [0, 1, 1, 0]
-                }}
-                exit={{ opacity: 0, scale: 0 }}
-                transition={{ 
-                  duration: 1.2, 
-                  delay: particle.delay,
-                  ease: [0.34, 1.56, 0.64, 1] // Elastic ease out
-                }}
-                className="absolute"
-                style={{ left: 0, top: 0 }}
-              >
-                <Heart 
-                  className="w-6 h-6 fill-red-500 text-red-500 drop-shadow-lg" 
-                  style={{
-                    filter: "drop-shadow(0 0 8px rgba(239, 68, 68, 0.6))"
-                  }}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {cleanGameDialogOpen && (
-          <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-xl">
-                  <Sparkles className="w-6 h-6 text-yellow-500" />
-                  Clean Game {selectedGameForCleanGame} Winners
-                </DialogTitle>
-              </DialogHeader>
-
-              {loadingCleanGame ? (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
-                  <p className="text-sm text-sky-600">Menyemak pemenang...</p>
-                </div>
-              ) : cleanGameWinners.length === 0 ? (
-                <div className="text-center py-8">
-                  <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-600 font-medium text-lg">Tiada pemenang Clean Game</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-amber-900 mb-1">
-                      Jumlah Hadiah: <span className="font-bold">RM{((leaderboard.filter(p => p.clean_game).length) * 2).toFixed(2)}</span>
-                    </p>
-                    <p className="text-xs text-amber-700">
-                      {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
-                    </p>
+                {loadingCleanGame ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
+                    <p className="text-sm text-sky-600">Menyemak pemenang...</p>
                   </div>
+                ) : cleanGameWinners.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-600 font-medium text-lg">Tiada pemenang Clean Game</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
+                      <p className="text-sm text-amber-900 mb-1">
+                        Jumlah Hadiah: <span className="font-bold">RM{((leaderboard.filter(p => p.clean_game).length) * 2).toFixed(2)}</span>
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
+                      </p>
+                    </div>
 
-                  <div className="space-y-2">
-                    {cleanGameWinners.map((winner, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
-                            {idx + 1}
+                    <div className="space-y-2">
+                      {cleanGameWinners.map((winner, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
+                              {idx + 1}
+                            </div>
+                            <span className="font-semibold text-gray-900">{winner.member_name}</span>
                           </div>
-                          <span className="font-semibold text-gray-900">{winner.member_name}</span>
-                        </div>
-                        <span className="font-bold text-green-600">RM{winner.prize.toFixed(2)}</span>
-                      </motion.div>
-                    ))}
+                          <span className="font-bold text-green-600">RM{winner.prize.toFixed(2)}</span>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-    </MemberLayout>
+                )}
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </MemberLayout>
     </>
   );
 }
