@@ -602,34 +602,20 @@ export default function BlokPage() {
     }, 2000);
 
     try {
-      // Toggle like in database
-      const { data: existingLike } = await supabase
-        .from('game_player_likes')
-        .select('id')
-        .eq('game_id', selectedGame.id)
-        .eq('player_id', playerId)
-        .eq('liked_by', currentUser.id)
-        .maybeSingle();
+      // Optimistic update for instant feedback
+      setLeaderboard(prev => prev.map(p => 
+        p.id === playerId ? { ...p, likes_count: p.likes_count + 1 } : p
+      ));
 
-      if (existingLike) {
-        // Unlike
+      if (currentUser.user_id) {
         await supabase
-          .from('game_player_likes')
-          .delete()
-          .eq('id', existingLike.id);
-      } else {
-        // Like
-        await supabase
-          .from('game_player_likes')
+          .from('player_reactions_log')
           .insert({
-            game_id: selectedGame.id,
-            player_id: playerId,
-            liked_by: currentUser.id
+            game_player_id: playerId,
+            member_id: currentUser.user_id,
+            reaction_type: 'like'
           });
       }
-
-      // Reload leaderboard to update like counts
-      await loadLeaderboard();
     } catch (error) {
       console.error('Error toggling like:', error);
     }
@@ -1026,20 +1012,17 @@ export default function BlokPage() {
                                   </div>
                                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                     <span
-                                      onClick={() =>
-                                        setMyRankDialog({ open: true, rank: entry })
-                                      }
-                                      className="flex items-center gap-1 cursor-pointer hover:underline"
+                                      className="flex items-center gap-1 text-sky-700"
                                     >
                                       <Trophy className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                       {entry.total_score}
                                     </span>
                                     <button
-                                      onClick={(e) => handleReaction(entry.player_id, e)}
+                                      onClick={(e) => handleReaction(entry.id, e)}
                                       className="flex items-center gap-1 hover:scale-110 transition-transform"
                                     >
-                                      <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.like_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                                      <span className="text-[9px] md:text-xs">{entry.like_count || 0}</span>
+                                      <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                                      <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
                                     </button>
                                   </div>
                                 </div>
@@ -1331,20 +1314,17 @@ export default function BlokPage() {
                                     {entry.handicap || "-"}
                                   </td>
                                   <td
-                                    onClick={() =>
-                                      setMyRankDialog({ open: true, rank: entry })
-                                    }
-                                    className="px-3 py-2.5 text-sm font-semibold text-center cursor-pointer hover:bg-sky-50 transition-colors"
+                                    className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors"
                                   >
                                     {entry.total_score}
                                   </td>
                                   <td className="px-3 py-2.5 text-center">
                                     <button
-                                      onClick={(e) => handleReaction(entry.player_id, e)}
+                                      onClick={(e) => handleReaction(entry.id, e)}
                                       className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform"
                                     >
-                                      <Heart className={`w-4 h-4 ${entry.like_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                                      <span className="text-sm font-medium">{entry.like_count || 0}</span>
+                                      <Heart className={`w-4 h-4 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                                      <span className="text-sm font-medium">{entry.likes_count || 0}</span>
                                     </button>
                                   </td>
                                 </tr>
