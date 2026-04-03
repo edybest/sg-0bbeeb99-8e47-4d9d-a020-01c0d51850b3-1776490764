@@ -374,7 +374,7 @@ export default function BlokPage() {
 
   useEffect(() => {
     if (selectedGame) {
-      loadLeaderboard();
+      loadLeaderboard(selectedGame);
       loadUserLikesCount();
     }
   }, [selectedGame]);
