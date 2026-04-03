@@ -1068,16 +1068,21 @@ export default function BlokPage() {
                                   </div>
                                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                     <span
-                                className="flex items-center gap-1 text-sky-700">
-                                
+                                      className="flex items-center gap-1 text-sky-700"
+                                    >
                                       <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                       {entry.total_score}
                                     </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="flex items-center gap-1 text-purple-700 font-semibold">
+                                      <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                      {entry.overall_score}
+                                    </span>
                                     <button
-                                onClick={(e) => handleReaction(entry.id, e)}
-                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-                                
+                                      onClick={(e) => handleReaction(entry.id, e)}
+                                      disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                      className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                       <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
                                     </button>
@@ -1230,18 +1235,19 @@ export default function BlokPage() {
                                   Game 5
                                 </th>
 
-                                <th
-                              className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
-                              
+                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
                                   <div className="flex items-center justify-center gap-1">
                                     <Target className="w-4 h-4" />
                                     <span>Total</span>
                                   </div>
                                 </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
-                              
+                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-purple-600 to-indigo-700 text-white z-10">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Award className="w-4 h-4" />
+                                    <span>Overall</span>
+                                  </div>
+                                </th>
+                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
                                   <Heart className="w-4 h-4 mx-auto" />
                                 </th>
                               </tr>
@@ -1258,93 +1264,19 @@ export default function BlokPage() {
                             }>
                             
                                   <td
-                              className={`sticky ${STICKY_LEFT.rank} z-10 bg-white px-4 py-4 whitespace-nowrap text-center`}>
-                              
-                                    <div className="flex items-center justify-center">
-                                      {getRankDisplay(entry.rank)}
-                                    </div>
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
-                              
-                                    {entry.member.avatar_url ?
-                              <Image
-                                src={entry.member.avatar_url}
-                                alt={entry.member.username}
-                                width={40}
-                                height={40}
-                                className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto" /> :
-
-
-                              <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
-                                        {entry.member.username[0].toUpperCase()}
-                                      </div>
-                              }
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
-                              
-                                    <div className="flex items-center gap-1">
-                                      <Link
-                                  href={`/member/profile?id=${entry.member.id}`}
-                                  className={`font-medium hover:text-sky-600 transition-colors ${
-                                  currentUser?.id === entry.member.id ?
-                                  "font-bold text-sky-600" :
-                                  ""}`
-                                  }>
-                                  
-                                        {entry.member.username}
-                                      </Link>
-                                      {entry.clean_game &&
-                                <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                                }
-                                    </div>
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-emerald-600`}
-                              style={{ color: "#16a34a" }}>
-                              
-                                    {entry.overall_score || "-"}
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.diff} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold`}>
-                              
-                                    {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
-                                  </td>
-
-                                  <td className="px-3 py-4 whitespace-nowrap text-center border-l border-gray-100">
-                                    {formatScore(entry.game1_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game2_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game3_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game4_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game5_score, entry.id)}
-                                  </td>
-
-                                  <td className="px-3 py-4 whitespace-nowrap text-center font-semibold border-l border-gray-100">
-                                    {entry.handicap || "-"}
-                                  </td>
-                                  <td
-                              className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors">
-                              
+                                    className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors"
+                                  >
                                     {entry.total_score}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-sm font-bold text-center text-purple-700 hover:bg-purple-50 transition-colors">
+                                    {entry.overall_score}
                                   </td>
                                   <td className="px-3 py-2.5 text-center">
                                     <button
-                                onClick={(e) => handleReaction(entry.id, e)}
-                                className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform">
-                                
+                                      onClick={(e) => handleReaction(entry.id, e)}
+                                      disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                      className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
                                       <Heart className={`w-4 h-4 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-sm font-medium">{entry.likes_count || 0}</span>
                                     </button>
