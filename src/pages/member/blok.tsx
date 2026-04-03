@@ -29,8 +29,8 @@ import {
   ChevronRight,
   ThumbsUp,
   Heart,
-  Target } from
-"lucide-react";
+  Target,
+} from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -38,8 +38,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 type GameSummary = Pick<
   Tables<"games">,
-  "id" | "game_name" | "game_format" | "game_date" | "created_at">;
-
+  "id" | "game_name" | "game_format" | "game_date" | "created_at"
+>;
 
 interface RawPlayerScore extends Tables<"game_players"> {
   member: {
@@ -75,18 +75,18 @@ interface LeaderboardEntry {
 }
 
 type SortField =
-"rank" |
-"username" |
-"game1_score" |
-"game2_score" |
-"game3_score" |
-"game4_score" |
-"game5_score" |
-"handicap" |
-"total_score" |
-"overall_score" |
-"average_score" |
-"difference";
+  | "rank"
+  | "username"
+  | "game1_score"
+  | "game2_score"
+  | "game3_score"
+  | "game4_score"
+  | "game5_score"
+  | "handicap"
+  | "total_score"
+  | "overall_score"
+  | "average_score"
+  | "difference";
 
 type SortDirection = "asc" | "desc";
 
@@ -95,27 +95,27 @@ const STICKY_LEFT = {
   avatar: "left-14",
   player: "left-28",
   overall: "left-[13rem]",
-  diff: "left-[19rem]"
+  diff: "left-[19rem]",
 };
 
 function sortData(
-data: LeaderboardEntry[],
-field: SortField,
-direction: SortDirection)
-: LeaderboardEntry[] {
+  data: LeaderboardEntry[],
+  field: SortField,
+  direction: SortDirection
+): LeaderboardEntry[] {
   return [...data].sort((a, b) => {
     const aValue = field === "username" ? a.member.username.toLowerCase() : a[field];
     const bValue = field === "username" ? b.member.username.toLowerCase() : b[field];
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      return direction === "asc" ?
-      aValue.localeCompare(bValue) :
-      bValue.localeCompare(aValue);
+      return direction === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     }
 
-    return direction === "asc" ?
-    Number(aValue) - Number(bValue) :
-    Number(bValue) - Number(aValue);
+    return direction === "asc"
+      ? Number(aValue) - Number(bValue)
+      : Number(bValue) - Number(aValue);
   });
 }
 
@@ -147,7 +147,7 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
     rank: index + 1,
     clean_game: entry.clean_game ?? false,
     likes_count: entry.likes_count ?? 0,
-    loves_count: entry.loves_count ?? 0
+    loves_count: entry.loves_count ?? 0,
   }));
 }
 
@@ -175,11 +175,11 @@ export default function BlokPage() {
 
   const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
   const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
-  const [cleanGameWinners, setCleanGameWinners] = useState<Array<{member_name: string;prize: number;}>>([]);
+  const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
   const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
-  const [reactions, setReactions] = useState<{id: string;playerId: string;x: number;y: number;}[]>([]);
-  const [particles, setParticles] = useState<{id: string;x: number;y: number;}[]>([]);
+  const [reactions, setReactions] = useState<{ id: string; playerId: string; x: number; y: number }[]>([]);
+  const [particles, setParticles] = useState<{ id: string; x: number; y: number }[]>([]);
   const [userLikesCount, setUserLikesCount] = useState<number>(0);
   const MAX_LIKES_PER_GAME = 5;
 
@@ -187,10 +187,10 @@ export default function BlokPage() {
   const isPageLoading = authLoading || isInitialLoading;
 
   const mostLikedPlayers = useMemo(() => {
-    return [...leaderboard].
-    filter((p) => p.likes_count > 0).
-    sort((a, b) => b.likes_count - a.likes_count).
-    slice(0, 3);
+    return [...leaderboard]
+      .filter((p) => p.likes_count > 0)
+      .sort((a, b) => b.likes_count - a.likes_count)
+      .slice(0, 3);
   }, [leaderboard]);
 
   const applyCurrentSort = useMemo(() => {
@@ -207,17 +207,17 @@ export default function BlokPage() {
       setLoadingGames(true);
       setError(null);
 
-      const { data, error: dbError } = await supabase.
-      from("games").
-      select("id, game_name, game_format, game_date, created_at").
-      order("game_date", { ascending: false });
+      const { data, error: dbError } = await supabase
+        .from("games")
+        .select("id, game_name, game_format, game_date, created_at")
+        .order("game_date", { ascending: false });
 
       if (dbError) throw dbError;
 
       const gameList = data ?? [];
       setGames(gameList);
 
-      const query = router.query as {[key: string]: string | string[] | undefined;};
+      const query = router.query as { [key: string]: string | string[] | undefined };
       const urlGameId = typeof query.gameId === "string" ? query.gameId : undefined;
       const urlDate = typeof query.date === "string" ? query.date : undefined;
 
@@ -243,7 +243,7 @@ export default function BlokPage() {
       if (showToast) {
         toast({
           title: "Data refreshed",
-          description: "Games loaded successfully."
+          description: "Games loaded successfully.",
         });
       }
     } catch (err) {
@@ -254,7 +254,7 @@ export default function BlokPage() {
         toast({
           title: "Connection error",
           description: message,
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } finally {
@@ -268,15 +268,15 @@ export default function BlokPage() {
     try {
       setLoadingLeaderboard(true);
 
-      const { data: rawData, error: dbError } = await supabase.
-      from("game_players").
-      select(
-        `
+      const { data: rawData, error: dbError } = await supabase
+        .from("game_players")
+        .select(
+          `
           *,
           member:members(id, username, full_name, avatar_url)
         `
-      ).
-      eq("game_id", gameId);
+        )
+        .eq("game_id", gameId);
 
       if (dbError) throw dbError;
 
@@ -314,11 +314,11 @@ export default function BlokPage() {
 
             const rankChange = oldEntry.rank - newEntry.rank;
             const rankText =
-            rankChange > 0 ?
-            `↑${rankChange} (Rank ${newEntry.rank})` :
-            rankChange < 0 ?
-            `↓${Math.abs(rankChange)} (Rank ${newEntry.rank})` :
-            `(Rank ${newEntry.rank})`;
+              rankChange > 0
+                ? `↑${rankChange} (Rank ${newEntry.rank})`
+                : rankChange < 0
+                ? `↓${Math.abs(rankChange)} (Rank ${newEntry.rank})`
+                : `(Rank ${newEntry.rank})`;
 
             notifications.push(
               `${newEntry.member.username} ${rankText}\n${changes.join(", ")}`
@@ -329,19 +329,19 @@ export default function BlokPage() {
         if (notifications.length > 0) {
           toast({
             title: "🎳 Skor Dikemaskini!",
-            description:
-            <div className="space-y-2 mt-2">
-                {notifications.map((notification, index) =>
-              <div
-                key={index}
-                className="text-sm whitespace-pre-line border-l-2 border-red-500 pl-2">
-                
+            description: (
+              <div className="space-y-2 mt-2">
+                {notifications.map((notification, index) => (
+                  <div
+                    key={index}
+                    className="text-sm whitespace-pre-line border-l-2 border-red-500 pl-2"
+                  >
                     {notification}
                   </div>
-              )}
-              </div>,
-
-            duration: 5000
+                ))}
+              </div>
+            ),
+            duration: 5000,
           });
         }
 
@@ -361,7 +361,7 @@ export default function BlokPage() {
       toast({
         title: "Error",
         description: message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoadingLeaderboard(false);
@@ -391,11 +391,11 @@ export default function BlokPage() {
     setCleanGameDialogOpen(true);
 
     try {
-      const { data: gameData, error } = await supabase.
-      from("games").
-      select("clean_game_data").
-      eq("id", selectedGame).
-      single();
+      const { data: gameData, error } = await supabase
+        .from("games")
+        .select("clean_game_data")
+        .eq("id", selectedGame)
+        .single();
 
       if (error) throw error;
 
@@ -409,20 +409,20 @@ export default function BlokPage() {
         return;
       }
 
-      const cleanGamePlayersCount = leaderboard.filter((p) => p.clean_game).length;
+      const cleanGamePlayersCount = leaderboard.filter(p => p.clean_game).length;
       const totalPrize = cleanGamePlayersCount * 2;
       const prizePerWinner = totalPrize / winnerIds.length;
 
-      const { data: winners, error: winnersError } = await supabase.
-      from("members").
-      select("id, username, full_name").
-      in("id", winnerIds);
+      const { data: winners, error: winnersError } = await supabase
+        .from("members")
+        .select("id, username, full_name")
+        .in("id", winnerIds);
 
       if (winnersError) throw winnersError;
 
       const formattedWinners = (winners || []).map((w) => ({
         member_name: w.username || w.full_name,
-        prize: prizePerWinner
+        prize: prizePerWinner,
       }));
 
       setCleanGameWinners(formattedWinners);
@@ -431,7 +431,7 @@ export default function BlokPage() {
       toast({
         title: "Ralat",
         description: "Gagal memuatkan pemenang clean game",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoadingCleanGame(false);
@@ -457,11 +457,11 @@ export default function BlokPage() {
       return <ArrowUpDown className="w-4 h-4 ml-1 opacity-20 hover:opacity-100 transition-opacity" />;
     }
 
-    return sortDirection === "asc" ?
-    <ArrowUp className="w-4 h-4 ml-1 text-sky-600" /> :
-
-    <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />;
-
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-4 h-4 ml-1 text-sky-600" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />
+    );
   };
 
   const getRankDisplay = (rank: number) => {
@@ -473,37 +473,37 @@ export default function BlokPage() {
             animate={{
               scale: [0, 1.2, 1],
               rotate: [180, 360, 0],
-              y: [0, -3, 0]
+              y: [0, -3, 0],
             }}
             transition={{
               type: "spring",
               stiffness: 200,
               damping: 10,
-              duration: 0.8
+              duration: 0.8,
             }}
-            className="relative">
-            
+            className="relative"
+          >
             <motion.div
               animate={{
                 rotate: [0, -10, 10, -10, 0],
                 boxShadow: [
-                "0 0 20px rgba(234,179,8,0.3)",
-                "0 0 40px rgba(234,179,8,0.6)",
-                "0 0 20px rgba(234,179,8,0.3)"]
-
+                  "0 0 20px rgba(234,179,8,0.3)",
+                  "0 0 40px rgba(234,179,8,0.6)",
+                  "0 0 20px rgba(234,179,8,0.3)",
+                ],
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="rounded-full">
-              
+              className="rounded-full"
+            >
               <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
             </motion.div>
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10" />
-            
-          </motion.div>);
-
+              className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10"
+            />
+          </motion.div>
+        );
 
       case 2:
         return (
@@ -511,21 +511,21 @@ export default function BlokPage() {
             initial={{ scale: 0, y: -50 }}
             animate={{ scale: [0, 1.1, 1], y: [-50, 0, 0] }}
             transition={{ delay: 0.15, type: "spring", stiffness: 180, damping: 12 }}
-            className="relative">
-            
+            className="relative"
+          >
             <motion.div
               animate={{ rotate: [0, -10, 10, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}>
-              
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
               <Trophy className="w-9 h-9 text-gray-400 drop-shadow-[0_0_12px_rgba(156,163,175,0.7)]" />
             </motion.div>
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-gray-300 blur-lg -z-10" />
-            
-          </motion.div>);
-
+              className="absolute inset-0 rounded-full bg-gray-300 blur-lg -z-10"
+            />
+          </motion.div>
+        );
 
       case 3:
         return (
@@ -533,21 +533,21 @@ export default function BlokPage() {
             initial={{ scale: 0, x: 50, opacity: 0 }}
             animate={{ scale: [0, 1.15, 1], x: [50, 0, 0], opacity: [0, 1, 1] }}
             transition={{ delay: 0.3, type: "spring", stiffness: 160, damping: 14 }}
-            className="relative">
-            
+            className="relative"
+          >
             <motion.div
               animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}>
-              
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
               <Trophy className="w-8 h-8 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.6)]" />
             </motion.div>
             <motion.div
               animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 rounded-full bg-amber-600 blur-lg -z-10" />
-            
-          </motion.div>);
-
+              className="absolute inset-0 rounded-full bg-amber-600 blur-lg -z-10"
+            />
+          </motion.div>
+        );
 
       default:
         return (
@@ -555,11 +555,11 @@ export default function BlokPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.4 + rank * 0.05, type: "spring" }}
-            className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-sky-600 border-2 border-sky-300 shadow-sm">
-            
+            className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-sky-600 border-2 border-sky-300 shadow-sm"
+          >
             {rank}
-          </motion.div>);
-
+          </motion.div>
+        );
     }
   };
 
@@ -569,12 +569,12 @@ export default function BlokPage() {
     return (
       <span
         className={`${score >= 200 ? "text-emerald-600 font-bold" : ""} ${
-        animatingScores.has(rowId) ? "score-changed" : ""}`
-        }>
-        
+          animatingScores.has(rowId) ? "score-changed" : ""
+        }`}
+      >
         {score}
-      </span>);
-
+      </span>
+    );
   };
 
   const loadUserLikesCount = async () => {
@@ -584,11 +584,11 @@ export default function BlokPage() {
     }
 
     try {
-      const { count } = await supabase.
-      from('player_reactions_log').
-      select('*', { count: 'exact', head: true }).
-      eq('member_id', currentUser.user_id).
-      in('game_player_id', leaderboard.map((p) => p.id));
+      const { count } = await supabase
+        .from('player_reactions_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('member_id', currentUser.user_id)
+        .in('game_player_id', leaderboard.map(p => p.id));
 
       setUserLikesCount(count || 0);
     } catch (error) {
@@ -605,7 +605,7 @@ export default function BlokPage() {
       toast({
         title: "Had Like Tercapai",
         description: `Anda telah menggunakan semua ${MAX_LIKES_PER_GAME} like untuk game ini. Tukar game lain untuk like lagi.`,
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -616,7 +616,7 @@ export default function BlokPage() {
 
     // Add reaction animation
     const reactionId = `reaction-${Date.now()}-${Math.random()}`;
-    setReactions((prev) => [...prev, { id: reactionId, playerId, x, y }]);
+    setReactions(prev => [...prev, { id: reactionId, playerId, x, y }]);
 
     // Add particles
     const particleIds = Array.from({ length: 8 }, (_, i) => ({
@@ -624,38 +624,38 @@ export default function BlokPage() {
       x,
       y
     }));
-    setParticles((prev) => [...prev, ...particleIds]);
+    setParticles(prev => [...prev, ...particleIds]);
 
     // Remove animations after completion
     setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== reactionId));
-      setParticles((prev) => prev.filter((p) => !particleIds.some((pid) => pid.id === p.id)));
+      setReactions(prev => prev.filter(r => r.id !== reactionId));
+      setParticles(prev => prev.filter(p => !particleIds.some(pid => pid.id === p.id)));
     }, 2000);
 
     try {
       // Optimistic update for instant feedback
-      setLeaderboard((prev) => prev.map((p) =>
-      p.id === playerId ? { ...p, likes_count: p.likes_count + 1 } : p
+      setLeaderboard(prev => prev.map(p => 
+        p.id === playerId ? { ...p, likes_count: p.likes_count + 1 } : p
       ));
 
       if (currentUser.user_id) {
-        await supabase.
-        from('player_reactions_log').
-        insert({
-          game_player_id: playerId,
-          member_id: currentUser.user_id,
-          reaction_type: 'like'
-        });
+        await supabase
+          .from('player_reactions_log')
+          .insert({
+            game_player_id: playerId,
+            member_id: currentUser.user_id,
+            reaction_type: 'like'
+          });
 
         // Increment user's like count
-        setUserLikesCount((prev) => prev + 1);
+        setUserLikesCount(prev => prev + 1);
 
         const remaining = MAX_LIKES_PER_GAME - userLikesCount - 1;
         toast({
           title: "Like Berjaya!",
-          description: remaining > 0 ?
-          `${remaining} like lagi. Anda boleh like pemain yang sama berkali-kali.` :
-          "Semua 5 like telah digunakan untuk game ini."
+          description: remaining > 0 
+            ? `${remaining} like lagi. Anda boleh like pemain yang sama berkali-kali.`
+            : "Semua 5 like telah digunakan untuk game ini.",
         });
       }
     } catch (error) {
@@ -674,8 +674,8 @@ export default function BlokPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => router.push("/member")}
-                  className="text-white hover:bg-white/20">
-                  
+                  className="text-white hover:bg-white/20"
+                >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
 
@@ -710,15 +710,15 @@ export default function BlokPage() {
               <Button
                 onClick={() => router.push("/member")}
                 variant="outline"
-                className="w-full text-sky-600 border-sky-200">
-                
+                className="w-full text-sky-600 border-sky-200"
+              >
                 Back to Dashboard
               </Button>
             </CardContent>
           </Card>
         </main>
-      </div>);
-
+      </div>
+    );
   }
 
   if (isPageLoading) {
@@ -732,8 +732,8 @@ export default function BlokPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => router.push("/member")}
-                  className="text-sky-700 hover:text-blue-600">
-                  
+                  className="text-sky-700 hover:text-blue-600"
+                >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
 
@@ -754,8 +754,8 @@ export default function BlokPage() {
             </div>
           </div>
         </main>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -803,8 +803,8 @@ export default function BlokPage() {
 
         <SEO
           title="Blok Leaderboard - AMBC Club"
-          description="View Blok game leaderboard and rankings" />
-        
+          description="View Blok game leaderboard and rankings"
+        />
 
         <div className="min-h-screen bg-white">
           <header className="sticky top-0 z-40 bg-white border-b border-sky-200 shadow-sm">
@@ -815,27 +815,27 @@ export default function BlokPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => router.push("/member")}
-                    className="text-sky-700 hover:text-blue-600 flex-shrink-0">
-                    
+                    className="text-sky-700 hover:text-blue-600 flex-shrink-0"
+                  >
                     <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
                   </Button>
 
                   <div className="min-w-0">
                     <h1 className="text-lg md:text-xl font-bold text-sky-900 truncate">Blok Leaderboard</h1>
-                    
+                    <p className="text-xs md:text-sm text-sky-600">Kedudukan Semasa</p>
                   </div>
                 </div>
                 <CardHeader>
                   <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                    
+                    <span>📊 Kedudukan</span>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
                         <Heart className="w-4 h-4 text-red-500" />
                         <span>{userLikesCount}/{MAX_LIKES_PER_GAME} Like</span>
                       </div>
-                      
-
-                      
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Boleh like pemain yang sama berkali-kali
+                      </p>
                     </div>
                   </CardTitle>
                 </CardHeader>
@@ -855,67 +855,67 @@ export default function BlokPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 md:p-6">
-                {loadingGames ?
-                <div className="flex justify-center py-8">
+                {loadingGames ? (
+                  <div className="flex justify-center py-8">
                     <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-                  </div> :
-                games.length === 0 ?
-                <div className="text-center py-8 text-sky-500">Tiada game tersedia</div> :
-
-                <div className="max-w-md mx-auto">
+                  </div>
+                ) : games.length === 0 ? (
+                  <div className="text-center py-8 text-sky-500">Tiada game tersedia</div>
+                ) : (
+                  <div className="max-w-md mx-auto">
                     <label className="block text-sm font-medium text-sky-700 mb-2">
                       Tarikh & Game
                     </label>
                     <select
-                    value={selectedGame || ""}
-                    onChange={(e) => setSelectedGame(e.target.value)}
-                    className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 font-medium transition-colors cursor-pointer appearance-none"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      backgroundPosition: `right 0.75rem center`,
-                      backgroundRepeat: `no-repeat`,
-                      backgroundSize: `1.5em 1.5em`,
-                      paddingRight: `2.5rem`
-                    }}>
-                    
+                      value={selectedGame || ""}
+                      onChange={(e) => setSelectedGame(e.target.value)}
+                      className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 font-medium transition-colors cursor-pointer appearance-none"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: `right 0.75rem center`,
+                        backgroundRepeat: `no-repeat`,
+                        backgroundSize: `1.5em 1.5em`,
+                        paddingRight: `2.5rem`,
+                      }}
+                    >
                       <option value="" disabled>
                         -- Sila Pilih Tarikh --
                       </option>
                       {games.map((game) => {
-                      const gameDate = new Date(game.game_date);
+                        const gameDate = new Date(game.game_date);
 
-                      const today = new Date();
-                      const yesterday = new Date(today);
-                      yesterday.setDate(yesterday.getDate() - 1);
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
 
-                      const isToday = gameDate.toDateString() === today.toDateString();
-                      const isYesterday = gameDate.toDateString() === yesterday.toDateString();
+                        const isToday = gameDate.toDateString() === today.toDateString();
+                        const isYesterday = gameDate.toDateString() === yesterday.toDateString();
 
-                      let prefix = "";
-                      if (isToday) prefix = "🟢 Hari Ini - ";else
-                      if (isYesterday) prefix = "🔵 Semalam - ";
+                        let prefix = "";
+                        if (isToday) prefix = "🟢 Hari Ini - ";
+                        else if (isYesterday) prefix = "🔵 Semalam - ";
 
-                      const fullDate = gameDate.toLocaleDateString("ms-MY", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric"
-                      });
+                        const fullDate = gameDate.toLocaleDateString("ms-MY", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        });
 
-                      return (
-                        <option key={game.id} value={game.id}>
+                        return (
+                          <option key={game.id} value={game.id}>
                             {prefix}
                             {game.game_name} ({fullDate})
-                          </option>);
-
-                    })}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
-                }
+                )}
               </CardContent>
             </Card>
 
-            {selectedGame &&
-            <Card className="bg-white border-sky-200 shadow-md overflow-hidden">
+            {selectedGame && (
+              <Card className="bg-white border-sky-200 shadow-md overflow-hidden">
                 <CardHeader className="border-b border-sky-200 bg-sky-50/50">
                   <CardTitle className="text-sky-900 flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-500" />
@@ -927,78 +927,78 @@ export default function BlokPage() {
                 </CardHeader>
 
                 <CardContent className="p-0">
-                  {loadingLeaderboard ?
-                <div className="flex justify-center items-center py-20">
+                  {loadingLeaderboard ? (
+                    <div className="flex justify-center items-center py-20">
                       <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
                       <span className="ml-3 text-sky-600">Memuatkan skor...</span>
-                    </div> :
-                leaderboard.length === 0 ?
-                <div className="text-center py-20 text-sky-500">
+                    </div>
+                  ) : leaderboard.length === 0 ? (
+                    <div className="text-center py-20 text-sky-500">
                       <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                       <p>Tiada skor untuk game ini</p>
-                    </div> :
-
-                <>
+                    </div>
+                  ) : (
+                    <>
                       <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
                         <p className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
                           <Sparkles className="w-4 h-4" />
                           Clean Game Winners
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {[1, 2, 3, 4, 5].map((gameNum) =>
-                      <motion.button
-                        key={gameNum}
-                        onClick={() => handleOpenCleanGameDialog(gameNum)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
-                        
+                          {[1, 2, 3, 4, 5].map((gameNum) => (
+                            <motion.button
+                              key={gameNum}
+                              onClick={() => handleOpenCleanGameDialog(gameNum)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="relative px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
+                            >
                               <motion.div
-                          animate={{
-                            boxShadow: [
-                            "0 0 0px rgba(251, 191, 36, 0.4)",
-                            "0 0 20px rgba(251, 191, 36, 0.6)",
-                            "0 0 0px rgba(251, 191, 36, 0.4)"]
-
-                          }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="absolute inset-0 rounded-lg" />
-                        
+                                animate={{
+                                  boxShadow: [
+                                    "0 0 0px rgba(251, 191, 36, 0.4)",
+                                    "0 0 20px rgba(251, 191, 36, 0.6)",
+                                    "0 0 0px rgba(251, 191, 36, 0.4)",
+                                  ],
+                                }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="absolute inset-0 rounded-lg"
+                              />
                               <span className="relative z-10">Game {gameNum}</span>
                             </motion.button>
-                      )}
+                          ))}
                         </div>
                       </div>
 
-                      {mostLikedPlayers.length > 0 &&
-                  <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
+                      {mostLikedPlayers.length > 0 && (
+                        <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
                           <p className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
                             <ThumbsUp className="w-4 h-4 text-blue-500 fill-blue-500 animate-pulse" />
                             Pemain Paling Popular
                           </p>
                           <div className="flex flex-wrap gap-3">
-                            {mostLikedPlayers.map((player, idx) =>
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-indigo-100 hover:shadow-md transition-shadow">
-                        
+                            {mostLikedPlayers.map((player, idx) => (
+                              <motion.div 
+                                key={player.id} 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-indigo-100 hover:shadow-md transition-shadow"
+                              >
                                 <div className="relative">
-                                  {player.member.avatar_url ?
-                          <Image
-                            src={player.member.avatar_url}
-                            alt={player.member.username}
-                            width={36}
-                            height={36}
-                            className="w-9 h-9 rounded-full object-cover border-2 border-indigo-50" /> :
-
-
-                          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
+                                  {player.member.avatar_url ? (
+                                    <Image
+                                      src={player.member.avatar_url}
+                                      alt={player.member.username}
+                                      width={36}
+                                      height={36}
+                                      className="w-9 h-9 rounded-full object-cover border-2 border-indigo-50"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
                                       {player.member.username[0].toUpperCase()}
                                     </div>
-                          }
+                                  )}
                                   <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-amber-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm border border-white">
                                     {idx + 1}
                                   </div>
@@ -1012,59 +1012,59 @@ export default function BlokPage() {
                                   </div>
                                 </div>
                               </motion.div>
-                      )}
+                            ))}
                           </div>
                         </div>
-                  }
+                      )}
 
                       <div className="block md:hidden space-y-2 p-2">
-                        {leaderboard.map((entry) =>
-                    <Card
-                      key={entry.id}
-                      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                      animatingScores.has(entry.id) ?
-                      "animate-pulse bg-yellow-50 border-yellow-400 border-2" :
-                      ""}`
-                      }
-                      onClick={() =>
-                      setExpandedRow((current) => current === entry.id ? null : entry.id)
-                      }>
-                      
+                        {leaderboard.map((entry) => (
+                          <Card
+                            key={entry.id}
+                            className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                              animatingScores.has(entry.id)
+                                ? "animate-pulse bg-yellow-50 border-yellow-400 border-2"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              setExpandedRow((current) => (current === entry.id ? null : entry.id))
+                            }
+                          >
                             <CardContent className="p-3 md:p-4">
                               <div className="flex items-center gap-2 md:gap-3">
                                 <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
 
                                 <div className="flex-shrink-0">
-                                  {entry.member.avatar_url ?
-                            <Image
-                              src={entry.member.avatar_url}
-                              alt={entry.member.username}
-                              width={50}
-                              height={50}
-                              className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200" /> :
-
-
-                            <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
+                                  {entry.member.avatar_url ? (
+                                    <Image
+                                      src={entry.member.avatar_url}
+                                      alt={entry.member.username}
+                                      width={50}
+                                      height={50}
+                                      className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200"
+                                    />
+                                  ) : (
+                                    <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
                                       {entry.member.username[0].toUpperCase()}
                                     </div>
-                            }
+                                  )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-1 flex-wrap">
                                     <Link
-                                href={`/member/profile?id=${entry.member.id}`}
-                                className={`font-semibold text-xs md:text-sm truncate hover:text-sky-600 transition-colors block ${
-                                currentUser?.id === entry.member.id ?
-                                "font-bold text-sky-600" :
-                                ""}`
-                                }>
-                                
+                                      href={`/member/profile?id=${entry.member.id}`}
+                                      className={`font-semibold text-xs md:text-sm truncate hover:text-sky-600 transition-colors block ${
+                                        currentUser?.id === entry.member.id
+                                          ? "font-bold text-sky-600"
+                                          : ""
+                                      }`}
+                                    >
                                       {entry.member.username}
                                     </Link>
-                                    {entry.clean_game &&
-                              <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500 flex-shrink-0" />
-                              }
+                                    {entry.clean_game && (
+                                      <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500 flex-shrink-0" />
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                                     <span
@@ -1072,11 +1072,6 @@ export default function BlokPage() {
                                     >
                                       <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                       {entry.total_score}
-                                    </span>
-                                    <span className="text-gray-400">•</span>
-                                    <span className="flex items-center gap-1 text-purple-700 font-semibold">
-                                      <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                      {entry.overall_score}
                                     </span>
                                     <button
                                       onClick={(e) => handleReaction(entry.id, e)}
@@ -1090,14 +1085,14 @@ export default function BlokPage() {
                                 </div>
 
                                 <ChevronRight
-                            className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform flex-shrink-0 ${
-                            expandedRow === entry.id ? "rotate-90" : ""}`
-                            } />
-                          
+                                  className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform flex-shrink-0 ${
+                                    expandedRow === entry.id ? "rotate-90" : ""
+                                  }`}
+                                />
                               </div>
 
-                              {expandedRow === entry.id &&
-                        <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-sky-200 space-y-2 md:space-y-3">
+                              {expandedRow === entry.id && (
+                                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-sky-200 space-y-2 md:space-y-3">
                                   <div className="grid grid-cols-5 gap-1.5 md:gap-2">
                                     <div className="text-center">
                                       <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G1</div>
@@ -1146,10 +1141,10 @@ export default function BlokPage() {
                                     </div>
                                   </div>
                                 </div>
-                        }
+                              )}
                             </CardContent>
                           </Card>
-                    )}
+                        ))}
                       </div>
 
                       <div className="hidden md:block">
@@ -1158,9 +1153,9 @@ export default function BlokPage() {
                             <thead>
                               <tr className="border-b border-sky-200">
                                 <th
-                              className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("rank")}>
-                              
+                                  className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
+                                  onClick={() => handleSort("rank")}
+                                >
                                   <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
                                     #
                                     {getSortIcon("rank")}
@@ -1168,17 +1163,17 @@ export default function BlokPage() {
                                 </th>
 
                                 <th
-                              className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
-                              
+                                  className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}
+                                >
                                   <span className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
                                     Avatar
                                   </span>
                                 </th>
 
                                 <th
-                              className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("username")}>
-                              
+                                  className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
+                                  onClick={() => handleSort("username")}
+                                >
                                   <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
                                     Player
                                     {getSortIcon("username")}
@@ -1186,9 +1181,9 @@ export default function BlokPage() {
                                 </th>
 
                                 <th
-                              className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("overall_score")}>
-                              
+                                  className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
+                                  onClick={() => handleSort("overall_score")}
+                                >
                                   <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
                                     Overall
                                     {getSortIcon("overall_score")}
@@ -1196,9 +1191,9 @@ export default function BlokPage() {
                                 </th>
 
                                 <th
-                              className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("difference")}>
-                              
+                                  className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
+                                  onClick={() => handleSort("difference")}
+                                >
                                   <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
                                     Diff
                                     {getSortIcon("difference")}
@@ -1206,97 +1201,170 @@ export default function BlokPage() {
                                 </th>
 
                                 <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10">
-                              
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10"
+                                >
                                   Game 1
                                 </th>
 
                                 <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
-                              
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20"
+                                >
                                   Game 2
                                 </th>
 
                                 <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20">
-                              
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20"
+                                >
                                   Game 3
                                 </th>
 
                                 <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20">
-                              
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20"
+                                >
                                   Game 4
                                 </th>
 
                                 <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
-                              
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20"
+                                >
                                   Game 5
                                 </th>
 
-                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20"
+                                >
                                   <div className="flex items-center justify-center gap-1">
                                     <Target className="w-4 h-4" />
                                     <span>Total</span>
                                   </div>
                                 </th>
-                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-purple-600 to-indigo-700 text-white z-10">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Award className="w-4 h-4" />
-                                    <span>Overall</span>
-                                  </div>
-                                </th>
-                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10"
+                                >
                                   <Heart className="w-4 h-4 mx-auto" />
                                 </th>
                               </tr>
                             </thead>
 
                             <tbody>
-                              {leaderboard.map((entry) =>
-                          <tr
-                            key={entry.id}
-                            className={`border-b transition-all duration-500 ${
-                            animatingScores.has(entry.id) ?
-                            "bg-yellow-100 animate-pulse" :
-                            "hover:bg-sky-50"}`
-                            }>
-                            
+                              {leaderboard.map((entry) => (
+                                <tr
+                                  key={entry.id}
+                                  className={`border-b transition-all duration-500 ${
+                                    animatingScores.has(entry.id)
+                                      ? "bg-yellow-100 animate-pulse"
+                                      : "hover:bg-sky-50"
+                                  }`}
+                                >
+                                  <td
+                                    className={`sticky ${STICKY_LEFT.rank} z-10 bg-white px-4 py-4 whitespace-nowrap text-center`}
+                                  >
+                                    <div className="flex items-center justify-center">
+                                      {getRankDisplay(entry.rank)}
+                                    </div>
+                                  </td>
+
+                                  <td
+                                    className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}
+                                  >
+                                    {entry.member.avatar_url ? (
+                                      <Image
+                                        src={entry.member.avatar_url}
+                                        alt={entry.member.username}
+                                        width={40}
+                                        height={40}
+                                        className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto"
+                                      />
+                                    ) : (
+                                      <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
+                                        {entry.member.username[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                  </td>
+
+                                  <td
+                                    className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <Link
+                                        href={`/member/profile?id=${entry.member.id}`}
+                                        className={`font-medium hover:text-sky-600 transition-colors ${
+                                          currentUser?.id === entry.member.id
+                                            ? "font-bold text-sky-600"
+                                            : ""
+                                        }`}
+                                      >
+                                        {entry.member.username}
+                                      </Link>
+                                      {entry.clean_game && (
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                      )}
+                                    </div>
+                                  </td>
+
+                                  <td
+                                    className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold text-emerald-600`}
+                                    style={{ color: "#16a34a" }}
+                                  >
+                                    {entry.overall_score || "-"}
+                                  </td>
+
+                                  <td
+                                    className={`sticky ${STICKY_LEFT.diff} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold`}
+                                  >
+                                    {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                                  </td>
+
+                                  <td className="px-3 py-4 whitespace-nowrap text-center border-l border-gray-100">
+                                    {formatScore(entry.game1_score, entry.id)}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                                    {formatScore(entry.game2_score, entry.id)}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                                    {formatScore(entry.game3_score, entry.id)}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                                    {formatScore(entry.game4_score, entry.id)}
+                                  </td>
+                                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                                    {formatScore(entry.game5_score, entry.id)}
+                                  </td>
+
+                                  <td className="px-3 py-4 whitespace-nowrap text-center font-semibold border-l border-gray-100">
+                                    {entry.handicap || "-"}
+                                  </td>
                                   <td
                                     className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors"
                                   >
                                     {entry.total_score}
                                   </td>
-                                  <td className="px-3 py-2.5 text-sm font-bold text-center text-purple-700 hover:bg-purple-50 transition-colors">
-                                    {entry.overall_score}
-                                  </td>
                                   <td className="px-3 py-2.5 text-center">
                                     <button
                                       onClick={(e) => handleReaction(entry.id, e)}
-                                      disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                      className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform"
                                     >
                                       <Heart className={`w-4 h-4 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-sm font-medium">{entry.likes_count || 0}</span>
                                     </button>
                                   </td>
                                 </tr>
-                          )}
+                              ))}
                             </tbody>
                           </table>
                         </div>
                       </div>
                     </>
-                }
+                  )}
                 </CardContent>
               </Card>
-            }
+            )}
           </main>
         </div>
 
-        {cleanGameDialogOpen &&
-        <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
+        {cleanGameDialogOpen && (
+          <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-xl">
@@ -1305,21 +1373,21 @@ export default function BlokPage() {
                 </DialogTitle>
               </DialogHeader>
 
-              {loadingCleanGame ?
-            <div className="flex flex-col items-center justify-center py-8">
+              {loadingCleanGame ? (
+                <div className="flex flex-col items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
                   <p className="text-sm text-sky-600">Menyemak pemenang...</p>
-                </div> :
-            cleanGameWinners.length === 0 ?
-            <div className="text-center py-8">
+                </div>
+              ) : cleanGameWinners.length === 0 ? (
+                <div className="text-center py-8">
                   <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                   <p className="text-gray-600 font-medium text-lg">Tiada pemenang Clean Game</p>
-                </div> :
-
-            <div className="space-y-3">
+                </div>
+              ) : (
+                <div className="space-y-3">
                   <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
                     <p className="text-sm text-amber-900 mb-1">
-                      Jumlah Hadiah: <span className="font-bold">RM{(leaderboard.filter((p) => p.clean_game).length * 2).toFixed(2)}</span>
+                      Jumlah Hadiah: <span className="font-bold">RM{((leaderboard.filter(p => p.clean_game).length) * 2).toFixed(2)}</span>
                     </p>
                     <p className="text-xs text-amber-700">
                       {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
@@ -1327,14 +1395,14 @@ export default function BlokPage() {
                   </div>
 
                   <div className="space-y-2">
-                    {cleanGameWinners.map((winner, idx) =>
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow">
-                  
+                    {cleanGameWinners.map((winner, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
                             {idx + 1}
@@ -1343,42 +1411,42 @@ export default function BlokPage() {
                         </div>
                         <span className="font-bold text-green-600">RM{winner.prize.toFixed(2)}</span>
                       </motion.div>
-                )}
+                    ))}
                   </div>
                 </div>
-            }
+              )}
             </DialogContent>
           </Dialog>
-        }
+        )}
 
         {/* Floating Reaction Hearts */}
-        {reactions.map((reaction) =>
-        <div
-          key={reaction.id}
-          className="heart-pop fixed pointer-events-none z-50 text-6xl"
-          style={{
-            left: `${reaction.x}px`,
-            top: `${reaction.y}px`
-          }}>
-          
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="heart-pop fixed pointer-events-none z-50 text-6xl"
+            style={{
+              left: `${reaction.x}px`,
+              top: `${reaction.y}px`,
+            }}
+          >
             ❤️
           </div>
-        )}
+        ))}
 
         {/* Particle Effects */}
-        {particles.map((particle) =>
-        <div
-          key={particle.id}
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: `${particle.x}px`,
-            top: `${particle.y}px`,
-            animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
-          }}>
-          
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="fixed pointer-events-none z-50"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`,
+            }}
+          >
             <Heart className="w-3 h-3 fill-red-500 text-red-500" />
           </div>
-        )}
+        ))}
 
         <style>{`
           @keyframes particle-0 { 
@@ -1415,6 +1483,6 @@ export default function BlokPage() {
           }
         `}</style>
       </>
-    </MemberLayout>);
-
+    </MemberLayout>
+  );
 }
