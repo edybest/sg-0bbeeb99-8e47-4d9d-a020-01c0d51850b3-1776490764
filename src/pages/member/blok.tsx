@@ -604,7 +604,7 @@ export default function BlokPage() {
     if (userLikesCount >= MAX_LIKES_PER_GAME) {
       toast({
         title: "Had Like Tercapai",
-        description: `Anda hanya boleh memberi ${MAX_LIKES_PER_GAME} like per game.`,
+        description: `Anda telah menggunakan semua ${MAX_LIKES_PER_GAME} like untuk game ini. Tukar game lain untuk like lagi.`,
         variant: "destructive",
       });
       return;
@@ -650,9 +650,12 @@ export default function BlokPage() {
         // Increment user's like count
         setUserLikesCount(prev => prev + 1);
 
+        const remaining = MAX_LIKES_PER_GAME - userLikesCount - 1;
         toast({
           title: "Like Berjaya!",
-          description: `${MAX_LIKES_PER_GAME - userLikesCount - 1} like lagi untuk game ini.`,
+          description: remaining > 0 
+            ? `${remaining} like lagi. Anda boleh like pemain yang sama berkali-kali.`
+            : "Semua 5 like telah digunakan untuk game ini.",
         });
       }
     } catch (error) {
@@ -825,9 +828,14 @@ export default function BlokPage() {
                 <CardHeader>
                   <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
                     <span>📊 Kedudukan</span>
-                    <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                      <Heart className="w-4 h-4 text-red-500" />
-                      <span>{userLikesCount}/{MAX_LIKES_PER_GAME} Like</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                        <Heart className="w-4 h-4 text-red-500" />
+                        <span>{userLikesCount}/{MAX_LIKES_PER_GAME} Like</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-normal">
+                        Boleh like pemain yang sama berkali-kali
+                      </p>
                     </div>
                   </CardTitle>
                 </CardHeader>
