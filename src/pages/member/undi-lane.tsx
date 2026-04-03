@@ -520,53 +520,39 @@ export default function UndiLanePage() {
                     ) : (
                       <div className="w-full flex flex-col items-center">
                         {/* Spin Wheel */}
-                        {selectedGame && players.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="text-center text-2xl">
-                                🎡 Undian Lane
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-col items-center gap-6">
-                              <LaneSpinWheel
-                                players={players}
-                                onSpinComplete={handleSpinComplete}
-                                isSpinning={spinning}
-                              />
+                        {selectedGame && availableLanes.length > 0 && (
+                          <div className="flex flex-col items-center gap-10 w-full relative pt-4 pb-8">
+                            <LaneSpinWheel
+                              ref={wheelRef as any}
+                              items={availableLanes}
+                              rotation={rotation}
+                              isSpinning={spinning}
+                              onSpinClick={spinWheel}
+                            />
 
-                              {/* Controls */}
-                              <div className="flex gap-3">
-                                <Button
-                                  onClick={handleSpin}
-                                  disabled={spinning || players.length === 0}
-                                  size="lg"
-                                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
-                                >
-                                  {spinning ? (
-                                    <>
-                                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                      Berputar...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="w-5 h-5 mr-2" />
-                                      Mula Spin
-                                    </>
-                                  )}
-                                </Button>
-
-                                <Button
-                                  onClick={handleReset}
-                                  disabled={spinning || winners.length === 0}
-                                  variant="outline"
-                                  size="lg"
-                                >
-                                  <RotateCcw className="w-5 h-5 mr-2" />
-                                  Reset
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
+                            {/* Controls */}
+                            <div className="flex gap-4 mt-4">
+                              <Button
+                                onClick={handleResetSpins}
+                                disabled={spinning || allResults.length === 0}
+                                variant="outline"
+                                size="lg"
+                                className="h-14 px-6 rounded-2xl border-2 hover:bg-slate-100"
+                              >
+                                <RotateCcw className="w-5 h-5 mr-2" />
+                                Reset Game
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {selectedGame && availableLanes.length === 0 && (
+                          <div className="text-center p-10 w-full max-w-md bg-gradient-to-br from-sky-50 to-blue-50 rounded-3xl border-2 border-dashed border-sky-200 shadow-sm">
+                            <div className="w-16 h-16 bg-sky-100 text-sky-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Sparkles className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold text-sky-800 mb-2">Semua Lane Penuh!</h3>
+                            <p className="text-sky-600">Terima kasih, semua peserta telah mendapat lane masing-masing.</p>
+                          </div>
                         )}
                       </div>
                     )}
