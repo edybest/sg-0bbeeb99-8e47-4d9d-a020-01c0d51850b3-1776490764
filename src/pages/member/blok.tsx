@@ -29,6 +29,7 @@ import {
   ChevronRight,
   ThumbsUp,
   Heart,
+  Target,
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -179,6 +180,8 @@ export default function BlokPage() {
 
   const [reactions, setReactions] = useState<{ id: string; playerId: string; x: number; y: number }[]>([]);
   const [particles, setParticles] = useState<{ id: string; x: number; y: number }[]>([]);
+  const [userLikesCount, setUserLikesCount] = useState<number>(0);
+  const MAX_LIKES_PER_GAME = 5;
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -371,10 +374,8 @@ export default function BlokPage() {
 
   useEffect(() => {
     if (selectedGame) {
-      void loadLeaderboard(selectedGame);
-    } else {
-      setLeaderboard([]);
-      setLeaderboardBase([]);
+      loadLeaderboard();
+      loadUserLikesCount();
     }
   }, [selectedGame]);
 
@@ -576,8 +577,38 @@ export default function BlokPage() {
     );
   };
 
+  const loadUserLikesCount = async () => {
+    if (!currentUser?.user_id || !selectedGame) {
+      setUserLikesCount(0);
+      return;
+    }
+
+    try {
+      const { count } = await supabase
+        .from('player_reactions_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('member_id', currentUser.user_id)
+        .in('game_player_id', leaderboard.map(p => p.id));
+
+      setUserLikesCount(count || 0);
+    } catch (error) {
+      console.error('Error loading user likes count:', error);
+      setUserLikesCount(0);
+    }
+  };
+
   const handleReaction = async (playerId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     if (!currentUser || !selectedGame) return;
+
+    // Check like limit
+    if (userLikesCount >= MAX_LIKES_PER_GAME) {
+      toast({
+        title: "Had Like Tercapai",
+        description: `Anda hanya boleh memberi ${MAX_LIKES_PER_GAME} like per game.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     const rect = event.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
@@ -615,6 +646,14 @@ export default function BlokPage() {
             member_id: currentUser.user_id,
             reaction_type: 'like'
           });
+
+        // Increment user's like count
+        setUserLikesCount(prev => prev + 1);
+
+        toast({
+          title: "Like Berjaya!",
+          description: `${MAX_LIKES_PER_GAME - userLikesCount - 1} like lagi untuk game ini.`,
+        });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
@@ -783,6 +822,15 @@ export default function BlokPage() {
                     <p className="text-xs md:text-sm text-sky-600">Kedudukan Semasa</p>
                   </div>
                 </div>
+                <CardHeader>
+                  <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
+                    <span>📊 Kedudukan</span>
+                    <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
+                      <Heart className="w-4 h-4 text-red-500" />
+                      <span>{userLikesCount}/{MAX_LIKES_PER_GAME} Like</span>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
               </div>
             </div>
           </header>
@@ -1014,12 +1062,13 @@ export default function BlokPage() {
                                     <span
                                       className="flex items-center gap-1 text-sky-700"
                                     >
-                                      <Trophy className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                      <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                       {entry.total_score}
                                     </span>
                                     <button
                                       onClick={(e) => handleReaction(entry.id, e)}
-                                      className="flex items-center gap-1 hover:scale-110 transition-transform"
+                                      disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                      className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
@@ -1144,83 +1193,48 @@ export default function BlokPage() {
                                 </th>
 
                                 <th
-                                  className="px-3 py-3 text-center border-l border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("game1_score")}
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10"
                                 >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    G1
-                                    {getSortIcon("game1_score")}
+                                  Game 1
+                                </th>
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20"
+                                >
+                                  Game 2
+                                </th>
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20"
+                                >
+                                  Game 3
+                                </th>
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20"
+                                >
+                                  Game 4
+                                </th>
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20"
+                                >
+                                  Game 5
+                                </th>
+
+                                <th
+                                  className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20"
+                                >
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Target className="w-4 h-4" />
+                                    <span>Total</span>
                                   </div>
                                 </th>
 
                                 <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("game2_score")}
+                                  className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10"
                                 >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    G2
-                                    {getSortIcon("game2_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("game3_score")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    G3
-                                    {getSortIcon("game3_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("game4_score")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    G4
-                                    {getSortIcon("game4_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("game5_score")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    G5
-                                    {getSortIcon("game5_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center border-l border-sky-200 cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("handicap")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    HCP
-                                    {getSortIcon("handicap")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("total_score")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Total
-                                    {getSortIcon("total_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                                  className="px-3 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors"
-                                  onClick={() => handleSort("average_score")}
-                                >
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Avg
-                                    {getSortIcon("average_score")}
-                                  </div>
+                                  <Heart className="w-4 h-4 mx-auto" />
                                 </th>
                               </tr>
                             </thead>
