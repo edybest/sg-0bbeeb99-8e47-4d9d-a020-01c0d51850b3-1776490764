@@ -1073,10 +1073,20 @@ export default function BlokPage() {
                                       <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                       {entry.total_score}
                                     </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="flex items-center gap-1 text-purple-700 font-semibold">
+                                      <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                      {entry.overall_score}
+                                    </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className={`flex items-center gap-1 font-semibold ${entry.difference === 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                      <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                      {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                                    </span>
                                     <button
                                       onClick={(e) => handleReaction(entry.id, e)}
                                       disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                      className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed ml-1"
                                     >
                                       <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
@@ -1332,7 +1342,7 @@ export default function BlokPage() {
                                     {formatScore(entry.game5_score, entry.id)}
                                   </td>
 
-                                  <td className="px-3 py-4 whitespace-nowrap text-center font-semibold border-l border-gray-100">
+                                  <td className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors">
                                     {entry.handicap || "-"}
                                   </td>
                                   <td
