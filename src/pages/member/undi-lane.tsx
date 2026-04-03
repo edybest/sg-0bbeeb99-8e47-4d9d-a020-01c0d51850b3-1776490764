@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
-import { Loader2, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, RotateCcw, Sparkles, Trash2, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   getMemberSpinResult,
@@ -33,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { LaneSpinWheel } from "@/components/admin/LaneSpinWheel";
 
 interface SpinResultWithMember {
   id: string;
@@ -518,145 +519,55 @@ export default function UndiLanePage() {
                       </div>
                     ) : (
                       <div className="w-full flex flex-col items-center">
-                        <div className="relative w-full max-w-[320px] aspect-square flex flex-col items-center mb-8">
-                          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 z-20">
-                            <div className="w-0 h-0 border-l-[18px] border-l-transparent border-r-[18px] border-r-transparent border-t-[32px] border-t-blue-600 drop-shadow-xl" />
-                          </div>
+                        {/* Spin Wheel */}
+                        {selectedGame && players.length > 0 && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-center text-2xl">
+                                🎡 Undian Lane
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center gap-6">
+                              <LaneSpinWheel
+                                players={players}
+                                onSpinComplete={handleSpinComplete}
+                                isSpinning={spinning}
+                              />
 
-                          <div className="relative w-full aspect-square">
-                            <svg
-                              ref={wheelRef}
-                              key={spinAnimKey}
-                              viewBox="0 0 400 400"
-                              className="w-full h-full drop-shadow-2xl"
-                              style={{
-                                transform: `rotate(${spinning ? spinFromRotation : currentRotationRef.current}deg)`,
-                                animation: spinning ? "wheel-spin-realistic 5.2s forwards cubic-bezier(0.2, 0.8, 0.1, 1)" : undefined,
-                                ["--spin-to" as any]: `${rotation}deg`,
-                                willChange: "transform",
-                              }}
-                            >
-                              <defs>
-                                <radialGradient id="rimGrad" cx="50%" cy="50%" r="60%">
-                                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-                                  <stop offset="55%" stopColor="#e5e7eb" stopOpacity="0.9" />
-                                  <stop offset="100%" stopColor="#9ca3af" stopOpacity="0.95" />
-                                </radialGradient>
-                                <radialGradient id="innerShadow" cx="50%" cy="45%" r="60%">
-                                  <stop offset="0%" stopColor="#000000" stopOpacity="0" />
-                                  <stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
-                                </radialGradient>
-                                <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-                                  <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
-                                  <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                                </linearGradient>
-                              </defs>
+                              {/* Controls */}
+                              <div className="flex gap-3">
+                                <Button
+                                  onClick={handleSpin}
+                                  disabled={spinning || players.length === 0}
+                                  size="lg"
+                                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700"
+                                >
+                                  {spinning ? (
+                                    <>
+                                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                      Berputar...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="w-5 h-5 mr-2" />
+                                      Mula Spin
+                                    </>
+                                  )}
+                                </Button>
 
-                              <circle cx="200" cy="200" r="197" fill="none" stroke="url(#rimGrad)" strokeWidth="12" />
-                              <circle cx="200" cy="200" r="191" fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="2" />
-
-                              {availableLanes.map((lane, index) => {
-                                const segmentAngle = 360 / availableLanes.length;
-                                const startAngle = index * segmentAngle - 90;
-                                const endAngle = startAngle + segmentAngle;
-
-                                const startRad = (startAngle * Math.PI) / 180;
-                                const endRad = (endAngle * Math.PI) / 180;
-
-                                const x1 = 200 + 190 * Math.cos(startRad);
-                                const y1 = 200 + 190 * Math.sin(startRad);
-                                const x2 = 200 + 190 * Math.cos(endRad);
-                                const y2 = 200 + 190 * Math.sin(endRad);
-
-                                const largeArc = segmentAngle > 180 ? 1 : 0;
-                                const pathData = `M 200 200 L ${x1} ${y1} A 190 190 0 ${largeArc} 1 ${x2} ${y2} Z`;
-
-                                const color = WHEEL_COLORS[index % WHEEL_COLORS.length];
-
-                                const midAngle = startAngle + segmentAngle / 2;
-                                const textRadius = 130;
-                                const textX = 200 + textRadius * Math.cos((midAngle * Math.PI) / 180);
-                                const textY = 200 + textRadius * Math.sin((midAngle * Math.PI) / 180);
-
-                                return (
-                                  <g key={lane}>
-                                    <path d={pathData} fill={color} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
-                                    <text
-                                      x={textX}
-                                      y={textY}
-                                      fill="white"
-                                      fontSize="28"
-                                      fontWeight="800"
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                      transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`}
-                                      style={{
-                                        paintOrder: "stroke",
-                                        stroke: "rgba(0,0,0,0.3)",
-                                        strokeWidth: 4,
-                                        textShadow: "1px 2px 4px rgba(0,0,0,0.6)",
-                                        fontFamily: "var(--font-sans), sans-serif",
-                                        letterSpacing: "1px"
-                                      }}
-                                    >
-                                      {lane}
-                                    </text>
-                                  </g>
-                                );
-                              })}
-
-                              <circle cx="200" cy="200" r="75" fill="#ffffff" fillOpacity="0.95" />
-                              <circle cx="200" cy="200" r="70" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="3" />
-                              <circle cx="200" cy="200" r="190" fill="url(#gloss)" />
-                              <circle cx="200" cy="200" r="190" fill="url(#innerShadow)" opacity="0.25" />
-                            </svg>
-
-                            <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[38%] aspect-square">
-                              <div className="w-full h-full rounded-full bg-white shadow-[0_0_20px_rgba(0,0,0,0.3)] border-[4px] border-blue-200 flex items-center justify-center p-2.5">
-                                <div className="relative w-full h-full">
-                                  <Image src="/ambc-logo.png" alt="AMBC Logo" fill sizes="100vw" className="object-contain" />
-                                </div>
+                                <Button
+                                  onClick={handleReset}
+                                  disabled={spinning || winners.length === 0}
+                                  variant="outline"
+                                  size="lg"
+                                >
+                                  <RotateCcw className="w-5 h-5 mr-2" />
+                                  Reset
+                                </Button>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center space-y-4 w-full max-w-[280px] sm:max-w-[320px] relative z-10">
-                          <Button
-                            onClick={spinWheel}
-                            disabled={spinning || availableLanes.length === 0 || !isRegisteredForGame || isPastGame}
-                            className={`relative w-full text-xl sm:text-2xl font-black py-7 sm:py-8 rounded-2xl shadow-xl transition-all duration-300 uppercase tracking-widest overflow-hidden group ${
-                              !spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame 
-                                ? "bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1 hover:shadow-blue-500/50" 
-                                : "opacity-50 bg-gray-300 text-gray-500"
-                            }`}
-                            style={!spinning && availableLanes.length > 0 && isRegisteredForGame && !isPastGame ? { animation: 'buttonPulse 2s infinite' } : {}}
-                          >
-                            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            {spinning ? (
-                              <span className="flex items-center gap-3">
-                                <Loader2 className="animate-spin h-6 w-6 sm:h-8 sm:w-8" /> SPINNING...
-                              </span>
-                            ) : "SPIN NOW!"}
-                          </Button>
-
-                          <div className="min-h-[50px] flex items-center justify-center w-full">
-                            {isPastGame ? (
-                              <div className="px-4 py-2.5 rounded-xl bg-destructive/10 text-destructive text-xs sm:text-sm font-semibold border border-destructive/20 text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
-                                Tarikh untuk game ini telah lepas. Anda tidak boleh mengundi lagi.
-                              </div>
-                            ) : !isRegisteredForGame ? (
-                              <div className="px-4 py-2.5 rounded-xl bg-destructive/10 text-destructive text-xs sm:text-sm font-semibold border border-destructive/20 text-center w-full shadow-sm animate-in slide-in-from-bottom-2">
-                                Anda tidak tersenarai untuk game ini. Sila hubungi admin.
-                              </div>
-                            ) : selectedLane ? (
-                              <div className="px-6 py-2 rounded-full bg-blue-50 text-blue-700 font-bold text-base sm:text-lg animate-in zoom-in border border-blue-200 shadow-inner">
-                                Target: <span className="text-xl sm:text-2xl ml-1">{selectedLane}</span>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
+                            </CardContent>
+                          </Card>
+                        )}
                       </div>
                     )}
                   </CardContent>
