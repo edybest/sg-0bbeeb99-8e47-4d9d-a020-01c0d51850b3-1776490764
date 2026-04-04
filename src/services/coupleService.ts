@@ -250,8 +250,8 @@ class CoupleService {
   }
 
   async upsertCoupleScore(score: CoupleScoreInsert): Promise<void> {
-    const { error } = await supabase
-      .from("couple_scores")
+    const { error } = await (supabase
+      .from("couple_scores") as any)
       .upsert(score, {
         onConflict: "couple_id,game_id",
       });
@@ -263,8 +263,8 @@ class CoupleService {
   }
 
   async deleteCoupleScore(id: string): Promise<void> {
-    const { error } = await supabase
-      .from("couple_scores")
+    const { error } = await (supabase
+      .from("couple_scores") as any)
       .delete()
       .eq("id", id);
 
