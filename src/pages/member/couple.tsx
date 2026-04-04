@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/router";
-import MemberLayout from "@/components/member/MemberLayout";
+import { MemberLayout } from "@/components/member/MemberLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +33,7 @@ import {
 const MAX_LIKES_PER_GAME = 3;
 
 export default function CouplePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { member, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -46,21 +46,21 @@ export default function CouplePage() {
   const [userLikesCount, setUserLikesCount] = useState(0);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !member) {
       router.push("/login");
     }
-  }, [user, authLoading, router]);
+  }, [member, authLoading, router]);
 
   useEffect(() => {
     loadGames();
   }, []);
 
   useEffect(() => {
-    if (selectedGameId && user) {
+    if (selectedGameId && member) {
       loadLeaderboard();
       loadReactions();
     }
-  }, [selectedGameId, user]);
+  }, [selectedGameId, member]);
 
   const loadGames = async () => {
     try {
@@ -103,12 +103,12 @@ export default function CouplePage() {
   };
 
   const loadReactions = async () => {
-    if (!selectedGameId || !user?.id) return;
+    if (!selectedGameId || !member?.id) return;
 
     try {
       const [counts, userReactionsList] = await Promise.all([
         coupleService.getCoupleReactionCounts(selectedGameId),
-        coupleService.getCoupleReactions(selectedGameId, user.id),
+        coupleService.getCoupleReactions(selectedGameId, member.id),
       ]);
 
       setReactionCounts(counts);
@@ -130,7 +130,7 @@ export default function CouplePage() {
   const handleReaction = async (coupleScoreId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!user?.id || !selectedGameId) {
+    if (!member?.id || !selectedGameId) {
       toast({
         title: "Error",
         description: "Please login to react",
@@ -158,7 +158,7 @@ export default function CouplePage() {
     }
 
     try {
-      await coupleService.addCoupleReaction(coupleScoreId, selectedGameId, user.id);
+      await coupleService.addCoupleReaction(coupleScoreId, selectedGameId, member.id);
 
       setUserReactions((prev) => new Set([...prev, coupleScoreId]));
       setUserLikesCount((prev) => prev + 1);
@@ -209,7 +209,7 @@ export default function CouplePage() {
     return "text-red-700 bg-red-100";
   };
 
-  if (authLoading || !user) {
+  if (authLoading || !member) {
     return null;
   }
 
