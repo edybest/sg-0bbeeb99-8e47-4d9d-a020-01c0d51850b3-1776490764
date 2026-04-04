@@ -28,6 +28,7 @@ import {
   MessageSquare,
   MessageCircle,
   LogOut,
+  Heart,
 } from "lucide-react";
 import { CoupleManagement } from "@/components/admin/CoupleManagement";
 
