@@ -1,11 +1,54 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 
-type Couple = Database["public"]["Tables"]["couples"]["Row"];
-type CoupleInsert = Database["public"]["Tables"]["couples"]["Insert"];
-type CoupleUpdate = Database["public"]["Tables"]["couples"]["Update"];
-type CoupleScore = Database["public"]["Tables"]["couple_scores"]["Row"];
-type CoupleScoreInsert = Database["public"]["Tables"]["couple_scores"]["Insert"];
+type Couple = {
+  id: string;
+  couple_name: string;
+  player1_id: string;
+  player2_id: string;
+  created_at: string;
+};
+
+type CoupleInsert = {
+  couple_name: string;
+  player1_id: string;
+  player2_id: string;
+};
+
+type CoupleUpdate = {
+  couple_name?: string;
+  player1_id?: string;
+  player2_id?: string;
+};
+
+type CoupleScore = {
+  id: string;
+  couple_id: string;
+  game_id: string;
+  game1_score: number | null;
+  game2_score: number | null;
+  game3_score: number | null;
+  game4_score: number | null;
+  game5_score: number | null;
+  game6_score: number | null;
+  handicap: number | null;
+  total_score: number | null;
+  overall_score: number | null;
+  created_at: string;
+};
+
+type CoupleScoreInsert = {
+  couple_id: string;
+  game_id: string;
+  game1_score?: number | null;
+  game2_score?: number | null;
+  game3_score?: number | null;
+  game4_score?: number | null;
+  game5_score?: number | null;
+  game6_score?: number | null;
+  handicap?: number | null;
+  total_score?: number | null;
+  overall_score?: number | null;
+};
 
 export interface CoupleWithPlayers extends Couple {
   player1_name?: string;
@@ -98,7 +141,7 @@ class CoupleService {
       throw error;
     }
 
-    return data;
+    return data as Couple;
   }
 
   async updateCouple(id: string, updates: CoupleUpdate): Promise<Couple> {
@@ -114,7 +157,7 @@ class CoupleService {
       throw error;
     }
 
-    return data;
+    return data as Couple;
   }
 
   async deleteCouple(id: string): Promise<void> {
@@ -155,13 +198,13 @@ class CoupleService {
       player1_name: score.couple?.player1?.full_name || "Unknown",
       player2_name: score.couple?.player2?.full_name || "Unknown",
       couple_handicap: score.couple?.handicap || 0,
-    })) as CoupleScoreWithDetails[];
+    }));
   }
 
   async getCoupleLeaderboard(gameId: string): Promise<CoupleLeaderboardEntry[]> {
     const scores = await this.getCoupleScoresByGame(gameId);
 
-    const leaderboard: CoupleLeaderboardEntry[] = scores.map((score: any) => {
+    const leaderboard: CoupleLeaderboardEntry[] = scores.map((score) => {
       const total =
         (score.game1_score || 0) +
         (score.game2_score || 0) +
@@ -206,21 +249,17 @@ class CoupleService {
     return leaderboard;
   }
 
-  async upsertCoupleScore(score: CoupleScoreInsert): Promise<CoupleScore> {
-    const { data, error } = await supabase
+  async upsertCoupleScore(score: CoupleScoreInsert): Promise<void> {
+    const { error } = await supabase
       .from("couple_scores")
-      .upsert(score as any, {
+      .upsert(score, {
         onConflict: "couple_id,game_id",
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
       console.error("Error upserting couple score:", error);
       throw error;
     }
-
-    return data as CoupleScore;
   }
 
   async deleteCoupleScore(id: string): Promise<void> {
