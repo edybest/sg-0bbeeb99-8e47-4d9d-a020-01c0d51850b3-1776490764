@@ -155,7 +155,7 @@ class CoupleService {
       player1_name: score.couple?.player1?.full_name || "Unknown",
       player2_name: score.couple?.player2?.full_name || "Unknown",
       couple_handicap: score.couple?.handicap || 0,
-    }));
+    })) as CoupleScoreWithDetails[];
   }
 
   async getCoupleLeaderboard(gameId: string): Promise<CoupleLeaderboardEntry[]> {
