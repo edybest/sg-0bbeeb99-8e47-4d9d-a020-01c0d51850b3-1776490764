@@ -250,16 +250,13 @@ class CoupleService {
   }
 
   async upsertCoupleScore(score: CoupleScoreInsert): Promise<void> {
-    const client: any = supabase;
-    const result: any = await client
-      .from("couple_scores")
-      .upsert(score, {
-        onConflict: "couple_id,game_id",
-      });
-
-    if (result.error) {
-      console.error("Error upserting couple score:", result.error);
-      throw result.error;
+    try {
+      const client: any = supabase;
+      const result: any = await client.from("couple_scores").upsert(score, { onConflict: "couple_id,game_id" });
+      if (result.error) throw result.error;
+    } catch (error) {
+      console.error("Error upserting couple score:", error);
+      throw error;
     }
   }
 
