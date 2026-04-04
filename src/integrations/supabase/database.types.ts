@@ -317,6 +317,55 @@ export type Database = {
           },
         ]
       }
+      couple_reactions_log: {
+        Row: {
+          couple_score_id: string | null
+          created_at: string | null
+          game_id: string | null
+          id: string
+          member_id: string | null
+          reaction_type: string
+        }
+        Insert: {
+          couple_score_id?: string | null
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          member_id?: string | null
+          reaction_type: string
+        }
+        Update: {
+          couple_score_id?: string | null
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          member_id?: string | null
+          reaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_reactions_log_couple_score_id_fkey"
+            columns: ["couple_score_id"]
+            isOneToOne: false
+            referencedRelation: "couple_scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_reactions_log_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_reactions_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       couple_scores: {
         Row: {
           couple_id: string | null

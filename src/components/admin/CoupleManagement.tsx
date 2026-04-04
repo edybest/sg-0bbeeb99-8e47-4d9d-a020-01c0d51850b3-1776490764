@@ -47,7 +47,6 @@ export function CoupleManagement() {
     couple_name: "",
     player1_id: "",
     player2_id: "",
-    handicap: 0,
   });
 
   useEffect(() => {
@@ -145,7 +144,6 @@ export function CoupleManagement() {
       couple_name: couple.couple_name,
       player1_id: couple.player1_id,
       player2_id: couple.player2_id,
-      handicap: couple.handicap || 0,
     });
     setDialogOpen(true);
   };
@@ -177,7 +175,6 @@ export function CoupleManagement() {
       couple_name: "",
       player1_id: "",
       player2_id: "",
-      handicap: 0,
     });
     setEditingCouple(null);
   };
@@ -276,18 +273,6 @@ export function CoupleManagement() {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="handicap">Handicap</Label>
-                  <Input
-                    id="handicap"
-                    type="number"
-                    value={formData.handicap}
-                    onChange={(e) =>
-                      setFormData({ ...formData, handicap: parseInt(e.target.value) || 0 })
-                    }
-                  />
-                </div>
-
                 <div className="flex gap-2">
                   <Button type="submit" className="flex-1">
                     {editingCouple ? "Update" : "Create"}
@@ -313,14 +298,13 @@ export function CoupleManagement() {
                 <TableHead className="w-[200px]">Couple Name</TableHead>
                 <TableHead>Player 1</TableHead>
                 <TableHead>Player 2</TableHead>
-                <TableHead className="text-center">Handicap</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {couples.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                     <p>No couples yet. Click "Add Couple" to create one.</p>
                   </TableCell>
@@ -333,7 +317,6 @@ export function CoupleManagement() {
                     </TableCell>
                     <TableCell>{couple.player1_name}</TableCell>
                     <TableCell>{couple.player2_name}</TableCell>
-                    <TableCell className="text-center">{couple.handicap || 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
