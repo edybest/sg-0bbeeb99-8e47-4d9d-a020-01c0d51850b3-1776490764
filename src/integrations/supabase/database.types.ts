@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -311,6 +311,111 @@ export type Database = {
           {
             foreignKeyName: "comment_bans_member_id_fkey"
             columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couple_scores: {
+        Row: {
+          couple_id: string | null
+          created_at: string | null
+          game1_score: number | null
+          game2_score: number | null
+          game3_score: number | null
+          game4_score: number | null
+          game5_score: number | null
+          game6_score: number | null
+          handicap: number | null
+          id: string
+          overall_score: number | null
+          total_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          couple_id?: string | null
+          created_at?: string | null
+          game1_score?: number | null
+          game2_score?: number | null
+          game3_score?: number | null
+          game4_score?: number | null
+          game5_score?: number | null
+          game6_score?: number | null
+          handicap?: number | null
+          id?: string
+          overall_score?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          couple_id?: string | null
+          created_at?: string | null
+          game1_score?: number | null
+          game2_score?: number | null
+          game3_score?: number | null
+          game4_score?: number | null
+          game5_score?: number | null
+          game6_score?: number | null
+          handicap?: number | null
+          id?: string
+          overall_score?: number | null
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_scores_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: true
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      couples: {
+        Row: {
+          couple_name: string
+          created_at: string | null
+          game_id: string | null
+          id: string
+          player1_id: string | null
+          player2_id: string | null
+        }
+        Insert: {
+          couple_name: string
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          player1_id?: string | null
+          player2_id?: string | null
+        }
+        Update: {
+          couple_name?: string
+          created_at?: string | null
+          game_id?: string | null
+          id?: string
+          player1_id?: string | null
+          player2_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couples_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couples_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couples_player2_id_fkey"
+            columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
