@@ -15,7 +15,7 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
 import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
-import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3, Heart } from "lucide-react";
+import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
 import { CommentManagementPanel } from "@/components/admin/CommentManagementPanel";
@@ -28,7 +28,6 @@ import {
   MessageSquare,
   MessageCircle,
   LogOut,
-  Heart,
 } from "lucide-react";
 import { CoupleManagement } from "@/components/admin/CoupleManagement";
 
