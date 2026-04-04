@@ -261,14 +261,15 @@ class CoupleService {
   }
 
   async deleteCoupleScore(id: string): Promise<void> {
-    const { error } = await (supabase
-      .from("couple_scores") as any)
+    const client: any = supabase;
+    const result: any = await client
+      .from("couple_scores")
       .delete()
       .eq("id", id);
 
-    if (error) {
-      console.error("Error deleting couple score:", error);
-      throw error;
+    if (result.error) {
+      console.error("Error deleting couple score:", result.error);
+      throw result.error;
     }
   }
 
