@@ -370,6 +370,7 @@ export type Database = {
         Row: {
           couple_id: string | null
           created_at: string | null
+          game_id: string | null
           game1_score: number | null
           game2_score: number | null
           game3_score: number | null
@@ -385,6 +386,7 @@ export type Database = {
         Insert: {
           couple_id?: string | null
           created_at?: string | null
+          game_id?: string | null
           game1_score?: number | null
           game2_score?: number | null
           game3_score?: number | null
@@ -400,6 +402,7 @@ export type Database = {
         Update: {
           couple_id?: string | null
           created_at?: string | null
+          game_id?: string | null
           game1_score?: number | null
           game2_score?: number | null
           game3_score?: number | null
@@ -416,8 +419,15 @@ export type Database = {
           {
             foreignKeyName: "couple_scores_couple_id_fkey"
             columns: ["couple_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "couple_scores_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]
@@ -426,7 +436,6 @@ export type Database = {
         Row: {
           couple_name: string
           created_at: string | null
-          game_id: string | null
           id: string
           player1_id: string | null
           player2_id: string | null
@@ -434,7 +443,6 @@ export type Database = {
         Insert: {
           couple_name: string
           created_at?: string | null
-          game_id?: string | null
           id?: string
           player1_id?: string | null
           player2_id?: string | null
@@ -442,19 +450,11 @@ export type Database = {
         Update: {
           couple_name?: string
           created_at?: string | null
-          game_id?: string | null
           id?: string
           player1_id?: string | null
           player2_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "couples_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "couples_player1_id_fkey"
             columns: ["player1_id"]

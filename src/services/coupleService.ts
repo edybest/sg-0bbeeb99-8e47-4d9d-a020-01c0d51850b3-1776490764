@@ -174,14 +174,12 @@ class CoupleService {
 
   // ==================== COUPLE SCORES ====================
   async getCoupleScoresByGame(gameId: string): Promise<CoupleScoreWithDetails[]> {
-    // @ts-expect-error - TypeScript deep type instantiation issue with Supabase nested joins
     const { data, error } = await supabase
       .from("couple_scores")
       .select(`
         *,
         couple:couples!couple_scores_couple_id_fkey(
           couple_name,
-          handicap,
           player1:profiles!couples_player1_id_fkey(full_name),
           player2:profiles!couples_player2_id_fkey(full_name)
         )
