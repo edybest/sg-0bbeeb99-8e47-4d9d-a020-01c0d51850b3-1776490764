@@ -1,7 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/database.types";
 
-type Member = Database['public']['Tables']['members']['Row'];
+export type Member = {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  phone_number: string | null;
+  created_at: string;
+  average_score: number | null;
+  is_admin: boolean;
+};
 type MemberInsert = Database['public']['Tables']['members']['Insert'];
 type MemberUpdate = Database['public']['Tables']['members']['Update'];
 

@@ -30,10 +30,10 @@ import { coupleService, type CoupleWithPlayers } from "@/services/coupleService"
 import { memberService } from "@/services/memberService";
 import { Users, Plus, Edit, Trash2, Heart, Loader2 } from "lucide-react";
 
-interface Member {
-  user_id: string;
+type Member = {
+  id: string;
   full_name: string;
-}
+};
 
 export function CoupleManagement() {
   const { toast } = useToast();
@@ -69,7 +69,7 @@ export function CoupleManagement() {
       setCouples(couplesData);
       setMembers(
         membersData.map((m) => ({
-          user_id: m.user_id,
+          id: m.id,
           full_name: m.full_name || "Unknown",
         }))
       );
@@ -249,7 +249,7 @@ export function CoupleManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {members.map((member) => (
-                        <SelectItem key={member.user_id} value={member.user_id}>
+                        <SelectItem key={member.id} value={member.id}>
                           {member.full_name}
                         </SelectItem>
                       ))}
@@ -270,7 +270,7 @@ export function CoupleManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {members.map((member) => (
-                        <SelectItem key={member.user_id} value={member.user_id}>
+                        <SelectItem key={member.id} value={member.id}>
                           {member.full_name}
                         </SelectItem>
                       ))}
