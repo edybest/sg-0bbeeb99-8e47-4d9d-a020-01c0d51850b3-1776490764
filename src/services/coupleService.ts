@@ -249,16 +249,15 @@ class CoupleService {
     return leaderboard;
   }
 
-  async upsertCoupleScore(score) {
-    try {
-      const client: any = supabase;
-      const tableName = "couple_scores";
-      const result: any = await client.from(tableName).upsert(score, { onConflict: "couple_id,game_id" });
+  upsertCoupleScore(score) {
+    const client: any = supabase;
+    const tableName = "couple_scores";
+    return client.from(tableName).upsert(score, { onConflict: "couple_id,game_id" }).then((result: any) => {
       if (result.error) throw result.error;
-    } catch (error) {
+    }).catch((error: any) => {
       console.error("Error upserting couple score:", error);
       throw error;
-    }
+    });
   }
 
   async deleteCoupleScore(id: string) {
