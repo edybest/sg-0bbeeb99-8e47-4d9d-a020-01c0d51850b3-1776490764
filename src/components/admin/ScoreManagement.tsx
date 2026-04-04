@@ -1760,7 +1760,7 @@ Eby,,168,116,153,152,176,18,no</pre>
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Couple Scores in This Game</h4>
                 <div className="space-y-2">
                   {coupleScores.map((cs) => (
-                    <div key={cs.id} className="bg-white rounded-lg p-3 border border-pink-200 flex items-center justify-between">
+                    <div key={cs.id} className="bg-white rounded-lg p-3 border-2 border-pink-200 flex items-center justify-between">
                       <div>
                         <div className="font-semibold text-gray-900">{cs.couple_name}</div>
                         <div className="text-xs text-gray-600">{cs.player1_name} + {cs.player2_name}</div>
