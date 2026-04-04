@@ -20,6 +20,7 @@ import {
   Award,
   ImageIcon,
   MessageSquare,
+  Heart,
   Shuffle } from
 "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -138,6 +139,16 @@ export default function MemberDashboard() {
     iconColor: "text-sky-100",
     badgeText: "Game",
     badgeColor: "bg-sky-100 text-sky-700"
+  },
+  {
+    title: "Couple",
+    description: "Leaderboard bergandingan",
+    href: "/member/couple",
+    icon: Heart,
+    gradient: "from-pink-400 to-rose-500",
+    iconColor: "text-pink-100",
+    badgeText: "Team",
+    badgeColor: "bg-pink-100 text-pink-700"
   },
   {
     title: "Five+Five",

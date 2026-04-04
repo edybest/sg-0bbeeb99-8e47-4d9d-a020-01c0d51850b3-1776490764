@@ -22,14 +22,9 @@ const memberAccessiblePages = [
   "/member",
   "/member/profile",
   "/member/blok",
+  "/member/couple",
   "/member/five-five",
   "/member/training",
-  "/member/lane",
-  "/member/undi-lane",
-  "/member/average-score",
-  "/member/hall-of-fame",
-  "/member/mini-blok",
-  "/member/feedback",
 ];
 
 export const pageAccessService = {

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Home, Trophy, Target, Award, MapPin, Dices, Gamepad2, TrendingUp, Image, MessageSquare, User, Star, Shuffle, MessageCircle } from "lucide-react";
+import { Home, Trophy, Target, Award, MapPin, Dices, Gamepad2, TrendingUp, Image, MessageSquare, User, Star, Shuffle, MessageCircle, Heart } from "lucide-react";
 
 const menuItems = [
   { href: "/member", icon: Home, label: "Home" },
   { href: "/member/blok", icon: Trophy, label: "Blok" },
+  { href: "/member/couple", icon: Heart, label: "Couple" },
   { href: "/member/five-five", icon: Star, label: "5+5" },
   { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame" },
   { href: "/member/average-score", icon: Target, label: "Average" },
