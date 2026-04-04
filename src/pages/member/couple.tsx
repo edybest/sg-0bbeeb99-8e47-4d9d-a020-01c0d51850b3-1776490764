@@ -1,0 +1,497 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/router";
+import MemberLayout from "@/components/member/MemberLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Avatar } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { gameService } from "@/services/gameService";
+import { coupleService, type CoupleLeaderboardEntry } from "@/services/coupleService";
+import {
+  Trophy,
+  Medal,
+  Award,
+  Crown,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Loader2,
+  Heart,
+  Target,
+  Users,
+} from "lucide-react";
+
+const MAX_LIKES_PER_GAME = 3;
+
+export default function CouplePage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [games, setGames] = useState<any[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<string>("");
+  const [leaderboard, setLeaderboard] = useState<CoupleLeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
+  const [userLikesCount, setUserLikesCount] = useState(0);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    loadGames();
+  }, []);
+
+  useEffect(() => {
+    if (selectedGameId && user) {
+      loadLeaderboard();
+      loadReactions();
+    }
+  }, [selectedGameId, user]);
+
+  const loadGames = async () => {
+    try {
+      const gamesData = await gameService.getAllGames();
+      const sortedGames = gamesData.sort(
+        (a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime()
+      );
+      setGames(sortedGames);
+
+      if (sortedGames.length > 0 && !selectedGameId) {
+        setSelectedGameId(sortedGames[0].id);
+      }
+    } catch (error) {
+      console.error("Error loading games:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load games",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadLeaderboard = async () => {
+    if (!selectedGameId) return;
+
+    try {
+      setLoading(true);
+      const data = await coupleService.getCoupleLeaderboard(selectedGameId);
+      setLeaderboard(data);
+    } catch (error) {
+      console.error("Error loading leaderboard:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load leaderboard",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReactions = async () => {
+    if (!selectedGameId || !user?.id) return;
+
+    try {
+      const [counts, userReactionsList] = await Promise.all([
+        coupleService.getCoupleReactionCounts(selectedGameId),
+        coupleService.getCoupleReactions(selectedGameId, user.id),
+      ]);
+
+      setReactionCounts(counts);
+      setUserReactions(new Set(userReactionsList.map((r: any) => r.couple_score_id)));
+      setUserLikesCount(userReactionsList.length);
+
+      // Merge likes counts into leaderboard
+      setLeaderboard((prev) =>
+        prev.map((entry) => ({
+          ...entry,
+          likes_count: counts[entry.id] || 0,
+        }))
+      );
+    } catch (error) {
+      console.error("Error loading reactions:", error);
+    }
+  };
+
+  const handleReaction = async (coupleScoreId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!user?.id || !selectedGameId) {
+      toast({
+        title: "Error",
+        description: "Please login to react",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (userReactions.has(coupleScoreId)) {
+      toast({
+        title: "Already Liked",
+        description: "You've already liked this couple",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (userLikesCount >= MAX_LIKES_PER_GAME) {
+      toast({
+        title: "Like Limit Reached",
+        description: `You can only like ${MAX_LIKES_PER_GAME} couples per game`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await coupleService.addCoupleReaction(coupleScoreId, selectedGameId, user.id);
+
+      setUserReactions((prev) => new Set([...prev, coupleScoreId]));
+      setUserLikesCount((prev) => prev + 1);
+      setReactionCounts((prev) => ({
+        ...prev,
+        [coupleScoreId]: (prev[coupleScoreId] || 0) + 1,
+      }));
+
+      setLeaderboard((prev) =>
+        prev.map((entry) =>
+          entry.id === coupleScoreId
+            ? { ...entry, likes_count: (entry.likes_count || 0) + 1 }
+            : entry
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Liked!",
+      });
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add reaction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Crown className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />;
+    if (rank === 2) return <Medal className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />;
+    if (rank === 3) return <Medal className="w-5 h-5 md:w-6 md:h-6 text-amber-700" />;
+    return <span className="text-sm font-semibold text-gray-600">#{rank}</span>;
+  };
+
+  const getDifferenceIcon = (diff: number) => {
+    if (diff === 0) return <Minus className="w-3 h-3 md:w-4 md:h-4" />;
+    if (diff > 0) return <TrendingDown className="w-3 h-3 md:w-4 md:h-4" />;
+    return <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />;
+  };
+
+  const getDifferenceColor = (diff: number) => {
+    if (diff === 0) return "text-green-600 bg-green-50";
+    if (diff <= 10) return "text-orange-600 bg-orange-50";
+    if (diff <= 30) return "text-red-500 bg-red-50";
+    return "text-red-700 bg-red-100";
+  };
+
+  if (authLoading || !user) {
+    return null;
+  }
+
+  return (
+    <MemberLayout>
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 pb-20">
+        <div className="container max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-8">
+          {/* Header */}
+          <div className="mb-6 md:mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 md:p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg">
+                <Heart className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                  Couple Leaderboard
+                </h1>
+                <p className="text-xs md:text-sm text-gray-600">Team bowling competition standings</p>
+              </div>
+            </div>
+
+            {/* Game Selector */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                  <label className="text-sm font-medium text-gray-700 md:min-w-[100px]">
+                    Select Game:
+                  </label>
+                  <Select value={selectedGameId} onValueChange={setSelectedGameId}>
+                    <SelectTrigger className="w-full md:max-w-md">
+                      <SelectValue placeholder="Choose a game" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {games.map((game) => (
+                        <SelectItem key={game.id} value={game.id}>
+                          {new Date(game.game_date).toLocaleDateString("en-MY", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}{" "}
+                          - {game.game_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Leaderboard */}
+          {loading ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 md:w-12 md:h-12 animate-spin text-pink-500" />
+              </CardContent>
+            </Card>
+          ) : leaderboard.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-20">
+                <Users className="w-16 h-16 md:w-20 md:h-20 text-gray-300 mb-4" />
+                <p className="text-gray-500 text-center">No couples yet for this game</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden shadow-xl">
+              <CardContent className="p-0">
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th className="sticky top-0 px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-600 to-pink-700 text-white z-10 w-20">
+                          Rank
+                        </th>
+                        <th className="sticky top-0 px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-600 to-pink-700 text-white z-10 min-w-[200px]">
+                          Couple
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G1
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G2
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G3
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G4
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G5
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
+                          G6
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
+                          <div className="flex items-center justify-center gap-1">
+                            <Target className="w-4 h-4" />
+                            <span>Total</span>
+                          </div>
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-purple-600 to-indigo-700 text-white z-10">
+                          <div className="flex items-center justify-center gap-1">
+                            <Award className="w-4 h-4" />
+                            <span>Overall</span>
+                          </div>
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-orange-500 to-red-600 text-white z-10">
+                          <div className="flex items-center justify-center gap-1">
+                            <TrendingUp className="w-4 h-4" />
+                            <span>Diff</span>
+                          </div>
+                        </th>
+                        <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
+                          <Heart className="w-4 h-4 mx-auto" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {leaderboard.map((entry) => (
+                        <tr
+                          key={entry.id}
+                          className="hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all duration-200"
+                        >
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center">
+                              {getRankIcon(entry.rank)}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <Avatar className="w-10 h-10 border-2 border-pink-200">
+                                  <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                                    <Heart className="w-5 h-5" />
+                                  </div>
+                                </Avatar>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-900">{entry.couple_name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {entry.player1_name} + {entry.player2_name}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game1_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game2_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game3_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game4_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game5_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
+                            {entry.game6_score || "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors">
+                            {entry.total_score}
+                          </td>
+                          <td className="px-3 py-2.5 text-sm font-bold text-center text-purple-700 hover:bg-purple-50 transition-colors">
+                            {entry.overall_score}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${getDifferenceColor(entry.difference)}`}
+                            >
+                              {getDifferenceIcon(entry.difference)}
+                              {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <button
+                              onClick={(e) => handleReaction(entry.id, e)}
+                              disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                              className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Heart
+                                className={`w-4 h-4 ${entry.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                              />
+                              <span className="text-sm font-medium">{entry.likes_count || 0}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="md:hidden divide-y divide-gray-200">
+                  {leaderboard.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="p-4 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all"
+                    >
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="flex-shrink-0 flex items-center justify-center w-10">
+                          {getRankIcon(entry.rank)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Avatar className="w-8 h-8 border-2 border-pink-200">
+                              <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                                <Heart className="w-4 h-4" />
+                              </div>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 text-sm truncate">
+                                {entry.couple_name}
+                              </h3>
+                              <p className="text-[10px] text-gray-500 truncate">
+                                {entry.player1_name} + {entry.player2_name}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
+                            <span className="flex items-center gap-1 text-sky-700">
+                              <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                              {entry.total_score}
+                            </span>
+                            <span className="text-gray-400">•</span>
+                            <span className="flex items-center gap-1 text-purple-700 font-semibold">
+                              <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                              {entry.overall_score}
+                            </span>
+                            <span className="text-gray-400">•</span>
+                            <span
+                              className={`flex items-center gap-1 font-semibold ${entry.difference === 0 ? "text-green-600" : "text-orange-600"}`}
+                            >
+                              <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                              {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                            </span>
+                            <button
+                              onClick={(e) => handleReaction(entry.id, e)}
+                              disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                              className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed ml-1"
+                            >
+                              <Heart
+                                className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                              />
+                              <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-6 gap-1.5 mt-2">
+                        {[
+                          entry.game1_score,
+                          entry.game2_score,
+                          entry.game3_score,
+                          entry.game4_score,
+                          entry.game5_score,
+                          entry.game6_score,
+                        ].map((score, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg p-2 text-center"
+                          >
+                            <div className="text-[9px] font-medium text-white/80">G{idx + 1}</div>
+                            <div className="text-sm font-bold text-white">{score || "-"}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </MemberLayout>
+  );
+}
