@@ -249,7 +249,7 @@ class CoupleService {
     return leaderboard;
   }
 
-  async upsertCoupleScore(score: any) {
+  async upsertCoupleScore(score) {
     try {
       const client: any = supabase;
       const result: any = await client.from("couple_scores").upsert(score, { onConflict: "couple_id,game_id" });
