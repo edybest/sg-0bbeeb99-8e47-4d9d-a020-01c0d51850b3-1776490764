@@ -15,7 +15,7 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
 import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
-import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3 } from "lucide-react";
+import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3, Heart } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
 import { CommentManagementPanel } from "@/components/admin/CommentManagementPanel";
@@ -28,7 +28,9 @@ import {
   MessageSquare,
   MessageCircle,
   LogOut,
+  Heart,
 } from "lucide-react";
+import { CoupleManagement } from "@/components/admin/CoupleManagement";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -159,6 +161,13 @@ export default function AdminPage() {
                   <span className="hidden sm:inline">Pengurusan</span> Skor
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="couples"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                >
+                  <Heart className="h-4 w-4 mr-2" />
+                  Pengurusan Pasangan
+                </TabsTrigger>
+                <TabsTrigger 
                   value="lanes"
                   className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
@@ -200,8 +209,12 @@ export default function AdminPage() {
                 <GameManagement />
               </TabsContent>
 
-              <TabsContent value="scores">
+              <TabsContent value="scores" className="space-y-6">
                 <ScoreManagement />
+              </TabsContent>
+
+              <TabsContent value="couples" className="space-y-6">
+                <CoupleManagement />
               </TabsContent>
 
               <TabsContent value="settings">

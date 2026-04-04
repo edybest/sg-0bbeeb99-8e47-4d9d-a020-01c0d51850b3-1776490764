@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Bell, LogOut, User } from "lucide-react";
+import { Bell, LogOut, User, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NavigationMenuLink } from "@/components/ui/navigation-menu";
+import { cn } from "@/lib/utils";
 
 export function MemberTopBarNav() {
   const { member, logout } = useAuth();
