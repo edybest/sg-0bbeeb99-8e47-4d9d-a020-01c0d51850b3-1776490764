@@ -89,8 +89,8 @@ class CoupleService {
       .from("couples")
       .select(`
         *,
-        player1:profiles!couples_player1_id_fkey(full_name),
-        player2:profiles!couples_player2_id_fkey(full_name)
+        player1:members!couples_player1_id_fkey(full_name),
+        player2:members!couples_player2_id_fkey(full_name)
       `)
       .order("created_at", { ascending: false });
 
@@ -180,8 +180,8 @@ class CoupleService {
         *,
         couple:couples!couple_scores_couple_id_fkey(
           couple_name,
-          player1:profiles!couples_player1_id_fkey(full_name),
-          player2:profiles!couples_player2_id_fkey(full_name)
+          player1:members!couples_player1_id_fkey(full_name),
+          player2:members!couples_player2_id_fkey(full_name)
         )
       `)
       .eq("game_id", gameId);
@@ -196,7 +196,7 @@ class CoupleService {
       couple_name: score.couple?.couple_name || "Unknown",
       player1_name: score.couple?.player1?.full_name || "Unknown",
       player2_name: score.couple?.player2?.full_name || "Unknown",
-      couple_handicap: score.couple?.handicap || 0,
+      couple_handicap: 0,
     }));
   }
 
