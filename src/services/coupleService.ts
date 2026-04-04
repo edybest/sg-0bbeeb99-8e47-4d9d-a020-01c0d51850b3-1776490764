@@ -161,7 +161,7 @@ class CoupleService {
   async getCoupleLeaderboard(gameId: string): Promise<CoupleLeaderboardEntry[]> {
     const scores = await this.getCoupleScoresByGame(gameId);
 
-    const leaderboard = scores.map((score) => {
+    const leaderboard: CoupleLeaderboardEntry[] = scores.map((score: any) => {
       const total =
         (score.game1_score || 0) +
         (score.game2_score || 0) +
@@ -209,7 +209,7 @@ class CoupleService {
   async upsertCoupleScore(score: CoupleScoreInsert): Promise<CoupleScore> {
     const { data, error } = await supabase
       .from("couple_scores")
-      .upsert(score, {
+      .upsert(score as any, {
         onConflict: "couple_id,game_id",
       })
       .select()
@@ -220,7 +220,7 @@ class CoupleService {
       throw error;
     }
 
-    return data;
+    return data as CoupleScore;
   }
 
   async deleteCoupleScore(id: string): Promise<void> {
