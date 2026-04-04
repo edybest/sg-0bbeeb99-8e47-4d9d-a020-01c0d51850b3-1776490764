@@ -56,10 +56,15 @@ export function CoupleManagement() {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log("Loading couples and members...");
+      
       const [couplesData, membersData] = await Promise.all([
         coupleService.getAllCouples(),
         memberService.getAllMembers(),
       ]);
+
+      console.log("Couples data:", couplesData);
+      console.log("Members data:", membersData);
 
       setCouples(couplesData);
       setMembers(
