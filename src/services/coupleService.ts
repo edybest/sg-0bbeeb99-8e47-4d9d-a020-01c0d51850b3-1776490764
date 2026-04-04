@@ -249,6 +249,7 @@ class CoupleService {
     return leaderboard;
   }
 
+  // @ts-ignore - TypeScript deep type instantiation issue with Supabase upsert
   upsertCoupleScore(score) {
     const client: any = supabase;
     const tableName = "couple_scores";
