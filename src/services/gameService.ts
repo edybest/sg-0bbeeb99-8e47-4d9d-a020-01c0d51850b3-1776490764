@@ -62,7 +62,7 @@ class GameService {
           )
         `)
         .order("game_date", { ascending: false })
-        .limit(50); // Limit to 50 most recent games for performance
+        .limit(500); // Limit to 50 most recent games for performance
 
       if (error) {
         console.error("Error fetching games:", error);
