@@ -18,6 +18,13 @@ const cache: {
 
 const CACHE_DURATION = 60000; // 1 minute
 
+const publicPages = [
+  "/",
+  "/login",
+  "/signup",
+  "/member/couple",
+];
+
 const memberAccessiblePages = [
   "/member",
   "/member/profile",

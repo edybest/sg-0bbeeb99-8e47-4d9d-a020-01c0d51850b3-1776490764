@@ -46,17 +46,11 @@ export default function CouplePage() {
   const [userLikesCount, setUserLikesCount] = useState(0);
 
   useEffect(() => {
-    if (!authLoading && !member) {
-      router.push("/login");
-    }
-  }, [member, authLoading, router]);
-
-  useEffect(() => {
     loadGames();
   }, []);
 
   useEffect(() => {
-    if (selectedGameId && member) {
+    if (selectedGameId) {
       loadLeaderboard();
       loadReactions();
     }
@@ -130,10 +124,19 @@ export default function CouplePage() {
   const handleReaction = async (coupleScoreId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!member?.id || !selectedGameId) {
+    if (!member?.id) {
+      toast({
+        title: "Login Required",
+        description: "Please login to react to couple scores",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedGameId) {
       toast({
         title: "Error",
-        description: "Please login to react",
+        description: "Please select a game first",
         variant: "destructive",
       });
       return;
@@ -208,10 +211,6 @@ export default function CouplePage() {
     if (diff <= 30) return "text-red-500 bg-red-50";
     return "text-red-700 bg-red-100";
   };
-
-  if (authLoading || !member) {
-    return null;
-  }
 
   return (
     <MemberLayout>
