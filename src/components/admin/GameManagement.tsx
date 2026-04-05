@@ -39,7 +39,7 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   }>;
 };
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 export function GameManagement() {
   const { toast } = useToast();
