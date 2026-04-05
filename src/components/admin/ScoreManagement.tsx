@@ -104,6 +104,9 @@ export function ScoreManagement() {
     game5: string[];
   }>({ game1: [], game2: [], game3: [], game4: [], game5: [] });
 
+  const selectedGame = games.find((g) => g.id === selectedGameId);
+  const isCoupleGame = selectedGame?.game_type === "COUPLE";
+
   useEffect(() => {
     loadGames();
     loadAllMembers();
@@ -815,9 +818,11 @@ export function ScoreManagement() {
         </CardContent>
       </Card>
 
-      <CoupleScoreEntry selectedGameId={selectedGameId} />
+      {selectedGameId && isCoupleGame && (
+        <CoupleScoreEntry selectedGameId={selectedGameId} />
+      )}
 
-      {selectedGameId && (
+      {selectedGameId && !isCoupleGame && (
         <>
           <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
             <CardContent className="p-4">

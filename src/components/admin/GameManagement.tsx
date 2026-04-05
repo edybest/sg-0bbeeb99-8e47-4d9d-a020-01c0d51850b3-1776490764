@@ -53,7 +53,7 @@ export function GameManagement() {
   const [gameForm, setGameForm] = useState({
     game_name: "",
     game_date: "",
-    game_type: "BLOK" as "BLOK" | "MINI_BLOK" | "UNDI_LANE",
+    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE",
   });
 
   // Delete Game Dialog
@@ -156,7 +156,7 @@ export function GameManagement() {
     setGameForm({
       game_name: game.game_name,
       game_date: game.game_date,
-      game_type: game.game_type as "BLOK" | "MINI_BLOK" | "UNDI_LANE",
+      game_type: (game.game_type as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") || "BLOK",
     });
     setIsGameDialogOpen(true);
   };
@@ -388,7 +388,7 @@ export function GameManagement() {
         </style>
       </head>
       <body>
-        <h1>AMBC ${game.game_type === 'UNDI_LANE' ? 'UNDI LANE' : game.game_type.replace('_', ' ')}</h1>
+        <h1>AMBC ${game.game_type === 'COUPLE' ? 'COUPLE' : game.game_type.replace('_', ' ')}</h1>
         <div class="date">Date: ${game.game_date}</div>
         <div class="container">
           <div style="flex: 1;">
@@ -455,14 +455,14 @@ export function GameManagement() {
 
   const gameTypeLabels = {
     BLOK: "Blok",
-    MINI_BLOK: "Mini Blok",
-    UNDI_LANE: "Undi Lane",
+    BLOK_SUKA_SUKI: "Blok Suka Suki",
+    COUPLE: "Couple",
   };
 
   const gameTypeColors = {
     BLOK: "bg-blue-500",
-    MINI_BLOK: "bg-green-500",
-    UNDI_LANE: "bg-purple-500",
+    BLOK_SUKA_SUKI: "bg-green-500",
+    COUPLE: "bg-pink-500",
   };
 
   // Pagination
@@ -532,7 +532,7 @@ export function GameManagement() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
-                          {game.game_type === "BLOK" ? "BLOK" : game.game_type === "MINI_BLOK" ? "MINI BLOK" : "UNDI LANE"}
+                          {game.game_type === "BLOK" ? "BLOK" : game.game_type === "BLOK_SUKA_SUKI" ? "BLOK SUKA SUKI" : "COUPLE"}
                         </Badge>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -756,7 +756,7 @@ export function GameManagement() {
                 <Label htmlFor="game_type">Jenis Permainan</Label>
                 <Select
                   value={gameForm.game_type}
-                  onValueChange={(value: "BLOK" | "MINI_BLOK" | "UNDI_LANE") =>
+                  onValueChange={(value: "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") =>
                     setGameForm({ ...gameForm, game_type: value })
                   }
                 >
@@ -765,8 +765,8 @@ export function GameManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="BLOK">Blok</SelectItem>
-                    <SelectItem value="MINI_BLOK">Mini Blok</SelectItem>
-                    <SelectItem value="UNDI_LANE">Undi Lane</SelectItem>
+                    <SelectItem value="BLOK_SUKA_SUKI">Blok Suka Suki</SelectItem>
+                    <SelectItem value="COUPLE">Couple</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
