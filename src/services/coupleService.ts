@@ -46,8 +46,6 @@ type CoupleScoreInsert = {
   game5_score?: number | null;
   game6_score?: number | null;
   handicap?: number | null;
-  total_score?: number | null;
-  overall_score?: number | null;
 };
 
 export interface CoupleWithPlayers extends Couple {
