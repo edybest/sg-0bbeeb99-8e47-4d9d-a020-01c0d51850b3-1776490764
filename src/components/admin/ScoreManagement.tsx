@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText, Sparkles, Heart } from "lucide-react";
+import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -82,7 +82,6 @@ export function ScoreManagement() {
   const [sortField, setSortField] = useState<string>("rank");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  // Image upload states
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -92,14 +91,6 @@ export function ScoreManagement() {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [showRawText, setShowRawText] = useState(false);
 
-  // Couple score states
-  const [couples, setCouples] = useState<any[]>([]);
-  const [selectedCoupleId, setSelectedCoupleId] = useState<string>("");
-  const [coupleScores, setCoupleScores] = useState<any[]>([]);
-  const [editingCoupleScore, setEditingCoupleScore] = useState<any>(null);
-  const [savingCouple, setSavingCouple] = useState(false);
-
-  // CSV upload states
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [uploadedCsv, setUploadedCsv] = useState<File | null>(null);
   const [csvParsing, setCsvParsing] = useState(false);
@@ -116,13 +107,11 @@ export function ScoreManagement() {
   useEffect(() => {
     loadGames();
     loadAllMembers();
-    loadCouples();
   }, []);
 
   useEffect(() => {
     if (selectedGameId) {
       loadGamePlayers(selectedGameId);
-      loadCoupleScores(selectedGameId);
     }
   }, [selectedGameId]);
 
@@ -154,24 +143,6 @@ export function ScoreManagement() {
       })));
     } catch (error) {
       console.error("Error loading members:", error);
-    }
-  }
-
-  async function loadCouples() {
-    try {
-      const data = await coupleService.getAllCouples();
-      setCouples(data);
-    } catch (error) {
-      console.error("Error loading couples:", error);
-    }
-  }
-
-  async function loadCoupleScores(gameId: string) {
-    try {
-      const data = await coupleService.getCoupleScoresByGame(gameId);
-      setCoupleScores(data);
-    } catch (error) {
-      console.error("Error loading couple scores:", error);
     }
   }
 
@@ -411,7 +382,6 @@ export function ScoreManagement() {
     return player[field] as number;
   }
 
-  // Image upload handlers
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -428,7 +398,6 @@ export function ScoreManagement() {
     };
     reader.readAsDataURL(file);
     
-    // Reset previous results
     setOcrResult(null);
     setParsedScores([]);
     setShowRawText(false);
@@ -492,70 +461,6 @@ export function ScoreManagement() {
     setOcrResult(null);
     setParsedScores([]);
     setShowRawText(false);
-  }
-
-  async function handleSaveCoupleScore() {
-    if (!selectedCoupleId || !selectedGameId) {
-      alert("Sila pilih couple dan game terlebih dahulu");
-      return;
-    }
-
-    if (!editingCoupleScore) {
-      alert("Tiada perubahan untuk disimpan");
-      return;
-    }
-
-    setSavingCouple(true);
-    try {
-      await coupleService.upsertCoupleScore({
-        couple_id: selectedCoupleId,
-        game_id: selectedGameId,
-        game1_score: editingCoupleScore.game1_score || 0,
-        game2_score: editingCoupleScore.game2_score || 0,
-        game3_score: editingCoupleScore.game3_score || 0,
-        game4_score: editingCoupleScore.game4_score || 0,
-        game5_score: editingCoupleScore.game5_score || 0,
-        game6_score: editingCoupleScore.game6_score || 0,
-        handicap: editingCoupleScore.handicap || 0,
-        total_score: editingCoupleScore.total_score || 0,
-        overall_score: editingCoupleScore.overall_score || 0,
-      });
-
-      await loadCoupleScores(selectedGameId);
-      setEditingCoupleScore(null);
-      setSelectedCoupleId("");
-      alert("Skor couple berjaya disimpan!");
-    } catch (error) {
-      console.error("Error saving couple score:", error);
-      alert("Gagal menyimpan skor couple");
-    } finally {
-      setSavingCouple(false);
-    }
-  }
-
-  function handleCoupleScoreChange(field: string, value: string) {
-    const numValue = parseInt(value) || 0;
-    
-    setEditingCoupleScore((prev: any) => {
-      const current = prev || {
-        game1_score: 0,
-        game2_score: 0,
-        game3_score: 0,
-        game4_score: 0,
-        game5_score: 0,
-        game6_score: 0,
-        handicap: 0,
-      };
-      
-      const updated = { ...current, [field]: numValue };
-      
-      const total = updated.game1_score + updated.game2_score + updated.game3_score + 
-                    updated.game4_score + updated.game5_score + updated.game6_score;
-      updated.total_score = total;
-      updated.overall_score = total + updated.handicap;
-      
-      return updated;
-    });
   }
 
   function resetUpload() {
@@ -650,7 +555,6 @@ export function ScoreManagement() {
     );
   }
 
-  // CSV upload handlers
   function handleCsvSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -836,7 +740,6 @@ export function ScoreManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Score Management</h2>
@@ -874,672 +777,6 @@ export function ScoreManagement() {
         </div>
       </div>
 
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Upload & Parse Score Image</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetUpload}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* Image Upload */}
-              {!imagePreview && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-2">Upload gambar score sheet</p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Pastikan gambar jelas dengan labels: Name/Player, G1-G5, HCP
-                  </p>
-                  <label className="cursor-pointer">
-                    <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-block">
-                      Pilih Gambar
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              )}
-
-              {/* Image Preview & Parse */}
-              {imagePreview && !ocrResult && (
-                <div className="space-y-4">
-                  <div className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden">
-                    <Image
-                      src={imagePreview}
-                      alt="Score preview"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleParseImage}
-                      disabled={parsing}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {parsing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing OCR...
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-4 w-4 mr-2" />
-                          Parse Score (AI)
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={retryWithNewImage}
-                      variant="outline"
-                      className="border-gray-300"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Change Image
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* OCR Results */}
-              {ocrResult && (
-                <div className="space-y-4">
-                  {/* OCR Success/Failure Banner */}
-                  {!ocrResult.success ? (
-                    <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-6 w-6 text-red-600 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-red-900 mb-1">OCR Detection Failed</h4>
-                          <p className="text-sm text-red-700 mb-3">
-                            {ocrResult.error || "Gagal mengesan text dari gambar"}
-                          </p>
-                          <div className="space-y-2 text-sm text-red-800">
-                            <p className="font-medium">Pastikan gambar ada labels:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li><code className="bg-red-100 px-1 rounded">Name:</code> atau <code className="bg-red-100 px-1 rounded">Player:</code></li>
-                              <li><code className="bg-red-100 px-1 rounded">G1:</code>, <code className="bg-red-100 px-1 rounded">G2:</code>, <code className="bg-red-100 px-1 rounded">G3:</code>, etc.</li>
-                              <li><code className="bg-red-100 px-1 rounded">HCP:</code> atau <code className="bg-red-100 px-1 rounded">Handicap:</code></li>
-                            </ul>
-                          </div>
-                          <div className="flex gap-2 mt-4">
-                            <Button
-                              onClick={() => setShowRawText(true)}
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                            >
-                              <RefreshCw className="h-4 w-4 mr-1" />
-                              Try Another Image
-                            </Button>
-                            <Button
-                              onClick={resetUpload}
-                              size="sm"
-                              variant="outline"
-                              className="border-red-300"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* OCR Confidence Summary */}
-                      <div className={`border-2 rounded-lg p-4 ${
-                        (ocrResult.confidence || 0) >= 80 ? "bg-green-50 border-green-200" :
-                        (ocrResult.confidence || 0) >= 60 ? "bg-yellow-50 border-yellow-200" :
-                        "bg-red-50 border-red-200"
-                      }`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Info className={`h-5 w-5 ${getConfidenceColor(ocrResult.confidence)}`} />
-                            <h4 className="font-semibold text-gray-900">OCR Detection Results</h4>
-                          </div>
-                          {getConfidenceBadge(ocrResult.confidence)}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm mt-3">
-                          <div>
-                            <span className="text-gray-600">Overall Confidence:</span>
-                            <span className={`ml-2 font-bold ${getConfidenceColor(ocrResult.confidence)}`}>
-                              {ocrResult.confidence?.toFixed(0)}%
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Scores Detected:</span>
-                            <span className="ml-2 font-bold text-gray-900">
-                              {parsedScores.length} player{parsedScores.length !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Low Confidence Warning */}
-                        {ocrResult.confidence && ocrResult.confidence < 70 && (
-                          <div className="mt-3 pt-3 border-t border-yellow-300">
-                            <div className="flex items-start gap-2">
-                              <AlertTriangle className="h-4 w-4 text-yellow-700 mt-0.5 flex-shrink-0" />
-                              <p className="text-xs text-yellow-800">
-                                <strong>Low confidence detection.</strong> Sila semak raw text di bawah dan verify semua scores before applying.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Raw OCR Text Toggle */}
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-gray-900">
-                          Detected Players ({parsedScores.length})
-                        </h4>
-                        <Button
-                          onClick={() => setShowRawText(!showRawText)}
-                          size="sm"
-                          variant="outline"
-                          className="border-gray-300"
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          {showRawText ? "Hide" : "Show"} Raw Text
-                        </Button>
-                      </div>
-
-                      {/* Raw OCR Text Display */}
-                      {showRawText && ocrResult.text && (
-                        <Card className="bg-gray-50 border-2 border-gray-300">
-                          <CardContent className="p-4">
-                            <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              Raw OCR Text (What AI Detected)
-                            </h5>
-                            <pre className="text-xs text-gray-800 whitespace-pre-wrap font-mono bg-white p-3 rounded border border-gray-200 max-h-48 overflow-y-auto">
-                              {ocrResult.text}
-                            </pre>
-                            <p className="text-xs text-gray-600 mt-2">
-                              💡 Use this to debug if scores are not detected correctly. Check for labels like "Name:", "G1:", "G2:", etc.
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* No Scores Detected */}
-                      {parsedScores.length === 0 && (
-                        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className="h-6 w-6 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-yellow-900 mb-1">No Scores Detected</h4>
-                              <p className="text-sm text-yellow-700 mb-3">
-                                OCR detected text tetapi tidak dapat extract structured scores.
-                              </p>
-                              <div className="space-y-2 text-sm text-yellow-800">
-                                <p className="font-medium">Pastikan gambar ada labels:</p>
-                                <ul className="list-disc list-inside space-y-1 ml-2">
-                                  <li><code className="bg-yellow-100 px-1 rounded">Name:</code> atau <code className="bg-yellow-100 px-1 rounded">Player:</code></li>
-                                  <li><code className="bg-yellow-100 px-1 rounded">G1:</code>, <code className="bg-yellow-100 px-1 rounded">G2:</code>, <code className="bg-yellow-100 px-1 rounded">G3:</code>, etc.</li>
-                                  <li><code className="bg-yellow-100 px-1 rounded">HCP:</code> atau <code className="bg-yellow-100 px-1 rounded">Handicap:</code></li>
-                                </ul>
-                              </div>
-                              <div className="flex gap-2 mt-4">
-                                <Button
-                                  onClick={() => setShowRawText(true)}
-                                  size="sm"
-                                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                                >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  Show What Was Detected
-                                </Button>
-                                <Button
-                                  onClick={retryWithNewImage}
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-yellow-300"
-                                >
-                                  <RefreshCw className="h-4 w-4 mr-1" />
-                                  Try Another Image
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Parsed Scores List */}
-                      {parsedScores.length > 0 && (
-                        <>
-                          <div className="flex justify-end">
-                            <Button
-                              onClick={handleApplyAllScores}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              disabled={!parsedScores.some(s => s.matchConfidence && s.matchConfidence >= 80)}
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Apply All High Confidence (≥80%)
-                            </Button>
-                          </div>
-
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {parsedScores.map((score, idx) => (
-                              <Card key={idx} className={`border-2 ${
-                                score.matchConfidence && score.matchConfidence >= 80
-                                  ? "border-green-200 bg-green-50"
-                                  : score.matchConfidence && score.matchConfidence >= 60
-                                  ? "border-yellow-200 bg-yellow-50"
-                                  : "border-red-200 bg-red-50"
-                              }`}>
-                                <CardContent className="p-4">
-                                  <div className="flex justify-between items-start mb-2">
-                                    <div className="flex-1">
-                                      <p className="font-semibold text-gray-900">
-                                        Detected: {score.name}
-                                      </p>
-                                      {score.matchedMember ? (
-                                        <div className="mt-1">
-                                          <p className="text-sm text-gray-600">
-                                            → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
-                                          </p>
-                                          <div className="mt-1 flex items-center gap-2">
-                                            {getConfidenceBadge(score.matchConfidence)}
-                                            {!players.some(p => p.member_id === score.matchedMember!.id) && (
-                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
-                                                + New Player
-                                              </span>
-                                            )}
-                                            {score.fivefive && (
-                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-purple-100 text-purple-700">
-                                                Five-Five
-                                              </span>
-                                            )}
-                                            {score.date && (
-                                              <span className="px-2 py-1 text-[10px] font-semibold rounded bg-gray-100 text-gray-700">
-                                                {score.date}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
-                                          <AlertCircle className="h-3 w-3" />
-                                          No match found - Please enter manually
-                                        </p>
-                                      )}
-                                    </div>
-                                    {score.matchedMember && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleApplyParsedScore(score)}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      >
-                                        Apply
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-5 gap-2 text-sm mt-3">
-                                    {score.scores.game1 !== undefined && (
-                                      <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
-                                        <div className="text-xs text-gray-500">G1</div>
-                                        <div className="font-semibold text-blue-600">{score.scores.game1}</div>
-                                      </div>
-                                    )}
-                                    {score.scores.game2 !== undefined && (
-                                      <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
-                                        <div className="text-xs text-gray-500">G2</div>
-                                        <div className="font-semibold text-green-600">{score.scores.game2}</div>
-                                      </div>
-                                    )}
-                                    {score.scores.game3 !== undefined && (
-                                      <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
-                                        <div className="text-xs text-gray-500">G3</div>
-                                        <div className="font-semibold text-purple-600">{score.scores.game3}</div>
-                                      </div>
-                                    )}
-                                    {score.scores.game4 !== undefined && (
-                                      <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
-                                        <div className="text-xs text-gray-500">G4</div>
-                                        <div className="font-semibold text-orange-600">{score.scores.game4}</div>
-                                      </div>
-                                    )}
-                                    {score.scores.game5 !== undefined && (
-                                      <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
-                                        <div className="text-xs text-gray-500">G5</div>
-                                        <div className="font-semibold text-pink-600">{score.scores.game5}</div>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {score.handicap !== undefined && (
-                                    <div className="mt-2 text-sm">
-                                      <span className="text-gray-600">Handicap:</span>
-                                      <span className="ml-2 font-semibold text-yellow-600">{score.handicap}</span>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        </>
-                      )}
-
-                      <div className="flex gap-2 pt-4 border-t">
-                        <Button
-                          onClick={retryWithNewImage}
-                          variant="outline"
-                          className="flex-1 border-gray-300"
-                        >
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Upload New Image
-                        </Button>
-                        <Button
-                          onClick={() => setShowUploadModal(false)}
-                          variant="outline"
-                          className="flex-1 border-gray-300"
-                        >
-                          Close
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* CSV Upload Modal */}
-      {showCsvModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Upload CSV Score File</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetCsvUpload}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* CSV Upload Instructions */}
-              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                  <Info className="h-5 w-5" />
-                  CSV Format Requirements
-                </h4>
-                <div className="text-sm text-blue-800 space-y-2">
-                  <p><strong>Required columns (case-insensitive):</strong></p>
-                  <ul className="list-disc list-inside ml-2 space-y-1">
-                    <li><code className="bg-blue-100 px-1 rounded">name</code> or <code className="bg-blue-100 px-1 rounded">player</code> - Player name</li>
-                    <li><code className="bg-blue-100 px-1 rounded">g1</code> / <code className="bg-blue-100 px-1 rounded">game1</code> - Game 1 score</li>
-                    <li><code className="bg-blue-100 px-1 rounded">g2</code> / <code className="bg-blue-100 px-1 rounded">game2</code> - Game 2 score</li>
-                    <li><code className="bg-blue-100 px-1 rounded">g3</code> / <code className="bg-blue-100 px-1 rounded">game3</code> - Game 3 score</li>
-                    <li><code className="bg-blue-100 px-1 rounded">g4</code> / <code className="bg-blue-100 px-1 rounded">game4</code> - Game 4 score</li>
-                    <li><code className="bg-blue-100 px-1 rounded">g5</code> / <code className="bg-blue-100 px-1 rounded">game5</code> - Game 5 score</li>
-                    <li><code className="bg-blue-100 px-1 rounded">hcp</code> / <code className="bg-blue-100 px-1 rounded">handicap</code> - Handicap (optional)</li>
-                    <li><code className="bg-blue-100 px-1 rounded">fivefive</code> - Five-Five (Optional: yes/no)</li>
-                    <li><code className="bg-blue-100 px-1 rounded">date</code> - Date (Optional: yyyy/mm/dd)</li>
-                  </ul>
-                  <p className="mt-2"><strong>Example CSV:</strong></p>
-                  <pre className="bg-blue-100 p-2 rounded text-xs overflow-x-auto">
-name,date,g1,g2,g3,g4,g5,hcp,fivefive
-HL,2026/03/24,190,159,199,215,166,24,yes
-Eby,,168,116,153,152,176,18,no</pre>
-                </div>
-              </div>
-
-              {/* CSV File Upload */}
-              {!uploadedCsv && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-2">Upload CSV file</p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    File must be in CSV format with proper column headers
-                  </p>
-                  <label className="cursor-pointer">
-                    <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block">
-                      Select CSV File
-                    </span>
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleCsvSelect}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              )}
-
-              {/* CSV File Selected */}
-              {uploadedCsv && csvParsedScores.length === 0 && (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-8 w-8 text-green-600" />
-                        <div>
-                          <p className="font-semibold text-green-900">{uploadedCsv.name}</p>
-                          <p className="text-sm text-green-700">
-                            {(uploadedCsv.size / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => setUploadedCsv(null)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-green-700 hover:text-green-900"
-                      >
-                        <X className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleParseCsv}
-                      disabled={csvParsing}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {csvParsing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing CSV...
-                        </>
-                      ) : (
-                        <>
-                          <Search className="h-4 w-4 mr-2" />
-                          Parse & Match Players
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => setUploadedCsv(null)}
-                      variant="outline"
-                      className="border-gray-300"
-                    >
-                      Change File
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* CSV Parsed Results */}
-              {csvParsedScores.length > 0 && (
-                <>
-                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Check className="h-5 w-5 text-green-600" />
-                        <h4 className="font-semibold text-green-900">CSV Parsed Successfully</h4>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm mt-3">
-                      <div>
-                        <span className="text-green-700">Total Rows:</span>
-                        <span className="ml-2 font-bold text-green-900">{csvParsedScores.length}</span>
-                      </div>
-                      <div>
-                        <span className="text-green-700">High Confidence Matches:</span>
-                        <span className="ml-2 font-bold text-green-900">
-                          {csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80).length}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end mb-4">
-                    <Button
-                      onClick={handleApplyAllCsvScores}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      disabled={!csvParsedScores.some(s => s.matchConfidence && s.matchConfidence >= 80)}
-                    >
-                      <Check className="h-4 w-4 mr-1" />
-                      Apply All High Confidence (≥80%)
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {csvParsedScores.map((score, idx) => (
-                      <Card key={idx} className={`border-2 ${
-                        score.matchConfidence && score.matchConfidence >= 80
-                          ? "border-green-200 bg-green-50"
-                          : score.matchConfidence && score.matchConfidence >= 60
-                          ? "border-yellow-200 bg-yellow-50"
-                          : "border-red-200 bg-red-50"
-                      }`}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900">
-                                CSV: {score.name}
-                              </p>
-                              {score.matchedMember ? (
-                                <div className="mt-1">
-                                  <p className="text-sm text-gray-600">
-                                    → Matched: {score.matchedMember.username} ({score.matchedMember.full_name})
-                                  </p>
-                                  <div className="mt-1 flex items-center gap-2">
-                                    {getConfidenceBadge(score.matchConfidence)}
-                                    {!players.some(p => p.member_id === score.matchedMember!.id) && (
-                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-blue-100 text-blue-700">
-                                        + New Player
-                                      </span>
-                                    )}
-                                    {score.fivefive && (
-                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-purple-100 text-purple-700">
-                                        Five-Five
-                                      </span>
-                                    )}
-                                    {score.date && (
-                                      <span className="px-2 py-1 text-[10px] font-semibold rounded bg-gray-100 text-gray-700">
-                                        {score.date}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
-                                  <AlertCircle className="h-3 w-3" />
-                                  No match found - Please enter manually
-                                </p>
-                              )}
-                            </div>
-                            {score.matchedMember && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApplyCsvScore(score)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                Apply
-                              </Button>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-5 gap-2 text-sm mt-3">
-                            {score.scores.game1 !== undefined && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-blue-200">
-                                <div className="text-xs text-gray-500">G1</div>
-                                <div className="font-semibold text-blue-600">{score.scores.game1}</div>
-                              </div>
-                            )}
-                            {score.scores.game2 !== undefined && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-green-200">
-                                <div className="text-xs text-gray-500">G2</div>
-                                <div className="font-semibold text-green-600">{score.scores.game2}</div>
-                              </div>
-                            )}
-                            {score.scores.game3 !== undefined && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-purple-200">
-                                <div className="text-xs text-gray-500">G3</div>
-                                <div className="font-semibold text-purple-600">{score.scores.game3}</div>
-                              </div>
-                            )}
-                            {score.scores.game4 !== undefined && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-orange-200">
-                                <div className="text-xs text-gray-500">G4</div>
-                                <div className="font-semibold text-orange-600">{score.scores.game4}</div>
-                              </div>
-                            )}
-                            {score.scores.game5 !== undefined && (
-                              <div className="bg-white rounded px-2 py-1 text-center border border-pink-200">
-                                <div className="text-xs text-gray-500">G5</div>
-                                <div className="font-semibold text-pink-600">{score.scores.game5}</div>
-                              </div>
-                            )}
-                          </div>
-                          {score.handicap !== undefined && (
-                            <div className="mt-2 text-sm">
-                              <span className="text-gray-600">Handicap:</span>
-                              <span className="ml-2 font-semibold text-yellow-600">{score.handicap}</span>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2 pt-4 border-t mt-4">
-                    <Button
-                      onClick={() => {
-                        setUploadedCsv(null);
-                        setCsvParsedScores([]);
-                      }}
-                      variant="outline"
-                      className="flex-1 border-gray-300"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Upload New CSV
-                    </Button>
-                    <Button
-                      onClick={() => setShowCsvModal(false)}
-                      variant="outline"
-                      className="flex-1 border-gray-300"
-                    >
-                      Close
-                    </Button>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Game Selection */}
       <Card className="bg-white border-gray-200">
         <CardContent className="p-4">
           <div className="space-y-4">
@@ -1578,10 +815,10 @@ Eby,,168,116,153,152,176,18,no</pre>
         </CardContent>
       </Card>
 
-      {/* Couple Score Entry */}
-          <CoupleScoreEntry selectedGameId={selectedGameId} />
+      <CoupleScoreEntry selectedGameId={selectedGameId} />
 
-          {/* Clean Game Prize Summary */}
+      {selectedGameId && (
+        <>
           <Card className="bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200">
             <CardContent className="p-4">
               <h3 className="text-lg font-bold text-amber-900 mb-3 flex items-center gap-2">
