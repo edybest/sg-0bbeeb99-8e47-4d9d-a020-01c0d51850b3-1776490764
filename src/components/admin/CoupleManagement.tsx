@@ -328,10 +328,14 @@ export function CoupleManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-gray-500">
-                        {couple.player1_profiles?.username || "Unknown"} + {couple.player2_profiles?.username || "Unknown"}
+                        {couple.player1_name || "Unknown"}
                       </div>
                     </TableCell>
-                    <TableCell></TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-500">
+                        {couple.player2_name || "Unknown"}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button

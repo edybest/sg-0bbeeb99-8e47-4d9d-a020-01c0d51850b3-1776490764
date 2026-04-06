@@ -87,8 +87,8 @@ class CoupleService {
       .from("couples")
       .select(`
         *,
-        player1:members!couples_player1_id_fkey(full_name),
-        player2:members!couples_player2_id_fkey(full_name)
+        player1:members!couples_player1_id_fkey(username),
+        player2:members!couples_player2_id_fkey(username)
       `)
       .order("created_at", { ascending: false });
 
@@ -99,8 +99,8 @@ class CoupleService {
 
     return (data || []).map((couple: any) => ({
       ...couple,
-      player1_name: couple.player1?.full_name || "Unknown",
-      player2_name: couple.player2?.full_name || "Unknown",
+      player1_name: couple.player1?.username || "Unknown",
+      player2_name: couple.player2?.username || "Unknown",
     }));
   }
 
@@ -109,8 +109,8 @@ class CoupleService {
       .from("couples")
       .select(`
         *,
-        player1:profiles!couples_player1_id_fkey(full_name),
-        player2:profiles!couples_player2_id_fkey(full_name)
+        player1:members!couples_player1_id_fkey(username),
+        player2:members!couples_player2_id_fkey(username)
       `)
       .eq("id", id)
       .single();
@@ -122,8 +122,8 @@ class CoupleService {
 
     return {
       ...data,
-      player1_name: (data as any).player1?.full_name || "Unknown",
-      player2_name: (data as any).player2?.full_name || "Unknown",
+      player1_name: (data as any).player1?.username || "Unknown",
+      player2_name: (data as any).player2?.username || "Unknown",
     };
   }
 
@@ -178,8 +178,8 @@ class CoupleService {
         *,
         couple:couples!couple_scores_couple_id_fkey(
           couple_name,
-          player1:members!couples_player1_id_fkey(full_name),
-          player2:members!couples_player2_id_fkey(full_name)
+          player1:members!couples_player1_id_fkey(username),
+          player2:members!couples_player2_id_fkey(username)
         )
       `)
       .eq("game_id", gameId);
@@ -192,8 +192,8 @@ class CoupleService {
     return (data || []).map((score: any) => ({
       ...score,
       couple_name: score.couple?.couple_name || "Unknown",
-      player1_name: score.couple?.player1?.full_name || "Unknown",
-      player2_name: score.couple?.player2?.full_name || "Unknown",
+      player1_name: score.couple?.player1?.username || "Unknown",
+      player2_name: score.couple?.player2?.username || "Unknown",
       couple_handicap: 0,
     }));
   }
