@@ -25,6 +25,13 @@ interface Member {
   avatar_url: string | null;
 }
 
+interface CoupleData {
+  id: string;           // couple_id
+  username: string;     // couple_name
+  full_name: string;    // player1_username + player2_username
+  avatar_url: null;
+}
+
 export function LaneManagement() {
   const { toast } = useToast();
   const { withLoading } = useGlobalLoading();
@@ -106,6 +113,74 @@ export function LaneManagement() {
     return spinResults.some(r => r.lane_position === lanePosition && r.member_id === memberId);
   };
 
+  const loadUnassignedPlayers = async (gameId: string) => {
+    try {
+      const game = games.find(g => g.id === gameId);
+      const isCouple = game?.game_type === 'COUPLE';
+
+      if (isCouple) {
+        // Ambil senarai couple dari couple_scores untuk game ini
+        const { data: coupleScores, error } = await supabase
+          .from('couple_scores')
+          .select(`
+            couple_id,
+            couple:couples(
+              id,
+              couple_name,
+              player1:members!couples_player1_id_fkey(username),
+              player2:members!couples_player2_id_fkey(username)
+            )
+          `)
+          .eq('game_id', gameId);
+
+        if (error) throw error;
+
+        // Ambil senarai lane_assignments untuk game ini untuk periksa couple mana dah assign
+        const { data: assignments } = await supabase
+          .from('lane_assignments')
+          .select('member_id')
+          .eq('game_id', gameId);
+        
+        const assignedMemberIds = new Set(assignments?.map(a => a.member_id) || []);
+
+        const unassignedCouples: CoupleData[] = [];
+
+        for (const cs of coupleScores || []) {
+          const couple = cs.couple as any;
+          if (!couple) continue;
+
+          // Dalam sistem couple, apabila drag & drop kita letak member_id = couple_id
+          // untuk mewakili satu entiti couple dalam lane. 
+          // Ataupun kita letak member_id player1 sebagai wakil. Kita gunakan couple_id sebagai id.
+          if (!assignedMemberIds.has(couple.id)) {
+            unassignedCouples.push({
+              id: couple.id,
+              username: couple.couple_name,
+              full_name: `${couple.player1?.username || ''} + ${couple.player2?.username || ''}`,
+              avatar_url: null
+            });
+          }
+        }
+
+        setMembers(unassignedCouples as Member[]);
+      } else {
+        // Logik asal untuk BLOK/individu
+        const [allMembersData, assignmentsData] = await Promise.all([
+          supabase.from("members").select("id, username, full_name, avatar_url").eq("status", "ACTIVE").order("username"),
+          supabase.from("lane_assignments").select("member_id").eq("game_id", gameId)
+        ]);
+
+        if (allMembersData.error) throw allMembersData.error;
+
+        const assignedIds = new Set(assignmentsData.data?.map(a => a.member_id) || []);
+        const unassignedMembers = (allMembersData.data || []).filter(m => !assignedIds.has(m.id));
+        setMembers(unassignedMembers as Member[]);
+      }
+    } catch (error) {
+      console.error("Error loading unassigned players:", error);
+    }
+  };
+
   const loadLaneAssignments = async (gameId: string) => {
     try {
       setLoading(true);
@@ -117,29 +192,44 @@ export function LaneManagement() {
 
       // If couple game, fetch couple names for display
       if (isCouple && laneAssignmentsData.length > 0) {
-        const assignmentsWithCouples = await Promise.all(
-          laneAssignmentsData.map(async (assignment: any) => {
-            try {
-              const coupleData = await laneService.getCoupleByPlayerAndGame(assignment.member_id, gameId);
-              if (coupleData && coupleData.couple) {
-                return {
-                  ...assignment,
-                  couple_name: coupleData.couple.couple_name,
-                  player1_username: coupleData.couple.player1?.username,
-                  player2_username: coupleData.couple.player2?.username,
-                };
-              }
-              return assignment;
-            } catch (error) {
-              console.error("Error fetching couple for assignment:", error);
-              return assignment;
-            }
-          })
-        );
+        // Jika kita simpan couple_id sebagai member_id dalam assignment...
+        const { data: couplesData } = await supabase
+          .from('couples')
+          .select(`
+            id,
+            couple_name,
+            player1:members!couples_player1_id_fkey(username),
+            player2:members!couples_player2_id_fkey(username)
+          `);
+
+        const couplesMap = new Map();
+        if (couplesData) {
+          couplesData.forEach((c: any) => {
+            couplesMap.set(c.id, c);
+          });
+        }
+
+        const assignmentsWithCouples = laneAssignmentsData.map((assignment: any) => {
+          // assignment.member_id sebenarnya adalah couple.id untuk COUPLE game
+          const couple = couplesMap.get(assignment.member_id);
+          if (couple) {
+            return {
+              ...assignment,
+              couple_name: couple.couple_name,
+              player1_username: couple.player1?.username,
+              player2_username: couple.player2?.username,
+            };
+          }
+          return assignment; // Fallback jika tidak jumpa
+        });
+        
         setAssignments(assignmentsWithCouples);
       } else {
         setAssignments(laneAssignmentsData);
       }
+
+      // Load senarai unassigned bila assignment ditukar
+      loadUnassignedPlayers(gameId);
     } catch (error) {
       console.error("Error loading lane assignments:", error);
       toast({
