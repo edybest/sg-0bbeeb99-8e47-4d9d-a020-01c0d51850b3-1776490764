@@ -498,13 +498,7 @@ export default function CouplePage() {
                             <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-cyan-600 text-white z-10">
                               G6
                             </th>
-                            <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
-                              <div className="flex items-center justify-center gap-1">
-                                <Target className="w-4 h-4" />
-                                <span>Total</span>
-                              </div>
-                            </th>
-                            <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-purple-600 to-indigo-700 text-white z-10">
+                            <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-purple-600 to-indigo-700 text-white z-10 border-l-2 border-white/20">
                               <div className="flex items-center justify-center gap-1">
                                 <Award className="w-4 h-4" />
                                 <span>Overall</span>
@@ -569,11 +563,10 @@ export default function CouplePage() {
                               <td className="px-3 py-2.5 text-sm text-center hover:bg-blue-50 transition-colors">
                                 {entry.game6_score || "-"}
                               </td>
-                              <td className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors">
-                                {entry.total_score}
-                              </td>
-                              <td className="px-3 py-2.5 text-sm font-bold text-center text-purple-700 hover:bg-purple-50 transition-colors">
-                                {entry.overall_score}
+                              <td className="px-3 py-4 text-center hover:bg-purple-50 transition-colors border-l border-gray-100">
+                                <span className="text-2xl md:text-3xl font-black text-purple-700 drop-shadow-sm">
+                                  {entry.overall_score}
+                                </span>
                               </td>
                               <td className="px-3 py-2.5 text-center">
                                 <span
@@ -666,13 +659,8 @@ export default function CouplePage() {
                               </div>
 
                               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
-                                <span className="flex items-center gap-1 text-sky-700">
-                                  <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                  {row.total_score}
-                                </span>
-                                <span className="text-gray-400">•</span>
-                                <span className="flex items-center gap-1 text-purple-700 font-semibold">
-                                  <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                <span className="flex items-center gap-1 text-purple-700 font-black text-lg md:text-xl">
+                                  <Award className="w-4 h-4 md:w-5 md:h-5" />
                                   {row.overall_score}
                                 </span>
                                 <span className="text-gray-400">•</span>
