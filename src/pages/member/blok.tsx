@@ -1334,7 +1334,8 @@ export default function BlokPage() {
                                   <td className="px-3 py-2.5 text-center">
                                     <button
                                 onClick={(e) => handleReaction(entry.id, e)}
-                                className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform">
+                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                                 
                                       <Heart className={`w-4 h-4 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
                                       <span className="text-sm font-medium">{entry.likes_count || 0}</span>
