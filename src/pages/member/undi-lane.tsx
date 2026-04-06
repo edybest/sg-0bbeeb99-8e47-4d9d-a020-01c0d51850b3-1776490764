@@ -644,35 +644,50 @@ export default function UndiLanePage() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {allResults.map((result, index) => (
-                            <div
-                              key={result.id}
-                              className="flex items-center gap-3 p-3 bg-card rounded-lg border"
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                                {index + 1}
+                          {allResults.map((result, index) => {
+                            // Check if this is a couple result
+                            const isCouple = (result as any).couples && (result as any).couples.length > 0;
+                            const coupleData = isCouple ? (result as any).couples[0] : null;
+                            
+                            return (
+                              <div
+                                key={result.id}
+                                className="flex items-center gap-3 p-3 bg-card rounded-lg border"
+                              >
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                                  {index + 1}
+                                </div>
+                                <div className="flex-1">
+                                  {isCouple && coupleData ? (
+                                    <>
+                                      <p className="font-bold text-pink-700">{coupleData.couple_name}</p>
+                                      <p className="text-xs text-gray-600">
+                                        {coupleData.player1?.username || ''} <span className="text-pink-400">+</span> {coupleData.player2?.username || ''}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="font-medium">{result.members?.username}</p>
+                                  )}
+                                  <p className="text-sm text-muted-foreground">
+                                    {new Date(result.spun_at).toLocaleString("ms-MY")}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary" className="font-mono">
+                                  {result.lane_position}
+                                </Badge>
+                                {member?.is_admin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeleteSpinId(result.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                               </div>
-                              <div className="flex-1">
-                                <p className="font-medium">{result.members?.username}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(result.spun_at).toLocaleString("ms-MY")}
-                                </p>
-                              </div>
-                              <Badge variant="secondary" className="font-mono">
-                                {result.lane_position}
-                              </Badge>
-                              {member?.is_admin && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setDeleteSpinId(result.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
