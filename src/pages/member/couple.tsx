@@ -564,7 +564,7 @@ export default function CouplePage() {
                                 {entry.game6_score || "-"}
                               </td>
                               <td className="px-3 py-4 text-center hover:bg-purple-50 transition-colors border-l border-gray-100">
-                                <span className="text-2xl md:text-3xl font-black text-purple-700 drop-shadow-sm">
+                                <span className="text-3xl md:text-4xl font-black text-purple-700 drop-shadow-sm">
                                   {entry.overall_score}
                                 </span>
                               </td>
@@ -659,8 +659,8 @@ export default function CouplePage() {
                               </div>
 
                               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
-                                <span className="flex items-center gap-1 text-purple-700 font-black text-lg md:text-xl">
-                                  <Award className="w-4 h-4 md:w-5 md:h-5" />
+                                <span className="flex items-center gap-1 text-purple-700 font-black text-xl md:text-2xl">
+                                  <Award className="w-5 h-5 md:w-6 md:h-6" />
                                   {row.overall_score}
                                 </span>
                                 <span className="text-gray-400">•</span>
