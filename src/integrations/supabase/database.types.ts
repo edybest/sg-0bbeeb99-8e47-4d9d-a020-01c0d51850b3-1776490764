@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -943,30 +943,40 @@ export type Database = {
       }
       lane_assignments: {
         Row: {
+          couple_id: string | null
           created_at: string | null
           game_id: string
           id: string
           lane_position: string
-          member_id: string
+          member_id: string | null
           updated_at: string | null
         }
         Insert: {
+          couple_id?: string | null
           created_at?: string | null
           game_id: string
           id?: string
           lane_position: string
-          member_id: string
+          member_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          couple_id?: string | null
           created_at?: string | null
           game_id?: string
           id?: string
           lane_position?: string
-          member_id?: string
+          member_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lane_assignments_couple_id_fkey"
+            columns: ["couple_id"]
+            isOneToOne: false
+            referencedRelation: "couples"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lane_assignments_game_id_fkey"
             columns: ["game_id"]
