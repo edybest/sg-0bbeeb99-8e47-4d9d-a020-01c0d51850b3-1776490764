@@ -55,7 +55,6 @@ export default function CouplePage() {
 
   useEffect(() => {
     loadGames();
-    fetchUserReactions();
   }, []);
 
   useEffect(() => {
@@ -66,6 +65,7 @@ export default function CouplePage() {
     if (selectedGameId) {
       loadLeaderboard(selectedGameId);
       loadGameReactions(selectedGameId);
+      fetchUserReactions(selectedGameId);
 
       // Set up real-time subscription for couple scores
       const channel = supabase
@@ -185,16 +185,20 @@ export default function CouplePage() {
     try {
       const counts = await coupleService.getCoupleReactionCounts(gameId);
       setReactionCounts(counts);
+      setLeaderboard((prev) => prev.map((entry) => ({
+        ...entry,
+        likes_count: counts[entry.id] || 0
+      })));
     } catch (error) {
       console.error("Error loading game reactions:", error);
     }
   };
 
-  const fetchUserReactions = async () => {
-    if (!member?.id) return;
+  const fetchUserReactions = async (gameId: string) => {
+    if (!member?.id || !gameId) return;
 
     try {
-      const userReactionsList = await coupleService.getCoupleReactions("", member.id);
+      const userReactionsList = await coupleService.getCoupleReactions(gameId, member.id);
       setUserReactions(new Set(userReactionsList.map((r: any) => r.couple_score_id)));
       setUserLikesCount(userReactionsList.length);
     } catch (error) {
@@ -218,15 +222,6 @@ export default function CouplePage() {
       toast({
         title: "Error",
         description: "Please select a game first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (userReactions.has(coupleScoreId)) {
-      toast({
-        title: "Already Liked",
-        description: "You've already liked this couple",
         variant: "destructive",
       });
       return;

@@ -357,6 +357,7 @@ export default function BlokPage() {
       setPreviousLeaderboard(nextBase);
       setLeaderboardBase(nextBase);
       setLeaderboard(applyCurrentSort(nextBase, sortField, sortDirection));
+      void loadUserLikesCount(nextBase.map((p) => p.id));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load leaderboard";
       toast({
@@ -376,7 +377,6 @@ export default function BlokPage() {
   useEffect(() => {
     if (selectedGame) {
       loadLeaderboard(selectedGame);
-      loadUserLikesCount();
     }
   }, [selectedGame]);
 
@@ -578,8 +578,8 @@ export default function BlokPage() {
 
   };
 
-  const loadUserLikesCount = async () => {
-    if (!currentUser?.user_id || !selectedGame) {
+  async function loadUserLikesCount(playerIds: string[]) {
+    if (!currentUser?.user_id || !selectedGame || playerIds.length === 0) {
       setUserLikesCount(0);
       return;
     }
@@ -589,14 +589,14 @@ export default function BlokPage() {
       from('player_reactions_log').
       select('*', { count: 'exact', head: true }).
       eq('member_id', currentUser.user_id).
-      in('game_player_id', leaderboard.map((p) => p.id));
+      in('game_player_id', playerIds);
 
       setUserLikesCount(count || 0);
     } catch (error) {
       console.error('Error loading user likes count:', error);
       setUserLikesCount(0);
     }
-  };
+  }
 
   const handleReaction = async (playerId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     if (!currentUser || !selectedGame) return;
@@ -647,6 +647,15 @@ export default function BlokPage() {
           member_id: currentUser.user_id,
           reaction_type: 'like'
         });
+
+        // Update the game_players actual table
+        const playerEntry = leaderboard.find(p => p.id === playerId);
+        if (playerEntry) {
+          await supabase.
+          from('game_players').
+          update({ likes_count: (playerEntry.likes_count || 0) + 1 }).
+          eq('id', playerId);
+        }
 
         // Increment user's like count
         setUserLikesCount((prev) => prev + 1);
