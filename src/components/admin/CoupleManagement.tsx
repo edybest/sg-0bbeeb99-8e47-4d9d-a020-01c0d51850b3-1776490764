@@ -250,7 +250,6 @@ export function CoupleManagement() {
                       <SelectValue placeholder="Select Player 1" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Choose Player 1...</SelectItem>
                       {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.username} ({member.full_name})
@@ -272,7 +271,6 @@ export function CoupleManagement() {
                       <SelectValue placeholder="Select Player 2" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Choose Player 2...</SelectItem>
                       {members
                         .filter((m) => m.id !== formData.player1_id)
                         .map((member) => (
