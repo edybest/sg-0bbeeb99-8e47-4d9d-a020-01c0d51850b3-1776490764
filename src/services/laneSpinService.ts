@@ -59,12 +59,6 @@ export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> 
       members:members!lane_spin_results_member_id_fkey(
         username,
         full_name
-      ),
-      couples(
-        id,
-        couple_name,
-        player1:members!couples_player1_id_fkey(username, full_name),
-        player2:members!couples_player2_id_fkey(username, full_name)
       )
     `)
     .eq("game_id", gameId)
@@ -73,6 +67,38 @@ export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> 
   if (error) {
     console.error("Error getting game spin results:", error);
     throw error;
+  }
+
+  // Fetch couple data separately for members who are in couples
+  if (data && data.length > 0) {
+    const memberIds = data.map(d => d.member_id).filter(Boolean);
+    
+    if (memberIds.length > 0) {
+      const { data: coupleData } = await supabase
+        .from("couples")
+        .select(`
+          id,
+          couple_name,
+          player1_id,
+          player2_id,
+          player1:members!couples_player1_id_fkey(username, full_name),
+          player2:members!couples_player2_id_fkey(username, full_name)
+        `)
+        .or(`player1_id.in.(${memberIds.join(',')}),player2_id.in.(${memberIds.join(',')})`);
+
+      // Attach couple data to results
+      const enrichedData = data.map((result: any) => {
+        const couple = coupleData?.find(
+          c => c.player1_id === result.member_id || c.player2_id === result.member_id
+        );
+        return {
+          ...result,
+          couples: couple ? [couple] : []
+        };
+      });
+
+      return enrichedData as SpinResult[];
+    }
   }
 
   return (data || []) as SpinResult[];
