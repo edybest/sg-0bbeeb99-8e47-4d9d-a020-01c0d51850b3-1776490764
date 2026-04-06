@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SEO } from "@/components/SEO";
-import { Loader2, RotateCcw, Sparkles, Trash2, Play } from "lucide-react";
+import { Loader2, RotateCcw, Sparkles, Trash2, Play, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   getMemberSpinResult,
@@ -426,6 +426,59 @@ export default function UndiLanePage() {
       });
     }
   }
+
+  useEffect(() => {
+    if (currentGame && member) {
+      checkDrawStatus();
+      checkCoupleStatus();
+    }
+  }, [currentGame, member]);
+
+  const checkCoupleStatus = async () => {
+    if (!currentGame || !member || currentGame.game_type !== 'COUPLE') {
+      setIsGameCouple(false);
+      return;
+    }
+
+    try {
+      setIsGameCouple(true);
+      
+      // Check if user is in a couple for this game
+      const coupleData = await laneService.getCoupleByPlayerAndGame(member.id, currentGame.id);
+      
+      if (coupleData && coupleData.couple) {
+        setMyCouple(coupleData.couple);
+        
+        // Check if partner has already drawn
+        const partnerDrawn = await laneService.checkIfPartnerAlreadyDrawn(coupleData.couple_id, currentGame.id);
+        setPartnerAlreadyDrawn(partnerDrawn);
+      } else {
+        setMyCouple(null);
+        setPartnerAlreadyDrawn(false);
+      }
+    } catch (error) {
+      console.error("Error checking couple status:", error);
+    }
+  };
+
+  const checkDrawStatus = async () => {
+  };
+
+  const handleDrawLane = async () => {
+    if (!member || !currentGame) return;
+
+    // For couple games, check if partner already drawn
+    if (isGameCouple && partnerAlreadyDrawn) {
+      toast({
+        title: "Partner Sudah Undi",
+        description: "Pasangan anda sudah mengundi lane. Hanya seorang dari couple boleh mengundi.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDrawing(true);
+  };
 
   if (authLoading) return null;
   if (loading) return null;

@@ -310,4 +310,65 @@ export const laneService = {
   // Subscribe to lane spin changes
   subscribeLaneSpins(gameId: string, callback: (payload: any) => void) {
   },
+
+  async getLaneDrawByGame(gameId: string) {
+    const { data, error } = await supabase
+      .from("lane_draws")
+      .select(`
+        *,
+        member:members(full_name, username)
+      `)
+      .eq("game_id", gameId)
+      .order("lane_number", { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
+    // Check if player is in a couple for this game
+    const { data, error } = await supabase
+      .from("couple_scores")
+      .select(`
+        id,
+        couple_id,
+        couple:couples!couple_scores_couple_id_fkey(
+          couple_name,
+          player1_id,
+          player2_id,
+          player1:members!couples_player1_id_fkey(id, username),
+          player2:members!couples_player2_id_fkey(id, username)
+        )
+      `)
+      .eq("game_id", gameId)
+      .or(`couple.player1_id.eq.${playerId},couple.player2_id.eq.${playerId}`)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async checkIfPartnerAlreadyDrawn(coupleId: string, gameId: string) {
+    // Check if any player from this couple has already drawn a lane
+    const { data: couple } = await supabase
+      .from("couples")
+      .select("player1_id, player2_id")
+      .eq("id", coupleId)
+      .single();
+
+    if (!couple) return false;
+
+    const { data, error } = await supabase
+      .from("lane_draws")
+      .select("id")
+      .eq("game_id", gameId)
+      .in("member_id", [couple.player1_id, couple.player2_id])
+      .limit(1);
+
+    if (error) throw error;
+    return (data && data.length > 0);
+  },
+
+  async drawLane(gameId: string, memberId: string) {
+  },
 };
