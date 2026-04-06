@@ -120,7 +120,8 @@ export function LaneManagement() {
 
       if (isCouple) {
         // Ambil senarai couple dari couple_scores untuk game ini
-        const response = await (supabase
+        const client: any = supabase;
+        const response = await client
           .from('couple_scores')
           .select(`
             couple_id,
@@ -131,7 +132,7 @@ export function LaneManagement() {
               player2:members!couples_player2_id_fkey(username)
             )
           `)
-          .eq('game_id', gameId) as any);
+          .eq('game_id', gameId);
           
         const coupleScores = response.data;
         const error = response.error;
@@ -196,14 +197,15 @@ export function LaneManagement() {
       // If couple game, fetch couple names for display
       if (isCouple && laneAssignmentsData.length > 0) {
         // Jika kita simpan couple_id sebagai member_id dalam assignment...
-        const response = await (supabase
+        const client: any = supabase;
+        const response = await client
           .from('couples')
           .select(`
             id,
             couple_name,
             player1:members!couples_player1_id_fkey(username),
             player2:members!couples_player2_id_fkey(username)
-          `) as any);
+          `);
           
         const couplesData = response.data;
 
