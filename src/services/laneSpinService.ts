@@ -59,6 +59,12 @@ export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> 
       members:members!lane_spin_results_member_id_fkey(
         username,
         full_name
+      ),
+      couples(
+        id,
+        couple_name,
+        player1:members!couples_player1_id_fkey(username, full_name),
+        player2:members!couples_player2_id_fkey(username, full_name)
       )
     `)
     .eq("game_id", gameId)
