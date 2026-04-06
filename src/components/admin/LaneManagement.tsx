@@ -304,10 +304,20 @@ export function LaneManagement() {
     if (!draggedMember || !selectedGameId) return;
 
     try {
+      const game = games.find(g => g.id === selectedGameId);
+      const isCouple = game?.game_type === 'COUPLE';
+      
       await withLoading("admin:lane:assign-member", async () => {
-        await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
+        if (isCouple) {
+          // For COUPLE games, draggedMember.id is actually couple_id
+          await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition, draggedMember.id);
+        } else {
+          // For BLOK games, use member_id as usual
+          await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
+        }
         await loadLaneAssignments(selectedGameId);
       });
+      
       toast({
         title: "Berjaya",
         description: `${draggedMember.username} dimasukkan ke ${lanePosition}`,
@@ -328,11 +338,21 @@ export function LaneManagement() {
     if (!selectedGameId) return;
 
     try {
+      const game = games.find(g => g.id === selectedGameId);
+      const isCouple = game?.game_type === 'COUPLE';
+      
       await withLoading("admin:lane:remove-member", async () => {
-        await laneService.removeMemberFromLane(selectedGameId, memberId);
+        if (isCouple) {
+          // For COUPLE games, memberId is actually couple_id
+          await laneService.removeMemberFromLane(selectedGameId, memberId, memberId);
+        } else {
+          // For BLOK games, use member_id as usual
+          await laneService.removeMemberFromLane(selectedGameId, memberId);
+        }
         await loadLaneAssignments(selectedGameId);
         await loadSpinResults(selectedGameId); // Refresh spins just in case
       });
+      
       toast({
         title: "Dibuang",
         description: "Ahli dikeluarkan dari lane",
@@ -424,6 +444,9 @@ export function LaneManagement() {
     if (!confirm(`Anda pasti mahu menyusun secara automatik (rawak) ${members.length} ahli ke dalam lane yang masih kosong?`)) return;
 
     try {
+      const game = games.find(g => g.id === selectedGameId);
+      const isCouple = game?.game_type === 'COUPLE';
+      
       await withLoading("admin:lane:auto-assign", async () => {
         // Find all empty slots
         const emptySlots: string[] = [];
@@ -460,7 +483,13 @@ export function LaneManagement() {
         // Assign each member to a random empty slot
         const promises = shuffledMembers.map((member, i) => {
           const slot = shuffledSlots[i];
-          return laneService.assignMemberToLane(selectedGameId, member.id, slot);
+          if (isCouple) {
+            // For COUPLE games, member.id is couple_id
+            return laneService.assignMemberToLane(selectedGameId, member.id, slot, member.id);
+          } else {
+            // For BLOK games, member.id is member_id
+            return laneService.assignMemberToLane(selectedGameId, member.id, slot);
+          }
         });
 
         // Execute all inserts

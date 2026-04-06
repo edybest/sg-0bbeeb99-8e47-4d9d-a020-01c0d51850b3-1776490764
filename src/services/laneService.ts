@@ -185,33 +185,60 @@ export const laneService = {
   async assignMemberToLane(
     gameId: string,
     memberId: string,
-    lanePosition: string
+    lanePosition: string,
+    coupleId?: string
   ): Promise<void> {
-    // Check if member already assigned to this game
+    // Check if assignment already exists for this game and lane position
     const { data: existing } = await supabase
       .from("lane_assignments")
       .select("id")
       .eq("game_id", gameId)
-      .eq("member_id", memberId)
+      .eq("lane_position", lanePosition)
       .maybeSingle();
 
     if (existing) {
       // Update existing assignment
+      const updateData: any = {
+        lane_position: lanePosition,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (coupleId) {
+        // Couple game - use couple_id
+        updateData.couple_id = coupleId;
+        updateData.member_id = null;
+      } else {
+        // Individual game - use member_id
+        updateData.member_id = memberId;
+        updateData.couple_id = null;
+      }
+
       const { error } = await supabase
         .from("lane_assignments")
-        .update({ lane_position: lanePosition, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq("id", existing.id);
 
       if (error) throw error;
     } else {
       // Create new assignment
+      const insertData: any = {
+        game_id: gameId,
+        lane_position: lanePosition,
+      };
+      
+      if (coupleId) {
+        // Couple game - use couple_id
+        insertData.couple_id = coupleId;
+        insertData.member_id = null;
+      } else {
+        // Individual game - use member_id
+        insertData.member_id = memberId;
+        insertData.couple_id = null;
+      }
+
       const { error } = await supabase
         .from("lane_assignments")
-        .insert({
-          game_id: gameId,
-          member_id: memberId,
-          lane_position: lanePosition,
-        });
+        .insert(insertData);
 
       if (error) throw error;
     }
@@ -227,13 +254,19 @@ export const laneService = {
   },
 
   // Remove member from lane
-  async removeMemberFromLane(gameId: string, memberId: string): Promise<void> {
-    const { error } = await supabase
+  async removeMemberFromLane(gameId: string, memberId: string, coupleId?: string): Promise<void> {
+    let query = supabase
       .from("lane_assignments")
       .delete()
-      .eq("game_id", gameId)
-      .eq("member_id", memberId);
+      .eq("game_id", gameId);
+    
+    if (coupleId) {
+      query = query.eq("couple_id", coupleId);
+    } else {
+      query = query.eq("member_id", memberId);
+    }
 
+    const { error } = await query;
     if (error) throw error;
   },
 
