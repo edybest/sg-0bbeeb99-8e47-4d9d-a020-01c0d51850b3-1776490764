@@ -153,6 +153,62 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
     }
   }
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, startingField: string) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text').replace(/\D/g, ''); // Extract only numbers
+    if (!pastedText) return;
+
+    const fields = [
+      'game1_score', 'game2_score', 'game3_score', 
+      'game4_score', 'game5_score', 'game6_score'
+    ];
+    
+    const startIndex = fields.indexOf(startingField);
+    if (startIndex === -1) return;
+
+    setEditingCoupleScore((prev: any) => {
+      const current = prev || {
+        game1_score: 0, game2_score: 0, game3_score: 0,
+        game4_score: 0, game5_score: 0, game6_score: 0,
+        handicap: 0,
+      };
+      
+      const updated = { ...current };
+      
+      let charIndex = 0;
+      let lastUpdatedIndex = startIndex;
+      
+      for (let i = startIndex; i < fields.length; i++) {
+        if (charIndex >= pastedText.length) break;
+        
+        // Take up to 3 digits per game
+        const chunk = pastedText.slice(charIndex, charIndex + 3);
+        updated[fields[i]] = parseInt(chunk, 10);
+        charIndex += chunk.length;
+        lastUpdatedIndex = i;
+      }
+
+      // Recalculate totals
+      const total = (updated.game1_score || 0) + (updated.game2_score || 0) + 
+                    (updated.game3_score || 0) + (updated.game4_score || 0) + 
+                    (updated.game5_score || 0) + (updated.game6_score || 0);
+      updated.total_score = total;
+      updated.overall_score = total + (updated.handicap || 0);
+
+      // Focus the next available input after paste
+      setTimeout(() => {
+        const refs = [game1Ref, game2Ref, game3Ref, game4Ref, game5Ref, game6Ref, handicapRef];
+        const nextRefToFocus = refs[lastUpdatedIndex + 1] || handicapRef;
+        if (nextRefToFocus && nextRefToFocus.current) {
+          nextRefToFocus.current.focus();
+          nextRefToFocus.current.select();
+        }
+      }, 50);
+
+      return updated;
+    });
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<HTMLInputElement> | null) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -229,6 +285,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game1_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game1_score", e.target.value, game2Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game2Ref)}
+                  onPaste={(e) => handlePaste(e, "game1_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
@@ -244,6 +301,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game2_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game2_score", e.target.value, game3Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game3Ref)}
+                  onPaste={(e) => handlePaste(e, "game2_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
@@ -259,6 +317,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game3_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game3_score", e.target.value, game4Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game4Ref)}
+                  onPaste={(e) => handlePaste(e, "game3_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
@@ -274,6 +333,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game4_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game4_score", e.target.value, game5Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game5Ref)}
+                  onPaste={(e) => handlePaste(e, "game4_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
@@ -289,6 +349,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game5_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game5_score", e.target.value, game6Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game6Ref)}
+                  onPaste={(e) => handlePaste(e, "game5_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
@@ -304,6 +365,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   value={editingCoupleScore.game6_score || ""}
                   onChange={(e) => handleCoupleScoreChange("game6_score", e.target.value, null)}
                   onKeyDown={(e) => handleKeyDown(e, handicapRef)}
+                  onPaste={(e) => handlePaste(e, "game6_score")}
                   onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
