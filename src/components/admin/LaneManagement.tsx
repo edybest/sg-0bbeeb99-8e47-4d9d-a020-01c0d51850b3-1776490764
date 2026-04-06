@@ -169,15 +169,16 @@ export function LaneManagement() {
         setMembers(unassignedCouples as Member[]);
       } else {
         // Logik asal untuk BLOK/individu
+        const client: any = supabase;
         const [allMembersData, assignmentsData] = await Promise.all([
-          supabase.from("members").select("id, username, full_name, avatar_url").eq("status", "ACTIVE").order("username"),
-          supabase.from("lane_assignments").select("member_id").eq("game_id", gameId)
+          client.from("members").select("id, username, full_name, avatar_url").eq("status", "ACTIVE").order("username"),
+          client.from("lane_assignments").select("member_id").eq("game_id", gameId)
         ]);
 
         if (allMembersData.error) throw allMembersData.error;
 
-        const assignedIds = new Set(assignmentsData.data?.map(a => a.member_id) || []);
-        const unassignedMembers = (allMembersData.data || []).filter(m => !assignedIds.has(m.id));
+        const assignedIds = new Set(assignmentsData.data?.map((a: any) => a.member_id) || []);
+        const unassignedMembers = (allMembersData.data || []).filter((m: any) => !assignedIds.has(m.id));
         setMembers(unassignedMembers as Member[]);
       }
     } catch (error) {
