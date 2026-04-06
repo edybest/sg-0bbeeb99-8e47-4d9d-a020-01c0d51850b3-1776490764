@@ -624,85 +624,91 @@ export default function CouplePage() {
                           ? "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-400 shadow-[0_0_10px_rgba(156,163,175,0.3)] relative z-0" 
                           : rank === 3 
                           ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-400 shadow-[0_0_10px_rgba(217,119,6,0.2)] relative z-0" 
-                          : "bg-pink-50 border-pink-200";
+                          : "bg-white border-pink-200";
                         
                         return (
                           <Card
                             key={row.id}
-                            className={`${rankColor} border-2`}
+                            className={`${rankColor} border-2 mb-3 overflow-hidden transition-all hover:shadow-lg`}
                           >
-                            <CardContent className="p-4">
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-3 mb-1">
-                                    <div className="flex-shrink-0">
-                                      {rank <= 3 ? getRankIcon(rank) : (
-                                        <span className="text-2xl font-bold text-pink-700">
-                                          #{rank}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                            <CardContent className="p-3">
+                              {/* Header with Rank + Name */}
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div className="flex-shrink-0">
+                                    {rank <= 3 ? getRankIcon(rank) : (
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                                        <span className="text-lg font-bold text-white">#{rank}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-base font-bold text-gray-900 truncate leading-tight">
                                       {row.couple_name}
                                     </h3>
-                                  </div>
-                                  <div className="text-sm text-gray-600 mt-2 pl-1 border-l-2 border-pink-200">
-                                    {row.player1_name || "Unknown"} <span className="text-pink-400 mx-1">+</span> {row.player2_name || "Unknown"}
+                                    <p className="text-xs text-gray-600 truncate mt-0.5">
+                                      {row.player1_name} <span className="text-pink-400">+</span> {row.player2_name}
+                                    </p>
                                   </div>
                                 </div>
                                 
-                                <div className="flex items-center shrink-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full"
-                                    onClick={() => handleShareCouple(row, rank)}
-                                    title="Kongsi Ranking"
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex-shrink-0"
+                                  onClick={() => handleShareCouple(row, rank)}
+                                  title="Kongsi Ranking"
+                                >
+                                  <Share2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+
+                              {/* Score + Stats Bar */}
+                              <div className="flex items-center justify-between mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <Award className="w-5 h-5 text-purple-600" />
+                                  <span className="text-2xl font-black text-purple-700">
+                                    {row.overall_score}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-full font-semibold ${getDifferenceColor(row.difference)}`}
                                   >
-                                    <Share2 className="h-4 w-4" />
-                                  </Button>
+                                    {getDifferenceIcon(row.difference)}
+                                    {row.difference > 0 ? `+${row.difference}` : row.difference}
+                                  </span>
+                                  
+                                  <button
+                                    onClick={(e) => handleReaction(row.id, e)}
+                                    disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-white hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <Heart
+                                      className={`h-4 w-4 ${row.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                                    />
+                                    <span className="text-xs font-bold text-gray-700">{row.likes_count || 0}</span>
+                                  </button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
-                                <span className="flex items-center gap-1 text-purple-700 font-black text-xl md:text-2xl">
-                                  <Award className="w-5 h-5 md:w-6 md:h-6" />
-                                  {row.overall_score}
-                                </span>
-                                <span className="text-gray-400">•</span>
-                                <span
-                                  className={`flex items-center gap-1 font-semibold ${row.difference === 0 ? "text-green-600" : "text-orange-600"}`}
-                                >
-                                  <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                  {row.difference > 0 ? `+${row.difference}` : row.difference}
-                                </span>
-                                <button
-                                  onClick={(e) => handleReaction(row.id, e)}
-                                  disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                  className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed ml-1"
-                                >
-                                  <Heart
-                                    className={`w-3 h-3 md:w-3.5 md:h-3.5 ${row.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
-                                  />
-                                  <span className="text-[9px] md:text-xs">{row.likes_count || 0}</span>
-                                </button>
-                              </div>
-
-                              <div className="grid grid-cols-6 gap-1.5 mt-2">
+                              {/* Compact Game Scores Grid */}
+                              <div className="grid grid-cols-6 gap-1">
                                 {[
-                                  row.game1_score,
-                                  row.game2_score,
-                                  row.game3_score,
-                                  row.game4_score,
-                                  row.game5_score,
-                                  row.game6_score,
-                                ].map((score, idx) => (
+                                  { score: row.game1_score, label: "G1" },
+                                  { score: row.game2_score, label: "G2" },
+                                  { score: row.game3_score, label: "G3" },
+                                  { score: row.game4_score, label: "G4" },
+                                  { score: row.game5_score, label: "G5" },
+                                  { score: row.game6_score, label: "G6" },
+                                ].map((game, idx) => (
                                   <div
                                     key={idx}
-                                    className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg p-2 text-center"
+                                    className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-md p-1.5 text-center"
                                   >
-                                    <div className="text-[9px] font-medium text-white/80">G{idx + 1}</div>
-                                    <div className="text-sm font-bold text-white">{score || "-"}</div>
+                                    <div className="text-[8px] font-medium text-white/80 uppercase tracking-wide">{game.label}</div>
+                                    <div className="text-sm font-bold text-white leading-tight">{game.score || "-"}</div>
                                   </div>
                                 ))}
                               </div>
