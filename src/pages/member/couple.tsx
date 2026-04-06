@@ -409,82 +409,81 @@ export default function CouplePage() {
 
                 {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-200">
-                  {leaderboard.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="p-4 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 transition-all"
-                    >
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="flex-shrink-0 flex items-center justify-center w-10">
-                          {getRankIcon(entry.rank)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Avatar className="w-8 h-8 border-2 border-pink-200">
-                              <div className="w-full h-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                                <Heart className="w-4 h-4" />
+                  {leaderboard.map((row, index) => {
+                    const rank = index + 1;
+                    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
+                    const rankColor = rank === 1 ? "bg-yellow-100 border-yellow-300" : rank === 2 ? "bg-gray-100 border-gray-300" : rank === 3 ? "bg-amber-100 border-amber-300" : "bg-pink-50 border-pink-200";
+                    
+                    return (
+                      <Card
+                        key={row.id}
+                        className={`${rankColor} border-2`}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-2xl font-bold text-pink-700">
+                                  {medal} #{rank}
+                                </span>
+                                <h3 className="text-lg font-bold text-gray-900">
+                                  {row.couples.couple_name}
+                                </h3>
                               </div>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-900 text-sm truncate">
-                                {entry.couple_name}
-                              </h3>
-                              <p className="text-[10px] text-gray-500 truncate">
-                                {entry.player1_name} + {entry.player2_name}
-                              </p>
                             </div>
                           </div>
+
                           <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
                             <span className="flex items-center gap-1 text-sky-700">
                               <Target className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                              {entry.total_score}
+                              {row.total_score}
                             </span>
                             <span className="text-gray-400">•</span>
                             <span className="flex items-center gap-1 text-purple-700 font-semibold">
                               <Award className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                              {entry.overall_score}
+                              {row.overall_score}
                             </span>
                             <span className="text-gray-400">•</span>
                             <span
-                              className={`flex items-center gap-1 font-semibold ${entry.difference === 0 ? "text-green-600" : "text-orange-600"}`}
+                              className={`flex items-center gap-1 font-semibold ${row.difference === 0 ? "text-green-600" : "text-orange-600"}`}
                             >
                               <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                              {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
+                              {row.difference > 0 ? `+${row.difference}` : row.difference}
                             </span>
                             <button
-                              onClick={(e) => handleReaction(entry.id, e)}
+                              onClick={(e) => handleReaction(row.id, e)}
                               disabled={userLikesCount >= MAX_LIKES_PER_GAME}
                               className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed ml-1"
                             >
                               <Heart
-                                className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                                className={`w-3 h-3 md:w-3.5 md:h-3.5 ${row.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
                               />
-                              <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
+                              <span className="text-[9px] md:text-xs">{row.likes_count || 0}</span>
                             </button>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-6 gap-1.5 mt-2">
-                        {[
-                          entry.game1_score,
-                          entry.game2_score,
-                          entry.game3_score,
-                          entry.game4_score,
-                          entry.game5_score,
-                          entry.game6_score,
-                        ].map((score, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg p-2 text-center"
-                          >
-                            <div className="text-[9px] font-medium text-white/80">G{idx + 1}</div>
-                            <div className="text-sm font-bold text-white">{score || "-"}</div>
+                          <div className="grid grid-cols-6 gap-1.5 mt-2">
+                            {[
+                              row.game1_score,
+                              row.game2_score,
+                              row.game3_score,
+                              row.game4_score,
+                              row.game5_score,
+                              row.game6_score,
+                            ].map((score, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg p-2 text-center"
+                              >
+                                <div className="text-[9px] font-medium text-white/80">G{idx + 1}</div>
+                                <div className="text-sm font-bold text-white">{score || "-"}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
