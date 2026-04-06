@@ -294,15 +294,64 @@ export const laneService = {
 
   // Check if member is registered (in game_players) for a game
   async isMemberRegisteredForGame(gameId: string, memberId: string): Promise<boolean> {
-    const { data, error } = await supabase
-      .from("game_players")
-      .select("member_id")
+    // First check if this is a COUPLE game by looking at lane_assignments
+    const { data: assignments } = await supabase
+      .from("lane_assignments")
+      .select("member_id, couple_id")
       .eq("game_id", gameId)
-      .eq("member_id", memberId)
-      .maybeSingle();
+      .limit(1);
 
-    if (error) throw error;
-    return !!data?.member_id;
+    if (!assignments || assignments.length === 0) {
+      // No assignments yet, fallback to game_players check
+      const { data, error } = await supabase
+        .from("game_players")
+        .select("member_id")
+        .eq("game_id", gameId)
+        .eq("member_id", memberId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data?.member_id;
+    }
+
+    // Check if this is a COUPLE game (has couple_id assignments)
+    const hasCoupleAssignments = assignments.some(a => a.couple_id !== null);
+
+    if (hasCoupleAssignments) {
+      // COUPLE game - check if member is player1 or player2 in any couple assigned to this game
+      const { data: coupleAssignments } = await supabase
+        .from("lane_assignments")
+        .select(`
+          couple_id,
+          couple:couples!lane_assignments_couple_id_fkey(
+            id,
+            player1_id,
+            player2_id
+          )
+        `)
+        .eq("game_id", gameId)
+        .not("couple_id", "is", null);
+
+      if (coupleAssignments) {
+        // Check if member is player1 or player2 in any of these couples
+        return coupleAssignments.some((assignment: any) => {
+          const couple = assignment.couple;
+          return couple && (couple.player1_id === memberId || couple.player2_id === memberId);
+        });
+      }
+      return false;
+    } else {
+      // BLOK/Individual game - check member_id directly
+      const { data, error } = await supabase
+        .from("lane_assignments")
+        .select("member_id")
+        .eq("game_id", gameId)
+        .eq("member_id", memberId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data?.member_id;
+    }
   },
 
   // Get registered member ids for a game
