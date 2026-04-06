@@ -119,8 +119,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
     }
   }
 
-  function handleCoupleScoreChange(field: string, value: string) {
-    const numValue = parseInt(value) || 0;
+  function handleCoupleScoreChange(field: string, value: string, nextRef: React.RefObject<HTMLInputElement> | null = null) {
+    const numValue = value === "" ? 0 : parseInt(value, 10);
+    if (isNaN(numValue)) return;
     
     setEditingCoupleScore((prev: any) => {
       const current = prev || {
@@ -142,6 +143,14 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
       
       return updated;
     });
+
+    // Auto-advance to next input if 3 digits are typed
+    if (value.length === 3 && nextRef && nextRef.current) {
+      nextRef.current.focus();
+      setTimeout(() => {
+        nextRef.current?.select();
+      }, 10);
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<HTMLInputElement> | null) => {
@@ -218,13 +227,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game1Ref}
                   type="number"
                   value={editingCoupleScore.game1_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game1_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game1_score", e.target.value, game2Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game2Ref)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -237,13 +242,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game2Ref}
                   type="number"
                   value={editingCoupleScore.game2_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game2_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game2_score", e.target.value, game3Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game3Ref)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -256,13 +257,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game3Ref}
                   type="number"
                   value={editingCoupleScore.game3_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game3_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game3_score", e.target.value, game4Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game4Ref)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -275,13 +272,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game4Ref}
                   type="number"
                   value={editingCoupleScore.game4_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game4_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game4_score", e.target.value, game5Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game5Ref)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -294,13 +287,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game5Ref}
                   type="number"
                   value={editingCoupleScore.game5_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game5_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game5_score", e.target.value, game6Ref)}
                   onKeyDown={(e) => handleKeyDown(e, game6Ref)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -313,13 +302,9 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                   ref={game6Ref}
                   type="number"
                   value={editingCoupleScore.game6_score || ""}
-                  onChange={(e) =>
-                    setEditingCoupleScore({
-                      ...editingCoupleScore,
-                      game6_score: parseInt(e.target.value) || 0,
-                    })
-                  }
+                  onChange={(e) => handleCoupleScoreChange("game6_score", e.target.value, null)}
                   onKeyDown={(e) => handleKeyDown(e, handicapRef)}
+                  onFocus={(e) => e.target.select()}
                   className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
@@ -335,7 +320,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
                 <Input
                   type="number"
                   value={editingCoupleScore.handicap}
-                  onChange={(e) => handleCoupleScoreChange("handicap", e.target.value)}
+                  onChange={(e) => handleCoupleScoreChange("handicap", e.target.value, handicapRef)}
                   className="bg-yellow-50 border-yellow-200 text-center font-bold"
                   placeholder="0"
                 />
