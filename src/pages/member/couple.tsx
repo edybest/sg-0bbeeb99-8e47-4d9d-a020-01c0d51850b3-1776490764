@@ -30,6 +30,7 @@ import {
   Users,
   Share2,
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 const MAX_LIKES_PER_GAME = 3;
 
@@ -50,14 +51,38 @@ export default function CouplePage() {
 
   useEffect(() => {
     loadGames();
+    fetchUserReactions();
   }, []);
 
   useEffect(() => {
     if (selectedGameId) {
-      loadLeaderboard();
-      loadReactions();
+      loadLeaderboard(selectedGameId);
+      loadGameReactions(selectedGameId);
+
+      // Set up real-time subscription for couple scores
+      const channel = supabase
+        .channel(`couple_scores_${selectedGameId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to INSERT, UPDATE, and DELETE
+            schema: 'public',
+            table: 'couple_scores',
+            filter: `game_id=eq.${selectedGameId}`
+          },
+          (payload) => {
+            console.log('Real-time couple score update received!', payload);
+            // Reload the leaderboard silently in the background
+            loadLeaderboard(selectedGameId, false);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [selectedGameId, member]);
+  }, [selectedGameId]);
 
   const loadGames = async () => {
     try {
@@ -80,47 +105,43 @@ export default function CouplePage() {
     }
   };
 
-  const loadLeaderboard = async () => {
-    if (!selectedGameId) return;
-
+  const loadLeaderboard = async (gameId: string, showLoading = true) => {
     try {
-      setLoading(true);
-      const data = await coupleService.getCoupleLeaderboard(selectedGameId);
-      setLeaderboard(data);
+      if (showLoading) setLoading(true);
+      const data = await coupleService.getCoupleLeaderboard(gameId);
+      const formattedData = data.map((item: any, index: number) => ({
+        ...item,
+        rank: index + 1
+      }));
+
+      setLeaderboard(formattedData);
     } catch (error) {
       console.error("Error loading leaderboard:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load leaderboard",
-        variant: "destructive",
-      });
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const loadReactions = async () => {
-    if (!selectedGameId || !member?.id) return;
+  const loadGameReactions = async (gameId: string) => {
+    if (!gameId) return;
 
     try {
-      const [counts, userReactionsList] = await Promise.all([
-        coupleService.getCoupleReactionCounts(selectedGameId),
-        coupleService.getCoupleReactions(selectedGameId, member.id),
-      ]);
-
+      const counts = await coupleService.getCoupleReactionCounts(gameId);
       setReactionCounts(counts);
+    } catch (error) {
+      console.error("Error loading game reactions:", error);
+    }
+  };
+
+  const fetchUserReactions = async () => {
+    if (!member?.id) return;
+
+    try {
+      const userReactionsList = await coupleService.getCoupleReactions("", member.id);
       setUserReactions(new Set(userReactionsList.map((r: any) => r.couple_score_id)));
       setUserLikesCount(userReactionsList.length);
-
-      // Merge likes counts into leaderboard
-      setLeaderboard((prev) =>
-        prev.map((entry) => ({
-          ...entry,
-          likes_count: counts[entry.id] || 0,
-        }))
-      );
     } catch (error) {
-      console.error("Error loading reactions:", error);
+      console.error("Error fetching user reactions:", error);
     }
   };
 
