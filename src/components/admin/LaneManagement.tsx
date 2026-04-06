@@ -15,6 +15,7 @@ interface Game {
   id: string;
   game_name: string;
   game_date: string;
+  game_type?: string;
 }
 
 interface Member {
@@ -50,7 +51,7 @@ export function LaneManagement() {
 
   useEffect(() => {
     if (selectedGameId) {
-      loadLaneAssignments();
+      loadLaneAssignments(selectedGameId);
       loadSpinResults(selectedGameId);
     }
   }, [selectedGameId]);
@@ -108,16 +109,16 @@ export function LaneManagement() {
   const loadLaneAssignments = async (gameId: string) => {
     try {
       setLoading(true);
-      const assignments = await laneService.getLaneDrawsByGame(gameId);
+      const laneAssignmentsData = await laneService.getLaneAssignments(gameId);
       
       // Check if game is COUPLE type
       const game = games.find(g => g.id === gameId);
       const isCouple = game?.game_type === 'COUPLE';
 
       // If couple game, fetch couple names for display
-      if (isCouple && assignments.length > 0) {
+      if (isCouple && laneAssignmentsData.length > 0) {
         const assignmentsWithCouples = await Promise.all(
-          assignments.map(async (assignment: any) => {
+          laneAssignmentsData.map(async (assignment: any) => {
             try {
               const coupleData = await laneService.getCoupleByPlayerAndGame(assignment.member_id, gameId);
               if (coupleData && coupleData.couple) {
@@ -135,9 +136,9 @@ export function LaneManagement() {
             }
           })
         );
-        setLaneAssignments(assignmentsWithCouples);
+        setAssignments(assignmentsWithCouples);
       } else {
-        setLaneAssignments(assignments);
+        setAssignments(laneAssignmentsData);
       }
     } catch (error) {
       console.error("Error loading lane assignments:", error);
@@ -170,7 +171,7 @@ export function LaneManagement() {
       );
 
       // Reload assignments to show players in new lane names
-      await loadLaneAssignments();
+      await loadLaneAssignments(selectedGameId);
       if (selectedGameId) {
         await loadSpinResults(selectedGameId);
       }
@@ -207,7 +208,7 @@ export function LaneManagement() {
     try {
       await withLoading("admin:lane:assign-member", async () => {
         await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
-        await loadLaneAssignments();
+        await loadLaneAssignments(selectedGameId);
       });
       toast({
         title: "Berjaya",
@@ -231,7 +232,7 @@ export function LaneManagement() {
     try {
       await withLoading("admin:lane:remove-member", async () => {
         await laneService.removeMemberFromLane(selectedGameId, memberId);
-        await loadLaneAssignments();
+        await loadLaneAssignments(selectedGameId);
         await loadSpinResults(selectedGameId); // Refresh spins just in case
       });
       toast({
@@ -368,7 +369,7 @@ export function LaneManagement() {
         await Promise.all(promises);
 
         // Reload the UI
-        await loadLaneAssignments();
+        await loadLaneAssignments(selectedGameId);
       });
 
       toast({
@@ -448,44 +449,53 @@ export function LaneManagement() {
         
         {assignment ? (
           <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-gray-200 rounded px-2 py-1.5 shadow-sm group">
-            <div className="flex items-center gap-2 overflow-hidden min-w-0">
-              <span className="text-sm font-semibold truncate whitespace-nowrap">{assignment.member.username}</span>
-              
+            <div className="flex flex-col min-w-0">
+              {(assignment as any).couple_name ? (
+                <>
+                  <span className="text-sm font-semibold text-pink-700 truncate">{(assignment as any).couple_name}</span>
+                  <span className="text-[10px] text-gray-500 truncate">{(assignment as any).player1_username} + {(assignment as any).player2_username}</span>
+                </>
+              ) : (
+                <span className="text-sm font-semibold truncate">{assignment.member.username}</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-1 shrink-0 ml-2">
               {/* Status Indicator */}
               {revealed ? (
                 <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold shrink-0">Telah Undi</span>
               ) : (
                 <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold shrink-0">Belum Undi</span>
               )}
-            </div>
-            
-            <div className="flex items-center gap-1 shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Change Voting Status */}
-              {revealed ? (
-                <button
-                  onClick={() => handleResetSpin(assignment.member_id)}
-                  className="text-gray-400 hover:text-orange-600 p-1"
-                  title="Reset Undian (Boleh undi semula)"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleSetAsSpun(lanePosition, assignment.member_id)}
-                  className="text-gray-400 hover:text-green-600 p-1"
-                  title="Tandakan Telah Undi (Skip pusingan roda)"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                </button>
-              )}
               
-              <button
-                onClick={() => handleRemoveMember(assignment.member_id)}
-                className="text-gray-400 hover:text-red-600 p-1"
-                title="Keluarkan dari lane"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                {/* Change Voting Status */}
+                {revealed ? (
+                  <button
+                    onClick={() => handleResetSpin(assignment.member_id)}
+                    className="text-gray-400 hover:text-orange-600 p-1"
+                    title="Reset Undian (Boleh undi semula)"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSetAsSpun(lanePosition, assignment.member_id)}
+                    className="text-gray-400 hover:text-green-600 p-1"
+                    title="Tandakan Telah Undi (Skip pusingan roda)"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => handleRemoveMember(assignment.member_id)}
+                  className="text-gray-400 hover:text-red-600 p-1"
+                  title="Keluarkan dari lane"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         ) : (

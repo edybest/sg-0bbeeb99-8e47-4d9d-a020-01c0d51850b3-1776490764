@@ -311,20 +311,6 @@ export const laneService = {
   subscribeLaneSpins(gameId: string, callback: (payload: any) => void) {
   },
 
-  async getLaneDrawByGame(gameId: string) {
-    const { data, error } = await supabase
-      .from("lane_draws")
-      .select(`
-        *,
-        member:members(full_name, username)
-      `)
-      .eq("game_id", gameId)
-      .order("lane_number", { ascending: true });
-
-    if (error) throw error;
-    return data || [];
-  },
-
   async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
     // Break down complex queries to avoid TypeScript "excessively deep" errors
     // 1. First get the couple_scores row to find couple_id
@@ -373,8 +359,9 @@ export const laneService = {
 
     if (!couple) return false;
 
+    // We check lane_spin_results because the "undi" action creates a row there
     const { data, error } = await supabase
-      .from("lane_draws")
+      .from("lane_spin_results")
       .select("id")
       .eq("game_id", gameId)
       .in("member_id", [couple.player1_id, couple.player2_id])
