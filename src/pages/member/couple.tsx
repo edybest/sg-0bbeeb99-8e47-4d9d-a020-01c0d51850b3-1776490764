@@ -325,10 +325,28 @@ export default function CouplePage() {
   };
 
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />;
-    if (rank === 2) return <Medal className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />;
-    if (rank === 3) return <Medal className="w-5 h-5 md:w-6 md:h-6 text-amber-700" />;
-    return <span className="text-sm font-semibold text-gray-600">#{rank}</span>;
+    if (rank === 1) return (
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 bg-yellow-400 blur-[8px] rounded-full opacity-60 animate-pulse"></div>
+        <Trophy 
+          className="w-8 h-8 md:w-10 md:h-10 text-yellow-600 fill-yellow-400 relative z-10 drop-shadow-xl animate-bounce" 
+          style={{ animationDuration: '2.5s' }} 
+        />
+      </div>
+    );
+    if (rank === 2) return (
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 bg-gray-400 blur-[6px] rounded-full opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <Medal className="w-7 h-7 md:w-8 md:h-8 text-gray-500 fill-gray-300 relative z-10 drop-shadow-md" />
+      </div>
+    );
+    if (rank === 3) return (
+      <div className="relative flex items-center justify-center">
+        <div className="absolute inset-0 bg-amber-600 blur-[6px] rounded-full opacity-40 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <Medal className="w-7 h-7 md:w-8 md:h-8 text-amber-700 fill-amber-500 relative z-10 drop-shadow-md" />
+      </div>
+    );
+    return <span className="text-base md:text-lg font-bold text-gray-600">#{rank}</span>;
   };
 
   const getDifferenceIcon = (diff: number) => {
@@ -567,8 +585,13 @@ export default function CouplePage() {
                     <div className="md:hidden divide-y divide-gray-200">
                       {leaderboard.map((row, index) => {
                         const rank = index + 1;
-                        const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
-                        const rankColor = rank === 1 ? "bg-yellow-100 border-yellow-300" : rank === 2 ? "bg-gray-100 border-gray-300" : rank === 3 ? "bg-amber-100 border-amber-300" : "bg-pink-50 border-pink-200";
+                        const rankColor = rank === 1 
+                          ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)] relative z-10" 
+                          : rank === 2 
+                          ? "bg-gradient-to-br from-gray-50 to-gray-100 border-gray-400 shadow-[0_0_10px_rgba(156,163,175,0.3)] relative z-0" 
+                          : rank === 3 
+                          ? "bg-gradient-to-br from-amber-50 to-amber-100 border-amber-400 shadow-[0_0_10px_rgba(217,119,6,0.2)] relative z-0" 
+                          : "bg-pink-50 border-pink-200";
                         
                         return (
                           <Card
@@ -578,16 +601,20 @@ export default function CouplePage() {
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-2xl font-bold text-pink-700">
-                                      {medal} #{rank}
-                                    </span>
-                                    <h3 className="text-lg font-bold text-gray-900">
+                                  <div className="flex items-center gap-3 mb-1">
+                                    <div className="flex-shrink-0">
+                                      {rank <= 3 ? getRankIcon(rank) : (
+                                        <span className="text-2xl font-bold text-pink-700">
+                                          #{rank}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900 leading-tight">
                                       {row.couple_name}
                                     </h3>
                                   </div>
-                                  <div className="text-sm text-gray-600 mt-1">
-                                    {row.player1_name || "Unknown"} + {row.player2_name || "Unknown"}
+                                  <div className="text-sm text-gray-600 mt-2 pl-1 border-l-2 border-pink-200">
+                                    {row.player1_name || "Unknown"} <span className="text-pink-400 mx-1">+</span> {row.player2_name || "Unknown"}
                                   </div>
                                 </div>
                                 
