@@ -838,7 +838,7 @@ export default function BlokPage() {
                 
                 {selectedGame && (
                   <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 shadow-sm flex-shrink-0">
-                    <Heart className={`w-4 h-4 ${userLikesCount >= MAX_LIKES_PER_GAME ? 'fill-red-500 text-red-500' : 'text-red-500'}`} />
+                    <span className="text-xl">👍</span>
                     <span className="text-xs md:text-sm font-bold text-red-700">
                       {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
                     </span>
@@ -1081,10 +1081,10 @@ export default function BlokPage() {
                                     <button
                                 onClick={(e) => handleReaction(entry.id, e)}
                                 disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                className="flex items-center gap-1 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed ml-1">
+                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-white hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 
-                                      <Heart className={`w-3 h-3 md:w-3.5 md:h-3.5 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
-                                      <span className="text-[9px] md:text-xs">{entry.likes_count || 0}</span>
+                                      <span className="text-lg">{entry.likes_count > 0 ? '👍' : '👍'}</span>
+                                      <span className="text-xs font-bold text-gray-700">{entry.likes_count || 0}</span>
                                     </button>
                                   </div>
                                 </div>
@@ -1337,7 +1337,7 @@ export default function BlokPage() {
                                 disabled={userLikesCount >= MAX_LIKES_PER_GAME}
                                 className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
                                 
-                                      <Heart className={`w-4 h-4 ${entry.likes_count > 0 ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                                      <span className="text-2xl">{entry.likes_count > 0 ? '👍' : '👍'}</span>
                                       <span className="text-sm font-medium">{entry.likes_count || 0}</span>
                                     </button>
                                   </td>
@@ -1421,7 +1421,7 @@ export default function BlokPage() {
             top: `${reaction.y}px`
           }}>
           
-            ❤️
+            👍
           </div>
         )}
 
@@ -1436,7 +1436,7 @@ export default function BlokPage() {
             animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
           }}>
           
-            <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+            <span className="text-2xl">👍</span>
           </div>
         )}
 

@@ -412,7 +412,7 @@ export default function CouplePage() {
               
               {selectedGameId && (
                 <div className="flex items-center gap-1.5 bg-pink-50 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-pink-200 shadow-sm shrink-0 w-fit">
-                  <Heart className={`w-4 h-4 md:w-5 md:h-5 ${userLikesCount >= MAX_LIKES_PER_GAME ? 'fill-pink-500 text-pink-500' : 'text-pink-500'}`} />
+                  <span className="text-xl">❤️</span>
                   <span className="text-xs md:text-sm font-bold text-pink-700">
                     {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
                   </span>
@@ -591,9 +591,7 @@ export default function CouplePage() {
                                       entry.likes_count > 0 ? "bg-pink-50 text-pink-600" : "text-gray-400 hover:bg-gray-50"
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                                   >
-                                    <Heart
-                                      className={`h-4 w-4 ${entry.likes_count > 0 ? "fill-current" : ""}`}
-                                    />
+                                    <span className="text-2xl">{entry.likes_count > 0 ? '❤️' : '🤍'}</span>
                                     <span className="text-xs font-bold">{entry.likes_count || 0}</span>
                                   </button>
                                   
@@ -685,9 +683,7 @@ export default function CouplePage() {
                                     disabled={userLikesCount >= MAX_LIKES_PER_GAME}
                                     className="flex items-center gap-1 px-2 py-1 rounded-full bg-white hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    <Heart
-                                      className={`h-4 w-4 ${row.likes_count > 0 ? "fill-red-500 text-red-500" : "text-gray-400"}`}
-                                    />
+                                    <span className="text-lg">{row.likes_count > 0 ? '❤️' : '🤍'}</span>
                                     <span className="text-xs font-bold text-gray-700">{row.likes_count || 0}</span>
                                   </button>
                                 </div>
@@ -747,7 +743,7 @@ export default function CouplePage() {
             animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
           }}
         >
-          <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+          <span className="text-2xl">❤️</span>
         </div>
       ))}
 
