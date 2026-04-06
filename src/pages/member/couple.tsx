@@ -427,7 +427,7 @@ export default function CouplePage() {
                                   {medal} #{rank}
                                 </span>
                                 <h3 className="text-lg font-bold text-gray-900">
-                                  {row.couples.couple_name}
+                                  {row.couple_name}
                                 </h3>
                               </div>
                             </div>
