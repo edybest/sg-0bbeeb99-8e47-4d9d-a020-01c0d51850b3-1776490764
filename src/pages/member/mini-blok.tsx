@@ -1095,7 +1095,7 @@ export default function MiniBlokPage() {
                     setDateFilter("all");
                     setOwnershipFilter("all");
                     setSortBy("date-desc");
-                  }}
+                  })
                 >
                   Clear Filters
                 </Button>
@@ -1421,7 +1421,7 @@ export default function MiniBlokPage() {
                                 setPlayerForm(INITIAL_PLAYER_FORM);
                                 setEditingPlayer(null);
                                 setShowPlayerForm(false);
-                              }}
+                              })
                               disabled={submitting}
                             >
                               Cancel
@@ -1490,7 +1490,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 openEditPlayerDialog(player);
-                                              }}
+                                              })
                                             >
                                               <Edit2 className="h-4 w-4" />
                                             </Button>
@@ -1500,7 +1500,7 @@ export default function MiniBlokPage() {
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setDeleteConfirmPlayer(player.id);
-                                              }}
+                                              })
                                             >
                                               <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -1672,7 +1672,7 @@ export default function MiniBlokPage() {
                     if (value && !selectedMemberIds.includes(value)) {
                       setSelectedMemberIds([...selectedMemberIds, value]);
                     }
-                  }}
+                  })
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Choose members..." />
