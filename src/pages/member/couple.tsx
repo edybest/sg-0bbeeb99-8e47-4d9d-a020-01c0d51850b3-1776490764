@@ -30,7 +30,7 @@ import {
   Users,
   Share2,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const MAX_LIKES_PER_GAME = 3;
 
