@@ -46,6 +46,8 @@ export default function CouplePage() {
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
   const [userLikesCount, setUserLikesCount] = useState(0);
 
+  const currentGame = games.find(g => g.id === selectedGameId);
+
   useEffect(() => {
     loadGames();
   }, []);
