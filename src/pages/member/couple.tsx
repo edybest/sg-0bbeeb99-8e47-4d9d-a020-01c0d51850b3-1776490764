@@ -386,7 +386,9 @@ export default function CouplePage() {
                                 </div>
                               </th>
                               <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
-                                <Heart className="w-4 h-4 mx-auto" />
+                                <div className="flex items-center justify-center gap-2">
+                                  <Heart className="w-4 h-4" />
+                                </div>
                               </th>
                             </tr>
                           </thead>
@@ -452,19 +454,18 @@ export default function CouplePage() {
                                 </td>
                                 <td className="px-3 py-2.5 text-center">
                                   <div className="flex items-center justify-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className={`gap-1 ${
-                                        (memberLikes[entry.id] || 0) > 0 ? "text-pink-600 bg-pink-50" : "text-gray-400 hover:text-pink-500"
-                                      }`}
-                                      onClick={() => handleLike(entry.id)}
+                                    <button
+                                      onClick={(e) => handleReaction(entry.id, e)}
+                                      disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                      className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                                        entry.likes_count > 0 ? "bg-pink-50 text-pink-600" : "text-gray-400 hover:bg-gray-50"
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                                     >
                                       <Heart
-                                        className={`h-4 w-4 ${(memberLikes[entry.id] || 0) > 0 ? "fill-current" : ""}`}
+                                        className={`h-4 w-4 ${entry.likes_count > 0 ? "fill-current" : ""}`}
                                       />
                                       <span className="text-xs font-bold">{entry.likes_count || 0}</span>
-                                    </Button>
+                                    </button>
                                     
                                     <Button
                                       variant="ghost"
