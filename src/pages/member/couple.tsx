@@ -381,7 +381,7 @@ export default function CouplePage() {
                     <SelectContent>
                       {games.map((game) => (
                         <SelectItem key={game.id} value={game.id}>
-                          {game.game_name}
+                          {game.game_name} {game.game_date ? `(${new Date(game.game_date).toLocaleDateString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric' })})` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
