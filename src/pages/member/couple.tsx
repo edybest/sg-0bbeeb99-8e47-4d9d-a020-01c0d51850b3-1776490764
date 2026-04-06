@@ -430,6 +430,9 @@ export default function CouplePage() {
                                   {row.couple_name}
                                 </h3>
                               </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                {row.player1_name || "Unknown"} + {row.player2_name || "Unknown"}
+                              </div>
                             </div>
                           </div>
 
