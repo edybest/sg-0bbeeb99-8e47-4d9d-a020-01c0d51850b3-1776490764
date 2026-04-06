@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/router";
 import { MemberLayout } from "@/components/member/MemberLayout";
@@ -47,12 +47,18 @@ export default function CouplePage() {
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
   const [userLikesCount, setUserLikesCount] = useState(0);
 
+  const prevLeaderboardRef = useRef<CoupleLeaderboardEntry[]>([]);
+
   const currentGame = games.find(g => g.id === selectedGameId);
 
   useEffect(() => {
     loadGames();
     fetchUserReactions();
   }, []);
+
+  useEffect(() => {
+    prevLeaderboardRef.current = leaderboard;
+  }, [leaderboard]);
 
   useEffect(() => {
     if (selectedGameId) {
@@ -113,6 +119,55 @@ export default function CouplePage() {
         ...item,
         rank: index + 1
       }));
+
+      // --- Real-time Notification Logic ---
+      if (!showLoading && prevLeaderboardRef.current.length > 0) {
+        const prevLeaderboard = prevLeaderboardRef.current;
+
+        formattedData.forEach((newCouple: any) => {
+          const prevCouple = prevLeaderboard.find(c => c.id === newCouple.id);
+          
+          if (prevCouple) {
+            // Check if the current logged-in member belongs to this couple
+            const isMe = member && (
+              newCouple.player1_id === member.id || 
+              newCouple.player2_id === member.id ||
+              newCouple.player1_name === member.username || 
+              newCouple.player2_name === member.username
+            );
+
+            const oldScore = prevCouple.overall_score || 0;
+            const newScore = newCouple.overall_score || 0;
+
+            // 1. Personal Score Update Alert
+            if (isMe && oldScore !== newScore) {
+              toast({
+                title: "Markah Dikemas Kini! 🎳",
+                description: `Markah anda bertukar dari ${oldScore} ke ${newScore}.`,
+              });
+            }
+
+            // 2. Rank Change Alerts
+            if (prevCouple.rank !== newCouple.rank) {
+              if (isMe) {
+                const improved = newCouple.rank < prevCouple.rank;
+                toast({
+                  title: improved ? "Tahniah! Ranking Naik 📈" : "Alamak! Ranking Turun 📉",
+                  description: `Ranking anda berubah dari #${prevCouple.rank} ke #${newCouple.rank}.`,
+                  variant: improved ? "default" : "destructive",
+                });
+              } else if (newCouple.rank === 1 && prevCouple.rank > 1) {
+                // 3. General Notification if someone else takes the #1 spot
+                toast({
+                  title: "Pendahulu Baru! 🏆",
+                  description: `${newCouple.couple_name} kini merampas kedudukan #1!`,
+                });
+              }
+            }
+          }
+        });
+      }
+      // --- End Notification Logic ---
 
       setLeaderboard(formattedData);
     } catch (error) {
