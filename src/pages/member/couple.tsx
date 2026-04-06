@@ -397,16 +397,27 @@ export default function CouplePage() {
         <div className="container max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-8">
           {/* Header */}
           <div className="mb-6 md:mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 md:p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg">
-                <Heart className="w-6 h-6 md:w-8 md:h-8 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 md:p-3 bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg">
+                  <Heart className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
+                    Couple Leaderboard
+                  </h1>
+                  <p className="text-xs md:text-sm text-gray-600">Team bowling competition standings</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-                  Couple Leaderboard
-                </h1>
-                <p className="text-xs md:text-sm text-gray-600">Team bowling competition standings</p>
-              </div>
+              
+              {selectedGameId && (
+                <div className="flex items-center gap-1.5 bg-pink-50 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-pink-200 shadow-sm shrink-0 w-fit">
+                  <Heart className={`w-4 h-4 md:w-5 md:h-5 ${userLikesCount >= MAX_LIKES_PER_GAME ? 'fill-pink-500 text-pink-500' : 'text-pink-500'}`} />
+                  <span className="text-xs md:text-sm font-bold text-pink-700">
+                    {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -835,20 +835,15 @@ export default function BlokPage() {
                     
                   </div>
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                    
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-2 text-sm font-normal text-muted-foreground">
-                        <Heart className="w-4 h-4 text-red-500" />
-                        <span>{userLikesCount}/{MAX_LIKES_PER_GAME} Like</span>
-                      </div>
-                      
-
-                      
-                    </div>
-                  </CardTitle>
-                </CardHeader>
+                
+                {selectedGame && (
+                  <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 shadow-sm flex-shrink-0">
+                    <Heart className={`w-4 h-4 ${userLikesCount >= MAX_LIKES_PER_GAME ? 'fill-red-500 text-red-500' : 'text-red-500'}`} />
+                    <span className="text-xs md:text-sm font-bold text-red-700">
+                      {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </header>
