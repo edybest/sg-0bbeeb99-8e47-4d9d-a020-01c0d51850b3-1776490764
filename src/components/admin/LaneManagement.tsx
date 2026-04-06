@@ -105,32 +105,51 @@ export function LaneManagement() {
     return spinResults.some(r => r.lane_position === lanePosition && r.member_id === memberId);
   };
 
-  async function loadLaneAssignments() {
+  const loadLaneAssignments = async (gameId: string) => {
     try {
-      const data = await withLoading("admin:lane:load-assignments", async () =>
-        laneService.getLaneAssignments(selectedGameId)
-      );
-      setAssignments(data || []);
+      setLoading(true);
+      const assignments = await laneService.getLaneDrawsByGame(gameId);
+      
+      // Check if game is COUPLE type
+      const game = games.find(g => g.id === gameId);
+      const isCouple = game?.game_type === 'COUPLE';
 
-      const registered = await withLoading("admin:lane:load-registered-players", async () =>
-        laneService.getRegisteredPlayersForGame(selectedGameId)
-      );
-
-      const assignedIds = new Set((data || []).map((a) => a.member_id));
-      const availablePlayers = registered
-        .filter((p) => !assignedIds.has(p.member_id))
-        .map((p) => ({
-          id: p.member_id,
-          username: p.username,
-          full_name: p.full_name,
-          avatar_url: null,
-        }));
-
-      setMembers(availablePlayers);
+      // If couple game, fetch couple names for display
+      if (isCouple && assignments.length > 0) {
+        const assignmentsWithCouples = await Promise.all(
+          assignments.map(async (assignment: any) => {
+            try {
+              const coupleData = await laneService.getCoupleByPlayerAndGame(assignment.member_id, gameId);
+              if (coupleData && coupleData.couple) {
+                return {
+                  ...assignment,
+                  couple_name: coupleData.couple.couple_name,
+                  player1_username: coupleData.couple.player1?.username,
+                  player2_username: coupleData.couple.player2?.username,
+                };
+              }
+              return assignment;
+            } catch (error) {
+              console.error("Error fetching couple for assignment:", error);
+              return assignment;
+            }
+          })
+        );
+        setLaneAssignments(assignmentsWithCouples);
+      } else {
+        setLaneAssignments(assignments);
+      }
     } catch (error) {
-      console.error("Error loading assignments:", error);
+      console.error("Error loading lane assignments:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat turun data lorong",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   async function handleSaveConfig(configId: string) {
     const config = laneConfigs.find(c => c.id === configId);

@@ -427,6 +427,15 @@ export default function UndiLanePage() {
     }
   }
 
+  const [currentGame, setCurrentGame] = useState<any>(null);
+  const [laneDraws, setLaneDraws] = useState<any[]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [myLaneNumber, setMyLaneNumber] = useState<number | null>(null);
+  const [isGameCouple, setIsGameCouple] = useState(false);
+  const [myCouple, setMyCouple] = useState<any>(null);
+  const [partnerAlreadyDrawn, setPartnerAlreadyDrawn] = useState(false);
+
   useEffect(() => {
     if (currentGame && member) {
       checkDrawStatus();

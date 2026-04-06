@@ -326,26 +326,41 @@ export const laneService = {
   },
 
   async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
-    // Check if player is in a couple for this game
-    const { data, error } = await supabase
+    // Break down complex queries to avoid TypeScript "excessively deep" errors
+    // 1. First get the couple_scores row to find couple_id
+    const { data: coupleScore, error: scoreError } = await supabase
       .from("couple_scores")
+      .select("couple_id")
+      .eq("game_id", gameId)
+      .limit(100); // we will filter locally
+      
+    if (scoreError) throw scoreError;
+    if (!coupleScore || coupleScore.length === 0) return null;
+    
+    const coupleIds = coupleScore.map(s => s.couple_id);
+    
+    // 2. Then get the couple details where player1 or player2 matches
+    const { data: couple, error: coupleError } = await supabase
+      .from("couples")
       .select(`
         id,
-        couple_id,
-        couple:couples!couple_scores_couple_id_fkey(
-          couple_name,
-          player1_id,
-          player2_id,
-          player1:members!couples_player1_id_fkey(id, username),
-          player2:members!couples_player2_id_fkey(id, username)
-        )
+        couple_name,
+        player1_id,
+        player2_id,
+        player1:members!couples_player1_id_fkey(id, username),
+        player2:members!couples_player2_id_fkey(id, username)
       `)
-      .eq("game_id", gameId)
-      .or(`couple.player1_id.eq.${playerId},couple.player2_id.eq.${playerId}`)
+      .in("id", coupleIds)
+      .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`)
       .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    if (coupleError && coupleError.code !== 'PGRST116') throw coupleError;
+    if (!couple) return null;
+    
+    return {
+      couple_id: couple.id,
+      couple: couple
+    };
   },
 
   async checkIfPartnerAlreadyDrawn(coupleId: string, gameId: string) {
