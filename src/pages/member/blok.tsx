@@ -210,6 +210,7 @@ export default function BlokPage() {
       const { data, error: dbError } = await supabase.
       from("games").
       select("id, game_name, game_format, game_date, created_at").
+      neq("game_type", "COUPLE").
       order("game_date", { ascending: false });
 
       if (dbError) throw dbError;
