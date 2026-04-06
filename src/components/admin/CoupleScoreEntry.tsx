@@ -35,14 +35,24 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
     }
   }
 
-  async function loadCoupleScores(gameId: string) {
+  const loadCoupleScores = async (gameId: string) => {
+    setLoadingCoupleScores(true);
     try {
-      const data = await coupleService.getCoupleScoresByGame(gameId);
-      setCoupleScores(data);
+      const scores = await coupleService.getCoupleScoresByGame(gameId);
+      // Sort by overall_score descending (highest first)
+      const sortedScores = scores.sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
+      setCoupleScores(sortedScores);
     } catch (error) {
       console.error("Error loading couple scores:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load couple scores",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingCoupleScores(false);
     }
-  }
+  };
 
   async function handleSaveCoupleScore() {
     if (!selectedCoupleId || !selectedGameId) {
@@ -289,40 +299,78 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
           {coupleScores.length > 0 && (
             <div className="mt-6 pt-4 border-t border-pink-200">
               <h4 className="text-sm font-semibold text-gray-700 mb-3">Couple Scores in This Game</h4>
-              <div className="space-y-2">
-                {coupleScores.map((cs) => (
-                  <div key={cs.id} className="bg-white rounded-lg p-3 border-2 border-pink-200 flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-gray-900">{cs.couple_name}</div>
-                      <div className="text-xs text-gray-600">{cs.player1_name} + {cs.player2_name}</div>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-gray-600">Total: <span className="font-bold">{cs.total_score || 0}</span></span>
-                      <span className="text-pink-600">Overall: <span className="font-bold">{cs.overall_score || 0}</span></span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedCoupleId(cs.couple_id);
-                          setEditingCoupleScore({
-                            game1_score: cs.game1_score || 0,
-                            game2_score: cs.game2_score || 0,
-                            game3_score: cs.game3_score || 0,
-                            game4_score: cs.game4_score || 0,
-                            game5_score: cs.game5_score || 0,
-                            game6_score: cs.game6_score || 0,
-                            handicap: cs.handicap || 0,
-                            total_score: cs.total_score || 0,
-                            overall_score: cs.overall_score || 0,
-                          });
-                        }}
-                        className="border-pink-300 text-pink-700 hover:bg-pink-50"
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-pink-200 bg-pink-50/50">
+                      <th className="text-left p-2 font-semibold text-pink-900">Rank</th>
+                      <th className="text-left p-2 font-semibold text-pink-900">Couple</th>
+                      <th className="text-left p-2 font-semibold text-pink-900">Players</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G1</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G2</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G3</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G4</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G5</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">G6</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">Total</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">Hdcp</th>
+                      <th className="text-center p-2 font-semibold text-pink-900">Overall</th>
+                      <th className="text-right p-2 font-semibold text-pink-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {coupleScores.map((score, index) => {
+                      const rank = index + 1;
+                      const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "";
+                      
+                      return (
+                        <tr key={score.id} className="border-b border-pink-100 hover:bg-pink-50/30">
+                          <td className="p-2 font-bold text-pink-700">
+                            {medal} #{rank}
+                          </td>
+                          <td className="p-2 font-medium">{score.couple_name}</td>
+                          <td className="p-2 text-xs text-gray-600">
+                            {score.player1_name} + {score.player2_name}
+                          </td>
+                          <td className="p-2 text-center font-mono">{score.game1_score || 0}</td>
+                          <td className="p-2 text-center font-mono">{score.game2_score || 0}</td>
+                          <td className="p-2 text-center font-mono">{score.game3_score || 0}</td>
+                          <td className="p-2 text-center font-mono">{score.game4_score || 0}</td>
+                          <td className="p-2 text-center font-mono">{score.game5_score || 0}</td>
+                          <td className="p-2 text-center font-mono">{score.game6_score || 0}</td>
+                          <td className="p-2 text-center font-bold">{score.total_score || 0}</td>
+                          <td className="p-2 text-center text-blue-600">{score.handicap || 0}</td>
+                          <td className="p-2 text-center font-bold text-pink-700 text-lg">
+                            {score.overall_score || 0}
+                          </td>
+                          <td className="p-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedCoupleId(score.couple_id);
+                                setEditingCoupleScore({
+                                  game1_score: score.game1_score || 0,
+                                  game2_score: score.game2_score || 0,
+                                  game3_score: score.game3_score || 0,
+                                  game4_score: score.game4_score || 0,
+                                  game5_score: score.game5_score || 0,
+                                  game6_score: score.game6_score || 0,
+                                  handicap: score.handicap || 0,
+                                  total_score: score.total_score || 0,
+                                  overall_score: score.overall_score || 0,
+                                });
+                              }}
+                              className="border-pink-300 text-pink-700 hover:bg-pink-50"
+                            >
+                              Edit
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
