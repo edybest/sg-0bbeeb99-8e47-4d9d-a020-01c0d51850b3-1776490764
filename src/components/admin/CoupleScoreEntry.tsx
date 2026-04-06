@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Save, Heart } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CoupleScoreEntryProps {
   selectedGameId: string;
@@ -15,6 +16,8 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
   const [coupleScores, setCoupleScores] = useState<any[]>([]);
   const [editingCoupleScore, setEditingCoupleScore] = useState<any>(null);
   const [savingCouple, setSavingCouple] = useState(false);
+  const [loadingCoupleScores, setLoadingCoupleScores] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadCouples();
