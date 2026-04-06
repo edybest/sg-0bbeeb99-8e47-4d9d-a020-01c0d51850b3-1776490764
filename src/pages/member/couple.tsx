@@ -328,22 +328,28 @@ export default function CouplePage() {
     if (rank === 1) return (
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 bg-yellow-400 blur-[8px] rounded-full opacity-60 animate-pulse"></div>
-        <Trophy 
-          className="w-8 h-8 md:w-10 md:h-10 text-yellow-600 fill-yellow-400 relative z-10 drop-shadow-xl animate-bounce" 
-          style={{ animationDuration: '2.5s' }} 
-        />
+        <div className="relative flex items-center justify-center animate-bounce z-10" style={{ animationDuration: '2.5s' }}>
+          <Trophy className="w-8 h-8 md:w-10 md:h-10 text-yellow-600 fill-yellow-400 drop-shadow-xl" />
+          <span className="absolute top-[35%] left-1/2 -translate-x-1/2 font-black text-yellow-900 text-[10px] md:text-xs leading-none drop-shadow-sm">1</span>
+        </div>
       </div>
     );
     if (rank === 2) return (
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 bg-gray-400 blur-[6px] rounded-full opacity-40 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-        <Medal className="w-7 h-7 md:w-8 md:h-8 text-gray-500 fill-gray-300 relative z-10 drop-shadow-md" />
+        <div className="relative flex items-center justify-center z-10">
+          <Medal className="w-7 h-7 md:w-8 md:h-8 text-gray-500 fill-gray-300 drop-shadow-md" />
+          <span className="absolute top-[60%] left-1/2 -translate-x-1/2 font-black text-gray-800 text-[9px] md:text-[10px] leading-none drop-shadow-sm">2</span>
+        </div>
       </div>
     );
     if (rank === 3) return (
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 bg-amber-600 blur-[6px] rounded-full opacity-40 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <Medal className="w-7 h-7 md:w-8 md:h-8 text-amber-700 fill-amber-500 relative z-10 drop-shadow-md" />
+        <div className="relative flex items-center justify-center z-10">
+          <Medal className="w-7 h-7 md:w-8 md:h-8 text-amber-700 fill-amber-500 drop-shadow-md" />
+          <span className="absolute top-[60%] left-1/2 -translate-x-1/2 font-black text-amber-900 text-[9px] md:text-[10px] leading-none drop-shadow-sm">3</span>
+        </div>
       </div>
     );
     return <span className="text-base md:text-lg font-bold text-gray-600">#{rank}</span>;
