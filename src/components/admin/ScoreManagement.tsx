@@ -10,6 +10,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Save, Search, Upload, X, Check, AlertCircle, AlertTriangle, Info, RefreshCw, FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type GamePlayer = {
   id: string;
@@ -1136,6 +1143,310 @@ export function ScoreManagement() {
           </Card>
         </>
       )}
+
+      {/* Upload Image Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload Score Image</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {!imagePreview ? (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="score-image-upload"
+                />
+                <label
+                  htmlFor="score-image-upload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  <span className="text-sm font-medium text-gray-900">
+                    Click to upload score image
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    Supports JPG, PNG (Max 5MB)
+                  </span>
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-gray-200">
+                  <Image
+                    src={imagePreview}
+                    alt="Score preview"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={retryWithNewImage}
+                    disabled={parsing}
+                  >
+                    Choose Different Image
+                  </Button>
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleParseImage}
+                    disabled={parsing}
+                  >
+                    {parsing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    {parsing ? "Parsing Scores..." : "Extract Scores"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {ocrResult && !ocrResult.success && (
+              <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p>{ocrResult.error || "Failed to parse image. Please try a clearer photo."}</p>
+              </div>
+            )}
+
+            {parsedScores.length > 0 && (
+              <div className="space-y-3 mt-6 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Extracted Scores</h3>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowRawText(!showRawText)}
+                    className="h-8 text-xs"
+                  >
+                    {showRawText ? "Hide Raw Text" : "Show Raw Text"}
+                  </Button>
+                </div>
+
+                {showRawText && ocrResult?.text && (
+                  <div className="bg-gray-900 text-green-400 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {ocrResult.text}
+                  </div>
+                )}
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                  {parsedScores.map((score, idx) => (
+                    <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-medium text-gray-900">{score.name}</div>
+                          {score.matchedMember ? (
+                            <div className="text-xs text-blue-600 font-medium flex items-center gap-1 mt-0.5">
+                              Matched: {score.matchedMember.username}
+                              {getConfidenceBadge(score.matchConfidence)}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              No matching member found
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900">Total: {
+                            (score.scores.game1 || 0) + 
+                            (score.scores.game2 || 0) + 
+                            (score.scores.game3 || 0) + 
+                            (score.scores.game4 || 0) + 
+                            (score.scores.game5 || 0)
+                          }</div>
+                          {score.handicap !== undefined && (
+                            <div className="text-xs text-gray-500">Hcp: {score.handicap}</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-5 gap-1 mt-2 text-center text-xs">
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G1</div>
+                          <div className="font-semibold">{score.scores.game1 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G2</div>
+                          <div className="font-semibold">{score.scores.game2 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G3</div>
+                          <div className="font-semibold">{score.scores.game3 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G4</div>
+                          <div className="font-semibold">{score.scores.game4 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G5</div>
+                          <div className="font-semibold">{score.scores.game5 || '-'}</div>
+                        </div>
+                      </div>
+
+                      {score.matchedMember && (
+                        <Button
+                          size="sm"
+                          className="w-full mt-2 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                          onClick={() => handleApplyParsedScore(score)}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Apply Score
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetUpload}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload CSV Modal */}
+      <Dialog open={showCsvModal} onOpenChange={setShowCsvModal}>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload CSV Scores</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm mb-4">
+              <p className="font-semibold mb-1">CSV Format Requirements:</p>
+              <ul className="list-disc pl-5 space-y-1 text-xs">
+                <li>Headers must include: <strong>name</strong> (or player)</li>
+                <li>Game scores: <strong>game1, game2, game3, game4, game5</strong> (or g1, g2...)</li>
+                <li>Optional: <strong>handicap</strong> (or hcp), <strong>date</strong> (YYYY-MM-DD), <strong>fivefive</strong> (true/false)</li>
+              </ul>
+            </div>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvSelect}
+                className="hidden"
+                id="score-csv-upload"
+              />
+              <label
+                htmlFor="score-csv-upload"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                <span className="text-sm font-medium text-gray-900">
+                  {uploadedCsv ? uploadedCsv.name : "Click to select CSV file"}
+                </span>
+              </label>
+            </div>
+
+            {uploadedCsv && (
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleParseCsv}
+                disabled={csvParsing}
+              >
+                {csvParsing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                {csvParsing ? "Parsing CSV..." : "Process CSV"}
+              </Button>
+            )}
+
+            {csvParsedScores.length > 0 && (
+              <div className="space-y-3 mt-6 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">
+                    Ready to Import ({csvParsedScores.filter(s => s.matchConfidence && s.matchConfidence >= 80).length} matches)
+                  </h3>
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleApplyAllCsvScores}
+                  >
+                    Import All Matched
+                  </Button>
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                  {csvParsedScores.map((score, idx) => (
+                    <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-medium text-gray-900">{score.name}</div>
+                          {score.matchedMember ? (
+                            <div className="text-xs text-blue-600 font-medium flex items-center gap-1 mt-0.5">
+                              Matched: {score.matchedMember.username}
+                              {getConfidenceBadge(score.matchConfidence)}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              No matching member found
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-gray-900">Total: {
+                            (score.scores.game1 || 0) + 
+                            (score.scores.game2 || 0) + 
+                            (score.scores.game3 || 0) + 
+                            (score.scores.game4 || 0) + 
+                            (score.scores.game5 || 0)
+                          }</div>
+                          {score.date && (
+                            <div className="text-xs text-gray-500">Date: {score.date}</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-5 gap-1 mt-2 text-center text-xs">
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G1</div>
+                          <div className="font-semibold">{score.scores.game1 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G2</div>
+                          <div className="font-semibold">{score.scores.game2 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G3</div>
+                          <div className="font-semibold">{score.scores.game3 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G4</div>
+                          <div className="font-semibold">{score.scores.game4 || '-'}</div>
+                        </div>
+                        <div className="bg-white border rounded py-1">
+                          <div className="text-gray-500">G5</div>
+                          <div className="font-semibold">{score.scores.game5 || '-'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetCsvUpload}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
