@@ -58,14 +58,14 @@ export default function CouplePage() {
 
   const loadGames = async () => {
     try {
-      const gamesData = await gameService.getAllGames();
-      const sortedGames = gamesData.sort(
-        (a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime()
-      );
-      setGames(sortedGames);
-
-      if (sortedGames.length > 0 && !selectedGameId) {
-        setSelectedGameId(sortedGames[0].id);
+      const allGames = await gameService.getGames();
+      // Filter only COUPLE type games
+      const coupleGames = allGames.filter(game => game.game_type === 'COUPLE');
+      setGames(coupleGames);
+      
+      // Auto-select first couple game if available
+      if (coupleGames.length > 0 && !selectedGameId) {
+        setSelectedGameId(coupleGames[0].id);
       }
     } catch (error) {
       console.error("Error loading games:", error);

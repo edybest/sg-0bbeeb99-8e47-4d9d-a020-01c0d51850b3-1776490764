@@ -325,3 +325,32 @@ class CoupleService {
 }
 
 export const coupleService = new CoupleService();
+
+export const upsertCoupleScore = async (scoreData: CoupleScoreInsert) => {
+  const { data, error } = await supabase
+    .from("couple_scores")
+    .upsert(
+      {
+        couple_id: scoreData.couple_id,
+        game_id: scoreData.game_id,
+        game1_score: scoreData.game1_score,
+        game2_score: scoreData.game2_score,
+        game3_score: scoreData.game3_score,
+        game4_score: scoreData.game4_score,
+        game5_score: scoreData.game5_score,
+        game6_score: scoreData.game6_score,
+        handicap: scoreData.handicap,
+      },
+      {
+        onConflict: "couple_id,game_id",
+      }
+    )
+    .select();
+
+  if (error) {
+    console.error("Error upserting couple score:", error);
+    throw error;
+  }
+
+  return data;
+};
