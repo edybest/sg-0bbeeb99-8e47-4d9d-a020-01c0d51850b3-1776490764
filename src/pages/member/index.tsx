@@ -282,37 +282,39 @@ export default function MemberDashboard() {
         </div>
 
         <div className="container max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
-          {/* Quick Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            
-            {quickStats.map((stat, index) =>
+          {/* Quick Stats - Only show for logged in members */}
+          {member && (
             <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 + index * 0.1 }}>
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               
-                <Card className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden">
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
-                  <CardContent className="pt-4 md:pt-6 pb-3 md:pb-4 px-3 md:px-4">
-                    <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-2">
-                      <div className={`p-1.5 md:p-2 rounded-lg bg-gradient-to-br ${stat.gradient} bg-opacity-10`}>
-                        <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color}`} />
+              {quickStats.map((stat, index) =>
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 + index * 0.1 }}>
+                
+                  <Card className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden">
+                    <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
+                    <CardContent className="pt-4 md:pt-6 pb-3 md:pb-4 px-3 md:px-4">
+                      <div className="flex items-center gap-2 md:gap-3 mb-1.5 md:mb-2">
+                        <div className={`p-1.5 md:p-2 rounded-lg bg-gradient-to-br ${stat.gradient} bg-opacity-10`}>
+                          <stat.icon className={`h-4 w-4 md:h-5 md:w-5 ${stat.color}`} />
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </motion.div>
+                      <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent">
+                        {stat.value}
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
 
           {/* Navigation Cards */}
           <div>
@@ -375,34 +377,36 @@ export default function MemberDashboard() {
             </div>
           </div>
 
-          {/* Profile Quick Link */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 }}>
-            
-            <Link href="/member/profile">
-              <Card className="border-2 border-sky-200 bg-gradient-to-br from-sky-50/50 to-blue-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
-                <CardContent className="py-4 md:py-6 px-4 md:px-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-                      <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-base md:text-lg shadow-md flex-shrink-0">
-                        {member?.full_name?.charAt(0) || "?"}
+          {/* Profile Quick Link - Only show for logged in members */}
+          {member && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1 }}>
+              
+              <Link href="/member/profile">
+                <Card className="border-2 border-sky-200 bg-gradient-to-br from-sky-50/50 to-blue-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
+                  <CardContent className="py-4 md:py-6 px-4 md:px-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                        <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-base md:text-lg shadow-md flex-shrink-0">
+                          {member?.full_name?.charAt(0) || "?"}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs md:text-sm text-muted-foreground">Profil Anda</p>
+                          <p className="text-base md:text-lg font-bold text-sky-600 truncate">{member?.full_name}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs md:text-sm text-muted-foreground">Profil Anda</p>
-                        <p className="text-base md:text-lg font-bold text-sky-600 truncate">{member?.full_name}</p>
-                      </div>
+                      <Button variant="outline" className="border-sky-200 text-sky-600 hover:bg-sky-50 text-xs md:text-sm px-3 md:px-4 flex-shrink-0">
+                        <span className="hidden sm:inline">Lihat Profil</span>
+                        <span className="sm:hidden">Profil</span>
+                      </Button>
                     </div>
-                    <Button variant="outline" className="border-sky-200 text-sky-600 hover:bg-sky-50 text-xs md:text-sm px-3 md:px-4 flex-shrink-0">
-                      <span className="hidden sm:inline">Lihat Profil</span>
-                      <span className="sm:hidden">Profil</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </motion.div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
         </div>
       </div>
     </MemberLayout>);
