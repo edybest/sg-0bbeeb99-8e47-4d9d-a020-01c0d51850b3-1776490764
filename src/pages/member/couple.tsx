@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-const MAX_LIKES_PER_GAME = 3;
+const MAX_LIKES_PER_GAME = 5;
 
 export default function CouplePage() {
   const { member, loading: authLoading } = useAuth();
@@ -46,6 +46,8 @@ export default function CouplePage() {
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
   const [userReactions, setUserReactions] = useState<Set<string>>(new Set());
   const [userLikesCount, setUserLikesCount] = useState(0);
+  const [reactions, setReactions] = useState<{id: string; x: number; y: number}[]>([]);
+  const [particles, setParticles] = useState<{id: string; x: number; y: number}[]>([]);
 
   const prevLeaderboardRef = useRef<CoupleLeaderboardEntry[]>([]);
 
@@ -238,6 +240,26 @@ export default function CouplePage() {
       });
       return;
     }
+
+    // Add reaction animation
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top;
+
+    const reactionId = `reaction-${Date.now()}-${Math.random()}`;
+    setReactions((prev) => [...prev, { id: reactionId, x, y }]);
+
+    const particleIds = Array.from({ length: 8 }, (_, i) => ({
+      id: `particle-${Date.now()}-${i}`,
+      x,
+      y
+    }));
+    setParticles((prev) => [...prev, ...particleIds]);
+
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== reactionId));
+      setParticles((prev) => prev.filter((p) => !particleIds.some((pid) => pid.id === p.id)));
+    }, 2000);
 
     try {
       await coupleService.addCoupleReaction(coupleScoreId, selectedGameId, member.id);
@@ -702,6 +724,51 @@ export default function CouplePage() {
           </Card>
         </div>
       </div>
+
+      {/* Floating Reaction Hearts */}
+      {reactions.map((reaction) => (
+        <div
+          key={reaction.id}
+          className="heart-pop fixed pointer-events-none z-50 text-6xl"
+          style={{ left: `${reaction.x}px`, top: `${reaction.y}px` }}
+        >
+          ❤️
+        </div>
+      ))}
+
+      {/* Particle Effects */}
+      {particles.map((particle) => (
+        <div
+          key={particle.id}
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: `${particle.x}px`,
+            top: `${particle.y}px`,
+            animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
+          }}
+        >
+          <Heart className="w-3 h-3 fill-red-500 text-red-500" />
+        </div>
+      ))}
+
+      <style>{`
+        @keyframes heartPop {
+          0% { transform: translate(-50%, 0) scale(0); opacity: 1; }
+          50% { transform: translate(-50%, -30px) scale(1.2); opacity: 1; }
+          100% { transform: translate(-50%, -80px) scale(0.8); opacity: 0; }
+        }
+        .heart-pop {
+          animation: heartPop 1s ease-out forwards;
+        }
+        @keyframes particle-0 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-30px, -50px) scale(0); opacity: 0; } }
+        @keyframes particle-1 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(30px, -50px) scale(0); opacity: 0; } }
+        @keyframes particle-2 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-40px, -30px) scale(0); opacity: 0; } }
+        @keyframes particle-3 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(40px, -30px) scale(0); opacity: 0; } }
+        @keyframes particle-4 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-20px, -60px) scale(0); opacity: 0; } }
+        @keyframes particle-5 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(20px, -60px) scale(0); opacity: 0; } }
+        @keyframes particle-6 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-50px, -40px) scale(0); opacity: 0; } }
+        @keyframes particle-7 { 0% { transform: translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(50px, -40px) scale(0); opacity: 0; } }
+      `}</style>
     </MemberLayout>
   );
 }
