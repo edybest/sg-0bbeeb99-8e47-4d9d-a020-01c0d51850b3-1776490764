@@ -10,6 +10,51 @@ type UseAuthOptions = {
   subscribe?: boolean;
 };
 
+interface CachedSession {
+  member: Member;
+  timestamp: number;
+}
+
+const SESSION_CACHE_KEY = 'ambc_session_cache';
+const CACHE_DURATION = 30000; // 30 seconds
+
+function getCachedSession(): CachedSession | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(SESSION_CACHE_KEY);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached);
+    if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+      localStorage.removeItem(SESSION_CACHE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedSession(member: Member) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({
+      member,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Failed to cache session:', e);
+  }
+}
+
+function clearCachedSession() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(SESSION_CACHE_KEY);
+  } catch (e) {
+    console.warn('Failed to clear session cache:', e);
+  }
+}
+
 /**
  * Custom hook for authentication using Supabase Auth
  * Supports both admin (email/password) and member (WhatsApp OTP) login
@@ -28,7 +73,6 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   const checkingRef = useRef(false);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
-  const emergencyTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -51,25 +95,25 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       clearTimeout(timeoutRef.current);
     }
 
-    // Set aggressive timeout (3 seconds) for UI release
+    // Reduced timeout to 1 second for faster UI release
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
       
-      console.warn("⏱️ Auth check timeout (3s) - releasing UI lock");
+      console.warn("⏱️ Auth check timeout (1s) - releasing UI lock");
       checkingRef.current = false;
       setLoading(false);
-    }, 3000);
+    }, 1000);
 
     try {
       console.log("🔍 Starting auth check...");
       
-      // Use Promise.race to forcefully break out if Supabase gets stuck
+      // Use Promise.race with reduced timeout (1 second instead of 3)
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => 
         setTimeout(() => {
           console.warn("⏱️ Session fetch timeout - resolving as null");
           resolve({ data: { session: null } });
-        }, 3000)
+        }, 1000)
       );
       
       const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
@@ -86,6 +130,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
       if (!session) {
         console.log("❌ No session found");
+        clearCachedSession();
         setIsAuthenticated(false);
         setLoading(false);
         if (requireAuth) {
@@ -102,6 +147,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       }
       
       console.error("❌ Auth check error:", error);
+      clearCachedSession();
       
       if (mountedRef.current) {
         setIsAuthenticated(false);
@@ -140,6 +186,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
       if (!memberData) {
         console.error("❌ Member not found for session user:", { userId, email });
+        clearCachedSession();
         setIsAuthenticated(false);
         setLoading(false);
         if (requireAuth) {
@@ -156,6 +203,9 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
       if (!mountedRef.current) return;
 
+      // Cache the session
+      setCachedSession(memberData as Member);
+
       setMember(memberData as Member);
       setIsAuthenticated(true);
       setLoading(false);
@@ -167,6 +217,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       }
     } catch (error) {
       console.error("❌ Error loading member data:", error);
+      clearCachedSession();
       if (mountedRef.current) {
         setIsAuthenticated(false);
         setLoading(false);
@@ -180,33 +231,26 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   useEffect(() => {
     mountedRef.current = true;
     
-    // EMERGENCY BAILOUT: Force release loading after 5 seconds
-    emergencyTimeoutRef.current = setTimeout(() => {
-      if (mountedRef.current && loading) {
-        console.error("🚨 EMERGENCY: Auth check exceeded 5s - forcing loading=false");
-        setLoading(false);
-        checkingRef.current = false;
-      }
-    }, 5000);
-    
-    // Initial check
-    checkAuth();
-
-    // Simplify visibility handling to prevent Supabase lock stealing and abort errors
-    const handleVisibilityChange = () => {
-      if (!mountedRef.current) return;
+    // OPTIMISTIC LOADING: Check cache first
+    const cached = getCachedSession();
+    if (cached?.member) {
+      console.log("⚡ Using cached session - instant load");
+      setMember(cached.member);
+      setIsAuthenticated(true);
+      setLoading(false);
       
-      if (document.visibilityState === "visible") {
-        console.log("👁️ Tab became visible - checking auth if needed");
-        if (!checkingRef.current && !isAuthenticated) {
+      // Validate in background (don't block UI)
+      setTimeout(() => {
+        if (mountedRef.current) {
           checkAuth();
         }
-      }
-    };
+      }, 100);
+    } else {
+      // No cache - do initial check
+      checkAuth();
+    }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    // Auth state change listener
+    // Auth state change listener (simplified - only for sign-in/sign-out)
     let authSubscription: { subscription: { unsubscribe: () => void } } | null = null;
 
     if (subscribe) {
@@ -218,15 +262,15 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
         if (event === "SIGNED_IN" && session) {
           await loadMemberData(session.user.id, session.user.email ?? null);
         } else if (event === "SIGNED_OUT") {
+          clearCachedSession();
           setMember(null);
           setIsAuthenticated(false);
           setLoading(false);
           if (requireAuth) {
             router.push("/login");
           }
-        } else if (event === "TOKEN_REFRESHED") {
-          console.log("🔄 Token refreshed successfully");
         }
+        // Removed TOKEN_REFRESHED handler - no need to reload member data
       });
 
       authSubscription = listener;
@@ -235,14 +279,9 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
     // Cleanup
     return () => {
       mountedRef.current = false;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-      }
-      
-      if (emergencyTimeoutRef.current) {
-        clearTimeout(emergencyTimeoutRef.current);
       }
       
       if (authSubscription) {
@@ -254,6 +293,7 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
   async function logout(options?: { redirectTo?: string }) {
     try {
       await supabase.auth.signOut();
+      clearCachedSession();
       setMember(null);
       setIsAuthenticated(false);
       setLoading(false);
