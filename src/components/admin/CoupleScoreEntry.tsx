@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { coupleService } from "@/services/coupleService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +26,15 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
   const [loadingCoupleScores, setLoadingCoupleScores] = useState(false);
   const { toast } = useToast();
 
+  // Refs for auto-focus
+  const game1Ref = useRef<HTMLInputElement>(null);
+  const game2Ref = useRef<HTMLInputElement>(null);
+  const game3Ref = useRef<HTMLInputElement>(null);
+  const game4Ref = useRef<HTMLInputElement>(null);
+  const game5Ref = useRef<HTMLInputElement>(null);
+  const game6Ref = useRef<HTMLInputElement>(null);
+  const handicapRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     loadCouples();
   }, []);
@@ -28,6 +44,15 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
       loadCoupleScores(selectedGameId);
     }
   }, [selectedGameId]);
+
+  useEffect(() => {
+    // Auto-focus on Game 1 input when couple is selected
+    if (selectedCoupleId && game1Ref.current) {
+      setTimeout(() => {
+        game1Ref.current?.focus();
+      }, 100);
+    }
+  }, [selectedCoupleId]);
 
   async function loadCouples() {
     try {
@@ -119,6 +144,13 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
     });
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<HTMLInputElement> | null) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      nextRef?.current?.focus();
+    }
+  };
+
   if (!selectedGameId) return null;
 
   return (
@@ -179,62 +211,116 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
           {selectedCoupleId && editingCoupleScore && (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
               <div>
-                <label className="block text-xs font-medium text-blue-700 mb-1">Game 1</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 1
+                </label>
                 <Input
+                  ref={game1Ref}
                   type="number"
-                  value={editingCoupleScore.game1_score}
-                  onChange={(e) => handleCoupleScoreChange("game1_score", e.target.value)}
-                  className="bg-blue-50 border-blue-200 text-center font-bold"
+                  value={editingCoupleScore.game1_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game1_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, game2Ref)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-green-700 mb-1">Game 2</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 2
+                </label>
                 <Input
+                  ref={game2Ref}
                   type="number"
-                  value={editingCoupleScore.game2_score}
-                  onChange={(e) => handleCoupleScoreChange("game2_score", e.target.value)}
-                  className="bg-green-50 border-green-200 text-center font-bold"
+                  value={editingCoupleScore.game2_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game2_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, game3Ref)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-purple-700 mb-1">Game 3</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 3
+                </label>
                 <Input
+                  ref={game3Ref}
                   type="number"
-                  value={editingCoupleScore.game3_score}
-                  onChange={(e) => handleCoupleScoreChange("game3_score", e.target.value)}
-                  className="bg-purple-50 border-purple-200 text-center font-bold"
+                  value={editingCoupleScore.game3_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game3_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, game4Ref)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-orange-700 mb-1">Game 4</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 4
+                </label>
                 <Input
+                  ref={game4Ref}
                   type="number"
-                  value={editingCoupleScore.game4_score}
-                  onChange={(e) => handleCoupleScoreChange("game4_score", e.target.value)}
-                  className="bg-orange-50 border-orange-200 text-center font-bold"
+                  value={editingCoupleScore.game4_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game4_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, game5Ref)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-pink-700 mb-1">Game 5</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 5
+                </label>
                 <Input
+                  ref={game5Ref}
                   type="number"
-                  value={editingCoupleScore.game5_score}
-                  onChange={(e) => handleCoupleScoreChange("game5_score", e.target.value)}
-                  className="bg-pink-50 border-pink-200 text-center font-bold"
+                  value={editingCoupleScore.game5_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game5_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, game6Ref)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-indigo-700 mb-1">Game 6</label>
+                <label className="block text-sm font-medium mb-1">
+                  Game 6
+                </label>
                 <Input
+                  ref={game6Ref}
                   type="number"
-                  value={editingCoupleScore.game6_score}
-                  onChange={(e) => handleCoupleScoreChange("game6_score", e.target.value)}
-                  className="bg-indigo-50 border-indigo-200 text-center font-bold"
+                  value={editingCoupleScore.game6_score || ""}
+                  onChange={(e) =>
+                    setEditingCoupleScore({
+                      ...editingCoupleScore,
+                      game6_score: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  onKeyDown={(e) => handleKeyDown(e, handicapRef)}
+                  className="text-center focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />
               </div>
