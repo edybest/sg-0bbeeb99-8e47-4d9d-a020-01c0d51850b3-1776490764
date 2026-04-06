@@ -33,6 +33,7 @@ import { Users, Plus, Edit, Trash2, Heart, Loader2 } from "lucide-react";
 type Member = {
   id: string;
   full_name: string;
+  username: string;
 };
 
 export function CoupleManagement() {
@@ -71,6 +72,7 @@ export function CoupleManagement() {
         membersData.map((m) => ({
           id: m.id,
           full_name: m.full_name || "Unknown",
+          username: m.username || "Unknown",
         }))
       );
     } catch (error) {
@@ -248,9 +250,10 @@ export function CoupleManagement() {
                       <SelectValue placeholder="Select Player 1" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Choose Player 1...</SelectItem>
                       {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
-                          {member.full_name}
+                          {member.username} ({member.full_name})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -269,11 +272,14 @@ export function CoupleManagement() {
                       <SelectValue placeholder="Select Player 2" />
                     </SelectTrigger>
                     <SelectContent>
-                      {members.map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.full_name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="">Choose Player 2...</SelectItem>
+                      {members
+                        .filter((m) => m.id !== formData.player1_id)
+                        .map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.username} ({member.full_name})
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -320,8 +326,12 @@ export function CoupleManagement() {
                     <TableCell className="font-semibold">
                       {couple.couple_name}
                     </TableCell>
-                    <TableCell>{couple.player1_name}</TableCell>
-                    <TableCell>{couple.player2_name}</TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-500">
+                        {couple.player1_profiles?.username || "Unknown"} + {couple.player2_profiles?.username || "Unknown"}
+                      </div>
+                    </TableCell>
+                    <TableCell></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
