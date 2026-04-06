@@ -125,6 +125,7 @@ export const laneService = {
         id,
         game_id,
         member_id,
+        couple_id,
         lane_position,
         created_at,
         updated_at,
@@ -133,13 +134,21 @@ export const laneService = {
           username,
           full_name,
           avatar_url
+        ),
+        couple:couples!lane_assignments_couple_id_fkey(
+          id,
+          couple_name,
+          player1_id,
+          player2_id,
+          player1:members!couples_player1_id_fkey(username, full_name),
+          player2:members!couples_player2_id_fkey(username, full_name)
         )
       `)
       .eq("game_id", gameId)
       .limit(100); // Limit to 100 assignments
 
     if (error) throw error;
-    return (data || []) as LaneAssignmentWithMember[];
+    return (data || []) as any;
   },
 
   // Get a member's current assignment (if any) for a game
