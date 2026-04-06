@@ -67,8 +67,6 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
         game5_score: editingCoupleScore.game5_score || 0,
         game6_score: editingCoupleScore.game6_score || 0,
         handicap: editingCoupleScore.handicap || 0,
-        total_score: editingCoupleScore.total_score || 0,
-        overall_score: editingCoupleScore.overall_score || 0,
       });
 
       await loadCoupleScores(selectedGameId);
