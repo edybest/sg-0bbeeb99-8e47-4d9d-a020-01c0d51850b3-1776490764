@@ -58,7 +58,7 @@ export default function CouplePage() {
 
   const loadGames = async () => {
     try {
-      const allGames = await gameService.getGames();
+      const allGames = await gameService.getAllGames();
       // Filter only COUPLE type games
       const coupleGames = allGames.filter(game => game.game_type === 'COUPLE');
       setGames(coupleGames);
