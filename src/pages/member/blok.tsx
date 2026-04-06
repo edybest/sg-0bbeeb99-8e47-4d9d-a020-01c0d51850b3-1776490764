@@ -988,21 +988,18 @@ export default function BlokPage() {
                         
                                 <div className="relative">
                                   {player.member.avatar_url ?
-                          <Image
-                            src={player.member.avatar_url}
-                            alt={player.member.username}
-                            width={36}
-                            height={36}
-                            className="w-[36px] h-[36px] rounded-full object-cover border-2 border-indigo-50" /> :
+                            <Image
+                              src={player.member.avatar_url}
+                              alt={player.member.username}
+                              width={36}
+                              height={36}
+                              className="w-[36px] h-[36px] rounded-full object-cover border-2 border-indigo-50" /> :
 
 
-                          <div className="w-[36px] h-[36px] rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
+                            <div className="w-[36px] h-[36px] rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
                                       {player.member.username[0].toUpperCase()}
                                     </div>
-                          }
-                                  <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-amber-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm border border-white">
-                                    {idx + 1}
-                                  </div>
+                            }
                                 </div>
                                 <div>
                                   <Link href={`/member/profile?id=${player.member.id}`} className="text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors">
@@ -1068,7 +1065,7 @@ export default function BlokPage() {
                               }
                                   </div>
                                   <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
-                                    <span className="flex items-center gap-1 text-purple-700 font-bold text-sm md:text-base">
+                                    <span className="flex items-center gap-1 text-emerald-600 font-black text-lg md:text-xl">
                                       <Award className="w-4 h-4 md:w-5 md:h-5" />
                                       {entry.overall_score}
                                     </span>
@@ -1131,6 +1128,10 @@ export default function BlokPage() {
                                   </div>
 
                                   <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
+                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
+                                      <div className="text-[10px] md:text-xs text-sky-500">Total</div>
+                                      <div className="font-semibold text-xs md:text-sm">{entry.total_score || "-"}</div>
+                                    </div>
                                     <div className="bg-sky-50 p-1.5 md:p-2 rounded">
                                       <div className="text-[10px] md:text-xs text-sky-500">Handicap</div>
                                       <div className="font-semibold text-xs md:text-sm">{entry.handicap || "-"}</div>
@@ -1295,7 +1296,7 @@ export default function BlokPage() {
                                   </td>
 
                                   <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-bold text-emerald-600 text-lg md:text-xl`}
+                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-black text-emerald-600 text-2xl md:text-3xl`}
                               style={{ color: "#16a34a" }}>
                               
                                     {entry.overall_score || "-"}
