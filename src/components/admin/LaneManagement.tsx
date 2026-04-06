@@ -191,50 +191,8 @@ export function LaneManagement() {
       setLoading(true);
       const laneAssignmentsData = await laneService.getLaneAssignments(gameId);
       
-      // Check if game is COUPLE type
-      const game = games.find(g => g.id === gameId);
-      const isCouple = game?.game_type === 'COUPLE';
-
-      // If couple game, fetch couple names for display
-      if (isCouple && laneAssignmentsData.length > 0) {
-        // Jika kita simpan couple_id sebagai member_id dalam assignment...
-        const client: any = supabase;
-        const response = await client
-          .from('couples')
-          .select(`
-            id,
-            couple_name,
-            player1:members!couples_player1_id_fkey(username),
-            player2:members!couples_player2_id_fkey(username)
-          `);
-          
-        const couplesData = response.data;
-
-        const couplesMap = new Map();
-        if (couplesData) {
-          couplesData.forEach((c: any) => {
-            couplesMap.set(c.id, c);
-          });
-        }
-
-        const assignmentsWithCouples = laneAssignmentsData.map((assignment: any) => {
-          // assignment.member_id sebenarnya adalah couple.id untuk COUPLE game
-          const couple = couplesMap.get(assignment.member_id);
-          if (couple) {
-            return {
-              ...assignment,
-              couple_name: couple.couple_name,
-              player1_username: couple.player1?.username,
-              player2_username: couple.player2?.username,
-            };
-          }
-          return assignment; // Fallback jika tidak jumpa
-        });
-        
-        setAssignments(assignmentsWithCouples);
-      } else {
-        setAssignments(laneAssignmentsData);
-      }
+      // Data sudah lengkap dari query dengan couple info, terus set sahaja
+      setAssignments(laneAssignmentsData);
 
       // Load senarai unassigned bila assignment ditukar
       loadUnassignedPlayers(gameId);
@@ -564,7 +522,7 @@ export function LaneManagement() {
 
   function renderLaneSlot(lanePosition: string) {
     const assignment = getMemberAtPosition(lanePosition);
-    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id) : false;
+    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id || assignment.couple_id || '') : false;
 
     return (
       <div
@@ -577,13 +535,19 @@ export function LaneManagement() {
         {assignment ? (
           <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-gray-200 rounded px-2 py-1.5 shadow-sm group">
             <div className="flex flex-col min-w-0">
-              {(assignment as any).couple_name ? (
+              {(assignment as any).couple ? (
                 <>
-                  <span className="text-sm font-semibold text-pink-700 truncate">{(assignment as any).couple_name}</span>
-                  <span className="text-[10px] text-gray-500 truncate">{(assignment as any).player1_username} + {(assignment as any).player2_username}</span>
+                  <span className="text-sm font-semibold text-pink-700 truncate">
+                    {(assignment as any).couple.couple_name}
+                  </span>
+                  <span className="text-[10px] text-gray-500 truncate">
+                    {(assignment as any).couple.player1?.username || ''} + {(assignment as any).couple.player2?.username || ''}
+                  </span>
                 </>
-              ) : (
+              ) : assignment.member ? (
                 <span className="text-sm font-semibold truncate">{assignment.member.username}</span>
+              ) : (
+                <span className="text-sm font-semibold truncate text-gray-400">Unknown</span>
               )}
             </div>
             
@@ -599,7 +563,7 @@ export function LaneManagement() {
                 {/* Change Voting Status */}
                 {revealed ? (
                   <button
-                    onClick={() => handleResetSpin(assignment.member_id)}
+                    onClick={() => handleResetSpin(assignment.member_id || assignment.couple_id || '')}
                     className="text-gray-400 hover:text-orange-600 p-1"
                     title="Reset Undian (Boleh undi semula)"
                   >
@@ -607,7 +571,7 @@ export function LaneManagement() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleSetAsSpun(lanePosition, assignment.member_id)}
+                    onClick={() => handleSetAsSpun(lanePosition, assignment.member_id || assignment.couple_id || '')}
                     className="text-gray-400 hover:text-green-600 p-1"
                     title="Tandakan Telah Undi (Skip pusingan roda)"
                   >
@@ -616,7 +580,7 @@ export function LaneManagement() {
                 )}
                 
                 <button
-                  onClick={() => handleRemoveMember(assignment.member_id)}
+                  onClick={() => handleRemoveMember(assignment.member_id || assignment.couple_id || '')}
                   className="text-gray-400 hover:text-red-600 p-1"
                   title="Keluarkan dari lane"
                 >
