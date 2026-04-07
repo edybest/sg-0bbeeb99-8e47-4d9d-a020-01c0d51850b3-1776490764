@@ -209,8 +209,17 @@ export default function LanePage() {
     if (!isAdmin || !draggedMember || !selectedGameId) return;
 
     try {
+      const game = games.find(g => g.id === selectedGameId);
+      const isCouple = game?.game_type === 'COUPLE';
+      
       await withLoading("member:lane:assign-member", async () => {
-        await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
+        if (isCouple) {
+          // For COUPLE games, draggedMember.id is actually couple_id
+          await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition, draggedMember.id);
+        } else {
+          // For BLOK games, use member_id as usual
+          await laneService.assignMemberToLane(selectedGameId, draggedMember.id, lanePosition);
+        }
         await loadLaneAssignments();
       });
       toast({
@@ -233,8 +242,17 @@ export default function LanePage() {
     if (!isAdmin || !selectedGameId) return;
 
     try {
+      const game = games.find(g => g.id === selectedGameId);
+      const isCouple = game?.game_type === 'COUPLE';
+      
       await withLoading("member:lane:remove-member", async () => {
-        await laneService.removeMemberFromLane(selectedGameId, memberId);
+        if (isCouple) {
+          // For COUPLE games, memberId is actually couple_id
+          await laneService.removeMemberFromLane(selectedGameId, memberId, memberId);
+        } else {
+          // For BLOK games, use member_id as usual
+          await laneService.removeMemberFromLane(selectedGameId, memberId);
+        }
         await loadLaneAssignments();
       });
       toast({
@@ -308,7 +326,7 @@ export default function LanePage() {
     const assignment = getMemberAtPosition(lanePosition);
     
     // Check if lane is revealed
-    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id) : false;
+    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id || assignment.couple_id || '') : false;
 
     return (
       <div
@@ -322,7 +340,22 @@ export default function LanePage() {
           <div className="flex items-center justify-between flex-1 min-w-0 bg-white border border-rose-200 rounded px-2 py-1 shadow-sm">
             <div className="flex items-center gap-2 overflow-hidden min-w-0">
               {revealed ? (
-                <span className="text-xs font-semibold truncate whitespace-nowrap">{assignment.member.username}</span>
+                <>
+                  {(assignment as any).couple ? (
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold text-pink-700 truncate whitespace-nowrap">
+                        {(assignment as any).couple.couple_name}
+                      </span>
+                      <span className="text-[10px] text-gray-500 truncate whitespace-nowrap">
+                        {(assignment as any).couple.player1?.username || ''} + {(assignment as any).couple.player2?.username || ''}
+                      </span>
+                    </div>
+                  ) : assignment.member ? (
+                    <span className="text-xs font-semibold truncate whitespace-nowrap">{assignment.member.username}</span>
+                  ) : (
+                    <span className="text-xs font-semibold truncate whitespace-nowrap text-gray-400">Unknown</span>
+                  )}
+                </>
               ) : (
                 <span className="text-xs font-medium text-rose-500 italic truncate whitespace-nowrap">Belum Undi</span>
               )}
@@ -330,7 +363,7 @@ export default function LanePage() {
             
             {isAdmin && (
               <button
-                onClick={() => handleRemoveMember(assignment.member_id)}
+                onClick={() => handleRemoveMember(assignment.member_id || assignment.couple_id || '')}
                 className="text-gray-400 hover:text-pink-600 p-1 shrink-0 ml-1"
               >
                 <X className="h-3 w-3" />
