@@ -645,8 +645,8 @@ export default function UndiLanePage() {
                       ) : (
                         <div className="space-y-3">
                           {allResults.map((result, index) => {
-                            // Check if this is a couple result
-                            const isCouple = (result as any).couples && (result as any).couples.length > 0;
+                            // Check if this is a couple result AND the game type is COUPLE
+                            const isCouple = selectedGame?.game_type === 'COUPLE' && (result as any).couples && (result as any).couples.length > 0;
                             const coupleData = isCouple ? (result as any).couples[0] : null;
                             
                             return (
