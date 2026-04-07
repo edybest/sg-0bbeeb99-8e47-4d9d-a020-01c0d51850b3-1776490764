@@ -696,19 +696,26 @@ export function MemberManagement() {
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {member.avatar_url ? (
                         isBase64Image(member.avatar_url) ? (
-                          <img 
-                            src={member.avatar_url} 
-                            alt={member.username} 
-                            className="w-10 h-10 rounded-full object-cover" 
-                          />
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                            <Image
+                              src={member.avatar_url}
+                              alt={member.username}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          </div>
                         ) : (
-                          <Image 
-                            src={member.avatar_url} 
-                            alt={member.username} 
-                            width={40} 
-                            height={40} 
-                            className="rounded-full object-cover" 
-                          />
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                            <Image
+                              src={member.avatar_url}
+                              alt={member.username}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                              loading="lazy"
+                            />
+                          </div>
                         )
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-400">

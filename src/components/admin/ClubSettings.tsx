@@ -32,6 +32,7 @@ import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
 import { ThemeSettingsPanel } from "@/components/admin/ThemeSettingsPanel";
 import { navLayoutService, type NavigationSettings, type NavPosition } from "@/services/navLayoutService";
 import { debugService } from "@/services/debugService";
+import Image from "next/image";
 
 type FiveFivePrizeConfig = {
   id: string;
@@ -791,7 +792,14 @@ export function ClubSettings() {
                 <div className="flex flex-col gap-4">
                   {logoBase64 && (
                     <div className="relative h-40 w-40 overflow-hidden rounded-lg border bg-gray-50">
-                      <img src={logoBase64} alt="Club Logo" className="h-full w-full object-contain" />
+                      <Image 
+                        src={logoBase64} 
+                        alt="Club Logo" 
+                        fill
+                        className="object-contain"
+                        sizes="160px"
+                        priority
+                      />
                       <Button variant="destructive" size="icon" className="absolute right-2 top-2" onClick={handleDeleteLogo} disabled={loading}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
