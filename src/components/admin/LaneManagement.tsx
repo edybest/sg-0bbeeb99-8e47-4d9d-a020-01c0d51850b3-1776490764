@@ -222,14 +222,36 @@ export function LaneManagement() {
 
     try {
       setSaving(true);
+      
+      // Smart auto-format for lane input
+      let formattedValue = editValue.trim();
+      
+      // If no "/" format detected, auto-pair the number
+      if (!formattedValue.includes('/')) {
+        const num = parseInt(formattedValue);
+        if (!isNaN(num)) {
+          // If odd number (1,3,5...), pair with next (1/2, 3/4, 5/6)
+          // If even number (2,4,6...), pair with previous (1/2, 3/4, 5/6)
+          const leftLane = num % 2 === 1 ? num : num - 1;
+          const rightLane = leftLane + 1;
+          formattedValue = `${leftLane}/${rightLane}`;
+          
+          toast({
+            title: "Auto-Format",
+            description: `"${editValue}" → "${formattedValue}"`,
+            duration: 2000,
+          });
+        }
+      }
+      
       await withLoading("admin:lane:save-config", async () =>
-        laneService.updateLaneConfiguration(configId, config.lane_sebenar, editValue, selectedGameId)
+        laneService.updateLaneConfiguration(configId, config.lane_sebenar, formattedValue, selectedGameId)
       );
       
       setLaneConfigs(prev => 
         prev.map(c => 
           c.id === configId 
-            ? { ...c, lane_sebenar: editValue }
+            ? { ...c, lane_sebenar: formattedValue }
             : c
         )
       );
