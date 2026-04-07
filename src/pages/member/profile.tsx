@@ -333,20 +333,29 @@ export default function ProfilePage() {
                         <div className="relative mb-3 md:mb-4">
                           {member.avatar_url ? (
                             isBase64Image(member.avatar_url) ? (
-                              <img
-                                src={member.avatar_url}
-                                alt={member.username}
-                                className="rounded-full border-4 border-primary/20 object-cover w-[120px] h-[120px] md:w-[150px] md:h-[150px]"
-                              />
+                              <div className="relative w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full overflow-hidden border-4 border-primary/20">
+                                <Image
+                                  src={member.avatar_url}
+                                  alt={member.username}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 120px, 150px"
+                                  priority
+                                  unoptimized
+                                />
+                              </div>
                             ) : (
-                              <Image
-                                src={member.avatar_url}
-                                alt={member.username}
-                                width={150}
-                                height={150}
-                                className="rounded-full border-4 border-primary/20 object-cover w-[120px] h-[120px] md:w-[150px] md:h-[150px]"
-                                unoptimized
-                              />
+                              <div className="relative w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full overflow-hidden border-4 border-primary/20">
+                                <Image
+                                  src={member.avatar_url}
+                                  alt={member.username}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 120px, 150px"
+                                  priority
+                                  unoptimized
+                                />
+                              </div>
                             )
                           ) : (
                             <div className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] rounded-full bg-pink-600/10 flex items-center justify-center text-pink-600 text-3xl md:text-4xl font-bold border-4 border-primary/20 shadow">
