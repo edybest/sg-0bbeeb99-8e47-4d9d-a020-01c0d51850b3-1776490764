@@ -117,6 +117,13 @@ export function LaneManagement() {
     try {
       const game = games.find(g => g.id === gameId);
       const isCouple = game?.game_type === 'COUPLE';
+      
+      console.log('[DEBUG] loadUnassignedPlayers:', {
+        gameId,
+        gameName: game?.game_name,
+        gameType: game?.game_type,
+        isCouple
+      });
 
       if (isCouple) {
         // Ambil senarai couple dari couple_scores untuk game ini
@@ -142,10 +149,11 @@ export function LaneManagement() {
         // Ambil senarai lane_assignments untuk game ini untuk periksa couple mana dah assign
         const { data: assignments } = await supabase
           .from('lane_assignments')
-          .select('member_id')
-          .eq('game_id', gameId);
+          .select('couple_id')
+          .eq('game_id', gameId)
+          .not('couple_id', 'is', null);
         
-        const assignedMemberIds = new Set(assignments?.map(a => a.member_id) || []);
+        const assignedCoupleIds = new Set(assignments?.map(a => a.couple_id) || []);
 
         const unassignedCouples: CoupleData[] = [];
 
@@ -153,10 +161,7 @@ export function LaneManagement() {
           const couple = cs.couple as any;
           if (!couple) continue;
 
-          // Dalam sistem couple, apabila drag & drop kita letak member_id = couple_id
-          // untuk mewakili satu entiti couple dalam lane. 
-          // Ataupun kita letak member_id player1 sebagai wakil. Kita gunakan couple_id sebagai id.
-          if (!assignedMemberIds.has(couple.id)) {
+          if (!assignedCoupleIds.has(couple.id)) {
             unassignedCouples.push({
               id: couple.id,
               username: couple.couple_name,
@@ -166,19 +171,22 @@ export function LaneManagement() {
           }
         }
 
+        console.log('[DEBUG] Unassigned couples:', unassignedCouples.length);
         setMembers(unassignedCouples as Member[]);
       } else {
         // Logik asal untuk BLOK/individu
         const client: any = supabase;
         const [allMembersData, assignmentsData] = await Promise.all([
           client.from("members").select("id, username, full_name, avatar_url").eq("status", "ACTIVE").order("username"),
-          client.from("lane_assignments").select("member_id").eq("game_id", gameId)
+          client.from("lane_assignments").select("member_id").eq("game_id", gameId).not('member_id', 'is', null)
         ]);
 
         if (allMembersData.error) throw allMembersData.error;
 
         const assignedIds = new Set(assignmentsData.data?.map((a: any) => a.member_id) || []);
         const unassignedMembers = (allMembersData.data || []).filter((m: any) => !assignedIds.has(m.id));
+        
+        console.log('[DEBUG] Unassigned members:', unassignedMembers.length);
         setMembers(unassignedMembers as Member[]);
       }
     } catch (error) {
