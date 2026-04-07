@@ -417,6 +417,8 @@ export default function AverageScorePage() {
                                 width={48}
                                 height={48}
                                 className="rounded-full border-2 border-sky-100 object-cover h-12 w-12"
+                                loading="lazy"
+                                unoptimized
                               />
                             ) : (
                               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-inner">
