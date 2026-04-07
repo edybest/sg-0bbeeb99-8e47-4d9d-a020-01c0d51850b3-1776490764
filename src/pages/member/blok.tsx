@@ -991,19 +991,21 @@ export default function BlokPage() {
                         className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-indigo-100 hover:shadow-md transition-shadow">
                         
                                 <div className="relative">
-                                  {player.member.avatar_url ?
-                            <Image
-                              src={player.member.avatar_url}
-                              alt={player.member.username}
-                              width={36}
-                              height={36}
-                              className="w-[36px] h-[36px] rounded-full object-cover border-2 border-indigo-50" /> :
-
-
-                            <div className="w-[36px] h-[36px] rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
+                                  {player.member.avatar_url ? (
+                                    <Image
+                                      src={player.member.avatar_url}
+                                      alt={player.member.username}
+                                      width={36}
+                                      height={36}
+                                      className="w-[36px] h-[36px] rounded-full object-cover border-2 border-indigo-50"
+                                      loading="lazy"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="w-[36px] h-[36px] rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
                                       {player.member.username[0].toUpperCase()}
                                     </div>
-                            }
+                                  )}
                                 </div>
                                 <div>
                                   <Link href={`/member/profile?id=${player.member.id}`} className="text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors">
@@ -1037,19 +1039,21 @@ export default function BlokPage() {
                                 <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
 
                                 <div className="flex-shrink-0">
-                                  {entry.member.avatar_url ?
-                            <Image
-                              src={entry.member.avatar_url}
-                              alt={entry.member.username}
-                              width={50}
-                              height={50}
-                              className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200" /> :
-
-
-                            <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
+                                  {entry.member.avatar_url ? (
+                                    <Image
+                                      src={entry.member.avatar_url}
+                                      alt={entry.member.username}
+                                      width={50}
+                                      height={50}
+                                      className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200"
+                                      loading="lazy"
+                                      unoptimized
+                                    />
+                                  ) : (
+                                    <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
                                       {entry.member.username[0].toUpperCase()}
                                     </div>
-                            }
+                                  )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -1261,22 +1265,22 @@ export default function BlokPage() {
                                     </div>
                                   </td>
 
-                                  <td
-                              className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
-                              
-                                    {entry.member.avatar_url ?
-                              <Image
-                                src={entry.member.avatar_url}
-                                alt={entry.member.username}
-                                width={40}
-                                height={40}
-                                className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto" /> :
-
-
-                              <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
+                                  <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
+                                    {entry.member.avatar_url ? (
+                                      <Image
+                                        src={entry.member.avatar_url}
+                                        alt={entry.member.username}
+                                        width={40}
+                                        height={40}
+                                        className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto"
+                                        loading="lazy"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
                                         {entry.member.username[0].toUpperCase()}
                                       </div>
-                              }
+                                    )}
                                   </td>
 
                                   <td
