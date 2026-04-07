@@ -22,6 +22,7 @@ interface Game {
   id: string;
   game_name: string;
   game_date: string;
+  game_type?: string;
 }
 
 interface Member {
