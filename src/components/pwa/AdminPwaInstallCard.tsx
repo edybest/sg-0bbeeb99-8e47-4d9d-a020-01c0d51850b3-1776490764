@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Info, Shield } from "lucide-react";
+import Image from "next/image";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -78,11 +79,16 @@ export function AdminPwaInstallCard({ className }: { className?: string }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex items-center gap-3 rounded-lg border bg-background p-3">
-          <img
-            src="/file_000000002110720ba90c29d44a4b4756.png"
-            alt="AMBC Admin Icon"
-            className="h-10 w-10 rounded-md object-cover"
-          />
+          <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
+            <Image
+              src="/file_000000002110720ba90c29d44a4b4756.png"
+              alt="AMBC Admin Icon"
+              fill
+              className="object-cover"
+              sizes="40px"
+              priority
+            />
+          </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">AMBC Admin</p>
             <p className="text-xs text-muted-foreground">Start: /admin/login</p>
