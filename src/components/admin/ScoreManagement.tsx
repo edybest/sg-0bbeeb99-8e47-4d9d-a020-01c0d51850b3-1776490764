@@ -982,15 +982,18 @@ export function ScoreManagement() {
                           <td className="px-4 py-3 text-sm">
                             <div className="flex items-center gap-3">
                               {player.members.avatar_url ? (
-                                <Image 
-                                  src={player.members.avatar_url} 
-                                  alt={player.members.username} 
-                                  width={32} 
-                                  height={32} 
-                                  className="rounded-full"
-                                />
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                  <Image 
+                                    src={player.members.avatar_url} 
+                                    alt={player.members.username} 
+                                    fill
+                                    className="object-cover"
+                                    sizes="32px"
+                                    loading="lazy"
+                                  />
+                                </div>
                               ) : (
-                                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
+                                <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                                   {player.members.username[0].toUpperCase()}
                                 </div>
                               )}
