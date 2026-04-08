@@ -69,28 +69,43 @@ export async function getGameSpinResults(gameId: string): Promise<SpinResult[]> 
     throw error;
   }
 
-  // Fetch couple data separately for members who are in couples
+  // CRITICAL FIX: Fetch couple data from couple_scores to get the CORRECT registered couple
+  // A player can be in multiple couples, but only one couple is registered per game
   if (data && data.length > 0) {
     const memberIds = data.map(d => d.member_id).filter(Boolean);
     
     if (memberIds.length > 0) {
-      const { data: coupleData } = await supabase
-        .from("couples")
+      // Query couple_scores to get couples registered for THIS specific game
+      const { data: coupleScores } = await supabase
+        .from("couple_scores")
         .select(`
-          id,
-          couple_name,
-          player1_id,
-          player2_id,
-          player1:members!couples_player1_id_fkey(username, full_name),
-          player2:members!couples_player2_id_fkey(username, full_name)
+          couple_id,
+          couple:couples!couple_scores_couple_id_fkey(
+            id,
+            couple_name,
+            player1_id,
+            player2_id,
+            player1:members!couples_player1_id_fkey(username, full_name),
+            player2:members!couples_player2_id_fkey(username, full_name)
+          )
         `)
-        .or(`player1_id.in.(${memberIds.join(',')}),player2_id.in.(${memberIds.join(',')})`);
+        .eq("game_id", gameId);
 
-      // Attach couple data to results
+      // Build a map: member_id -> couple (for this game only)
+      const memberToCoupleMap = new Map();
+      if (coupleScores) {
+        coupleScores.forEach((score: any) => {
+          if (score.couple) {
+            // Map both player1 and player2 to this couple
+            memberToCoupleMap.set(score.couple.player1_id, score.couple);
+            memberToCoupleMap.set(score.couple.player2_id, score.couple);
+          }
+        });
+      }
+
+      // Attach the correct couple to each spin result
       const enrichedData = data.map((result: any) => {
-        const couple = coupleData?.find(
-          c => c.player1_id === result.member_id || c.player2_id === result.member_id
-        );
+        const couple = memberToCoupleMap.get(result.member_id);
         return {
           ...result,
           couples: couple ? [couple] : []

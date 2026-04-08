@@ -320,6 +320,18 @@ export default function UndiLanePage() {
           laneService.getCoupleByPlayerAndGame(member.id, activeGameId)
         );
 
+        console.log("🎯 COUPLE GAME - Player couple check:", {
+          playerId: member.id,
+          playerName: member.username,
+          gameId: activeGameId,
+          foundCouple: coupleData ? {
+            couple_id: coupleData.couple_id,
+            couple_name: coupleData.couple?.couple_name,
+            player1: coupleData.couple?.player1?.username,
+            player2: coupleData.couple?.player2?.username
+          } : null
+        });
+
         if (coupleData?.couple_id) {
           coupleId = coupleData.couple_id;
           
@@ -327,7 +339,21 @@ export default function UndiLanePage() {
           const coupleAssignment = await laneService.getCoupleLaneAssignment(activeGameId, coupleId);
           if (coupleAssignment?.lane_position) {
             winningLane = coupleAssignment.lane_position;
+            console.log("✅ Found pre-assigned lane for couple:", {
+              couple_name: coupleData.couple?.couple_name,
+              lane: winningLane
+            });
           }
+        } else {
+          console.warn("⚠️ Player not in any couple for this game!");
+          toast({
+            title: "Tidak dijumpai couple",
+            description: "Anda tidak disenaraikan dalam mana-mana couple untuk game ini. Sila hubungi admin.",
+            variant: "destructive",
+          });
+          setSpinning(false);
+          stopSpinSound();
+          return;
         }
       } else {
         // For BLOK games: Check member assignment

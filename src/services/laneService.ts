@@ -436,40 +436,36 @@ export const laneService = {
   },
 
   async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
-    // Break down complex queries to avoid TypeScript "excessively deep" errors
-    // 1. First get the couple_scores row to find couple_id
+    // CRITICAL FIX: Query couple_scores first to get the SPECIFIC couple registered for this game
+    // A player can be in multiple couples, but only ONE couple is registered per game
     const { data: coupleScore, error: scoreError } = await supabase
       .from("couple_scores")
-      .select("couple_id")
-      .eq("game_id", gameId)
-      .limit(100); // we will filter locally
-      
-    if (scoreError) throw scoreError;
-    if (!coupleScore || coupleScore.length === 0) return null;
-    
-    const coupleIds = coupleScore.map(s => s.couple_id);
-    
-    // 2. Then get the couple details where player1 or player2 matches
-    const { data: couple, error: coupleError } = await supabase
-      .from("couples")
       .select(`
-        id,
-        couple_name,
-        player1_id,
-        player2_id,
-        player1:members!couples_player1_id_fkey(id, username),
-        player2:members!couples_player2_id_fkey(id, username)
+        couple_id,
+        couple:couples!couple_scores_couple_id_fkey(
+          id,
+          couple_name,
+          player1_id,
+          player2_id,
+          player1:members!couples_player1_id_fkey(id, username, full_name),
+          player2:members!couples_player2_id_fkey(id, username, full_name)
+        )
       `)
-      .in("id", coupleIds)
-      .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`)
-      .single();
-
-    if (coupleError && coupleError.code !== 'PGRST116') throw coupleError;
-    if (!couple) return null;
+      .eq("game_id", gameId)
+      .or(`couple.player1_id.eq.${playerId},couple.player2_id.eq.${playerId}`)
+      .maybeSingle();
+      
+    if (scoreError && scoreError.code !== 'PGRST116') {
+      console.error("Error fetching couple from couple_scores:", scoreError);
+      throw scoreError;
+    }
     
+    if (!coupleScore || !coupleScore.couple) return null;
+    
+    // Return the couple registered for this specific game
     return {
-      couple_id: couple.id,
-      couple: couple
+      couple_id: coupleScore.couple_id,
+      couple: coupleScore.couple
     };
   },
 
