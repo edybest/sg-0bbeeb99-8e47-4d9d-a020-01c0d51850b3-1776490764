@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWithMember } from "@/services/laneService";
 import { gameService } from "@/services/gameService";
-import { Save, Users, GripVertical, X, RotateCcw, Shuffle } from "lucide-react";
+import { Save, Users, GripVertical, X, RotateCcw, Shuffle, MessageCircle } from "lucide-react";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 
 interface Game {
@@ -501,6 +501,51 @@ export function LaneManagement() {
     }
   }
 
+  function handleShareReminder() {
+    if (!activeGame) return;
+    
+    // Filter assignments that haven't spun yet
+    const unspunAssignments = assignments.filter(a => !isLaneRevealed(a.lane_position));
+    
+    if (unspunAssignments.length === 0) {
+      toast({
+        title: "Semua Telah Undi!",
+        description: "Semua pemain yang ditugaskan telah selesai membuat undian.",
+      });
+      return;
+    }
+
+    const isCouple = activeGame.game_type === 'COUPLE';
+    const typeLabel = isCouple ? 'Couple' : 'Pemain';
+    
+    let message = `🎳 *PERINGATAN UNDIAN LANE AMBC* 🎳\n\n`;
+    message += `Game: *${activeGame.game_name}*\n`;
+    message += `Tarikh: *${new Date(activeGame.game_date).toLocaleDateString("ms-MY")}*\n\n`;
+    
+    message += `Terdapat *${unspunAssignments.length} ${typeLabel}* yang masih belum membuat undian lane.\n\n`;
+    
+    message += `*Senarai Belum Undi:*\n`;
+    unspunAssignments.forEach((a, index) => {
+      if (isCouple && (a as any).couple) {
+        const couple = (a as any).couple;
+        message += `${index + 1}. ${couple.couple_name} (${couple.player1?.username || ''} & ${couple.player2?.username || ''})\n`;
+      } else if (a.member) {
+        message += `${index + 1}. ${a.member.username}\n`;
+      } else {
+        message += `${index + 1}. Unknown\n`;
+      }
+    });
+    
+    message += `\n🎰 *Sila buat undian segera sebelum game bermula!*\n`;
+    
+    const siteUrl = window.location.origin;
+    message += `👉 Klik sini untuk undi: ${siteUrl}/member/undi-lane\n\n`;
+    message += `Terima kasih! 🙏`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  }
+
   async function handleDownloadScreenshot() {
     if (!screenshotRef.current || !activeGame) return;
 
@@ -728,15 +773,24 @@ export function LaneManagement() {
                 </Select>
               </div>
 
-              <div className="w-full sm:w-auto flex justify-end">
+              <div className="w-full sm:w-auto flex flex-wrap justify-end gap-2 mt-3 sm:mt-0">
                 <Button
                   variant="outline"
                   onClick={handleAutoRandomAssign}
                   disabled={!selectedGameId || members.length === 0}
-                  className="mr-2 text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+                  className="text-purple-600 border-purple-200 hover:bg-purple-50 hover:text-purple-700"
                 >
                   <Shuffle className="w-4 h-4 mr-2" />
                   Auto Random
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleShareReminder}
+                  disabled={!selectedGameId || assignments.length === 0}
+                  className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Share Reminder
                 </Button>
                 <Button
                   variant="outline"
