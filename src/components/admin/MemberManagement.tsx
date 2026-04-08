@@ -151,20 +151,16 @@ export function MemberManagement() {
   }
 
   function formatPhoneNumber(value: string): string {
-    let cleaned = value.replace(/[^\d+]/g, "");
+    let digitsOnly = value.replace(/\D/g, "");
     
-    if (!cleaned.startsWith("+")) {
-      if (cleaned.startsWith("0")) {
-        cleaned = cleaned.substring(1);
-      }
-      cleaned = "+60" + cleaned;
+    if (digitsOnly.startsWith("0")) {
+      digitsOnly = "6" + digitsOnly;
+    } else if (!digitsOnly.startsWith("6") && digitsOnly.length > 0) {
+      // Fallback
+      digitsOnly = "60" + digitsOnly;
     }
     
-    if (!cleaned.startsWith("+60")) {
-      cleaned = "+60" + cleaned.replace(/^\+/, "");
-    }
-    
-    return cleaned;
+    return digitsOnly ? "+" + digitsOnly : "";
   }
 
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {

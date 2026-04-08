@@ -14,21 +14,20 @@ const COOLDOWN_DURATION = 90; // 90 seconds
 const TAC_PHONE_KEY = "tac_phone_last";
 
 function normalizePhone(phone: string) {
-  let value = phone.replace(/\s+/g, "").replace(/-/g, "");
+  let value = phone.replace(/\D/g, "");
 
-  if (!value.startsWith("+")) {
-    if (value.startsWith("01")) {
-      value = `+6${value}`;
-    } else if (value.startsWith("6")) {
-      value = `+${value}`;
-    }
+  if (value.startsWith("0")) {
+    value = "6" + value;
+  } else if (!value.startsWith("6") && value.length > 0) {
+    value = "60" + value; // Fallback to 60 if it doesn't start with 6
   }
 
-  return value;
+  return value ? "+" + value : "";
 }
 
-function isValidMalaysiaPhone(phone: string) {
-  return /^\+601[0-46-9][0-9]{7,8}$/.test(phone);
+function isValidPhone(phone: string) {
+  // Support Malaysia (+60) and Singapore (+65)
+  return /^\+(60|65)\d{8,10}$/.test(phone);
 }
 
 function getCooldownRemaining(): number {
@@ -135,10 +134,10 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    if (!isValidMalaysiaPhone(normalizedPhone)) {
+    if (!isValidPhone(normalizedPhone)) {
       toast({
         title: "Error",
-        description: "Format nombor telefon tidak sah. Contoh: 0123456789 atau +60123456789",
+        description: "Format nombor telefon tidak sah. Pastikan ia bermula dengan +60 (Malaysia) atau +65 (Singapura).",
         variant: "destructive"
       });
       return;
@@ -403,7 +402,7 @@ export function WhatsAppLoginForm() {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="0123456789 atau +60123456789"
+                placeholder="0123... atau +65..."
                 value={formData.phone}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, phone: e.target.value }))
@@ -413,7 +412,7 @@ export function WhatsAppLoginForm() {
                 className="h-11"
               />
               <p className="text-xs text-muted-foreground">
-                Format: 0123456789 atau +60123456789
+                Format: 0123456789, +60... atau +65...
               </p>
             </div>
 

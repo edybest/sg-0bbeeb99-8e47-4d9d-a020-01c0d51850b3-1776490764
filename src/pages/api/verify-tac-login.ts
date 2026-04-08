@@ -49,25 +49,27 @@ export default async function handler(
     console.log("Phone:", phone);
     console.log("Code:", code);
 
-    // Normalize phone format to match what was stored during send-whatsapp-tac
-    const phoneRegex = /^(\+?6?01)[0-46-9]-*[0-9]{7,8}$/;
-    let cleanPhone = phone.replace(/\s+/g, "").replace(/-/g, "");
+    // Normalize phone format to match +60 or +65
+    const phoneRegex = /^\+(60|65)\d{8,10}$/;
+    let cleanPhone = phone.replace(/\D/g, "");
     
-    if (!cleanPhone.startsWith("+")) {
-      if (cleanPhone.startsWith("01")) {
-        cleanPhone = "+6" + cleanPhone;
-      } else if (cleanPhone.startsWith("6")) {
-        cleanPhone = "+" + cleanPhone;
-      }
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "6" + cleanPhone;
+    } else if (!cleanPhone.startsWith("6") && cleanPhone.length > 0) {
+      cleanPhone = "60" + cleanPhone;
+    }
+    
+    if (cleanPhone) {
+      cleanPhone = "+" + cleanPhone;
     }
 
     console.log("Phone (normalized):", cleanPhone);
 
-    if (!phoneRegex.test(cleanPhone.replace("+", ""))) {
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
       console.log("❌ Invalid phone format");
       return res.status(400).json({
         success: false,
-        error: "Format nombor telefon tidak sah",
+        error: "Format nombor telefon tidak sah. Gunakan format bermula dengan +60 atau +65.",
       });
     }
 

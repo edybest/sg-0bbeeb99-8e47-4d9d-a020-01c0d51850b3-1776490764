@@ -11,17 +11,17 @@ function generateTACCode(): string {
 }
 
 /**
- * Format phone number to international format (60XXXXXXXXX)
+ * Format phone number to international format (+60 or +65)
  */
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/\D/g, "");
   
   if (cleaned.startsWith("0")) {
-    cleaned = cleaned.substring(1);
+    cleaned = "6" + cleaned;
   }
   
-  if (!cleaned.startsWith("60")) {
-    cleaned = "60" + cleaned;
+  if (!cleaned.startsWith("60") && !cleaned.startsWith("65") && cleaned.length > 0) {
+    cleaned = "60" + cleaned; // Fallback to Malaysia if invalid
   }
   
   return cleaned;
