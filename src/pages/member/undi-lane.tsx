@@ -221,6 +221,10 @@ export default function UndiLanePage() {
 
   async function loadLaneData(currentMemberId: string, gameId: string, gamesSnapshot?: any[]) {
     try {
+      const list = gamesSnapshot ?? games;
+      const selectedGame = list.find((g) => g.id === gameId) || list[0];
+      const isGameCouple = selectedGame?.game_type === 'COUPLE';
+
       const [mySpinResult, gameResults, spunLanes, registeredOk, assignedLanePositions] = await withLoading(
         "member:undi-lane:load-lane-data",
         async () =>
@@ -237,8 +241,6 @@ export default function UndiLanePage() {
       setAllResults(gameResults as any);
       setIsRegisteredForGame(registeredOk);
 
-      const list = gamesSnapshot ?? games;
-      const selectedGame = list.find((g) => g.id === gameId) || list[0];
       const assignedCount = Array.isArray(assignedLanePositions) ? assignedLanePositions.length : 0;
       const baseTotalLanes = selectedGame?.lanes || 20;
       const totalLanes = assignedCount > 0 ? Math.min(baseTotalLanes, assignedCount) : baseTotalLanes;
@@ -250,7 +252,22 @@ export default function UndiLanePage() {
 
       const wheelSegments = assignedList.length > 0 ? assignedList : fallbackList;
 
-      const available = wheelSegments.filter((lane) => !spunLanes.includes(lane));
+      // Get occupied lanes - include both spin results AND admin assignments
+      const occupiedFromSpins = Array.isArray(spunLanes) ? spunLanes : [];
+      
+      // For COUPLE games, also get lanes occupied by couple assignments
+      let occupiedFromAssignments: string[] = [];
+      if (isGameCouple) {
+        const coupleAssignments = await laneService.getAllLaneAssignmentsForGame(gameId);
+        occupiedFromAssignments = coupleAssignments
+          .filter((a: any) => a.couple_id && a.lane_position)
+          .map((a: any) => a.lane_position);
+      }
+      
+      // Combine all occupied lanes (deduplicate)
+      const allOccupiedLanes = [...new Set([...occupiedFromSpins, ...occupiedFromAssignments])];
+
+      const available = wheelSegments.filter((lane) => !allOccupiedLanes.includes(lane));
       setAvailableLanes(available);
     } catch (error) {
       console.error("Error loading lane data:", error);
