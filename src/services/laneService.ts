@@ -402,6 +402,39 @@ export const laneService = {
   subscribeLaneSpins(gameId: string, callback: (payload: any) => void) {
   },
 
+  // Get all assignments for a game (lighter version without joins)
+  async getAllLaneAssignmentsForGame(gameId: string) {
+    const { data, error } = await supabase
+      .from("lane_assignments")
+      .select("*")
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get a couple's current assignment (if any) for a game
+  async getCoupleLaneAssignment(gameId: string, coupleId: string) {
+    const { data, error } = await supabase
+      .from("lane_assignments")
+      .select("*")
+      .eq("game_id", gameId)
+      .eq("couple_id", coupleId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ?? null;
+  },
+
+  // Upsert lane assignment derived from a spin result (couple flow)
+  async upsertCoupleLaneAssignmentFromSpin(
+    gameId: string,
+    coupleId: string,
+    lanePosition: string
+  ): Promise<void> {
+    await this.assignMemberToLane(gameId, "", lanePosition, coupleId);
+  },
+
   async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
     // Break down complex queries to avoid TypeScript "excessively deep" errors
     // 1. First get the couple_scores row to find couple_id
