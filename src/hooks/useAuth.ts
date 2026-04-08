@@ -16,7 +16,7 @@ interface CachedSession {
 }
 
 const SESSION_CACHE_KEY = 'ambc_session_cache';
-const CACHE_DURATION = 30000; // 30 seconds
+const CACHE_DURATION = 86400000; // 24 hours (1 day) - refresh cache daily for data consistency
 
 function getCachedSession(): CachedSession | null {
   if (typeof window === 'undefined') return null;
@@ -25,7 +25,7 @@ function getCachedSession(): CachedSession | null {
     if (!cached) return null;
     const parsed = JSON.parse(cached);
     if (Date.now() - parsed.timestamp > CACHE_DURATION) {
-      localStorage.removeItem(SESSION_CACHE_KEY);
+      // Cache expired, but session might still be valid - let Supabase decide
       return null;
     }
     return parsed;

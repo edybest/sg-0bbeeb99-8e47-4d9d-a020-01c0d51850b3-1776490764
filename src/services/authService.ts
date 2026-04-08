@@ -37,19 +37,49 @@ const getURL = () => {
 }
 
 export const authService = {
+  // Refresh session (called automatically by Supabase, but exposed for manual refresh)
+  async refreshSession(): Promise<{ session: Session | null; error: AuthError | null }> {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        return { session: null, error: { message: error.message } };
+      }
+
+      return { session: data.session, error: null };
+    } catch (error) {
+      return { 
+        session: null, 
+        error: { message: "An unexpected error occurred during session refresh" } 
+      };
+    }
+  },
+
   // Get current user
   getCurrentUser: async (): Promise<Member | null> => {
     try {
-      // Get session with reduced timeout (1 second)
+      // Get session with extended timeout for long-lived sessions
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => {
-        setTimeout(() => resolve({ data: { session: null } }), 1000);
+        setTimeout(() => resolve({ data: { session: null } }), 2000);
       });
 
       const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
 
       if (!session?.user) {
         return null;
+      }
+
+      // Auto-refresh if session is close to expiry (within 1 hour)
+      if (session.expires_at) {
+        const expiresAt = new Date(session.expires_at * 1000);
+        const now = new Date();
+        const oneHour = 60 * 60 * 1000;
+        
+        if (expiresAt.getTime() - now.getTime() < oneHour) {
+          console.log("Session close to expiry, refreshing...");
+          await authService.refreshSession();
+        }
       }
 
       // Get member data
