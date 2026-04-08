@@ -78,10 +78,12 @@ export default function CouplePage() {
             table: 'couple_scores',
             filter: `game_id=eq.${selectedGameId}`
           },
-          (payload) => {
+          async (payload) => {
             console.log('Real-time couple score update received!', payload);
             // Reload the leaderboard silently in the background
-            loadLeaderboard(selectedGameId, false);
+            await loadLeaderboard(selectedGameId, false);
+            // CRITICAL: Reload reactions after leaderboard to prevent likes from being reset to 0
+            await loadGameReactions(selectedGameId);
           }
         )
         .subscribe();
