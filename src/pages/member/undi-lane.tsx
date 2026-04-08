@@ -296,16 +296,40 @@ export default function UndiLanePage() {
     }
 
     setSpinning(true);
-    playSpinSound(); // <--- Play MP3 directly on click!
+    playSpinSound();
 
     let winningLane: string | null = null;
+    let isCouple = false;
+    let coupleId: string | null = null;
+
+    // Detect game type
+    const selectedGame = games.find((g) => g.id === activeGameId);
+    isCouple = selectedGame?.game_type === 'COUPLE';
 
     try {
-      const existingAssignment = await withLoading("member:undi-lane:check-existing-assignment", async () =>
-        laneService.getMemberLaneAssignment(activeGameId, member.id)
-      );
-      if (existingAssignment?.lane_position) {
-        winningLane = existingAssignment.lane_position;
+      if (isCouple) {
+        // For COUPLE games: Check couple assignment
+        const coupleData = await withLoading("member:undi-lane:check-couple-assignment", async () =>
+          laneService.getCoupleByPlayerAndGame(member.id, activeGameId)
+        );
+
+        if (coupleData?.couple_id) {
+          coupleId = coupleData.couple_id;
+          
+          // Check if couple already has lane assignment
+          const coupleAssignment = await laneService.getCoupleLaneAssignment(activeGameId, coupleId);
+          if (coupleAssignment?.lane_position) {
+            winningLane = coupleAssignment.lane_position;
+          }
+        }
+      } else {
+        // For BLOK games: Check member assignment
+        const existingAssignment = await withLoading("member:undi-lane:check-existing-assignment", async () =>
+          laneService.getMemberLaneAssignment(activeGameId, member.id)
+        );
+        if (existingAssignment?.lane_position) {
+          winningLane = existingAssignment.lane_position;
+        }
       }
     } catch (e) {
       console.warn("Could not check existing lane assignment. Falling back to random.", e);
@@ -337,21 +361,23 @@ export default function UndiLanePage() {
     setSpinAnimKey((k) => k + 1);
 
     setTimeout(async () => {
-      // 1. Stop MP3 spinning sound
       stopSpinSound();
-      
-      // 2. Play MP3 winning sound
       playWinSound();
-
       setShowConfetti(true);
 
       try {
         await withLoading("member:undi-lane:spin-save", async () => {
-          await saveSpinResult(activeGameId, member.id, winningLane as string);
-        });
-
-        await withLoading("member:undi-lane:lane-assignment-upsert", async () => {
-          await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane as string);
+          if (isCouple && coupleId) {
+            // Save spin result for couple
+            await saveSpinResult(activeGameId, member.id, winningLane as string);
+            // Upsert lane assignment with couple_id
+            await laneService.upsertCoupleLaneAssignmentFromSpin(activeGameId, coupleId, winningLane as string);
+          } else {
+            // Save spin result for individual member
+            await saveSpinResult(activeGameId, member.id, winningLane as string);
+            // Upsert lane assignment with member_id
+            await laneService.upsertLaneAssignmentFromSpin(activeGameId, member.id, winningLane as string);
+          }
         });
 
         await withLoading("member:undi-lane:spin-reload", async () => {
