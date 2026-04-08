@@ -252,22 +252,12 @@ export default function UndiLanePage() {
 
       const wheelSegments = assignedList.length > 0 ? assignedList : fallbackList;
 
-      // Get occupied lanes - include both spin results AND admin assignments
-      const occupiedFromSpins = Array.isArray(spunLanes) ? spunLanes : [];
+      // FIXED: Available lanes = wheel segments that DON'T have spin results
+      // Pre-assigned lanes are NOT excluded - they're handled by spinWheel() logic
+      // which assigns the correct lane when player spins
+      const occupiedLanes = Array.isArray(spunLanes) ? spunLanes : [];
+      const available = wheelSegments.filter((lane) => !occupiedLanes.includes(lane));
       
-      // For COUPLE games, also get lanes occupied by couple assignments
-      let occupiedFromAssignments: string[] = [];
-      if (isGameCouple) {
-        const coupleAssignments = await laneService.getAllLaneAssignmentsForGame(gameId);
-        occupiedFromAssignments = coupleAssignments
-          .filter((a: any) => a.couple_id && a.lane_position)
-          .map((a: any) => a.lane_position);
-      }
-      
-      // Combine all occupied lanes (deduplicate)
-      const allOccupiedLanes = [...new Set([...occupiedFromSpins, ...occupiedFromAssignments])];
-
-      const available = wheelSegments.filter((lane) => !allOccupiedLanes.includes(lane));
       setAvailableLanes(available);
     } catch (error) {
       console.error("Error loading lane data:", error);
