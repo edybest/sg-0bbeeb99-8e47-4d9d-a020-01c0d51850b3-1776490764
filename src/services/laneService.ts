@@ -436,9 +436,9 @@ export const laneService = {
   },
 
   async getCoupleByPlayerAndGame(playerId: string, gameId: string) {
-    // CRITICAL FIX: Query couple_scores first to get the SPECIFIC couple registered for this game
-    // A player can be in multiple couples, but only ONE couple is registered per game
-    const { data: coupleScore, error: scoreError } = await supabase
+    // CRITICAL FIX: Fetch all couple_scores for the game first, then filter locally
+    // because Supabase .or() with foreign tables is not natively supported and causes syntax errors
+    const { data: coupleScores, error: scoreError } = await supabase
       .from("couple_scores")
       .select(`
         couple_id,
@@ -451,21 +451,26 @@ export const laneService = {
           player2:members!couples_player2_id_fkey(id, username, full_name)
         )
       `)
-      .eq("game_id", gameId)
-      .or(`couple.player1_id.eq.${playerId},couple.player2_id.eq.${playerId}`)
-      .maybeSingle();
+      .eq("game_id", gameId);
       
-    if (scoreError && scoreError.code !== 'PGRST116') {
+    if (scoreError) {
       console.error("Error fetching couple from couple_scores:", scoreError);
       throw scoreError;
     }
     
-    if (!coupleScore || !coupleScore.couple) return null;
+    if (!coupleScores || coupleScores.length === 0) return null;
+    
+    // Filter locally to find the couple where player is player1 or player2
+    const matchedScore = coupleScores.find((score: any) => {
+      return score.couple && (score.couple.player1_id === playerId || score.couple.player2_id === playerId);
+    });
+    
+    if (!matchedScore || !matchedScore.couple) return null;
     
     // Return the couple registered for this specific game
     return {
-      couple_id: coupleScore.couple_id,
-      couple: coupleScore.couple
+      couple_id: matchedScore.couple_id,
+      couple: matchedScore.couple
     };
   },
 
