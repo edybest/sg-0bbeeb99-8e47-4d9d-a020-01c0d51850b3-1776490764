@@ -227,6 +227,16 @@ export function WhatsAppLoginForm() {
 
     setLoading(true);
 
+    // Set loading timeout - show error if takes > 15 seconds
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+      toast({
+        title: "Ralat: Mengambil masa terlalu lama",
+        description: "Sila cuba lagi. Jika masalah berterusan, hubungi admin.",
+        variant: "destructive"
+      });
+    }, 15000);
+
     try {
       console.log("🔐 Submitting login with:", {
         phone: phoneToUse,
@@ -235,14 +245,30 @@ export function WhatsAppLoginForm() {
         codeLength: formData.tac.length
       });
 
-      const response = await fetch("/api/verify-tac-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: phoneToUse,
-          code: formData.tac
-        })
-      });
+      // Create AbortController for timeout (10 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      let response: Response;
+      try {
+        response = await fetch("/api/verify-tac-login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: phoneToUse,
+            code: formData.tac
+          }),
+          signal: controller.signal
+        });
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error("Permintaan tamat masa. Sila cuba lagi.");
+        }
+        throw fetchError;
+      }
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -277,15 +303,31 @@ export function WhatsAppLoginForm() {
           throw new Error("Gagal mencipta sesi. Sila cuba lagi.");
         }
 
-        // ✅ Wait until session is actually readable (prevents redirect loop to /login)
+        // ✅ Improved session verification with timeout
         let sessionOk = false;
-        for (let i = 0; i < 5; i++) {
+        const maxRetries = 8;
+        const retryDelay = 200;
+        
+        for (let i = 0; i < maxRetries; i++) {
           const { data: sessionData, error: sessionReadError } = await supabase.auth.getSession();
           if (!sessionReadError && sessionData.session) {
             sessionOk = true;
+            console.log(`✅ Session verified on attempt ${i + 1}`);
             break;
           }
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          
+          if (i < maxRetries - 1) {
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          }
+        }
+
+        if (!sessionOk) {
+          // Try one final refresh before giving up
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData.session) {
+            sessionOk = true;
+            console.log("✅ Session verified after refresh");
+          }
         }
 
         if (!sessionOk) {
@@ -294,6 +336,9 @@ export function WhatsAppLoginForm() {
       } else {
         throw new Error("Token sesi tidak diterima dari server.");
       }
+
+      // Clear loading timeout on success
+      clearTimeout(loadingTimeout);
 
       // Clear cooldown on successful login
       clearCooldownTimestamp();
@@ -310,13 +355,17 @@ export function WhatsAppLoginForm() {
       await router.push("/member");
     } catch (error: unknown) {
       console.error("Login error:", error);
+      
+      // Clear loading timeout on error
+      clearTimeout(loadingTimeout);
+
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Kod TAC tidak sah atau telah tamat tempoh";
 
       toast({
         title: "Ralat semasa log masuk",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Kod TAC tidak sah atau telah tamat tempoh",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
