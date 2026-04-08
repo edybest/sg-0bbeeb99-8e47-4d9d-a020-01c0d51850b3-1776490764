@@ -585,27 +585,27 @@ export default function CouplePage() {
                                 </span>
                               </td>
                               <td className="px-3 py-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1">
+                                <div className="flex items-center justify-center gap-2">
                                   <button
                                     onClick={(e) => handleReaction(entry.id, e)}
                                     disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
-                                      entry.likes_count > 0 ? "bg-pink-50 text-pink-600" : "text-gray-400 hover:bg-gray-50"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all min-h-[2.75rem] touch-manipulation active:scale-95 ${
+                                      entry.likes_count > 0 ? "bg-pink-50 text-pink-600 hover:bg-pink-100" : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border border-gray-200`}
+                                    aria-label={`Like ${entry.couple_name}`}
                                   >
-                                    <span className="text-2xl">{entry.likes_count > 0 ? '❤️' : '🤍'}</span>
-                                    <span className="text-xs font-bold">{entry.likes_count || 0}</span>
+                                    <span className="text-2xl leading-none">{entry.likes_count > 0 ? '❤️' : '🤍'}</span>
+                                    <span className="text-base font-bold min-w-[1ch]">{entry.likes_count || 0}</span>
                                   </button>
                                   
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                  <button
                                     onClick={() => handleShareCouple(entry, entry.rank)}
+                                    className="flex items-center justify-center w-11 h-11 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation active:scale-95"
                                     title="Kongsi Ranking"
+                                    aria-label="Share couple ranking"
                                   >
-                                    <Share2 className="h-4 w-4" />
-                                  </Button>
+                                    <Share2 className="h-5 w-5" />
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -629,70 +629,75 @@ export default function CouplePage() {
                         return (
                           <Card
                             key={row.id}
-                            className={`${rankColor} border-2 mb-3 overflow-hidden transition-all hover:shadow-lg`}
+                            className={`${rankColor} border-2 mb-4 overflow-hidden transition-all hover:shadow-lg`}
                           >
-                            <CardContent className="p-3">
-                              {/* Header with Rank + Name */}
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <CardContent className="p-4">
+                              {/* Header with Rank + Name + Share */}
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
                                   <div className="flex-shrink-0">
                                     {rank <= 3 ? getRankIcon(rank) : (
-                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
-                                        <span className="text-lg font-bold text-white">#{rank}</span>
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
+                                        <span className="text-xl font-bold text-white">#{rank}</span>
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h3 className="text-base font-bold text-gray-900 truncate leading-tight">
+                                    <h3 className="text-lg font-bold text-gray-900 truncate leading-tight">
                                       {row.couple_name}
                                     </h3>
-                                    <p className="text-xs text-gray-600 truncate mt-0.5">
-                                      {row.player1_name} <span className="text-pink-400">+</span> {row.player2_name}
+                                    <p className="text-sm text-gray-600 truncate mt-1">
+                                      {row.player1_name} <span className="text-pink-400 font-bold">+</span> {row.player2_name}
                                     </p>
                                   </div>
                                 </div>
                                 
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex-shrink-0"
+                                {/* Share Button - Minimum 44x44px touch target */}
+                                <button
                                   onClick={() => handleShareCouple(row, rank)}
+                                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors touch-manipulation active:scale-95"
                                   title="Kongsi Ranking"
+                                  aria-label="Share couple ranking"
                                 >
-                                  <Share2 className="h-4 w-4" />
-                                </Button>
+                                  <Share2 className="h-5 w-5" />
+                                </button>
                               </div>
 
                               {/* Score + Stats Bar */}
-                              <div className="flex items-center justify-between mb-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <Award className="w-5 h-5 text-purple-600" />
-                                  <span className="text-2xl font-black text-purple-700">
+                              <div className="flex items-center justify-between mb-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl px-4 py-3 gap-3">
+                                <div className="flex items-center gap-3">
+                                  <Award className="w-6 h-6 text-purple-600 flex-shrink-0" />
+                                  <span className="text-3xl font-black text-purple-700">
                                     {row.overall_score}
                                   </span>
                                 </div>
                                 
-                                <div className="flex items-center gap-2 text-xs">
+                                <div className="flex items-center gap-2">
+                                  {/* Difference Badge */}
                                   <span
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-full font-semibold ${getDifferenceColor(row.difference)}`}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold text-sm ${getDifferenceColor(row.difference)}`}
                                   >
                                     {getDifferenceIcon(row.difference)}
-                                    {row.difference > 0 ? `+${row.difference}` : row.difference}
+                                    <span className="min-w-[2ch] text-center">
+                                      {row.difference > 0 ? `+${row.difference}` : row.difference}
+                                    </span>
                                   </span>
                                   
+                                  {/* Like Button - Minimum 44x44px touch target */}
                                   <button
                                     onClick={(e) => handleReaction(row.id, e)}
                                     disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-full bg-white hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-pink-50 transition-all min-w-[3.5rem] min-h-[2.75rem] touch-manipulation active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border border-gray-100"
+                                    aria-label={`Like ${row.couple_name}`}
                                   >
-                                    <span className="text-lg">{row.likes_count > 0 ? '❤️' : '🤍'}</span>
-                                    <span className="text-xs font-bold text-gray-700">{row.likes_count || 0}</span>
+                                    <span className="text-2xl leading-none">{row.likes_count > 0 ? '❤️' : '🤍'}</span>
+                                    <span className="text-base font-bold text-gray-700 min-w-[1ch]">{row.likes_count || 0}</span>
                                   </button>
                                 </div>
                               </div>
 
-                              {/* Compact Game Scores Grid */}
-                              <div className="grid grid-cols-6 gap-1">
+                              {/* Compact Game Scores Grid - Better readability */}
+                              <div className="grid grid-cols-6 gap-1.5">
                                 {[
                                   { score: row.game1_score, label: "G1" },
                                   { score: row.game2_score, label: "G2" },
@@ -703,10 +708,10 @@ export default function CouplePage() {
                                 ].map((game, idx) => (
                                   <div
                                     key={idx}
-                                    className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-md p-1.5 text-center"
+                                    className="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg p-2 text-center touch-manipulation active:scale-95 transition-transform"
                                   >
-                                    <div className="text-[8px] font-medium text-white/80 uppercase tracking-wide">{game.label}</div>
-                                    <div className="text-sm font-bold text-white leading-tight">{game.score || "-"}</div>
+                                    <div className="text-[9px] font-medium text-white/80 uppercase tracking-wide leading-tight">{game.label}</div>
+                                    <div className="text-base font-bold text-white leading-tight mt-0.5">{game.score || "-"}</div>
                                   </div>
                                 ))}
                               </div>
