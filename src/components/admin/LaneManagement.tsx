@@ -109,8 +109,8 @@ export function LaneManagement() {
     }
   }
 
-  const isLaneRevealed = (lanePosition: string, memberId: string) => {
-    return spinResults.some(r => r.lane_position === lanePosition && r.member_id === memberId);
+  const isLaneRevealed = (lanePosition: string) => {
+    return spinResults.some(r => r.lane_position === lanePosition);
   };
 
   const loadUnassignedPlayers = async (gameId: string) => {
@@ -355,10 +355,10 @@ export function LaneManagement() {
     }
   }
 
-  async function handleResetSpin(memberId: string) {
+  async function handleResetSpin(lanePosition: string) {
     if (!selectedGameId) return;
     
-    if (!confirm("Adakah anda pasti mahu set semula (reset) undian ahli ini? Mereka perlu memutar roda undian semula.")) return;
+    if (!confirm("Adakah anda pasti mahu set semula (reset) undian untuk lane ini? Mereka perlu memutar roda undian semula.")) return;
 
     try {
       await withLoading("admin:lane:reset-spin", async () => {
@@ -366,7 +366,7 @@ export function LaneManagement() {
           .from("lane_spin_results")
           .delete()
           .eq("game_id", selectedGameId)
-          .eq("member_id", memberId);
+          .eq("lane_position", lanePosition);
           
         if (error) throw error;
         
@@ -375,7 +375,7 @@ export function LaneManagement() {
       
       toast({
         title: "Berjaya",
-        description: "Status undian ahli telah di reset",
+        description: "Status undian lane telah di reset",
       });
     } catch (error) {
       console.error("Error resetting spin:", error);
@@ -552,7 +552,10 @@ export function LaneManagement() {
 
   function renderLaneSlot(lanePosition: string) {
     const assignment = getMemberAtPosition(lanePosition);
-    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id || assignment.couple_id || '') : false;
+    const revealed = assignment ? isLaneRevealed(lanePosition) : false;
+    
+    // For set as spun, we need a valid member_id (not couple_id) to avoid foreign key errors
+    const validMemberId = assignment?.member_id || (assignment as any)?.couple?.player1_id || '';
 
     return (
       <div
@@ -593,7 +596,7 @@ export function LaneManagement() {
                 {/* Change Voting Status */}
                 {revealed ? (
                   <button
-                    onClick={() => handleResetSpin(assignment.member_id || assignment.couple_id || '')}
+                    onClick={() => handleResetSpin(lanePosition)}
                     className="text-gray-400 hover:text-orange-600 p-1"
                     title="Reset Undian (Boleh undi semula)"
                   >
@@ -601,7 +604,7 @@ export function LaneManagement() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleSetAsSpun(lanePosition, assignment.member_id || assignment.couple_id || '')}
+                    onClick={() => handleSetAsSpun(lanePosition, validMemberId)}
                     className="text-gray-400 hover:text-green-600 p-1"
                     title="Tandakan Telah Undi (Skip pusingan roda)"
                   >

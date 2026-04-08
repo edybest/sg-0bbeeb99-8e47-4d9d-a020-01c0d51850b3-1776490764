@@ -117,9 +117,9 @@ export default function LanePage() {
   }
 
   // Helper to check if a lane is revealed
-  const isLaneRevealed = (lanePosition: string, memberId: string) => {
+  const isLaneRevealed = (lanePosition: string) => {
     if (isAdmin) return true;
-    return spinResults.some(r => r.lane_position === lanePosition && r.member_id === memberId);
+    return spinResults.some(r => r.lane_position === lanePosition);
   };
 
   async function loadLaneAssignments() {
@@ -327,7 +327,7 @@ export default function LanePage() {
     const assignment = getMemberAtPosition(lanePosition);
     
     // Check if lane is revealed
-    const revealed = assignment ? isLaneRevealed(lanePosition, assignment.member_id || assignment.couple_id || '') : false;
+    const revealed = assignment ? isLaneRevealed(lanePosition) : false;
 
     return (
       <div
