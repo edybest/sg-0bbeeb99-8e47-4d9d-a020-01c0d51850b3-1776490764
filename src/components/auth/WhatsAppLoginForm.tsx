@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { pageAccessService } from "@/services/pageAccessService";
 import { Loader2, MessageCircle } from "lucide-react";
@@ -13,16 +14,21 @@ const TAC_COOLDOWN_KEY = "tac_cooldown_timestamp";
 const COOLDOWN_DURATION = 90; // 90 seconds
 const TAC_PHONE_KEY = "tac_phone_last";
 
-function normalizePhone(phone: string) {
+function combinePhone(code: string, phone: string) {
   let value = phone.replace(/\D/g, "");
 
+  // If user types the leading 0 (standard in MY), remove it
   if (value.startsWith("0")) {
-    value = "6" + value;
-  } else if (!value.startsWith("6") && value.length > 0) {
-    value = "60" + value; // Fallback to 60 if it doesn't start with 6
+    value = value.substring(1);
+  } 
+  
+  // If user pasted the country code along with the number (e.g., 60123456789)
+  const codeDigits = code.replace("+", "");
+  if (value.startsWith(codeDigits) && value.length > codeDigits.length + 5) {
+    value = value.substring(codeDigits.length);
   }
 
-  return value ? "+" + value : "";
+  return value ? code + value : "";
 }
 
 function isValidPhone(phone: string) {
@@ -75,6 +81,7 @@ export function WhatsAppLoginForm() {
   const [tacSent, setTacSent] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
+  const [countryCode, setCountryCode] = useState("+60");
   const [formData, setFormData] = useState({
     phone: "",
     tac: ""
@@ -91,7 +98,15 @@ export function WhatsAppLoginForm() {
       // Restore last phone used to request TAC (prevents empty phone on submit)
       const lastPhone = getLastTacPhone();
       if (lastPhone) {
-        setFormData((prev) => ({ ...prev, phone: lastPhone }));
+        if (lastPhone.startsWith("+65")) {
+          setCountryCode("+65");
+          setFormData((prev) => ({ ...prev, phone: lastPhone.substring(3) }));
+        } else if (lastPhone.startsWith("+60")) {
+          setCountryCode("+60");
+          setFormData((prev) => ({ ...prev, phone: lastPhone.substring(3) }));
+        } else {
+          setFormData((prev) => ({ ...prev, phone: lastPhone }));
+        }
       }
     }
   }, []);
@@ -113,7 +128,7 @@ export function WhatsAppLoginForm() {
   }, [cooldownRemaining]);
 
   async function handleSendTAC() {
-    const normalizedPhone = normalizePhone(formData.phone);
+    const normalizedPhone = combinePhone(countryCode, formData.phone);
 
     if (!formData.phone.trim()) {
       toast({
@@ -212,7 +227,7 @@ export function WhatsAppLoginForm() {
       return;
     }
 
-    const phoneToUse = formData.phone?.trim() ? formData.phone : getLastTacPhone();
+    const phoneToUse = formData.phone?.trim() ? combinePhone(countryCode, formData.phone) : getLastTacPhone();
 
     if (!phoneToUse || !phoneToUse.trim()) {
       toast({
@@ -399,20 +414,35 @@ export function WhatsAppLoginForm() {
               <Label htmlFor="phone" className="text-sm font-medium">
                 Nombor WhatsApp
               </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="0123... atau +65..."
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                disabled={loading || sendingTAC || tacSent}
-                required
-                className="h-11"
-              />
+              <div className="flex gap-2">
+                <Select
+                  value={countryCode}
+                  onValueChange={setCountryCode}
+                  disabled={loading || sendingTAC || tacSent}
+                >
+                  <SelectTrigger className="w-[110px] h-11 shrink-0">
+                    <SelectValue placeholder="Kod" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="+60">🇲🇾 +60</SelectItem>
+                    <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="123456789"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                  disabled={loading || sendingTAC || tacSent}
+                  required
+                  className="h-11 flex-1"
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
-                Format: 0123456789, +60... atau +65...
+                Pilih negara dan masukkan nombor (cth: 123456789)
               </p>
             </div>
 
