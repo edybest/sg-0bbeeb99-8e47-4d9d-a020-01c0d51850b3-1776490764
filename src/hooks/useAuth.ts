@@ -90,42 +90,21 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
 
     checkingRef.current = true;
 
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Reduced timeout to 1 second for faster UI release
-    timeoutRef.current = setTimeout(() => {
-      if (!mountedRef.current) return;
-      
-      console.warn("⏱️ Auth check timeout (1s) - releasing UI lock");
-      checkingRef.current = false;
-      setLoading(false);
-    }, 1000);
-
     try {
       console.log("🔍 Starting auth check...");
       
-      // Use Promise.race with reduced timeout (1 second instead of 3)
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => 
-        setTimeout(() => {
-          console.warn("⏱️ Session fetch timeout - resolving as null");
-          resolve({ data: { session: null } });
-        }, 1000)
-      );
-      
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-      
-      // Clear timeout if we got a response
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      // Use standard getSession without artificial fast timeout
+      // Supabase client already has built-in retry/timeout mechanisms
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       // Check if we're still mounted
       if (!mountedRef.current) {
         return;
+      }
+      
+      if (sessionError) {
+        console.error("❌ Session fetch error:", sessionError);
+        throw sessionError;
       }
 
       if (!session) {
@@ -142,19 +121,20 @@ export function useAuth(requireAuth = false, requireAdmin = false, options?: Use
       console.log("✅ Session found, loading member data...");
       await loadMemberData(session.user.id, session.user.email ?? null);
     } catch (error) {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
       console.error("❌ Auth check error:", error);
-      clearCachedSession();
       
+      // If there's an error fetching the session, we shouldn't necessarily force logout 
+      // if they have a valid cached session, but we will ensure loading state is cleared
       if (mountedRef.current) {
-        setIsAuthenticated(false);
-        setLoading(false);
-        if (requireAuth) {
-          router.push("/login");
+        const cached = getCachedSession();
+        if (!cached?.member) {
+          clearCachedSession();
+          setIsAuthenticated(false);
+          if (requireAuth) {
+            router.push("/login");
+          }
         }
+        setLoading(false);
       }
     } finally {
       if (mountedRef.current) {
