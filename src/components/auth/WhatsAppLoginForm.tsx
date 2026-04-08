@@ -485,10 +485,11 @@ export function WhatsAppLoginForm() {
                         tac: e.target.value.replace(/\D/g, "").slice(0, 6)
                       }))
                     }
+                    onFocus={(e) => e.target.select()}
                     disabled={loading}
                     maxLength={6}
                     required
-                    className="h-11 text-center"
+                    className="h-11 text-center text-lg font-semibold tracking-widest"
                   />
                   <p className="text-xs text-green-600 dark:text-green-500 flex items-center justify-center">
                     ✓ Kod TAC telah dihantar ke WhatsApp anda
