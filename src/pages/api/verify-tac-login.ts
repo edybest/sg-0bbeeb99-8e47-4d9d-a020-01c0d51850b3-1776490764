@@ -182,113 +182,66 @@ export default async function handler(
       member.user_id = newAuthUser.user.id;
     }
 
-    // Create a session for the user using Admin API generateLink (faster & more reliable)
+    // Create a session for the user using temporary password (most reliable method for API routes)
     try {
-      console.log("🔐 Step 1: Generating session tokens via Admin API...");
+      console.log("🔐 Step 1: Generating session tokens...");
       console.log("🔐 User ID:", member.user_id);
       
-      // Use Admin API to generate magic link tokens (faster than password method)
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: `${member.user_id}@ambc.app`, // Use user_id as email (won't be sent)
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/member`,
-        }
+      const tempPassword = crypto.randomUUID() + crypto.randomUUID();
+      
+      // Update password via Admin API
+      const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
+        member.user_id,
+        { password: tempPassword }
+      );
+
+      if (updatePasswordError) {
+        console.error("❌ Failed to update temporary password:", updatePasswordError);
+        throw new Error("Gagal menyediakan sesi log masuk");
+      }
+      
+      // Create a fresh client for sign in
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+      
+      const authPhone = cleanPhone.replace("+", "");
+      
+      // Sign in to get tokens
+      const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+        phone: authPhone,
+        password: tempPassword,
       });
 
-      if (linkError || !linkData) {
-        console.error("❌ Failed to generate session link:", linkError);
+      if (signInError || !signInData.session) {
+        console.error("❌ Failed to generate session tokens");
+        console.error("SIGN IN ERROR:", JSON.stringify(signInError, null, 2));
         
-        // Fallback to temp password method if generateLink fails
-        console.log("⚠️ Falling back to temp password method...");
-        
-        const tempPassword = crypto.randomUUID() + crypto.randomUUID();
-        
-        const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
-          member.user_id,
-          { password: tempPassword }
-        );
-
-        if (updatePasswordError) {
-          console.error("❌ Failed to update temporary password:", updatePasswordError);
-          throw new Error("Failed to prepare session");
-        }
-        
-        const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        });
-        
-        const authPhone = cleanPhone.replace("+", "");
-        
-        const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
-          phone: authPhone,
-          password: tempPassword,
-        });
-
-        if (signInError || !signInData.session) {
-          console.error("❌ Failed to generate session tokens");
-          console.error("SIGN IN ERROR:", JSON.stringify(signInError, null, 2));
-          
-          return res.status(500).json({
-            success: false,
-            error: "Failed to generate session tokens",
-            details: signInError || "No session data returned",
-            debug: {
-              hasError: !!signInError,
-              hasData: !!signInData,
-              hasSession: !!signInData?.session,
-              errorMessage: signInError?.message,
-              errorCode: signInError?.code,
-              errorStatus: signInError?.status,
-            }
-          });
-        }
-
-        console.log("✅ Session tokens generated via password fallback");
-
-        return res.status(200).json({
-          success: true,
-          message: "Login successful",
-          data: {
-            access_token: signInData.session.access_token,
-            refresh_token: signInData.session.refresh_token,
-            user: {
-              id: member.user_id,
-              username: member.username,
-              full_name: member.full_name,
-              is_admin: member.is_admin || false,
-              phone: cleanPhone,
-            },
-          },
+        return res.status(500).json({
+          success: false,
+          error: "Gagal menjana token sesi",
+          details: signInError || "Tiada data sesi diterima",
+          debug: {
+            hasError: !!signInError,
+            hasData: !!signInData,
+            hasSession: !!signInData?.session,
+            errorMessage: signInError?.message,
+            errorCode: signInError?.code,
+          }
         });
       }
 
-      console.log("✅ Step 1: Session link generated successfully");
-
-      // Extract tokens from the properties object
-      const accessToken = linkData.properties?.access_token;
-      const refreshToken = linkData.properties?.refresh_token;
-
-      if (!accessToken || !refreshToken) {
-        console.error("❌ Missing tokens in generateLink response");
-        throw new Error("Failed to extract session tokens");
-      }
-
-      console.log("✅ Session tokens extracted successfully:", {
-        userId: member.user_id,
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-      });
+      console.log("✅ Session tokens generated successfully");
 
       return res.status(200).json({
         success: true,
         message: "Login successful",
         data: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
+          access_token: signInData.session.access_token,
+          refresh_token: signInData.session.refresh_token,
           user: {
             id: member.user_id,
             username: member.username,
@@ -303,17 +256,10 @@ export default async function handler(
       console.error("\n❌❌❌ SESSION CREATION FAILED ❌❌❌");
       console.error("Error type:", sessionError instanceof Error ? sessionError.constructor.name : typeof sessionError);
       console.error("Error message:", sessionError instanceof Error ? sessionError.message : String(sessionError));
-      console.error("Error stack:", sessionError instanceof Error ? sessionError.stack : "No stack trace");
-      console.error("Member info:", {
-        id: member.id,
-        username: member.username,
-        user_id: member.user_id,
-        phone: cleanPhone,
-      });
       
       return res.status(500).json({
         success: false,
-        error: sessionError instanceof Error ? sessionError.message : "Failed to create session",
+        error: sessionError instanceof Error ? sessionError.message : "Gagal mencipta sesi",
       });
     }
 
