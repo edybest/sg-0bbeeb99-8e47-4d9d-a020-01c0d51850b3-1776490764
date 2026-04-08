@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef } from "react";
+import { useEffect, useRef, forwardRef, useState } from "react";
 
 interface LaneSpinWheelProps {
   items: string[];
@@ -10,6 +10,7 @@ interface LaneSpinWheelProps {
 export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
   ({ items, rotation, isSpinning, onSpinClick }, forwardedRef) => {
     const internalCanvasRef = useRef<HTMLCanvasElement>(null);
+    const [isMobile, setIsMobile] = useState(false);
     
     // Custom vibrant colors matching the reference image
     const COLORS = [
@@ -23,16 +24,28 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
       "#F97316", // Orange
     ];
     
-    // Internal canvas size (large for high resolution/retina display)
-    const WHEEL_SIZE = 800; 
-    const CENTER_RADIUS = 100;
+    // Responsive canvas size based on device
+    const WHEEL_SIZE = isMobile ? 600 : 800;
+    const CENTER_RADIUS = isMobile ? 70 : 100;
 
     // Use internal ref to draw, but forward to parent for animation
     const canvasRef = (forwardedRef as React.RefObject<HTMLCanvasElement>) || internalCanvasRef;
 
+    // Detect mobile device
+    useEffect(() => {
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < 768);
+      };
+      
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      
+      return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     useEffect(() => {
       drawWheel();
-    }, [items]); // Only redraw when items change to save performance
+    }, [items, isMobile]); // Redraw when items or device type changes
 
     const drawWheel = () => {
       const canvas = canvasRef.current;
@@ -69,15 +82,21 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Draw text
+        // Draw text with responsive sizing
         ctx.save();
         // Rotate to center of segment
         ctx.rotate(startAngle + segmentAngle / 2);
         ctx.textAlign = "right"; // Align right to put text near outer edge
         ctx.textBaseline = "middle";
         
-        // Dynamic font size handles many participants cleanly
-        const fontSize = items.length > 50 ? 14 : items.length > 30 ? 20 : 28;
+        // Dynamic font size based on participant count AND device
+        let fontSize: number;
+        if (isMobile) {
+          fontSize = items.length > 50 ? 11 : items.length > 30 ? 16 : 22;
+        } else {
+          fontSize = items.length > 50 ? 14 : items.length > 30 ? 20 : 28;
+        }
+        
         ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
         ctx.fillStyle = "#fff";
         
@@ -87,10 +106,11 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
 
-        // Truncate if very long
+        // Truncate if very long - more aggressive on mobile
         let displayName = item;
-        if (displayName.length > 15) {
-          displayName = displayName.substring(0, 13) + "..";
+        const maxLength = isMobile ? 12 : 15;
+        if (displayName.length > maxLength) {
+          displayName = displayName.substring(0, maxLength - 2) + "..";
         }
 
         // Draw text at 85% of radius
@@ -112,7 +132,7 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
       ctx.fillStyle = "#fff"; 
       ctx.fill();
       ctx.strokeStyle = "#0284c7"; // Blue border
-      ctx.lineWidth = 6;
+      ctx.lineWidth = isMobile ? 4 : 6;
       ctx.stroke();
 
       // Draw AMBC logo
@@ -137,57 +157,56 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
     };
 
     return (
-      <div className="relative w-full max-w-[500px] md:max-w-[650px] aspect-square flex items-center justify-center mx-auto">
+      <div className="relative w-full max-w-[350px] sm:max-w-[450px] md:max-w-[600px] aspect-square flex items-center justify-center mx-auto">
         {/* Outer Ring Glow/Shadow */}
         <div 
           className={`absolute inset-0 rounded-full transition-shadow duration-300 ${
-            isSpinning ? 'shadow-[0_0_50px_rgba(14,165,233,0.8)]' : 'shadow-[0_15px_35px_rgba(0,0,0,0.3)]'
+            isSpinning ? 'shadow-[0_0_30px_rgba(14,165,233,0.6)] sm:shadow-[0_0_50px_rgba(14,165,233,0.8)]' : 'shadow-[0_10px_25px_rgba(0,0,0,0.2)] sm:shadow-[0_15px_35px_rgba(0,0,0,0.3)]'
           }`} 
         />
         
         {/* Wheel Canvas */}
-        {/* We use inline style for transform during active spin, but ref is used for idle rotation */}
         <canvas
           ref={canvasRef}
           width={WHEEL_SIZE}
           height={WHEEL_SIZE}
           onClick={onSpinClick}
-          className="w-full h-full object-contain cursor-pointer rounded-full"
+          className="w-full h-full object-contain cursor-pointer rounded-full touch-manipulation active:scale-95 transition-transform"
           style={isSpinning ? {
             transform: `rotate(${rotation}deg)`,
-            transition: "transform 5.2s cubic-bezier(0.15, 0.8, 0.15, 1)", // Smooth ease-out
+            transition: "transform 5.2s cubic-bezier(0.15, 0.8, 0.15, 1)",
           } : undefined}
         />
 
-        {/* "Tap to spin" Text overlay (static, doesn't spin) */}
+        {/* "Tap to spin" Text overlay - Responsive sizing */}
         {!isSpinning && items.length > 0 && (
           <div 
-            className="absolute text-3xl md:text-5xl font-black text-white tracking-wider cursor-pointer pointer-events-none animate-pulse"
+            className="absolute text-xl sm:text-3xl md:text-5xl font-black text-white tracking-wider cursor-pointer pointer-events-none animate-pulse"
             style={{
               top: '22%',
               textShadow: '0 4px 15px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.7)',
-              WebkitTextStroke: '1px rgba(0,0,0,0.6)'
+              WebkitTextStroke: '0.5px rgba(0,0,0,0.6)',
             }}
           >
             TAP TO SPIN
           </div>
         )}
 
-        {/* Arrow Pointer (Right side pointing left) */}
+        {/* Arrow Pointer - Responsive positioning */}
         <div 
-          className="absolute right-[-15px] md:right-[-25px] top-1/2 -translate-y-1/2 z-10"
+          className="absolute right-[-8px] sm:right-[-12px] md:right-[-20px] top-1/2 -translate-y-1/2 z-10"
           style={{ 
             width: 0, 
             height: 0,
-            borderTop: "30px solid transparent",
-            borderBottom: "30px solid transparent",
-            borderRight: "50px solid #ef4444", // Red arrow
-            filter: "drop-shadow(-4px 4px 6px rgba(0,0,0,0.5))"
+            borderTop: "20px solid transparent",
+            borderBottom: "20px solid transparent",
+            borderRight: "35px solid #ef4444",
+            filter: "drop-shadow(-3px 3px 4px rgba(0,0,0,0.5))"
           }}
         />
         
-        {/* Inner dot detail on the arrow */}
-        <div className="absolute right-[-2px] md:right-[-10px] top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full z-20 shadow-md" />
+        {/* Inner dot detail on the arrow - Responsive sizing */}
+        <div className="absolute right-[2px] sm:right-[0px] md:right-[-8px] top-1/2 -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full z-20 shadow-md" />
       </div>
     );
   }

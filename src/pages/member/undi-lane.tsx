@@ -551,10 +551,11 @@ export default function UndiLanePage() {
 
         <div className="min-h-screen bg-slate-50 flex flex-col pb-20 sm:pb-0">
 
-          <main className="flex-1 container max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 relative">
+          <main className="flex-1 container max-w-7xl mx-auto p-3 sm:p-4 md:p-6 lg:p-8 relative">
             {showConfetti ? (
               <div className="fixed inset-0 pointer-events-none z-50">
-                {[...Array(50)].map((_, i) => (
+                {/* Reduce confetti count on mobile for better performance */}
+                {[...Array(typeof window !== 'undefined' && window.innerWidth < 640 ? 30 : 50)].map((_, i) => (
                   <div
                     key={i}
                     className="absolute animate-confetti"
@@ -568,8 +569,8 @@ export default function UndiLanePage() {
                     <Sparkles
                       className="text-yellow-400"
                       style={{
-                        width: `${10 + Math.random() * 20}px`,
-                        height: `${10 + Math.random() * 20}px`,
+                        width: `${10 + Math.random() * 15}px`,
+                        height: `${10 + Math.random() * 15}px`,
                       }}
                     />
                   </div>
@@ -577,14 +578,14 @@ export default function UndiLanePage() {
               </div>
             ) : null}
 
-            <div className="container mx-auto px-4 py-6 max-w-6xl">
-              <Card className="border-2 border-sky-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-8 transform transition-all duration-300 hover:shadow-2xl">
+            <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-6xl">
+              <Card className="border-2 border-sky-100 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-6 sm:mb-8 transform transition-all duration-300 hover:shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500"></div>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row gap-4 items-center">
                     <div className="w-full sm:w-1/3">
                       <Select value={activeGameId} onValueChange={handleGameChange}>
-                        <SelectTrigger className="w-full border-sky-200 focus:ring-blue-500">
+                        <SelectTrigger className="w-full border-sky-200 focus:ring-blue-500 h-12 text-base">
                           <SelectValue placeholder="Choose a game" />
                         </SelectTrigger>
                         <SelectContent>
@@ -604,21 +605,21 @@ export default function UndiLanePage() {
                 </CardContent>
               </Card>
 
-              <div className="grid md:grid-cols-2 gap-6 items-start">
+              <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 items-start">
                 <Card className="flex flex-col border-sky-100 shadow-md overflow-hidden bg-white">
-                  <CardHeader className="bg-blue-50 border-b border-sky-100 pb-4">
-                    <CardTitle className="text-center text-blue-700 text-2xl font-black uppercase tracking-wider">
+                  <CardHeader className="bg-blue-50 border-b border-sky-100 pb-3 sm:pb-4">
+                    <CardTitle className="text-center text-blue-700 text-xl sm:text-2xl font-black uppercase tracking-wider">
                       {myResult ? "Your Lane Assigned" : "Click to Spin!"}
                     </CardTitle>
                   </CardHeader>
                   
-                  <CardContent className="flex flex-col items-center justify-center p-6 md:p-8">
+                  <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6 md:p-8">
                     {myResult ? (
-                      <div className="text-center animate-in zoom-in-50 fade-in duration-500 ease-out py-16">
-                        <div className="text-[120px] md:text-[140px] leading-none font-black text-blue-600 mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
+                      <div className="text-center animate-in zoom-in-50 fade-in duration-500 ease-out py-12 sm:py-16">
+                        <div className="text-[100px] sm:text-[120px] md:text-[140px] leading-none font-black text-blue-600 mb-6 sm:mb-8 drop-shadow-2xl" style={{ animation: "resultBounce 2s infinite ease-in-out" }}>
                           {myResult.lane_position}
                         </div>
-                        <div className="inline-block px-8 py-3 rounded-full bg-blue-50 text-blue-700 font-bold text-xl md:text-2xl animate-pulse border border-blue-200 shadow-sm">
+                        <div className="inline-block px-6 sm:px-8 py-2.5 sm:py-3 rounded-full bg-blue-50 text-blue-700 font-bold text-lg sm:text-xl md:text-2xl animate-pulse border border-blue-200 shadow-sm">
                           🎉 Your Assigned Lane
                         </div>
                       </div>
@@ -626,7 +627,7 @@ export default function UndiLanePage() {
                       <div className="w-full flex flex-col items-center">
                         {/* Spin Wheel */}
                         {selectedGame && availableLanes.length > 0 && (
-                          <div className="flex flex-col items-center gap-10 w-full relative pt-4 pb-8">
+                          <div className="flex flex-col items-center gap-6 sm:gap-8 md:gap-10 w-full relative pt-2 sm:pt-4 pb-6 sm:pb-8">
                             <LaneSpinWheel
                               ref={wheelRef as any}
                               items={availableLanes}
@@ -635,28 +636,29 @@ export default function UndiLanePage() {
                               onSpinClick={spinWheel}
                             />
 
-                            {/* Controls */}
-                            <div className="flex gap-4 mt-4">
+                            {/* Controls - Responsive button sizes */}
+                            <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-4">
                               <Button
                                 onClick={handleResetSpins}
                                 disabled={spinning || allResults.length === 0}
                                 variant="outline"
                                 size="lg"
-                                className="h-14 px-6 rounded-2xl border-2 hover:bg-slate-100"
+                                className="h-12 sm:h-14 px-4 sm:px-6 rounded-2xl border-2 hover:bg-slate-100 text-sm sm:text-base touch-manipulation active:scale-95 transition-transform"
                               >
-                                <RotateCcw className="w-5 h-5 mr-2" />
-                                Reset Game
+                                <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                                <span className="hidden sm:inline">Reset Game</span>
+                                <span className="sm:hidden">Reset</span>
                               </Button>
                             </div>
                           </div>
                         )}
                         {selectedGame && availableLanes.length === 0 && (
-                          <div className="text-center p-10 w-full max-w-md bg-gradient-to-br from-sky-50 to-blue-50 rounded-3xl border-2 border-dashed border-sky-200 shadow-sm">
-                            <div className="w-16 h-16 bg-sky-100 text-sky-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                              <Sparkles className="w-8 h-8" />
+                          <div className="text-center p-8 sm:p-10 w-full max-w-md bg-gradient-to-br from-sky-50 to-blue-50 rounded-3xl border-2 border-dashed border-sky-200 shadow-sm">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-sky-100 text-sky-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Sparkles className="w-6 h-6 sm:w-8 sm:h-8" />
                             </div>
-                            <h3 className="text-xl font-bold text-sky-800 mb-2">Semua Lane Penuh!</h3>
-                            <p className="text-sky-600">Terima kasih, semua peserta telah mendapat lane masing-masing.</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-sky-800 mb-2">Semua Lane Penuh!</h3>
+                            <p className="text-sm sm:text-base text-sky-600">Terima kasih, semua peserta telah mendapat lane masing-masing.</p>
                           </div>
                         )}
                       </div>
@@ -665,28 +667,29 @@ export default function UndiLanePage() {
                 </Card>
 
                 <Card className="flex flex-col border-sky-100 shadow-md bg-white">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-sky-100 bg-slate-50/50">
-                    <CardTitle className="text-xl text-slate-800">All Results ({allResults.length})</CardTitle>
+                  <CardHeader className="flex flex-row items-center justify-between pb-3 sm:pb-4 border-b border-sky-100 bg-slate-50/50">
+                    <CardTitle className="text-lg sm:text-xl text-slate-800">All Results ({allResults.length})</CardTitle>
                     {member?.is_admin ? (
                       <Button
                         onClick={handleResetSpins}
                         variant="outline"
                         size="sm"
-                        className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors h-9 px-3 text-xs sm:text-sm touch-manipulation active:scale-95"
                       >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Reset All
+                        <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Reset All</span>
+                        <span className="sm:hidden">Reset</span>
                       </Button>
                     ) : null}
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="p-4 space-y-2 max-h-[550px] overflow-y-auto">
+                    <div className="p-3 sm:p-4 space-y-2 max-h-[400px] sm:max-h-[550px] overflow-y-auto">
                       {allResults.length === 0 ? (
-                        <div className="text-center py-16 text-slate-400">
-                          <p>No spins yet. Be the first!</p>
+                        <div className="text-center py-12 sm:py-16 text-slate-400">
+                          <p className="text-sm sm:text-base">No spins yet. Be the first!</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {allResults.map((result, index) => {
                             // Check if this is a couple result AND the game type is COUPLE
                             const isCouple = selectedGame?.game_type === 'COUPLE' && (result as any).couples && (result as any).couples.length > 0;
@@ -695,37 +698,40 @@ export default function UndiLanePage() {
                             return (
                               <div
                                 key={result.id}
-                                className="flex items-center gap-3 p-3 bg-card rounded-lg border"
+                                className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 bg-card rounded-lg border"
                               >
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
+                                <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
                                   {index + 1}
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                   {isCouple && coupleData ? (
                                     <>
-                                      <p className="font-bold text-pink-700">{coupleData.couple_name}</p>
-                                      <p className="text-xs text-gray-600">
+                                      <p className="font-bold text-pink-700 text-sm sm:text-base truncate">{coupleData.couple_name}</p>
+                                      <p className="text-xs text-gray-600 truncate">
                                         {coupleData.player1?.username || ''} <span className="text-pink-400">+</span> {coupleData.player2?.username || ''}
                                       </p>
                                     </>
                                   ) : (
-                                    <p className="font-medium">{result.members?.username}</p>
+                                    <p className="font-medium text-sm sm:text-base truncate">{result.members?.username}</p>
                                   )}
-                                  <p className="text-sm text-muted-foreground">
-                                    {new Date(result.spun_at).toLocaleString("ms-MY")}
+                                  <p className="text-xs sm:text-sm text-muted-foreground">
+                                    {new Date(result.spun_at).toLocaleString("ms-MY", { 
+                                      dateStyle: 'short', 
+                                      timeStyle: 'short' 
+                                    })}
                                   </p>
                                 </div>
-                                <Badge variant="secondary" className="font-mono">
+                                <Badge variant="secondary" className="font-mono text-xs sm:text-sm flex-shrink-0">
                                   {result.lane_position}
                                 </Badge>
                                 {member?.is_admin && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 touch-manipulation active:scale-95"
                                     onClick={() => setDeleteSpinId(result.id)}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                   </Button>
                                 )}
                               </div>
@@ -738,19 +744,19 @@ export default function UndiLanePage() {
                 </Card>
               </div>
 
-              <Card className="mt-6 shadow-md border-sky-100 bg-white">
-                <CardHeader className="bg-slate-50/80 pb-4 border-b border-sky-100">
-                  <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
-                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+              <Card className="mt-4 sm:mt-6 shadow-md border-sky-100 bg-white">
+                <CardHeader className="bg-slate-50/80 pb-3 sm:pb-4 border-b border-sky-100">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-slate-800">
+                    <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
                     Available Lanes ({availableLanes.length})
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="pt-6 pb-6">
-                  <div className="flex flex-wrap gap-3">
+                <CardContent className="pt-4 sm:pt-6 pb-4 sm:pb-6">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     {availableLanes.map((lane) => (
                       <div
                         key={lane}
-                        className="px-5 py-2.5 bg-white shadow-sm rounded-xl text-slate-700 font-bold border border-slate-200 flex items-center justify-center min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/30 hover:border-blue-500"
+                        className="px-4 sm:px-5 py-2 sm:py-2.5 bg-white shadow-sm rounded-xl text-slate-700 font-bold border border-slate-200 flex items-center justify-center min-w-[3rem] sm:min-w-[3.5rem] cursor-pointer transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:bg-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/30 hover:border-blue-500 text-sm sm:text-base touch-manipulation active:scale-95"
                       >
                         {lane}
                       </div>
