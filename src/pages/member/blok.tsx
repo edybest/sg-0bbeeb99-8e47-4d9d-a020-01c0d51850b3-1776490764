@@ -874,7 +874,6 @@ export default function BlokPage() {
 
                   <div className="min-w-0">
                     <h1 className="text-lg md:text-xl font-bold text-sky-900 truncate">Blok Leaderboard</h1>
-                    
                   </div>
                 </div>
                 
@@ -887,460 +886,563 @@ export default function BlokPage() {
                   </div>
                 )}
               </div>
+            </div>
+          </header>
 
-              {/* Search and Filter Section */}
-              {selectedGame && (
-                <Card className="bg-white border-sky-200 shadow-md">
-                  <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
-                    <CardTitle className="text-sky-900 flex items-center gap-2">
-                      <Search className="w-5 h-5 text-sky-600" />
-                      Carian & Penapisan
-                    </CardTitle>
-                    <CardDescription className="text-sky-600">
-                      Cari pemain atau tapis mengikut kriteria
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-6 space-y-4">
-                    {/* Search Input */}
-                    <div>
-                      <label className="block text-sm font-medium text-sky-700 mb-2">
-                        Cari Nama (Maksimum 20 nama, pisahkan dengan koma)
+          <main className="container mx-auto px-3 md:px-4 py-6">
+            {/* Game Selector and Most Liked Players */}
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+              <Card className="bg-white border-sky-200 shadow-md lg:col-span-2">
+                <CardHeader className="border-b border-sky-100 pb-3 md:pb-4">
+                  <CardTitle className="text-sky-900 flex items-center gap-2 text-lg md:text-xl">
+                    <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
+                    Pilih Game
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 md:pt-6">
+                  {games.length === 0 ? (
+                    <div className="text-center py-6 text-sky-500">
+                      <p>Tiada game dijumpai</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      <label className="text-sm font-medium text-sky-700">
+                        Sila pilih game untuk lihat leaderboard:
                       </label>
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Contoh: edy, zali, samdol"
-                        className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900"
-                      />
-                      {searchQuery && (
-                        <p className="text-xs text-sky-600 mt-1">
-                          Mencari: {searchQuery.split(',').filter(s => s.trim()).length} nama
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Filters Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Gender Filter */}
-                      <div>
-                        <label className="block text-sm font-medium text-sky-700 mb-2">
-                          Jantina
-                        </label>
-                        <select
-                          value={genderFilter}
-                          onChange={(e) => setGenderFilter(e.target.value)}
-                          className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
-                        >
-                          <option value="ALL">Semua Jantina</option>
-                          <option value="MALE">Lelaki</option>
-                          <option value="FEMALE">Perempuan</option>
-                        </select>
-                      </div>
-
-                      {/* Technique Filter */}
-                      <div>
-                        <label className="block text-sm font-medium text-sky-700 mb-2">
-                          Teknik Balingan
-                        </label>
-                        <select
-                          value={techniqueFilter}
-                          onChange={(e) => setTechniqueFilter(e.target.value)}
-                          className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
-                        >
-                          <option value="ALL">Semua Teknik</option>
-                          <option value="STROKER">Stroker</option>
-                          <option value="TWEENER">Tweener</option>
-                          <option value="CRANKER">Cranker</option>
-                        </select>
+                      <select
+                        value={selectedGame || ""}
+                        onChange={(e) => setSelectedGame(e.target.value)}
+                        className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg border-2 border-sky-200 bg-white text-sky-900 font-semibold focus:border-sky-500 focus:ring-0 shadow-sm text-sm md:text-base appearance-none cursor-pointer"
+                      >
+                        {games.map((game) => (
+                          <option key={game.id} value={game.id}>
+                            {game.game_name} ({new Date(game.game_date).toLocaleDateString("ms-MY", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric"
+                            })})
+                          </option>
+                        ))}
+                      </select>
+                      
+                      <div className="pointer-events-none absolute right-4 top-[50px] md:top-[56px] flex items-center px-2 text-sky-600">
+                        <ChevronRight className="w-5 h-5 rotate-90" />
                       </div>
                     </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                    {/* Active Filters Display */}
-                    {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
-                      <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
-                        <span className="text-sm font-medium text-sky-700">Aktif:</span>
-                        {searchQuery && (
-                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
-                            Carian: {searchQuery.split(',').filter(s => s.trim()).length} nama
-                            <button
-                              onClick={() => setSearchQuery("")}
-                              className="hover:text-sky-900"
+              {/* Most Liked Players Card */}
+              {selectedGame && mostLikedPlayers.length > 0 && (
+                <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200 shadow-md">
+                  <CardHeader className="border-b border-red-100 pb-3 md:pb-4">
+                    <CardTitle className="text-red-900 flex items-center gap-2 text-lg md:text-xl">
+                      <Heart className="w-5 h-5 md:w-6 md:h-6 text-red-500 fill-red-500" />
+                      Pilihan Ramai
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 md:pt-6">
+                    <div className="space-y-3">
+                      {mostLikedPlayers.map((player, index) => (
+                        <div key={`liked-${player.id}`} className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-red-100">
+                          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                            <span className="font-bold text-red-400 w-4 md:w-5 text-sm md:text-base">#{index + 1}</span>
+                            {player.member.avatar_url ? (
+                              <Image
+                                src={player.member.avatar_url}
+                                alt={player.member.username}
+                                width={28}
+                                height={28}
+                                className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover flex-shrink-0"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-red-100 flex items-center justify-center font-bold text-red-600 text-xs md:text-sm flex-shrink-0">
+                                {player.member.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <Link
+                              href={`/member/profile?id=${player.member.id}`}
+                              className="font-semibold text-red-900 hover:text-red-700 truncate text-xs md:text-sm"
                             >
-                              ✕
-                            </button>
-                          </span>
-                        )}
-                        {genderFilter !== "ALL" && (
-                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
-                            {genderFilter === "MALE" ? "Lelaki" : "Perempuan"}
-                            <button
-                              onClick={() => setGenderFilter("ALL")}
-                              className="hover:text-sky-900"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        )}
-                        {techniqueFilter !== "ALL" && (
-                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
-                            {techniqueFilter}
-                            <button
-                              onClick={() => setTechniqueFilter("ALL")}
-                              className="hover:text-sky-900"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        )}
-                        <button
-                          onClick={() => {
-                            setSearchQuery("");
-                            setGenderFilter("ALL");
-                            setTechniqueFilter("ALL");
-                          }}
-                          className="text-xs text-red-600 hover:text-red-700 font-medium ml-auto"
-                        >
-                          Clear All
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Results Count */}
-                    <div className="text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
-                      Menunjukkan <span className="font-bold">{filteredLeaderboard.length}</span> daripada <span className="font-bold">{leaderboard.length}</span> pemain
+                              {player.member.username}
+                            </Link>
+                          </div>
+                          <div className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 md:py-1 rounded text-xs md:text-sm font-bold shadow-sm flex-shrink-0 ml-2">
+                            <ThumbsUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                            {player.likes_count}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               )}
+            </div>
 
-              {/* Mobile View - Card Layout */}
-              <div className="block md:hidden space-y-3 mb-6">
-                {filteredLeaderboard.length > 0 && (
-                  <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
+            {/* Search and Filter Section */}
+            {selectedGame && (
+              <Card className="bg-white border-sky-200 shadow-md mb-6">
+                <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
+                  <CardTitle className="text-sky-900 flex items-center gap-2 text-lg">
+                    <Search className="w-5 h-5 text-sky-600" />
+                    Carian & Penapisan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 md:p-6 space-y-4">
+                  {/* Search Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-sky-700 mb-2">
+                      Cari Nama (Maksimum 20 nama, pisahkan dengan koma)
+                    </label>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Contoh: edy, zali, samdol"
+                      className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900"
+                    />
+                    {searchQuery && (
+                      <p className="text-xs text-sky-600 mt-1">
+                        Mencari: {searchQuery.split(',').filter(s => s.trim()).length} nama
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Filters Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Gender Filter */}
                     <div>
-                      <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                        <Trophy className="w-5 h-5 text-yellow-300" />
-                        Senarai Pemain
-                      </h3>
-                      <p className="text-sky-100 text-sm">Kedudukan keseluruhan</p>
+                      <label className="block text-sm font-medium text-sky-700 mb-2">
+                        Jantina
+                      </label>
+                      <select
+                        value={genderFilter}
+                        onChange={(e) => setGenderFilter(e.target.value)}
+                        className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
+                      >
+                        <option value="ALL">Semua Jantina</option>
+                        <option value="MALE">Lelaki</option>
+                        <option value="FEMALE">Perempuan</option>
+                      </select>
                     </div>
-                    <div className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
-                      {filteredLeaderboard.length} Pemain
+
+                    {/* Technique Filter */}
+                    <div>
+                      <label className="block text-sm font-medium text-sky-700 mb-2">
+                        Teknik Balingan
+                      </label>
+                      <select
+                        value={techniqueFilter}
+                        onChange={(e) => setTechniqueFilter(e.target.value)}
+                        className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
+                      >
+                        <option value="ALL">Semua Teknik</option>
+                        <option value="STROKER">Stroker</option>
+                        <option value="TWEENER">Tweener</option>
+                        <option value="CRANKER">Cranker</option>
+                      </select>
                     </div>
                   </div>
-                )}
-                
-                {filteredLeaderboard.map((player, index) => {
-                  // Simple color scheme: Top 3 gold, rest blue
-                  const isTop3 = player.rank <= 3;
-                  const cardBg = isTop3 
-                    ? "bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200"
-                    : "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200";
 
-                  return (
-                    <motion.div
-                      key={player.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`${cardBg} rounded-xl border shadow-md p-4 space-y-3`}
-                    >
-                      {/* Player Header */}
-                      <div className="flex items-center gap-3 pb-3 border-b border-white/40">
-                        {/* Rank */}
-                        <div className="flex-shrink-0">
-                          {player.rank <= 3 ? (
-                            <div className="w-12 h-12 flex items-center justify-center">
-                              {player.rank === 1 && <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />}
-                              {player.rank === 2 && <Trophy className="w-9 h-9 text-slate-400 drop-shadow-lg" />}
-                              {player.rank === 3 && <Trophy className="w-8 h-8 text-amber-700 drop-shadow-lg" />}
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-base font-bold text-slate-700 border-2 border-white shadow-md">
-                              {player.rank}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Avatar */}
-                        <div className="flex-shrink-0 relative">
-                          {player.member.avatar_url ? (
-                            <Image
-                              src={player.member.avatar_url}
-                              alt={player.member.username}
-                              width={48}
-                              height={48}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
-                              loading="lazy"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
-                              {player.member.username[0].toUpperCase()}
-                            </div>
-                          )}
-                          {player.clean_game && (
-                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
-                              <Sparkles className="w-4 h-4 text-amber-500" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Name & Stats */}
-                        <div className="flex-1 min-w-0">
-                          <Link
-                            href={`/member/profile?id=${player.member.id}`}
-                            className="font-bold text-base text-slate-800 hover:text-sky-700 truncate block"
+                  {/* Active Filters Display */}
+                  {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
+                      <span className="text-sm font-medium text-sky-700 mt-1">Aktif:</span>
+                      {searchQuery && (
+                        <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
+                          Carian: {searchQuery.split(',').filter(s => s.trim()).length} nama
+                          <button
+                            onClick={() => setSearchQuery("")}
+                            className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                           >
-                            {player.member.username}
-                          </Link>
-                          
-                          <div className="flex items-center gap-1 mt-1">
-                            <button
-                              onClick={(e) => handleReaction(player.id, e)}
-                              disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                              className="flex items-center gap-1 bg-white/70 hover:bg-white px-2 py-0.5 rounded text-xs transition-colors disabled:opacity-50 shadow-sm"
-                            >
-                              👍 <span className="font-bold text-slate-700">{player.likes_count || 0}</span>
-                            </button>
-                          </div>
-                        </div>
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {genderFilter !== "ALL" && (
+                        <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
+                          {genderFilter === "MALE" ? "Lelaki" : "Perempuan"}
+                          <button
+                            onClick={() => setGenderFilter("ALL")}
+                            className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      {techniqueFilter !== "ALL" && (
+                        <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
+                          {techniqueFilter}
+                          <button
+                            onClick={() => setTechniqueFilter("ALL")}
+                            className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setGenderFilter("ALL");
+                          setTechniqueFilter("ALL");
+                        }}
+                        className="text-xs text-red-600 hover:text-red-800 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors"
+                      >
+                        Reset Semua
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Results Count */}
+                  <div className="text-sm text-sky-700 bg-sky-50 px-3 py-2 rounded-lg border border-sky-100">
+                    Menunjukkan <span className="font-bold">{filteredLeaderboard.length}</span> daripada <span className="font-bold">{leaderboard.length}</span> pemain
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {selectedGame && (
+              <>
+                {/* Mobile View - Card Layout */}
+                <div className="block md:hidden space-y-3 mb-6">
+                  {filteredLeaderboard.length > 0 && (
+                    <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-yellow-300" />
+                          Senarai Pemain
+                        </h3>
+                        <p className="text-sky-100 text-sm">Kedudukan keseluruhan</p>
                       </div>
-
-                      {/* Overall Score - Highlight */}
-                      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-semibold text-slate-600">Overall Score</div>
-                          <div className="text-3xl font-black text-emerald-600">
-                            {player.overall_score}
-                          </div>
-                        </div>
-                        {player.difference > 0 && (
-                          <div className="text-xs text-orange-600 font-semibold text-right mt-1">
-                            +{player.difference} dari #1
-                          </div>
-                        )}
+                      <div className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
+                        {filteredLeaderboard.length} Pemain
                       </div>
+                    </div>
+                  )}
+                  
+                  {filteredLeaderboard.map((player, index) => {
+                    // Simple color scheme: Top 3 gold, rest blue
+                    const isTop3 = player.rank <= 3;
+                    const cardBg = isTop3 
+                      ? "bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200"
+                      : "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200";
 
-                      {/* Game Scores Grid - Single Blue Color */}
-                      <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-                        <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1">
-                          <Target className="w-3.5 h-3.5" />
-                          Skor Setiap Game
-                        </div>
-                        <div className="grid grid-cols-5 gap-2">
-                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
-                            <div className="text-[10px] font-semibold opacity-90">G1</div>
-                            <div className="text-base font-bold mt-0.5">{player.game1_score || "-"}</div>
-                          </div>
-                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
-                            <div className="text-[10px] font-semibold opacity-90">G2</div>
-                            <div className="text-base font-bold mt-0.5">{player.game2_score || "-"}</div>
-                          </div>
-                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
-                            <div className="text-[10px] font-semibold opacity-90">G3</div>
-                            <div className="text-base font-bold mt-0.5">{player.game3_score || "-"}</div>
-                          </div>
-                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
-                            <div className="text-[10px] font-semibold opacity-90">G4</div>
-                            <div className="text-base font-bold mt-0.5">{player.game4_score || "-"}</div>
-                          </div>
-                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
-                            <div className="text-[10px] font-semibold opacity-90">G5</div>
-                            <div className="text-base font-bold mt-0.5">{player.game5_score || "-"}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Summary Stats */}
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
-                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Total</div>
-                          <div className="text-lg font-black text-slate-800 mt-0.5">{player.total_score}</div>
-                        </div>
-                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
-                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Handicap</div>
-                          <div className="text-lg font-black text-blue-600 mt-0.5">{player.handicap}</div>
-                        </div>
-                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
-                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Average</div>
-                          <div className="text-lg font-black text-purple-600 mt-0.5">{player.average_score}</div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop View */}
-              <div className="hidden md:block">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1200px]">
-                    <thead>
-                      <tr className="border-b border-sky-200">
-                        <th
-                          className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                          onClick={() => handleSort("rank")}>
-                          
-                          <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                            #
-                            {getSortIcon("rank")}
-                          </div>
-                        </th>
-
-                        <th
-                          className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
-                          
-                          <span className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                            Avatar
-                          </span>
-                        </th>
-
-                        <th
-                          className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                          onClick={() => handleSort("username")}>
-                          
-                          <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                            Player
-                            {getSortIcon("username")}
-                          </div>
-                        </th>
-
-                        <th
-                          className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                          onClick={() => handleSort("overall_score")}>
-                          
-                          <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                            Overall
-                            {getSortIcon("overall_score")}
-                          </div>
-                        </th>
-
-                        <th
-                          className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                          onClick={() => handleSort("difference")}>
-                          
-                          <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                            Diff
-                            {getSortIcon("difference")}
-                          </div>
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
-                          
-                          Game 1
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
-                          
-                          Game 2
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20">
-                          
-                          Game 3
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20">
-                          
-                          Game 4
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
-                          
-                          Game 5
-                        </th>
-
-                        <th
-                          className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
-                          
-                          <Heart className="w-4 h-4 mx-auto" />
-                        </th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {loadingLeaderboard ? (
-                        <tr>
-                          <td colSpan={11} className="py-20 text-center">
-                            <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
-                            <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
-                          </td>
-                        </tr>
-                      ) : filteredLeaderboard.length === 0 ? (
-                        <tr>
-                          <td colSpan={11} className="py-20 text-center">
-                            <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                            <p className="text-sky-500">Tiada skor dijumpai untuk kriteria carian</p>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredLeaderboard.map((player) => (
-                          <tr key={player.id} className="border-b border-sky-100 hover:bg-sky-50/50 transition-colors group">
-                            <td className={`sticky ${STICKY_LEFT.rank} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
-                              {getRankDisplay(player.rank)}
-                            </td>
-                            <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white group-hover:bg-sky-50/50 px-2 py-3 border-r border-sky-100 text-center`}>
-                              <div className="relative inline-block">
-                                {player.member.avatar_url ? (
-                                  <Image src={player.member.avatar_url} alt={player.member.username} width={40} height={40} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" unoptimized />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
-                                    {player.member.username[0].toUpperCase()}
-                                  </div>
-                                )}
-                                {player.clean_game && (
-                                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                  </div>
-                                )}
+                    return (
+                      <motion.div
+                        key={player.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`${cardBg} rounded-xl border shadow-md p-4 space-y-3`}
+                      >
+                        {/* Player Header */}
+                        <div className="flex items-center gap-3 pb-3 border-b border-white/40">
+                          {/* Rank */}
+                          <div className="flex-shrink-0">
+                            {player.rank <= 3 ? (
+                              <div className="w-12 h-12 flex items-center justify-center">
+                                {player.rank === 1 && <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />}
+                                {player.rank === 2 && <Trophy className="w-9 h-9 text-slate-400 drop-shadow-lg" />}
+                                {player.rank === 3 && <Trophy className="w-8 h-8 text-amber-700 drop-shadow-lg" />}
                               </div>
-                            </td>
-                            <td className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
-                              <Link href={`/member/profile?id=${player.member.id}`} className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]">
-                                {player.member.username}
-                              </Link>
-                            </td>
-                            <td className={`sticky ${STICKY_LEFT.overall} z-10 bg-sky-50/80 group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center`}>
-                              <span className="font-black text-lg text-emerald-700">{player.overall_score}</span>
-                            </td>
-                            <td className={`sticky ${STICKY_LEFT.diff} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r-2 border-sky-200 text-center`}>
-                              <span className="font-bold text-sm text-orange-600">{player.difference > 0 ? `+${player.difference}` : "-"}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center border-r border-sky-100">
-                              <span className="font-semibold text-sky-900">{formatScore(player.game1_score, player.id)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center border-r border-sky-100">
-                              <span className="font-semibold text-sky-900">{formatScore(player.game2_score, player.id)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center border-r border-sky-100">
-                              <span className="font-semibold text-sky-900">{formatScore(player.game3_score, player.id)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center border-r border-sky-100">
-                              <span className="font-semibold text-sky-900">{formatScore(player.game4_score, player.id)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center border-r border-sky-200">
-                              <span className="font-semibold text-sky-900">{formatScore(player.game5_score, player.id)}</span>
-                            </td>
-                            <td className="px-3 py-3 text-center">
-                              <button onClick={(e) => handleReaction(player.id, e)} disabled={userLikesCount >= MAX_LIKES_PER_GAME} className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm">
-                                <ThumbsUp className="w-4 h-4" />
-                                <span className="font-bold text-sm">{player.likes_count || 0}</span>
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-base font-bold text-slate-700 border-2 border-white shadow-md">
+                                {player.rank}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Avatar */}
+                          <div className="flex-shrink-0 relative">
+                            {player.member.avatar_url ? (
+                              <Image
+                                src={player.member.avatar_url}
+                                alt={player.member.username}
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                loading="lazy"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
+                                {player.member.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            {player.clean_game && (
+                              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
+                                <Sparkles className="w-4 h-4 text-amber-500" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Name & Stats */}
+                          <div className="flex-1 min-w-0">
+                            <Link
+                              href={`/member/profile?id=${player.member.id}`}
+                              className="font-bold text-base text-slate-800 hover:text-sky-700 truncate block"
+                            >
+                              {player.member.username}
+                            </Link>
+                            
+                            <div className="flex items-center gap-1 mt-1">
+                              <button
+                                onClick={(e) => handleReaction(player.id, e)}
+                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                className="flex items-center gap-1 bg-white/70 hover:bg-white px-2 py-0.5 rounded text-xs transition-colors disabled:opacity-50 shadow-sm"
+                              >
+                                👍 <span className="font-bold text-slate-700">{player.likes_count || 0}</span>
                               </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Overall Score - Highlight */}
+                        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-semibold text-slate-600">Overall Score</div>
+                            <div className="text-3xl font-black text-emerald-600">
+                              {player.overall_score}
+                            </div>
+                          </div>
+                          {player.difference > 0 && (
+                            <div className="text-xs text-orange-600 font-semibold text-right mt-1">
+                              +{player.difference} dari #1
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Game Scores Grid - Single Blue Color */}
+                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                          <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1">
+                            <Target className="w-3.5 h-3.5" />
+                            Skor Setiap Game
+                          </div>
+                          <div className="grid grid-cols-5 gap-2">
+                            <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
+                              <div className="text-[10px] font-semibold opacity-90">G1</div>
+                              <div className="text-base font-bold mt-0.5">{player.game1_score || "-"}</div>
+                            </div>
+                            <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
+                              <div className="text-[10px] font-semibold opacity-90">G2</div>
+                              <div className="text-base font-bold mt-0.5">{player.game2_score || "-"}</div>
+                            </div>
+                            <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
+                              <div className="text-[10px] font-semibold opacity-90">G3</div>
+                              <div className="text-base font-bold mt-0.5">{player.game3_score || "-"}</div>
+                            </div>
+                            <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
+                              <div className="text-[10px] font-semibold opacity-90">G4</div>
+                              <div className="text-base font-bold mt-0.5">{player.game4_score || "-"}</div>
+                            </div>
+                            <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
+                              <div className="text-[10px] font-semibold opacity-90">G5</div>
+                              <div className="text-base font-bold mt-0.5">{player.game5_score || "-"}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Summary Stats */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold text-slate-500 uppercase">Total</div>
+                            <div className="text-lg font-black text-slate-800 mt-0.5">{player.total_score}</div>
+                          </div>
+                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold text-slate-500 uppercase">Handicap</div>
+                            <div className="text-lg font-black text-blue-600 mt-0.5">{player.handicap}</div>
+                          </div>
+                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold text-slate-500 uppercase">Average</div>
+                            <div className="text-lg font-black text-purple-600 mt-0.5">{player.average_score}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:block">
+                  <div className="overflow-x-auto rounded-xl border border-sky-200 shadow-md">
+                    <table className="w-full min-w-[1200px] bg-white">
+                      <thead>
+                        <tr className="border-b border-sky-200">
+                          <th
+                            className={`sticky ${STICKY_LEFT.rank} z-20 bg-sky-50 px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
+                            onClick={() => handleSort("rank")}>
+                            <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
+                              # {getSortIcon("rank")}
+                            </div>
+                          </th>
+
+                          <th className={`sticky ${STICKY_LEFT.avatar} z-20 bg-sky-50 w-14 px-2 py-3 text-center border-r border-sky-200`}>
+                            <span className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Avatar</span>
+                          </th>
+
+                          <th
+                            className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
+                            onClick={() => handleSort("username")}>
+                            <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
+                              Player {getSortIcon("username")}
+                            </div>
+                          </th>
+
+                          <th
+                            className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r border-sky-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
+                            onClick={() => handleSort("overall_score")}>
+                            <div className="flex items-center justify-center text-xs font-extrabold text-sky-900 uppercase tracking-wider">
+                              Overall {getSortIcon("overall_score")}
+                            </div>
+                          </th>
+
+                          <th
+                            className={`sticky ${STICKY_LEFT.diff} z-20 bg-sky-50 px-4 py-3 text-center cursor-pointer hover:bg-sky-100 transition-colors border-r-2 border-sky-200`}
+                            onClick={() => handleSort("difference")}>
+                            <div className="flex items-center justify-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
+                              Diff {getSortIcon("difference")}
+                            </div>
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                            Game 1
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                            Game 2
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                            Game 3
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                            Game 4
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                            Game 5
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-red-500 to-red-600 text-white z-10">
+                            <Heart className="w-4 h-4 mx-auto" />
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {loadingLeaderboard ? (
+                          <tr>
+                            <td colSpan={11} className="py-20 text-center">
+                              <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
+                              <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
                             </td>
                           </tr>
-                        ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        ) : filteredLeaderboard.length === 0 ? (
+                          <tr>
+                            <td colSpan={11} className="py-20 text-center bg-slate-50">
+                              <Search className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                              <p className="text-slate-500 font-medium">Tiada pemain dijumpai dengan kriteria ini.</p>
+                              <Button 
+                                variant="outline" 
+                                className="mt-4"
+                                onClick={() => {
+                                  setSearchQuery("");
+                                  setGenderFilter("ALL");
+                                  setTechniqueFilter("ALL");
+                                }}
+                              >
+                                Reset Carian
+                              </Button>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredLeaderboard.map((player, index) => {
+                            // Top 3 gets special gold styling in table too
+                            const isTop3 = player.rank <= 3;
+                            const rowBg = isTop3 
+                              ? index % 2 === 0 ? "bg-amber-50/30 hover:bg-amber-100/50" : "bg-amber-50/60 hover:bg-amber-100/50"
+                              : index % 2 === 0 ? "bg-white hover:bg-sky-50/50" : "bg-slate-50/50 hover:bg-sky-50/50";
+                            
+                            const stickyBg = isTop3 ? "bg-amber-50/80" : "bg-white";
+
+                            return (
+                              <tr key={player.id} className={`border-b border-sky-100 transition-colors group ${rowBg}`}>
+                                <td className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}>
+                                  {getRankDisplay(player.rank)}
+                                </td>
+                                <td className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}>
+                                  <div className="relative inline-block">
+                                    {player.member.avatar_url ? (
+                                      <Image src={player.member.avatar_url} alt={player.member.username} width={40} height={40} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" unoptimized />
+                                    ) : (
+                                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
+                                        {player.member.username[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                    {player.clean_game && (
+                                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className={`sticky ${STICKY_LEFT.player} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}>
+                                  <Link href={`/member/profile?id=${player.member.id}`} className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]">
+                                    {player.member.username}
+                                  </Link>
+                                  <div className="flex gap-2 mt-0.5 text-[10px] text-slate-500">
+                                    <span title="Jantina">{player.member.sex === 'MALE' ? '♂️ L' : '♀️ P'}</span>
+                                    {player.member.bowling_technique && (
+                                      <>
+                                        <span>•</span>
+                                        <span title="Teknik Balingan" className="truncate max-w-[80px]">
+                                          {player.member.bowling_technique}
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className={`sticky ${STICKY_LEFT.overall} z-10 ${isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"} group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}>
+                                  <span className="font-black text-lg text-emerald-700">{player.overall_score}</span>
+                                </td>
+                                <td className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}>
+                                  <span className="font-bold text-sm text-orange-600">{player.difference > 0 ? `+${player.difference}` : "-"}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                  <span className="font-semibold text-sky-900">{formatScore(player.game1_score, player.id)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                  <span className="font-semibold text-sky-900">{formatScore(player.game2_score, player.id)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                  <span className="font-semibold text-sky-900">{formatScore(player.game3_score, player.id)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                  <span className="font-semibold text-sky-900">{formatScore(player.game4_score, player.id)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
+                                  <span className="font-semibold text-sky-900">{formatScore(player.game5_score, player.id)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center">
+                                  <button onClick={(e) => handleReaction(player.id, e)} disabled={userLikesCount >= MAX_LIKES_PER_GAME} className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm border border-transparent hover:border-red-100">
+                                    <ThumbsUp className="w-4 h-4" />
+                                    <span className="font-bold text-sm">{player.likes_count || 0}</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </main>
         </div>
 
@@ -1372,41 +1474,6 @@ export default function BlokPage() {
             <span className="text-2xl">👍</span>
           </div>
         ))}
-
-        <style>{`
-          @keyframes particle-0 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-1 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-2 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-3 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-4 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-5 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-6 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-7 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
-          }
-        `}</style>
       </>
     </MemberLayout>
   );
