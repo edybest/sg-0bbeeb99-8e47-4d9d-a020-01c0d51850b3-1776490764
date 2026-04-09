@@ -990,47 +990,57 @@ export default function BlokPage() {
                     Clean Game Winners 🎯
                   </CardTitle>
                   <CardDescription className="text-amber-700 text-xs md:text-sm">
-                    Pemain yang dapat clean game (tiada split, no mark)
+                    Klik pada game untuk lihat pemenang clean game
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-4 md:pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {leaderboard.filter(p => p.clean_game).map((player) => (
-                      <div key={`clean-${player.id}`} className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-amber-200 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          {player.member.avatar_url ? (
-                            <Image
-                              src={player.member.avatar_url}
-                              alt={player.member.username}
-                              width={40}
-                              height={40}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-amber-300"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center font-bold text-amber-700 text-lg border-2 border-amber-300">
-                              {player.member.username[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <Link
-                              href={`/member/profile?id=${player.member.id}`}
-                              className="font-bold text-sm text-amber-900 hover:text-amber-700 truncate block"
-                            >
-                              {player.member.username}
-                            </Link>
-                            <div className="text-xs text-amber-600">
-                              Rank #{player.rank} • {player.overall_score}
-                            </div>
-                          </div>
-                          <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {[1, 2, 3, 4, 5].map((gameNum) => (
+                      <button
+                        key={`game-${gameNum}`}
+                        onClick={() => handleOpenCleanGameDialog(gameNum)}
+                        className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow-md transition-all hover:bg-white text-center"
+                      >
+                        <div className="text-amber-900 font-bold text-lg mb-1">Game {gameNum}</div>
+                        <Sparkles className="w-6 h-6 text-amber-500 mx-auto" />
+                      </button>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             )}
+
+            {/* Clean Game Dialog */}
+            <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    Clean Game Winners - Game {selectedGameForCleanGame}
+                  </DialogTitle>
+                </DialogHeader>
+                {loadingCleanGame ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                  </div>
+                ) : cleanGameWinners.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Tiada pemenang clean game untuk Game {selectedGameForCleanGame}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {cleanGameWinners.map((winner, index) => (
+                      <div key={index} className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                        <div className="flex items-center justify-between">
+                          <div className="font-semibold text-amber-900">{winner.member_name}</div>
+                          <div className="text-amber-700 font-bold">RM {winner.prize.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             {/* Search and Filter Section */}
             {selectedGame && (
@@ -1201,7 +1211,7 @@ export default function BlokPage() {
                                 {player.rank === 3 && <Trophy className="w-8 h-8 text-amber-700 drop-shadow-lg" />}
                               </div>
                             ) : (
-                              <div className="w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-base font-bold text-slate-700 border-2 border-white shadow-md">
+                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
                                 {player.rank}
                               </div>
                             )}
@@ -1359,27 +1369,43 @@ export default function BlokPage() {
                             </div>
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20">
+                            
                             Game 1
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20">
+                            
                             Game 2
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20">
+                            
                             Game 3
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20">
+                            
                             Game 4
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-sky-400/30">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20">
+                            
                             Game 5
                           </th>
 
-                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-red-500 to-red-600 text-white z-10">
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-500 to-indigo-600 text-white z-10 border-l-2 border-white/20">
+                            
+                            Total
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-indigo-700 text-white z-10 border-l-2 border-white/20">
+                            
+                            Handicap
+                          </th>
+
+                          <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10 border-l-2 border-white/20">
+                            
                             <Heart className="w-4 h-4 mx-auto" />
                           </th>
                         </tr>
@@ -1388,27 +1414,16 @@ export default function BlokPage() {
                       <tbody>
                         {loadingLeaderboard ? (
                           <tr>
-                            <td colSpan={11} className="py-20 text-center">
+                            <td colSpan={13} className="py-20 text-center">
                               <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
                               <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
                             </td>
                           </tr>
                         ) : filteredLeaderboard.length === 0 ? (
                           <tr>
-                            <td colSpan={11} className="py-20 text-center bg-slate-50">
-                              <Search className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                              <p className="text-slate-500 font-medium">Tiada pemain dijumpai dengan kriteria ini.</p>
-                              <Button 
-                                variant="outline" 
-                                className="mt-4"
-                                onClick={() => {
-                                  setSearchQuery("");
-                                  setGenderFilter("ALL");
-                                  setTechniqueFilter("ALL");
-                                }}
-                              >
-                                Reset Carian
-                              </Button>
+                            <td colSpan={13} className="py-20 text-center bg-slate-50">
+                              <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                              <p className="text-sky-500">Tiada skor dijumpai untuk kriteria carian</p>
                             </td>
                           </tr>
                         ) : (
@@ -1442,12 +1457,12 @@ export default function BlokPage() {
                                     )}
                                   </div>
                                 </td>
-                                <td className={`sticky ${STICKY_LEFT.player} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}>
+                                <td className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
                                   <Link href={`/member/profile?id=${player.member.id}`} className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]">
                                     {player.member.username}
                                   </Link>
                                   <div className="flex gap-2 mt-0.5 text-[10px] text-slate-500">
-                                    <span title="Jantina">{player.member.sex === 'MALE' ? '♂️ L' : '♀️ P'}</span>
+                                    <span title="Jantina">{player.member.sex === 'men' ? '♂️ L' : '♀️ P'}</span>
                                     {player.member.bowling_technique && (
                                       <>
                                         <span>•</span>
@@ -1464,23 +1479,29 @@ export default function BlokPage() {
                                 <td className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}>
                                   <span className="font-bold text-sm text-orange-600">{player.difference > 0 ? `+${player.difference}` : "-"}</span>
                                 </td>
-                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
                                   <span className="font-semibold text-sky-900">{formatScore(player.game1_score, player.id)}</span>
                                 </td>
-                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
                                   <span className="font-semibold text-sky-900">{formatScore(player.game2_score, player.id)}</span>
                                 </td>
-                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
                                   <span className="font-semibold text-sky-900">{formatScore(player.game3_score, player.id)}</span>
                                 </td>
-                                <td className="px-3 py-3 text-center border-r border-sky-100">
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
                                   <span className="font-semibold text-sky-900">{formatScore(player.game4_score, player.id)}</span>
                                 </td>
                                 <td className="px-3 py-3 text-center border-r border-sky-200">
                                   <span className="font-semibold text-sky-900">{formatScore(player.game5_score, player.id)}</span>
                                 </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
+                                  <span className="font-bold text-slate-800">{player.total_score}</span>
+                                </td>
+                                <td className="px-3 py-3 text-center border-r border-sky-200">
+                                  <span className="font-bold text-blue-600">{player.handicap}</span>
+                                </td>
                                 <td className="px-3 py-3 text-center">
-                                  <button onClick={(e) => handleReaction(player.id, e)} disabled={userLikesCount >= MAX_LIKES_PER_GAME} className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm border border-transparent hover:border-red-100">
+                                  <button onClick={(e) => handleReaction(player.id, e)} disabled={userLikesCount >= MAX_LIKES_PER_GAME} className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm">
                                     <ThumbsUp className="w-4 h-4" />
                                     <span className="font-bold text-sm">{player.likes_count || 0}</span>
                                   </button>
