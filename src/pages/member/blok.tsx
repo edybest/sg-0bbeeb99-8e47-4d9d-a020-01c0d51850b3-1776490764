@@ -1039,17 +1039,11 @@ export default function BlokPage() {
                 )}
                 
                 {leaderboard.map((player, index) => {
-                  const cardGradients = [
-                    "from-rose-50 to-pink-100 border-rose-200",
-                    "from-blue-50 to-sky-100 border-blue-200",
-                    "from-emerald-50 to-teal-100 border-emerald-200",
-                    "from-amber-50 to-orange-100 border-amber-200",
-                    "from-violet-50 to-purple-100 border-violet-200",
-                    "from-indigo-50 to-blue-100 border-indigo-200",
-                    "from-fuchsia-50 to-pink-100 border-fuchsia-200",
-                    "from-cyan-50 to-teal-100 border-cyan-200"
-                  ];
-                  const gradient = cardGradients[index % cardGradients.length];
+                  // Simple color scheme: Top 3 gold, rest blue
+                  const isTop3 = player.rank <= 3;
+                  const cardBg = isTop3 
+                    ? "bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200"
+                    : "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200";
 
                   return (
                     <motion.div
@@ -1057,7 +1051,7 @@ export default function BlokPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className={`bg-gradient-to-br ${gradient} rounded-xl border shadow-md p-4 space-y-3`}
+                      className={`${cardBg} rounded-xl border shadow-md p-4 space-y-3`}
                     >
                       {/* Player Header */}
                       <div className="flex items-center gap-3 pb-3 border-b border-white/40">
@@ -1136,30 +1130,30 @@ export default function BlokPage() {
                         )}
                       </div>
 
-                      {/* Game Scores Grid */}
+                      {/* Game Scores Grid - Single Blue Color */}
                       <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm">
                         <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1">
                           <Target className="w-3.5 h-3.5" />
                           Skor Setiap Game
                         </div>
                         <div className="grid grid-cols-5 gap-2">
-                          <div className="bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-md p-2 text-center shadow-sm">
+                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
                             <div className="text-[10px] font-semibold opacity-90">G1</div>
                             <div className="text-base font-bold mt-0.5">{player.game1_score || "-"}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-sky-600 to-blue-700 text-white rounded-md p-2 text-center shadow-sm">
+                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
                             <div className="text-[10px] font-semibold opacity-90">G2</div>
                             <div className="text-base font-bold mt-0.5">{player.game2_score || "-"}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-sky-700 to-blue-800 text-white rounded-md p-2 text-center shadow-sm">
+                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
                             <div className="text-[10px] font-semibold opacity-90">G3</div>
                             <div className="text-base font-bold mt-0.5">{player.game3_score || "-"}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-sky-800 to-blue-900 text-white rounded-md p-2 text-center shadow-sm">
+                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
                             <div className="text-[10px] font-semibold opacity-90">G4</div>
                             <div className="text-base font-bold mt-0.5">{player.game4_score || "-"}</div>
                           </div>
-                          <div className="bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-md p-2 text-center shadow-sm">
+                          <div className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm">
                             <div className="text-[10px] font-semibold opacity-90">G5</div>
                             <div className="text-base font-bold mt-0.5">{player.game5_score || "-"}</div>
                           </div>
