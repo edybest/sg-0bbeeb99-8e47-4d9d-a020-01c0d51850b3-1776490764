@@ -11,17 +11,9 @@ type MemberLayoutProps = {
 export function MemberLayout({ children }: MemberLayoutProps) {
   const router = useRouter();
   const [navSettings, setNavSettings] = useState<NavigationSettings>(navLayoutService.DEFAULT_NAV_SETTINGS);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // EMERGENCY BAILOUT: Force release loading after 2 seconds
-    const emergencyTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ MemberLayout loading timeout - forcing display");
-        setLoading(false);
-      }
-    }, 2000);
-
+    // Load navigation settings asynchronously without blocking render
     loadNavigationSettings();
 
     // Listen for navigation settings updates from admin panel
@@ -34,7 +26,6 @@ export function MemberLayout({ children }: MemberLayoutProps) {
     window.addEventListener("nav-settings-updated", handleNavSettingsUpdate as EventListener);
 
     return () => {
-      clearTimeout(emergencyTimeout);
       window.removeEventListener("nav-settings-updated", handleNavSettingsUpdate as EventListener);
     };
   }, []);
@@ -45,18 +36,9 @@ export function MemberLayout({ children }: MemberLayoutProps) {
       setNavSettings(settings);
     } catch (error) {
       console.error("Error loading navigation settings:", error);
-    } finally {
-      setLoading(false);
+      // Keep using default settings on error
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      </div>
-    );
-  }
 
   const isTopNav = navSettings.position === "top";
   const isBottomNav = navSettings.position === "bottom";
