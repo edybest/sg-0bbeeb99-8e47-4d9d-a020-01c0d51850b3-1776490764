@@ -1266,17 +1266,77 @@ export default function BlokPage() {
                     </thead>
 
                     <tbody>
-                      {loadingLeaderboard ?
-                <div className="flex justify-center items-center py-20">
-                      <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-                      <span className="ml-3 text-sky-600">Memuatkan skor...</span>
-                    </div> :
-                filteredLeaderboard.length === 0 ?
-                <div className="text-center py-20 text-sky-500">
-                      <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p>Tiada skor dijumpai untuk kriteria carian</p>
-                    </div> :
-                      }
+                      {loadingLeaderboard ? (
+                        <tr>
+                          <td colSpan={11} className="py-20 text-center">
+                            <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
+                            <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
+                          </td>
+                        </tr>
+                      ) : filteredLeaderboard.length === 0 ? (
+                        <tr>
+                          <td colSpan={11} className="py-20 text-center">
+                            <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                            <p className="text-sky-500">Tiada skor dijumpai untuk kriteria carian</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredLeaderboard.map((player) => (
+                          <tr key={player.id} className="border-b border-sky-100 hover:bg-sky-50/50 transition-colors group">
+                            <td className={`sticky ${STICKY_LEFT.rank} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
+                              {getRankDisplay(player.rank)}
+                            </td>
+                            <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white group-hover:bg-sky-50/50 px-2 py-3 border-r border-sky-100 text-center`}>
+                              <div className="relative inline-block">
+                                {player.member.avatar_url ? (
+                                  <Image src={player.member.avatar_url} alt={player.member.username} width={40} height={40} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" unoptimized />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
+                                    {player.member.username[0].toUpperCase()}
+                                  </div>
+                                )}
+                                {player.clean_game && (
+                                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
+                              <Link href={`/member/profile?id=${player.member.id}`} className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]">
+                                {player.member.username}
+                              </Link>
+                            </td>
+                            <td className={`sticky ${STICKY_LEFT.overall} z-10 bg-sky-50/80 group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center`}>
+                              <span className="font-black text-lg text-emerald-700">{player.overall_score}</span>
+                            </td>
+                            <td className={`sticky ${STICKY_LEFT.diff} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r-2 border-sky-200 text-center`}>
+                              <span className="font-bold text-sm text-orange-600">{player.difference > 0 ? `+${player.difference}` : "-"}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center border-r border-sky-100">
+                              <span className="font-semibold text-sky-900">{formatScore(player.game1_score, player.id)}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center border-r border-sky-100">
+                              <span className="font-semibold text-sky-900">{formatScore(player.game2_score, player.id)}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center border-r border-sky-100">
+                              <span className="font-semibold text-sky-900">{formatScore(player.game3_score, player.id)}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center border-r border-sky-100">
+                              <span className="font-semibold text-sky-900">{formatScore(player.game4_score, player.id)}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center border-r border-sky-200">
+                              <span className="font-semibold text-sky-900">{formatScore(player.game5_score, player.id)}</span>
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <button onClick={(e) => handleReaction(player.id, e)} disabled={userLikesCount >= MAX_LIKES_PER_GAME} className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm">
+                                <ThumbsUp className="w-4 h-4" />
+                                <span className="font-bold text-sm">{player.likes_count || 0}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
