@@ -179,8 +179,9 @@ export default function BlokPage() {
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+  const [reactions, setReactions] = useState<{id: string;playerId: string;x: number;y: number;}[]>([]);
+  const [particles, setParticles] = useState<{id: string;x: number;y: number;}[]>([]);
   const [userLikesCount, setUserLikesCount] = useState<number>(0);
-  const MAX_LIKES_PER_GAME = 5;
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [genderFilter, setGenderFilter] = useState<string>("ALL");
