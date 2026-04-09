@@ -41,6 +41,20 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
 
 const ITEMS_PER_PAGE = 5;
 
+const OPENING_MESSAGES = [
+  "Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
+  "Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
+  "Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
+  "Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"
+];
+
+const CLOSING_MESSAGES = [
+  "Jumpa lagi di blok akan datang.",
+  "See you next blok! Semoga lebih ramai join!",
+  "Blok seterusnya tunggu anda semua ya!",
+  "Sampai jumpa lagi dalam blok akan datang. Good luck!"
+];
+
 export function GameManagement() {
   const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
@@ -205,6 +219,96 @@ export function GameManagement() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleOpenWhatsAppShare = async (game: Game) => {
+    setSelectedGameForShare(game);
+    setShowWhatsAppShare(true);
+    setLoadingTopPlayers(true);
+
+    try {
+      const { data: players, error } = await supabase
+        .from("game_players")
+        .select(`
+          id,
+          member:members(id, username, full_name),
+          game1_score,
+          game2_score,
+          game3_score,
+          game4_score,
+          game5_score,
+          total_score,
+          handicap
+        `)
+        .eq("game_id", game.id);
+
+      if (error) throw error;
+
+      const leaderboard = (players || []).map((p: any) => ({
+        username: p.member.username || p.member.full_name || "Unknown",
+        overall_score: (p.total_score || 0) + (p.handicap || 0)
+      }))
+      .sort((a, b) => b.overall_score - a.overall_score)
+      .slice(0, 3)
+      .map((p, idx) => ({
+        rank: idx + 1,
+        username: p.username,
+        overall_score: p.overall_score
+      }));
+
+      setTopPlayers(leaderboard);
+      generatePreview(leaderboard, selectedOpeningMessage, selectedClosingMessage);
+    } catch (error) {
+      console.error("Error loading top players:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memuatkan senarai pemain teratas",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingTopPlayers(false);
+    }
+  };
+
+  const generatePreview = (players: typeof topPlayers, openingIdx: number, closingIdx: number) => {
+    if (players.length === 0) {
+      setSharePreview("Tiada pemain dijumpai untuk permainan ini.");
+      return;
+    }
+
+    const winner = players[0]?.username || "N/A";
+    const openingMsg = OPENING_MESSAGES[openingIdx].replace("[WINNER]", winner);
+    const closingMsg = CLOSING_MESSAGES[closingIdx];
+
+    const medals = ["🥇", "🥈", "🥉"];
+    const top3Lines = players.map((p, idx) => `${medals[idx]}${p.username}`).join("\n");
+
+    const message = `${openingMsg}
+
+TOP 3
+
+${top3Lines}
+
+Latest score
+➡️https://ambc.club/member/blok
+
+Latest 5/5
+➡️https://ambc.club/member/five-five
+
+${closingMsg}`;
+
+    setSharePreview(message);
+  };
+
+  const handleShareToWhatsApp = () => {
+    const encoded = encodeURIComponent(sharePreview);
+    const whatsappUrl = `https://wa.me/?text=${encoded}`;
+    window.open(whatsappUrl, "_blank");
+    setShowWhatsAppShare(false);
+    toast({
+      title: "WhatsApp dibuka",
+      description: "Sila pilih penerima dan hantar mesej"
+    });
   };
 
   const handleDeleteGame = async () => {
@@ -560,6 +664,21 @@ export function GameManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleOpenWhatsAppShare(game)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                              </svg>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Share ke WhatsApp</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleOpenAddPlayer(game.id)}
                             >
                               <Plus className="h-4 w-4" />
@@ -787,6 +906,97 @@ export function GameManagement() {
               </Button>
               <Button onClick={handleSaveGame} className="bg-pink-600 hover:bg-pink-700">
                 {editingGame ? "Kemaskini" : "Tambah"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* WhatsApp Share Dialog */}
+        <Dialog open={showWhatsAppShare} onOpenChange={setShowWhatsAppShare}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share Keputusan ke WhatsApp</DialogTitle>
+              <DialogDescription>
+                Pilih ayat pembuka dan penutup, kemudian share ke WhatsApp
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingTopPlayers ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Pilih Ayat Pembuka</Label>
+                  <div className="grid gap-2">
+                    {OPENING_MESSAGES.map((msg, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedOpeningMessage(idx);
+                          generatePreview(topPlayers, idx, selectedClosingMessage);
+                        }}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedOpeningMessage === idx
+                            ? "border-pink-600 bg-pink-50"
+                            : "border-gray-200 hover:border-pink-300"
+                        }`}
+                      >
+                        <p className="text-sm text-gray-700">
+                          {msg.replace("[WINNER]", topPlayers[0]?.username || "N/A")}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Pilih Ayat Penutup</Label>
+                  <div className="grid gap-2">
+                    {CLOSING_MESSAGES.map((msg, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedClosingMessage(idx);
+                          generatePreview(topPlayers, selectedOpeningMessage, idx);
+                        }}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedClosingMessage === idx
+                            ? "border-pink-600 bg-pink-50"
+                            : "border-gray-200 hover:border-pink-300"
+                        }`}
+                      >
+                        <p className="text-sm text-gray-700">{msg}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Preview Mesej</Label>
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                      {sharePreview}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowWhatsAppShare(false)}>
+                Batal
+              </Button>
+              <Button
+                onClick={handleShareToWhatsApp}
+                disabled={loadingTopPlayers}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                Share ke WhatsApp
               </Button>
             </DialogFooter>
           </DialogContent>
