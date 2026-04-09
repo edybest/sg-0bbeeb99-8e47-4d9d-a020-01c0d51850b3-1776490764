@@ -179,19 +179,17 @@ export default function BlokPage() {
   const [sortField, setSortField] = useState<SortField>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
-  const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
-  const [cleanGameWinners, setCleanGameWinners] = useState<Array<{member_name: string;prize: number;}>>([]);
-  const [loadingCleanGame, setLoadingCleanGame] = useState(false);
-
-  const [reactions, setReactions] = useState<{id: string;playerId: string;x: number;y: number;}[]>([]);
-  const [particles, setParticles] = useState<{id: string;x: number;y: number;}[]>([]);
   const [userLikesCount, setUserLikesCount] = useState<number>(0);
   const MAX_LIKES_PER_GAME = 5;
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [genderFilter, setGenderFilter] = useState<string>("ALL");
   const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
+
+  const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
+  const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
+  const [cleanGameWinners, setCleanGameWinners] = useState<Array<{member_name: string; prize: number;}>>([]);
+  const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
@@ -422,10 +420,6 @@ export default function BlokPage() {
     }
   }, [selectedGame]);
 
-  const handleRetry = () => {
-    setRetryCount((prev) => prev + 1);
-  };
-
   const handleOpenCleanGameDialog = async (gameNumber: number) => {
     if (!selectedGame) return;
 
@@ -434,11 +428,11 @@ export default function BlokPage() {
     setCleanGameDialogOpen(true);
 
     try {
-      const { data: gameData, error } = await supabase.
-      from("games").
-      select("clean_game_data").
-      eq("id", selectedGame).
-      single();
+      const { data: gameData, error } = await supabase
+        .from("games")
+        .select("clean_game_data")
+        .eq("id", selectedGame)
+        .single();
 
       if (error) throw error;
 
@@ -456,10 +450,10 @@ export default function BlokPage() {
       const totalPrize = cleanGamePlayersCount * 2;
       const prizePerWinner = totalPrize / winnerIds.length;
 
-      const { data: winners, error: winnersError } = await supabase.
-      from("members").
-      select("id, username, full_name").
-      in("id", winnerIds);
+      const { data: winners, error: winnersError } = await supabase
+        .from("members")
+        .select("id, username, full_name")
+        .in("id", winnerIds);
 
       if (winnersError) throw winnersError;
 
@@ -479,6 +473,10 @@ export default function BlokPage() {
     } finally {
       setLoadingCleanGame(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1);
   };
 
   const handleSort = (field: SortField) => {
