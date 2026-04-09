@@ -81,9 +81,8 @@ export default function CouplePage() {
           async (payload) => {
             console.log('Real-time couple score update received!', payload);
             // Reload the leaderboard silently in the background
+            // Likes are now included in leaderboard data, so no need for separate call
             await loadLeaderboard(selectedGameId, false);
-            // CRITICAL: Reload reactions after leaderboard to prevent likes from being reset to 0
-            await loadGameReactions(selectedGameId);
           }
         )
         .subscribe();
@@ -187,9 +186,10 @@ export default function CouplePage() {
     try {
       const counts = await coupleService.getCoupleReactionCounts(gameId);
       setReactionCounts(counts);
+      // Update leaderboard with fresh reaction counts without overwriting other data
       setLeaderboard((prev) => prev.map((entry) => ({
         ...entry,
-        likes_count: counts[entry.id] || 0
+        likes_count: counts[entry.id] || entry.likes_count || 0
       })));
     } catch (error) {
       console.error("Error loading game reactions:", error);

@@ -201,6 +201,24 @@ class CoupleService {
   async getCoupleLeaderboard(gameId: string): Promise<CoupleLeaderboardEntry[]> {
     const scores = await this.getCoupleScoresByGame(gameId);
 
+    // Fetch reaction counts for all couple scores in this game
+    const { data: reactions, error: reactionsError } = await supabase
+      .from("couple_reactions_log")
+      .select("couple_score_id")
+      .eq("game_id", gameId)
+      .eq("reaction_type", "like");
+
+    if (reactionsError) {
+      console.error("Error fetching reactions in leaderboard:", reactionsError);
+    }
+
+    // Build reaction counts map
+    const reactionCounts: Record<string, number> = {};
+    (reactions || []).forEach((reaction) => {
+      const id = reaction.couple_score_id;
+      reactionCounts[id] = (reactionCounts[id] || 0) + 1;
+    });
+
     const leaderboard: CoupleLeaderboardEntry[] = scores.map((score: any) => {
       const total =
         (score.game1_score || 0) +
@@ -229,7 +247,7 @@ class CoupleService {
         overall_score: overall,
         difference: 0,
         rank: 0,
-        likes_count: 0,
+        likes_count: reactionCounts[score.id] || 0, // Include likes from start
       };
     });
 
