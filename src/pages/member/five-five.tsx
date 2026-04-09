@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -481,7 +481,7 @@ export default function FiveFivePage() {
 
                                   return (
                                     <div
-                                      key={gameNum}
+                                      key={`game-${gameNum}-${participant.member_id}`}
                                       className={`p-3 rounded-lg border-2 bg-gradient-to-r ${getGameGradient(gameNum)} ${getGameBorder(gameNum)}`}
                                     >
                                       <div className="flex items-center justify-between mb-2">
@@ -609,11 +609,11 @@ export default function FiveFivePage() {
                                 <TableHead className="sticky left-0 bg-sky-50 z-10"></TableHead>
                                 
                                 {[1, 2, 3, 4, 5].map((gameNum) => (
-                                  <>
+                                  <React.Fragment key={`header-${gameNum}`}>
                                     <TableHead className="text-center text-xs font-semibold text-sky-600 border-l border-sky-200">Rank</TableHead>
                                     <TableHead className="text-center text-xs font-semibold text-sky-600">Score</TableHead>
                                     <TableHead className="text-right text-xs font-semibold text-sky-600">Prize</TableHead>
-                                  </>
+                                  </React.Fragment>
                                 ))}
                                 
                                 <TableHead className="sticky right-0 bg-yellow-50 z-10 border-l-2 border-yellow-300 "></TableHead>
@@ -648,7 +648,7 @@ export default function FiveFivePage() {
                                     const prizeKey = `game${gameNum}_prize` as keyof FiveFiveParticipant;
                                     
                                     return (
-                                      <>
+                                      <React.Fragment key={`data-${gameNum}-${participant.member_id}`}>
                                         <TableCell className="text-center text-lg border-l border-sky-200 bg-white/50">
                                           {getRankDisplay(participant[rankKey] as number)}
                                         </TableCell>
@@ -664,7 +664,7 @@ export default function FiveFivePage() {
                                             <span className="text-gray-300 ">-</span>
                                           )}
                                         </TableCell>
-                                      </>
+                                      </React.Fragment>
                                     );
                                   })}
 
