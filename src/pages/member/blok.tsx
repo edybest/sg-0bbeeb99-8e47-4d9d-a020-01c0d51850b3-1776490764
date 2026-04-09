@@ -1022,114 +1022,130 @@ export default function BlokPage() {
                   }
 
                       {/* Mobile View - Card Layout */}
-              <div className="block md:hidden space-y-3">
-                {allGameScores
-                  .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
-                  .map((gameScore, index) => {
-                    const gradientIndex = index % gradients.length;
-                    const gradient = gradients[gradientIndex];
+              <div className="block md:hidden space-y-3 mb-6">
+                {leaderboard.length > 0 && (
+                  <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-yellow-300" />
+                        Senarai Pemain
+                      </h3>
+                      <p className="text-sky-100 text-sm">Kedudukan keseluruhan</p>
+                    </div>
+                    <div className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
+                      {leaderboard.length} Pemain
+                    </div>
+                  </div>
+                )}
+                
+                {leaderboard.map((player, index) => {
+                  const cardGradients = [
+                    "bg-gradient-to-br from-rose-50 to-pink-100 border-rose-200",
+                    "bg-gradient-to-br from-blue-50 to-sky-100 border-blue-200",
+                    "bg-gradient-to-br from-emerald-50 to-teal-100 border-emerald-200",
+                    "bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200",
+                    "bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200",
+                    "bg-gradient-to-br from-indigo-50 to-blue-100 border-indigo-200",
+                    "bg-gradient-to-br from-fuchsia-50 to-pink-100 border-fuchsia-200",
+                    "bg-gradient-to-br from-cyan-50 to-teal-100 border-cyan-200"
+                  ];
+                  const gradient = cardGradients[index % cardGradients.length];
 
-                    const sortedPlayers = [...gameScore.leaderboard].sort((a, b) => a.rank - b.rank);
-                    const allPlayers = sortedPlayers;
+                  return (
+                    <motion.div
+                      key={player.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className={`rounded-xl border shadow-sm p-3 relative overflow-hidden ${gradient}`}
+                    >
+                      <div className="flex items-center gap-3 relative z-10">
+                        {/* Rank */}
+                        <div className="flex-shrink-0">
+                          {player.rank <= 3 ? (
+                            <div className="w-10 h-10 flex items-center justify-center">
+                              {player.rank === 1 && <Trophy className="w-8 h-8 text-yellow-500 drop-shadow-md" />}
+                              {player.rank === 2 && <Trophy className="w-7 h-7 text-slate-400 drop-shadow-md" />}
+                              {player.rank === 3 && <Trophy className="w-6 h-6 text-amber-700 drop-shadow-md" />}
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-slate-700 border border-white/50 shadow-sm">
+                              {player.rank}
+                            </div>
+                          )}
+                        </div>
 
-                    return (
-                      <motion.div
-                        key={gameScore.game.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`${gradient} rounded-xl shadow-lg hover:shadow-xl transition-shadow`}
-                      >
-                        <div className="p-4 border-b border-white/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-white font-bold text-lg">{gameScore.game.game_name}</h3>
-                            <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
-                              {gameScore.leaderboard.length} Players
+                        {/* Avatar */}
+                        <div className="flex-shrink-0 relative">
+                          {player.member.avatar_url ? (
+                            <Image
+                              src={player.member.avatar_url}
+                              alt={player.member.username}
+                              width={44}
+                              height={44}
+                              className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm"
+                              loading="lazy"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-full bg-white/80 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
+                              {player.member.username[0].toUpperCase()}
+                            </div>
+                          )}
+                          {player.clean_game && (
+                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/member/profile?id=${player.member.id}`}
+                            className="font-bold text-sm text-slate-800 hover:text-sky-700 truncate block"
+                          >
+                            {player.member.username}
+                          </Link>
+                          
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-medium bg-white/60 px-1.5 py-0.5 rounded text-slate-600">
+                              Avg: {player.average_score}
+                            </span>
+                            <span className="text-[10px] font-medium bg-white/60 px-1.5 py-0.5 rounded text-slate-600">
+                              Hcp: {player.handicap}
                             </span>
                           </div>
-                          <p className="text-white/90 text-sm">
-                            {new Date(gameScore.game.game_date).toLocaleDateString("ms-MY", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </p>
-                        </div>
-
-                        <div className="p-3 space-y-2">
-                          {allPlayers.map((player) => (
-                            <div
-                              key={player.id}
-                              className="bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                          
+                          <div className="flex items-center gap-1 mt-1">
+                            <button
+                              onClick={(e) => handleReaction(player.id, e)}
+                              disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                              className="flex items-center gap-1 bg-white/60 hover:bg-white/90 px-1.5 py-0.5 rounded text-[10px] transition-colors disabled:opacity-50"
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="flex-shrink-0">
-                                  {player.rank <= 3 ? (
-                                    <div className="w-10 h-10 flex items-center justify-center">
-                                      {player.rank === 1 && <Trophy className="w-8 h-8 text-yellow-500" />}
-                                      {player.rank === 2 && <Trophy className="w-7 h-7 text-gray-400" />}
-                                      {player.rank === 3 && <Trophy className="w-6 h-6 text-amber-700" />}
-                                    </div>
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-sky-600 border-2 border-sky-200">
-                                      {player.rank}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="flex-shrink-0">
-                                  {player.member.avatar_url ? (
-                                    <Image
-                                      src={player.member.avatar_url}
-                                      alt={player.member.username}
-                                      width={44}
-                                      height={44}
-                                      className="w-11 h-11 rounded-full object-cover border-2 border-sky-200"
-                                      loading="lazy"
-                                      unoptimized
-                                    />
-                                  ) : (
-                                    <div className="w-11 h-11 rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg">
-                                      {player.member.username[0].toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1">
-                                    <Link
-                                      href={`/member/profile?id=${player.member.id}`}
-                                      className="font-semibold text-sm text-gray-900 hover:text-sky-600 transition-colors truncate"
-                                    >
-                                      {player.member.username}
-                                    </Link>
-                                    {player.clean_game && (
-                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    Avg: {player.average_score}
-                                  </div>
-                                </div>
-
-                                <div className="flex-shrink-0 text-right">
-                                  <div className="flex items-center gap-1 text-emerald-600 font-black text-lg">
-                                    <Award className="w-4 h-4" />
-                                    {player.overall_score}
-                                  </div>
-                                  {player.difference > 0 && (
-                                    <div className="text-xs text-orange-600 font-semibold">
-                                      +{player.difference}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                              👍 <span className="font-bold text-slate-700">{player.likes_count || 0}</span>
+                            </button>
+                          </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
+
+                        {/* Score */}
+                        <div className="flex-shrink-0 text-right">
+                          <div className="flex flex-col items-end">
+                            <div className="text-xs text-slate-500 font-semibold mb-0.5">Overall</div>
+                            <div className="flex items-center gap-1 text-emerald-600 font-black text-xl">
+                              {player.overall_score}
+                            </div>
+                            {player.difference > 0 && (
+                              <div className="text-[10px] text-orange-600 font-bold bg-white/50 px-1 rounded mt-0.5">
+                                +{player.difference}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
 
                       <div className="hidden md:block">
