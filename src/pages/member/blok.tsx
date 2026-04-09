@@ -1336,79 +1336,78 @@ export default function BlokPage() {
                             </td>
                           </tr>
                         ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-
-      {/* Floating Reaction Hearts */}
-      {reactions.map((reaction) =>
-        <div
-          key={reaction.id}
-          className="heart-pop fixed pointer-events-none z-50 text-6xl"
-          style={{
-            left: `${reaction.x}px`,
-            top: `${reaction.y}px`
-          }}>
-          
-          👍
+            </div>
+          </main>
         </div>
-      )}
 
-      {/* Particle Effects */}
-      {particles.map((particle) =>
-        <div
-          key={particle.id}
-          className="fixed pointer-events-none z-50"
-          style={{
-            left: `${particle.x}px`,
-            top: `${particle.y}px`,
-            animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
-          }}>
-          
-          <span className="text-2xl">👍</span>
-        </div>
-      )}
+        {/* Floating Reaction Hearts */}
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.id}
+            className="heart-pop fixed pointer-events-none z-50 text-6xl"
+            style={{
+              left: `${reaction.x}px`,
+              top: `${reaction.y}px`
+            }}
+          >
+            👍
+          </div>
+        ))}
 
-      <style>{`
-        @keyframes particle-0 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-1 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-2 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-3 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-4 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-5 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-6 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
-        }
-        @keyframes particle-7 { 
-          0% { transform: translate(0, 0) scale(1); opacity: 1; }
-          100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
-        }
-      `}</style>
-    </MemberLayout>);
+        {/* Particle Effects */}
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="fixed pointer-events-none z-50"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
+            }}
+          >
+            <span className="text-2xl">👍</span>
+          </div>
+        ))}
 
+        <style>{`
+          @keyframes particle-0 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-1 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-2 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-3 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-4 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-5 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-6 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
+          }
+          @keyframes particle-7 { 
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
+          }
+        `}</style>
+      </>
+    </MemberLayout>
+  );
 }
