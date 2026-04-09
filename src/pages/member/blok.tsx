@@ -1040,14 +1040,14 @@ export default function BlokPage() {
                 
                 {leaderboard.map((player, index) => {
                   const cardGradients = [
-                    "bg-gradient-to-br from-rose-50 to-pink-100 border-rose-200",
-                    "bg-gradient-to-br from-blue-50 to-sky-100 border-blue-200",
-                    "bg-gradient-to-br from-emerald-50 to-teal-100 border-emerald-200",
-                    "bg-gradient-to-br from-amber-50 to-orange-100 border-amber-200",
-                    "bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200",
-                    "bg-gradient-to-br from-indigo-50 to-blue-100 border-indigo-200",
-                    "bg-gradient-to-br from-fuchsia-50 to-pink-100 border-fuchsia-200",
-                    "bg-gradient-to-br from-cyan-50 to-teal-100 border-cyan-200"
+                    "from-rose-50 to-pink-100 border-rose-200",
+                    "from-blue-50 to-sky-100 border-blue-200",
+                    "from-emerald-50 to-teal-100 border-emerald-200",
+                    "from-amber-50 to-orange-100 border-amber-200",
+                    "from-violet-50 to-purple-100 border-violet-200",
+                    "from-indigo-50 to-blue-100 border-indigo-200",
+                    "from-fuchsia-50 to-pink-100 border-fuchsia-200",
+                    "from-cyan-50 to-teal-100 border-cyan-200"
                   ];
                   const gradient = cardGradients[index % cardGradients.length];
 
@@ -1057,19 +1057,20 @@ export default function BlokPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className={`rounded-xl border shadow-sm p-3 relative overflow-hidden ${gradient}`}
+                      className={`bg-gradient-to-br ${gradient} rounded-xl border shadow-md p-4 space-y-3`}
                     >
-                      <div className="flex items-center gap-3 relative z-10">
+                      {/* Player Header */}
+                      <div className="flex items-center gap-3 pb-3 border-b border-white/40">
                         {/* Rank */}
                         <div className="flex-shrink-0">
                           {player.rank <= 3 ? (
-                            <div className="w-10 h-10 flex items-center justify-center">
-                              {player.rank === 1 && <Trophy className="w-8 h-8 text-yellow-500 drop-shadow-md" />}
-                              {player.rank === 2 && <Trophy className="w-7 h-7 text-slate-400 drop-shadow-md" />}
-                              {player.rank === 3 && <Trophy className="w-6 h-6 text-amber-700 drop-shadow-md" />}
+                            <div className="w-12 h-12 flex items-center justify-center">
+                              {player.rank === 1 && <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />}
+                              {player.rank === 2 && <Trophy className="w-9 h-9 text-slate-400 drop-shadow-lg" />}
+                              {player.rank === 3 && <Trophy className="w-8 h-8 text-amber-700 drop-shadow-lg" />}
                             </div>
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-sm font-bold text-slate-700 border border-white/50 shadow-sm">
+                            <div className="w-12 h-12 rounded-full bg-white/70 flex items-center justify-center text-base font-bold text-slate-700 border-2 border-white shadow-md">
                               {player.rank}
                             </div>
                           )}
@@ -1081,66 +1082,103 @@ export default function BlokPage() {
                             <Image
                               src={player.member.avatar_url}
                               alt={player.member.username}
-                              width={44}
-                              height={44}
-                              className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm"
+                              width={48}
+                              height={48}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
                               loading="lazy"
                               unoptimized
                             />
                           ) : (
-                            <div className="w-11 h-11 rounded-full bg-white/80 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
                               {player.member.username[0].toUpperCase()}
                             </div>
                           )}
                           {player.clean_game && (
-                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
+                              <Sparkles className="w-4 h-4 text-amber-500" />
                             </div>
                           )}
                         </div>
 
-                        {/* Info */}
+                        {/* Name & Stats */}
                         <div className="flex-1 min-w-0">
                           <Link
                             href={`/member/profile?id=${player.member.id}`}
-                            className="font-bold text-sm text-slate-800 hover:text-sky-700 truncate block"
+                            className="font-bold text-base text-slate-800 hover:text-sky-700 truncate block"
                           >
                             {player.member.username}
                           </Link>
-                          
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[10px] font-medium bg-white/60 px-1.5 py-0.5 rounded text-slate-600">
-                              Avg: {player.average_score}
-                            </span>
-                            <span className="text-[10px] font-medium bg-white/60 px-1.5 py-0.5 rounded text-slate-600">
-                              Hcp: {player.handicap}
-                            </span>
-                          </div>
                           
                           <div className="flex items-center gap-1 mt-1">
                             <button
                               onClick={(e) => handleReaction(player.id, e)}
                               disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                              className="flex items-center gap-1 bg-white/60 hover:bg-white/90 px-1.5 py-0.5 rounded text-[10px] transition-colors disabled:opacity-50"
+                              className="flex items-center gap-1 bg-white/70 hover:bg-white px-2 py-0.5 rounded text-xs transition-colors disabled:opacity-50 shadow-sm"
                             >
                               👍 <span className="font-bold text-slate-700">{player.likes_count || 0}</span>
                             </button>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Score */}
-                        <div className="flex-shrink-0 text-right">
-                          <div className="flex flex-col items-end">
-                            <div className="text-xs text-slate-500 font-semibold mb-0.5">Overall</div>
-                            <div className="flex items-center gap-1 text-emerald-600 font-black text-xl">
-                              {player.overall_score}
-                            </div>
-                            {player.difference > 0 && (
-                              <div className="text-[10px] text-orange-600 font-bold bg-white/50 px-1 rounded mt-0.5">
-                                +{player.difference}
-                              </div>
-                            )}
+                      {/* Overall Score - Highlight */}
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-600">Overall Score</div>
+                          <div className="text-3xl font-black text-emerald-600">
+                            {player.overall_score}
                           </div>
+                        </div>
+                        {player.difference > 0 && (
+                          <div className="text-xs text-orange-600 font-semibold text-right mt-1">
+                            +{player.difference} dari #1
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Game Scores Grid */}
+                      <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+                        <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1">
+                          <Target className="w-3.5 h-3.5" />
+                          Skor Setiap Game
+                        </div>
+                        <div className="grid grid-cols-5 gap-2">
+                          <div className="bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-md p-2 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold opacity-90">G1</div>
+                            <div className="text-base font-bold mt-0.5">{player.game1_score || "-"}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-sky-600 to-blue-700 text-white rounded-md p-2 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold opacity-90">G2</div>
+                            <div className="text-base font-bold mt-0.5">{player.game2_score || "-"}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-sky-700 to-blue-800 text-white rounded-md p-2 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold opacity-90">G3</div>
+                            <div className="text-base font-bold mt-0.5">{player.game3_score || "-"}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-sky-800 to-blue-900 text-white rounded-md p-2 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold opacity-90">G4</div>
+                            <div className="text-base font-bold mt-0.5">{player.game4_score || "-"}</div>
+                          </div>
+                          <div className="bg-gradient-to-br from-sky-500 to-blue-600 text-white rounded-md p-2 text-center shadow-sm">
+                            <div className="text-[10px] font-semibold opacity-90">G5</div>
+                            <div className="text-base font-bold mt-0.5">{player.game5_score || "-"}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Summary Stats */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Total</div>
+                          <div className="text-lg font-black text-slate-800 mt-0.5">{player.total_score}</div>
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Handicap</div>
+                          <div className="text-lg font-black text-blue-600 mt-0.5">{player.handicap}</div>
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm">
+                          <div className="text-[10px] font-semibold text-slate-500 uppercase">Average</div>
+                          <div className="text-lg font-black text-purple-600 mt-0.5">{player.average_score}</div>
                         </div>
                       </div>
                     </motion.div>
