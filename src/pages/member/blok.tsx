@@ -1021,140 +1021,116 @@ export default function BlokPage() {
                         </div>
                   }
 
-                      <div className="block md:hidden space-y-2 p-2">
-                        {leaderboard.map((entry) =>
-                    <Card
-                      key={entry.id}
-                      className={`cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                      animatingScores.has(entry.id) ?
-                      "animate-pulse bg-yellow-50 border-yellow-400 border-2" :
-                      ""}`
-                      }
-                      onClick={() =>
-                      setExpandedRow((current) => current === entry.id ? null : entry.id)
-                      }>
-                      
-                            <CardContent className="p-3 md:p-4">
-                              <div className="flex items-center gap-2 md:gap-3">
-                                <div className="flex-shrink-0">{getRankDisplay(entry.rank)}</div>
+                      {/* Mobile View - Card Layout */}
+              <div className="block md:hidden space-y-3">
+                {allGameScores
+                  .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
+                  .map((gameScore, index) => {
+                    const gradientIndex = index % gradients.length;
+                    const gradient = gradients[gradientIndex];
+
+                    const sortedPlayers = [...gameScore.leaderboard].sort((a, b) => a.rank - b.rank);
+                    const allPlayers = sortedPlayers;
+
+                    return (
+                      <motion.div
+                        key={gameScore.game.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`${gradient} rounded-xl shadow-lg hover:shadow-xl transition-shadow`}
+                      >
+                        <div className="p-4 border-b border-white/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-white font-bold text-lg">{gameScore.game.game_name}</h3>
+                            <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                              {gameScore.leaderboard.length} Players
+                            </span>
+                          </div>
+                          <p className="text-white/90 text-sm">
+                            {new Date(gameScore.game.game_date).toLocaleDateString("ms-MY", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+
+                        <div className="p-3 space-y-2">
+                          {allPlayers.map((player) => (
+                            <div
+                              key={player.id}
+                              className="bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0">
+                                  {player.rank <= 3 ? (
+                                    <div className="w-10 h-10 flex items-center justify-center">
+                                      {player.rank === 1 && <Trophy className="w-8 h-8 text-yellow-500" />}
+                                      {player.rank === 2 && <Trophy className="w-7 h-7 text-gray-400" />}
+                                      {player.rank === 3 && <Trophy className="w-6 h-6 text-amber-700" />}
+                                    </div>
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-sky-600 border-2 border-sky-200">
+                                      {player.rank}
+                                    </div>
+                                  )}
+                                </div>
 
                                 <div className="flex-shrink-0">
-                                  {entry.member.avatar_url ? (
+                                  {player.member.avatar_url ? (
                                     <Image
-                                      src={entry.member.avatar_url}
-                                      alt={entry.member.username}
-                                      width={50}
-                                      height={50}
-                                      className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full object-cover border-2 border-sky-200"
+                                      src={player.member.avatar_url}
+                                      alt={player.member.username}
+                                      width={44}
+                                      height={44}
+                                      className="w-11 h-11 rounded-full object-cover border-2 border-sky-200"
                                       loading="lazy"
                                       unoptimized
                                     />
                                   ) : (
-                                    <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-xl md:text-2xl">
-                                      {entry.member.username[0].toUpperCase()}
+                                    <div className="w-11 h-11 rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg">
+                                      {player.member.username[0].toUpperCase()}
                                     </div>
                                   )}
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1 flex-wrap">
+                                  <div className="flex items-center gap-1">
                                     <Link
-                                href={`/member/profile?id=${entry.member.id}`}
-                                className={`font-semibold text-xs md:text-sm truncate hover:text-sky-600 transition-colors block ${
-                                currentUser?.id === entry.member.id ?
-                                "font-bold text-sky-600" :
-                                ""}`
-                                }>
-                                
-                                      {entry.member.username}
+                                      href={`/member/profile?id=${player.member.id}`}
+                                      className="font-semibold text-sm text-gray-900 hover:text-sky-600 transition-colors truncate"
+                                    >
+                                      {player.member.username}
                                     </Link>
-                                    {entry.clean_game &&
-                              <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-amber-500 flex-shrink-0" />
-                              }
+                                    {player.clean_game && (
+                                      <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                    )}
                                   </div>
-                                  <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-sky-600 mt-0.5">
-                                    <span className="flex items-center gap-1 text-emerald-600 font-black text-lg md:text-xl">
-                                      <Award className="w-4 h-4 md:w-5 md:h-5" />
-                                      {entry.overall_score}
-                                    </span>
-                                    <span className="text-gray-400">•</span>
-                                    <span className={`flex items-center gap-1 font-semibold ${entry.difference === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                      <TrendingUp className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                      {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
-                                    </span>
-                                    <button
-                                onClick={(e) => handleReaction(entry.id, e)}
-                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                className="flex items-center gap-1 px-2 py-1 rounded-full bg-white hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                                
-                                      <span className="text-lg">{entry.likes_count > 0 ? '👍' : '👍'}</span>
-                                      <span className="text-xs font-bold text-gray-700">{entry.likes_count || 0}</span>
-                                    </button>
+                                  <div className="text-xs text-gray-500">
+                                    Avg: {player.average_score}
                                   </div>
                                 </div>
 
-                                <ChevronRight
-                            className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 transition-transform flex-shrink-0 ${
-                            expandedRow === entry.id ? "rotate-90" : ""}`
-                            } />
-                          
+                                <div className="flex-shrink-0 text-right">
+                                  <div className="flex items-center gap-1 text-emerald-600 font-black text-lg">
+                                    <Award className="w-4 h-4" />
+                                    {player.overall_score}
+                                  </div>
+                                  {player.difference > 0 && (
+                                    <div className="text-xs text-orange-600 font-semibold">
+                                      +{player.difference}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-
-                              {expandedRow === entry.id &&
-                        <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-sky-200 space-y-2 md:space-y-3">
-                                  <div className="grid grid-cols-5 gap-1.5 md:gap-2">
-                                    <div className="text-center">
-                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G1</div>
-                                      <div className="text-xs md:text-sm font-semibold">
-                                        {formatScore(entry.game1_score, entry.id)}
-                                      </div>
-                                    </div>
-                                    <div className="text-center">
-                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G2</div>
-                                      <div className="text-xs md:text-sm font-semibold">
-                                        {formatScore(entry.game2_score, entry.id)}
-                                      </div>
-                                    </div>
-                                    <div className="text-center">
-                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G3</div>
-                                      <div className="text-xs md:text-sm font-semibold">
-                                        {formatScore(entry.game3_score, entry.id)}
-                                      </div>
-                                    </div>
-                                    <div className="text-center">
-                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G4</div>
-                                      <div className="text-xs md:text-sm font-semibold">
-                                        {formatScore(entry.game4_score, entry.id)}
-                                      </div>
-                                    </div>
-                                    <div className="text-center">
-                                      <div className="text-[10px] md:text-xs text-sky-500 mb-0.5 md:mb-1">G5</div>
-                                      <div className="text-xs md:text-sm font-semibold">
-                                        {formatScore(entry.game5_score, entry.id)}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
-                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
-                                      <div className="text-[10px] md:text-xs text-sky-500">Total</div>
-                                      <div className="font-semibold text-xs md:text-sm">{entry.total_score || "-"}</div>
-                                    </div>
-                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
-                                      <div className="text-[10px] md:text-xs text-sky-500">Handicap</div>
-                                      <div className="font-semibold text-xs md:text-sm">{entry.handicap || "-"}</div>
-                                    </div>
-                                    <div className="bg-sky-50 p-1.5 md:p-2 rounded">
-                                      <div className="text-[10px] md:text-xs text-sky-500">Average</div>
-                                      <div className="font-semibold text-xs md:text-sm">{entry.average_score || "-"}</div>
-                                    </div>
-                                  </div>
-                                </div>
-                        }
-                            </CardContent>
-                          </Card>
-                    )}
-                      </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </div>
 
                       <div className="hidden md:block">
                         <div className="overflow-x-auto">
