@@ -1061,7 +1061,7 @@ export default function BlokPage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Contoh: edy, zali, samdol"
+                      placeholder="Contoh: zali, samdol, lan"
                       className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900"
                     />
                     {searchQuery && (
