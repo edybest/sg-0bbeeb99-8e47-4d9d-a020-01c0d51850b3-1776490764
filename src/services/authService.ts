@@ -250,5 +250,109 @@ export const authService = {
   // Listen to auth state changes
   onAuthStateChange(callback: (event: string, session: Session | null) => void) {
     return supabase.auth.onAuthStateChange(callback);
+  },
+
+  // Admin login as member (impersonation)
+  async adminLoginAsMember(memberId: string): Promise<{ success: boolean; error: AuthError | null }> {
+    try {
+      // Get current admin session first
+      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      
+      if (!adminSession) {
+        return { success: false, error: { message: "No admin session found" } };
+      }
+
+      // Store admin session ID in localStorage so we can restore it later
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_impersonation_session', JSON.stringify({
+          adminUserId: adminSession.user.id,
+          adminEmail: adminSession.user.email,
+          timestamp: Date.now()
+        }));
+      }
+
+      // Generate a login token for the member via API
+      const response = await fetch('/api/generate-login-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate login token');
+      }
+
+      const { token } = await response.json();
+
+      // Sign out current admin session
+      await supabase.auth.signOut();
+
+      // Sign in as the member using the token
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email'
+      });
+
+      if (error) {
+        return { success: false, error: { message: error.message } };
+      }
+
+      return { success: true, error: null };
+    } catch (error: any) {
+      console.error('Error in adminLoginAsMember:', error);
+      return { success: false, error: { message: error.message || 'Failed to login as member' } };
+    }
+  },
+
+  // Return to admin account after impersonation
+  async returnToAdminAccount(): Promise<{ success: boolean; error: AuthError | null }> {
+    try {
+      if (typeof window === 'undefined') {
+        return { success: false, error: { message: 'Not in browser environment' } };
+      }
+
+      const impersonationData = localStorage.getItem('admin_impersonation_session');
+      
+      if (!impersonationData) {
+        return { success: false, error: { message: 'No impersonation session found' } };
+      }
+
+      const { adminUserId } = JSON.parse(impersonationData);
+
+      // Sign out current member session
+      await supabase.auth.signOut();
+
+      // Generate login token for admin
+      const response = await fetch('/api/generate-login-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: adminUserId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to restore admin session');
+      }
+
+      const { token } = await response.json();
+
+      // Sign in as admin using the token
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email'
+      });
+
+      if (error) {
+        return { success: false, error: { message: error.message } };
+      }
+
+      // Clear impersonation data
+      localStorage.removeItem('admin_impersonation_session');
+
+      return { success: true, error: null };
+    } catch (error: any) {
+      console.error('Error returning to admin account:', error);
+      return { success: false, error: { message: error.message || 'Failed to return to admin account' } };
+    }
   }
 };

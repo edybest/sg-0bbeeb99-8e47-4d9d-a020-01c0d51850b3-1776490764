@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from "react";
+import { useRouter } from "next/router";
 
 type Member = {
   id: string;
@@ -33,6 +34,7 @@ type Member = {
 
 export function MemberManagement() {
   const { toast } = useToast();
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,8 @@ export function MemberManagement() {
   const [editingHandicapMember, setEditingHandicapMember] = useState<Member | null>(null);
   const [newHandicapValue, setNewHandicapValue] = useState(0);
   const [updatingHandicap, setUpdatingHandicap] = useState(false);
+
+  const [loggingInAs, setLoggingInAs] = useState<string | null>(null);
 
   // Helper function to check if avatar is base64
   const isBase64Image = (url: string | null) => {
@@ -317,6 +321,42 @@ export function MemberManagement() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  }
+
+  async function handleLoginAsMember(memberId: string, username: string) {
+    if (!confirm(`Login sebagai ${username}? Anda akan keluar dari akaun admin dan masuk sebagai ahli ini.`)) {
+      return;
+    }
+
+    setLoggingInAs(memberId);
+    try {
+      const result = await authService.adminLoginAsMember(memberId);
+      
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      toast({
+        title: "✅ Berjaya",
+        description: `Login sebagai ${username}. Redirect ke member dashboard...`,
+        duration: 2000,
+      });
+
+      // Redirect to member dashboard
+      setTimeout(() => {
+        router.push('/member');
+      }, 1000);
+
+    } catch (error: any) {
+      console.error("Error logging in as member:", error);
+      toast({
+        title: "❌ Gagal",
+        description: error.message || "Gagal login sebagai ahli",
+        variant: "destructive",
+        duration: 3000,
+      });
+      setLoggingInAs(null);
     }
   }
 
@@ -754,6 +794,20 @@ export function MemberManagement() {
                             )}
                           </Button>
                         )}
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleLoginAsMember(member.id, member.username)}
+                          disabled={loggingInAs === member.id}
+                          className="border-blue-700 text-blue-500 hover:bg-blue-900/20"
+                          title="Login sebagai ahli ini"
+                        >
+                          {loggingInAs === member.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Login As"
+                          )}
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => openEditDialog(member)} className="border-gray-700">
                           <Pencil className="h-3 w-3" />
                         </Button>
