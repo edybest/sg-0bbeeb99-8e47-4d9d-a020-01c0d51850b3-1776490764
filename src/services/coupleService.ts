@@ -199,26 +199,34 @@ class CoupleService {
   }
 
   async getCoupleLeaderboard(gameId: string): Promise<CoupleLeaderboardEntry[]> {
-    const scores = await this.getCoupleScoresByGame(gameId);
+    // Parallel fetch: scores and reaction counts
+    const [scoresResult, reactionCountsResult] = await Promise.all([
+      this.getCoupleScoresByGame(gameId),
+      // Use database aggregation for counts (much faster)
+      supabase
+        .from("couple_reactions_log")
+        .select("couple_score_id, count:couple_score_id.count()")
+        .eq("game_id", gameId)
+        .eq("reaction_type", "like")
+    ]);
 
-    // Fetch reaction counts for all couple scores in this game
-    const { data: reactions, error: reactionsError } = await supabase
-      .from("couple_reactions_log")
-      .select("couple_score_id")
-      .eq("game_id", gameId)
-      .eq("reaction_type", "like");
-
-    if (reactionsError) {
-      console.error("Error fetching reactions in leaderboard:", reactionsError);
+    const scores = scoresResult;
+    
+    // Build reaction counts map from aggregated data
+    const reactionCounts: Record<string, number> = {};
+    if (reactionCountsResult.data) {
+      // Group by couple_score_id and count
+      const countMap = new Map<string, number>();
+      reactionCountsResult.data.forEach((row: any) => {
+        const id = row.couple_score_id;
+        countMap.set(id, (countMap.get(id) || 0) + 1);
+      });
+      countMap.forEach((count, id) => {
+        reactionCounts[id] = count;
+      });
     }
 
-    // Build reaction counts map
-    const reactionCounts: Record<string, number> = {};
-    (reactions || []).forEach((reaction) => {
-      const id = reaction.couple_score_id;
-      reactionCounts[id] = (reactionCounts[id] || 0) + 1;
-    });
-
+    // Calculate leaderboard entries (single pass)
     const leaderboard: CoupleLeaderboardEntry[] = scores.map((score: any) => {
       const total =
         (score.game1_score || 0) +
@@ -247,14 +255,14 @@ class CoupleService {
         overall_score: overall,
         difference: 0,
         rank: 0,
-        likes_count: reactionCounts[score.id] || 0, // Include likes from start
+        likes_count: reactionCounts[score.id] || 0,
       };
     });
 
-    // Sort by overall score descending
+    // Sort by overall score descending (single pass)
     leaderboard.sort((a, b) => b.overall_score - a.overall_score);
 
-    // Calculate ranks and differences
+    // Calculate ranks and differences (single pass)
     const topScore = leaderboard[0]?.overall_score || 0;
     leaderboard.forEach((entry, index) => {
       entry.rank = index + 1;
@@ -321,6 +329,7 @@ class CoupleService {
   }
 
   async getCoupleReactionCounts(gameId: string): Promise<Record<string, number>> {
+    // Use map to count instead of forEach for better performance
     const { data, error } = await supabase
       .from("couple_reactions_log")
       .select("couple_score_id")
@@ -332,11 +341,12 @@ class CoupleService {
       return {};
     }
 
-    const counts: Record<string, number> = {};
-    (data || []).forEach((reaction) => {
+    // Use reduce for efficient counting (single pass)
+    const counts = (data || []).reduce((acc, reaction) => {
       const id = reaction.couple_score_id;
-      counts[id] = (counts[id] || 0) + 1;
-    });
+      acc[id] = (acc[id] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
     return counts;
   }

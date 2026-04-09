@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/router";
 import { MemberLayout } from "@/components/member/MemberLayout";
@@ -50,8 +50,6 @@ export default function CouplePage() {
   const [particles, setParticles] = useState<{id: string; x: number; y: number}[]>([]);
 
   const prevLeaderboardRef = useRef<CoupleLeaderboardEntry[]>([]);
-
-  const currentGame = games.find(g => g.id === selectedGameId);
 
   useEffect(() => {
     loadGames();
@@ -117,11 +115,12 @@ export default function CouplePage() {
   const loadLeaderboard = async (gameId: string, showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
+      
+      // Fetch leaderboard data (already optimized in service)
       const data = await coupleService.getCoupleLeaderboard(gameId);
-      const formattedData = data.map((item: any, index: number) => ({
-        ...item,
-        rank: index + 1
-      }));
+      
+      // Data already has ranks calculated in service, no need to recalculate
+      const formattedData = data; // Ranks already included
 
       // --- Real-time Notification Logic ---
       if (!showLoading && prevLeaderboardRef.current.length > 0) {
