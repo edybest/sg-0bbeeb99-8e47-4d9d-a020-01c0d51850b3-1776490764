@@ -878,7 +878,7 @@ export default function BlokPage() {
                 </div>
                 
                 {selectedGame && (
-                  <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 shadow-sm flex-shrink-0">
+                  <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 shadow-md flex-shrink-0">
                     <span className="text-xl">👍</span>
                     <span className="text-xs md:text-sm font-bold text-red-700">
                       {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
@@ -981,6 +981,57 @@ export default function BlokPage() {
               )}
             </div>
 
+            {/* Clean Game Winners Section */}
+            {selectedGame && leaderboard.some(p => p.clean_game) && (
+              <Card className="bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 shadow-md mb-6">
+                <CardHeader className="border-b border-amber-200 pb-3 md:pb-4">
+                  <CardTitle className="text-amber-900 flex items-center gap-2 text-lg md:text-xl">
+                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
+                    Clean Game Winners 🎯
+                  </CardTitle>
+                  <CardDescription className="text-amber-700 text-xs md:text-sm">
+                    Pemain yang dapat clean game (tiada split, no mark)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4 md:pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {leaderboard.filter(p => p.clean_game).map((player) => (
+                      <div key={`clean-${player.id}`} className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-amber-200 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          {player.member.avatar_url ? (
+                            <Image
+                              src={player.member.avatar_url}
+                              alt={player.member.username}
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-amber-300"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center font-bold text-amber-700 text-lg border-2 border-amber-300">
+                              {player.member.username[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <Link
+                              href={`/member/profile?id=${player.member.id}`}
+                              className="font-bold text-sm text-amber-900 hover:text-amber-700 truncate block"
+                            >
+                              {player.member.username}
+                            </Link>
+                            <div className="text-xs text-amber-600">
+                              Rank #{player.rank} • {player.overall_score}
+                            </div>
+                          </div>
+                          <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Search and Filter Section */}
             {selectedGame && (
               <Card className="bg-white border-sky-200 shadow-md mb-6">
@@ -1023,8 +1074,8 @@ export default function BlokPage() {
                         className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
                       >
                         <option value="ALL">Semua Jantina</option>
-                        <option value="MALE">Lelaki</option>
-                        <option value="FEMALE">Perempuan</option>
+                        <option value="men">Lelaki</option>
+                        <option value="women">Perempuan</option>
                       </select>
                     </div>
 
@@ -1039,9 +1090,10 @@ export default function BlokPage() {
                         className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
                       >
                         <option value="ALL">Semua Teknik</option>
-                        <option value="STROKER">Stroker</option>
-                        <option value="TWEENER">Tweener</option>
-                        <option value="CRANKER">Cranker</option>
+                        <option value="Straight">Straight</option>
+                        <option value="Hook">Hook</option>
+                        <option value="Spinner">Spinner</option>
+                        <option value="Backup">Backup</option>
                       </select>
                     </div>
                   </div>
@@ -1063,7 +1115,7 @@ export default function BlokPage() {
                       )}
                       {genderFilter !== "ALL" && (
                         <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
-                          {genderFilter === "MALE" ? "Lelaki" : "Perempuan"}
+                          {genderFilter === "men" ? "Lelaki" : "Perempuan"}
                           <button
                             onClick={() => setGenderFilter("ALL")}
                             className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"

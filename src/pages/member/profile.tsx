@@ -487,7 +487,6 @@ export default function ProfilePage() {
                                   <SelectItem value="Hook">Hook</SelectItem>
                                   <SelectItem value="Spinner">Spinner</SelectItem>
                                   <SelectItem value="Backup">Backup</SelectItem>
-                                  <SelectItem value="Kidal">Kidal</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
