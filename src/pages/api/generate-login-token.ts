@@ -54,12 +54,12 @@ export default async function handler(
       return res.status(500).json({ error: "Failed to generate login token" });
     }
 
-    // Extract token hash from the generated link
-    const url = new URL(otpData.properties.action_link);
-    const tokenHash = url.searchParams.get("token_hash");
+    // The hashed_token is directly available in the response
+    const tokenHash = otpData.properties.hashed_token;
 
     if (!tokenHash) {
-      return res.status(500).json({ error: "Failed to extract token from link" });
+      console.error("Token data:", otpData);
+      return res.status(500).json({ error: "Failed to extract token from response" });
     }
 
     console.log(`✅ Generated login token for member: ${member.username} (${member.email})`);
