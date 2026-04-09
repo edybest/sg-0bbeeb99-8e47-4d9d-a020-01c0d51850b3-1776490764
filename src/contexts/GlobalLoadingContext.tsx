@@ -143,32 +143,6 @@ export function GlobalLoadingProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
-  // Force stop loading when tab becomes visible after being hidden
-  useEffect(() => {
-    let hiddenTime = 0;
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        hiddenTime = Date.now();
-      } else {
-        const timeHidden = Date.now() - hiddenTime;
-        if (timeHidden > 3000) {
-          console.warn("⚠️ Tab returned from background - force clearing loading state");
-          forceStop();
-        }
-      }
-    };
-
-    const handleFocus = () => forceStop();
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-    
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [forceStop]);
-
   const value = useMemo<GlobalLoadingContextValue>(
     () => ({ isLoading, progress, start, stop, withLoading, forceStop }),
     [isLoading, progress, start, stop, withLoading, forceStop]
