@@ -77,6 +77,15 @@ export function GameManagement() {
 
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // WhatsApp Share states
+  const [showWhatsAppShare, setShowWhatsAppShare] = useState(false);
+  const [selectedGameForShare, setSelectedGameForShare] = useState<Game | null>(null);
+  const [selectedOpeningMessage, setSelectedOpeningMessage] = useState(0);
+  const [selectedClosingMessage, setSelectedClosingMessage] = useState(0);
+  const [sharePreview, setSharePreview] = useState("");
+  const [loadingTopPlayers, setLoadingTopPlayers] = useState(false);
+  const [topPlayers, setTopPlayers] = useState<Array<{rank: number; username: string; overall_score: number}>>([]);
+
   // Add Player states
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [selectedGameForPlayer, setSelectedGameForPlayer] = useState<string | null>(null);
