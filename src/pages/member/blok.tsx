@@ -29,7 +29,9 @@ import {
   ChevronRight,
   ThumbsUp,
   Heart,
-  Target } from
+  Target,
+  Search
+} from
 "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,6 +49,8 @@ interface RawPlayerScore extends Tables<"game_players"> {
     username: string;
     full_name: string;
     avatar_url: string | null;
+    sex: string;
+    bowling_technique: string | null;
   };
 }
 
@@ -57,6 +61,8 @@ interface LeaderboardEntry {
     username: string;
     full_name: string;
     avatar_url: string | null;
+    sex: string;
+    bowling_technique: string | null;
   };
   game1_score: number;
   game2_score: number;
@@ -183,15 +189,51 @@ export default function BlokPage() {
   const [userLikesCount, setUserLikesCount] = useState<number>(0);
   const MAX_LIKES_PER_GAME = 5;
 
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [genderFilter, setGenderFilter] = useState<string>("ALL");
+  const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
+
   const isInitialLoading = loadingGames && games.length === 0;
   const isPageLoading = authLoading || isInitialLoading;
 
+  // Filter leaderboard based on search and filters
+  const filteredLeaderboard = useMemo(() => {
+    let filtered = [...leaderboard];
+
+    // Search filter - support multiple names separated by comma
+    if (searchQuery.trim()) {
+      const searchTerms = searchQuery
+        .split(',')
+        .map(term => term.trim().toLowerCase())
+        .filter(term => term.length > 0);
+      
+      if (searchTerms.length > 0) {
+        filtered = filtered.filter(player => {
+          const username = player.member.username.toLowerCase();
+          return searchTerms.some(term => username.includes(term));
+        });
+      }
+    }
+
+    // Gender filter
+    if (genderFilter !== "ALL") {
+      filtered = filtered.filter(player => player.member.sex === genderFilter);
+    }
+
+    // Technique filter
+    if (techniqueFilter !== "ALL") {
+      filtered = filtered.filter(player => player.member.bowling_technique === techniqueFilter);
+    }
+
+    return filtered;
+  }, [leaderboard, searchQuery, genderFilter, techniqueFilter]);
+
   const mostLikedPlayers = useMemo(() => {
-    return [...leaderboard].
+    return [...filteredLeaderboard].
     filter((p) => p.likes_count > 0).
     sort((a, b) => b.likes_count - a.likes_count).
     slice(0, 3);
-  }, [leaderboard]);
+  }, [filteredLeaderboard]);
 
   const applyCurrentSort = useMemo(() => {
     return (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
@@ -274,7 +316,7 @@ export default function BlokPage() {
       select(
         `
           *,
-          member:members(id, username, full_name, avatar_url)
+          member:members(id, username, full_name, avatar_url, sex, bowling_technique)
         `
       ).
       eq("game_id", gameId);
@@ -845,185 +887,136 @@ export default function BlokPage() {
                   </div>
                 )}
               </div>
-            </div>
-          </header>
 
-          <main className="container mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-6 pb-32 md:pb-8">
-            <Card className="bg-white border-sky-200 shadow-md">
-              <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
-                <CardTitle className="text-sky-900 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-500" />
-                  Pilih Game
-                </CardTitle>
-                <CardDescription className="text-sky-600">
-                  Pilih tarikh untuk melihat kedudukan
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                {loadingGames ?
-                <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-                  </div> :
-                games.length === 0 ?
-                <div className="text-center py-8 text-sky-500">Tiada game tersedia</div> :
-
-                <div className="max-w-md mx-auto">
-                    <label className="block text-sm font-medium text-sky-700 mb-2">
-                      Tarikh & Game
-                    </label>
-                    <select
-                    value={selectedGame || ""}
-                    onChange={(e) => setSelectedGame(e.target.value)}
-                    className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 font-medium transition-colors cursor-pointer appearance-none"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                      backgroundPosition: `right 0.75rem center`,
-                      backgroundRepeat: `no-repeat`,
-                      backgroundSize: `1.5em 1.5em`,
-                      paddingRight: `2.5rem`
-                    }}>
-                    
-                      <option value="" disabled>
-                        -- Sila Pilih Tarikh --
-                      </option>
-                      {games.map((game) => {
-                      const gameDate = new Date(game.game_date);
-
-                      const today = new Date();
-                      const yesterday = new Date(today);
-                      yesterday.setDate(yesterday.getDate() - 1);
-
-                      const isToday = gameDate.toDateString() === today.toDateString();
-                      const isYesterday = gameDate.toDateString() === yesterday.toDateString();
-
-                      let prefix = "";
-                      if (isToday) prefix = "🟢 Hari Ini - ";else
-                      if (isYesterday) prefix = "🔵 Semalam - ";
-
-                      const fullDate = gameDate.toLocaleDateString("ms-MY", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric"
-                      });
-
-                      return (
-                        <option key={game.id} value={game.id}>
-                            {prefix}
-                            {game.game_name} ({fullDate})
-                          </option>);
-
-                    })}
-                    </select>
-                  </div>
-                }
-              </CardContent>
-            </Card>
-
-            {selectedGame &&
-            <Card className="bg-white border-sky-200 shadow-md overflow-hidden">
-                <CardHeader className="border-b border-sky-200 bg-sky-50/50">
-                  <CardTitle className="text-sky-900 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-500" />
-                    Leaderboard
-                  </CardTitle>
-                  <CardDescription className="text-sky-600">
-                    Skor untuk game yang dipilih
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-0">
-                  {loadingLeaderboard ?
-                <div className="flex justify-center items-center py-20">
-                      <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-                      <span className="ml-3 text-sky-600">Memuatkan skor...</span>
-                    </div> :
-                leaderboard.length === 0 ?
-                <div className="text-center py-20 text-sky-500">
-                      <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p>Tiada skor untuk game ini</p>
-                    </div> :
-
-                <>
-                      <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-b border-yellow-200">
-                        <p className="text-sm font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          Clean Game Winners
+              {/* Search and Filter Section */}
+              {selectedGame && (
+                <Card className="bg-white border-sky-200 shadow-md">
+                  <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
+                    <CardTitle className="text-sky-900 flex items-center gap-2">
+                      <Search className="w-5 h-5 text-sky-600" />
+                      Carian & Penapisan
+                    </CardTitle>
+                    <CardDescription className="text-sky-600">
+                      Cari pemain atau tapis mengikut kriteria
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 md:p-6 space-y-4">
+                    {/* Search Input */}
+                    <div>
+                      <label className="block text-sm font-medium text-sky-700 mb-2">
+                        Cari Nama (Maksimum 20 nama, pisahkan dengan koma)
+                      </label>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Contoh: edy, zali, samdol"
+                        className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900"
+                      />
+                      {searchQuery && (
+                        <p className="text-xs text-sky-600 mt-1">
+                          Mencari: {searchQuery.split(',').filter(s => s.trim()).length} nama
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          {[1, 2, 3, 4, 5].map((gameNum) =>
-                      <motion.button
-                        key={gameNum}
-                        onClick={() => handleOpenCleanGameDialog(gameNum)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="relative px-4 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all">
-                        
-                              <motion.div
-                          animate={{
-                            boxShadow: [
-                            "0 0 0px rgba(251, 191, 36, 0.4)",
-                            "0 0 20px rgba(251, 191, 36, 0.6)",
-                            "0 0 0px rgba(251, 191, 36, 0.4)"]
-
-                          }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className="absolute inset-0 rounded-lg" />
-                        
-                              <span className="relative z-10">Game {gameNum}</span>
-                            </motion.button>
                       )}
-                        </div>
+                    </div>
+
+                    {/* Filters Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Gender Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-sky-700 mb-2">
+                          Jantina
+                        </label>
+                        <select
+                          value={genderFilter}
+                          onChange={(e) => setGenderFilter(e.target.value)}
+                          className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
+                        >
+                          <option value="ALL">Semua Jantina</option>
+                          <option value="MALE">Lelaki</option>
+                          <option value="FEMALE">Perempuan</option>
+                        </select>
                       </div>
 
-                      {mostLikedPlayers.length > 0 &&
-                  <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-blue-50/80 border-b border-indigo-100">
-                          <p className="text-sm font-bold text-indigo-900 mb-3 flex items-center gap-2">
-                            <ThumbsUp className="w-4 h-4 text-blue-500 fill-blue-500 animate-pulse" />
-                            Pemain Paling Popular
-                          </p>
-                          <div className="flex flex-wrap gap-3">
-                            {mostLikedPlayers.map((player, idx) =>
-                      <motion.div
-                        key={player.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl shadow-sm border border-indigo-100 hover:shadow-md transition-shadow">
-                        
-                                <div className="relative">
-                                  {player.member.avatar_url ? (
-                                    <Image
-                                      src={player.member.avatar_url}
-                                      alt={player.member.username}
-                                      width={36}
-                                      height={36}
-                                      className="w-[36px] h-[36px] rounded-full object-cover border-2 border-indigo-50"
-                                      loading="lazy"
-                                      unoptimized
-                                    />
-                                  ) : (
-                                    <div className="w-[36px] h-[36px] rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-sm border-2 border-white shadow-sm">
-                                      {player.member.username[0].toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div>
-                                  <Link href={`/member/profile?id=${player.member.id}`} className="text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors">
-                                    {player.member.username}
-                                  </Link>
-                                  <div className="text-[11px] font-medium text-slate-500 flex items-center gap-1 mt-0.5">
-                                    <ThumbsUp className="w-3 h-3 text-blue-500" /> {player.likes_count} Likes
-                                  </div>
-                                </div>
-                              </motion.div>
-                      )}
-                          </div>
-                        </div>
-                  }
+                      {/* Technique Filter */}
+                      <div>
+                        <label className="block text-sm font-medium text-sky-700 mb-2">
+                          Teknik Balingan
+                        </label>
+                        <select
+                          value={techniqueFilter}
+                          onChange={(e) => setTechniqueFilter(e.target.value)}
+                          className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900 cursor-pointer"
+                        >
+                          <option value="ALL">Semua Teknik</option>
+                          <option value="STROKER">Stroker</option>
+                          <option value="TWEENER">Tweener</option>
+                          <option value="CRANKER">Cranker</option>
+                        </select>
+                      </div>
+                    </div>
 
-                      {/* Mobile View - Card Layout */}
+                    {/* Active Filters Display */}
+                    {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
+                        <span className="text-sm font-medium text-sky-700">Aktif:</span>
+                        {searchQuery && (
+                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
+                            Carian: {searchQuery.split(',').filter(s => s.trim()).length} nama
+                            <button
+                              onClick={() => setSearchQuery("")}
+                              className="hover:text-sky-900"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )}
+                        {genderFilter !== "ALL" && (
+                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
+                            {genderFilter === "MALE" ? "Lelaki" : "Perempuan"}
+                            <button
+                              onClick={() => setGenderFilter("ALL")}
+                              className="hover:text-sky-900"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )}
+                        {techniqueFilter !== "ALL" && (
+                          <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs">
+                            {techniqueFilter}
+                            <button
+                              onClick={() => setTechniqueFilter("ALL")}
+                              className="hover:text-sky-900"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        )}
+                        <button
+                          onClick={() => {
+                            setSearchQuery("");
+                            setGenderFilter("ALL");
+                            setTechniqueFilter("ALL");
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700 font-medium ml-auto"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Results Count */}
+                    <div className="text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
+                      Menunjukkan <span className="font-bold">{filteredLeaderboard.length}</span> daripada <span className="font-bold">{leaderboard.length}</span> pemain
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Mobile View - Card Layout */}
               <div className="block md:hidden space-y-3 mb-6">
-                {leaderboard.length > 0 && (
+                {filteredLeaderboard.length > 0 && (
                   <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -1033,12 +1026,12 @@ export default function BlokPage() {
                       <p className="text-sky-100 text-sm">Kedudukan keseluruhan</p>
                     </div>
                     <div className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
-                      {leaderboard.length} Pemain
+                      {filteredLeaderboard.length} Pemain
                     </div>
                   </div>
                 )}
                 
-                {leaderboard.map((player, index) => {
+                {filteredLeaderboard.map((player, index) => {
                   // Simple color scheme: Top 3 gold, rest blue
                   const isTop3 = player.rank <= 3;
                   const cardBg = isTop3 
@@ -1180,267 +1173,121 @@ export default function BlokPage() {
                 })}
               </div>
 
-                      <div className="hidden md:block">
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[1200px]">
-                            <thead>
-                              <tr className="border-b border-sky-200">
-                                <th
-                              className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("rank")}>
-                              
-                                  <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    #
-                                    {getSortIcon("rank")}
-                                  </div>
-                                </th>
-
-                                <th
-                              className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
-                              
-                                  <span className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Avatar
-                                  </span>
-                                </th>
-
-                                <th
-                              className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("username")}>
-                              
-                                  <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Player
-                                    {getSortIcon("username")}
-                                  </div>
-                                </th>
-
-                                <th
-                              className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("overall_score")}>
-                              
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Overall
-                                    {getSortIcon("overall_score")}
-                                  </div>
-                                </th>
-
-                                <th
-                              className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
-                              onClick={() => handleSort("difference")}>
-                              
-                                  <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                                    Diff
-                                    {getSortIcon("difference")}
-                                  </div>
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
-                              
-                                  Game 1
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
-                              
-                                  Game 2
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20">
-                              
-                                  Game 3
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20">
-                              
-                                  Game 4
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
-                              
-                                  Game 5
-                                </th>
-
-                                <th
-                              className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
-                              
-                                  <Heart className="w-4 h-4 mx-auto" />
-                                </th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {leaderboard.map((entry) =>
-                          <tr
-                            key={entry.id}
-                            className={`border-b transition-all duration-500 ${
-                            animatingScores.has(entry.id) ?
-                            "bg-yellow-100 animate-pulse" :
-                            "hover:bg-sky-50"}`
-                            }>
-                            
-                                  <td
-                              className={`sticky ${STICKY_LEFT.rank} z-10 bg-white px-4 py-4 whitespace-nowrap text-center`}>
-                              
-                                    <div className="flex items-center justify-center">
-                                      {getRankDisplay(entry.rank)}
-                                    </div>
-                                  </td>
-
-                                  <td className={`sticky ${STICKY_LEFT.avatar} z-10 bg-white px-2 py-4 whitespace-nowrap text-center`}>
-                                    {entry.member.avatar_url ? (
-                                      <Image
-                                        src={entry.member.avatar_url}
-                                        alt={entry.member.username}
-                                        width={40}
-                                        height={40}
-                                        className="w-[40px] h-[40px] rounded-full object-cover border-2 border-sky-200 mx-auto"
-                                        loading="lazy"
-                                        unoptimized
-                                      />
-                                    ) : (
-                                      <div className="w-[40px] h-[40px] rounded-full bg-sky-200 flex items-center justify-center font-bold text-sky-600 text-lg mx-auto">
-                                        {entry.member.username[0].toUpperCase()}
-                                      </div>
-                                    )}
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.player} z-10 bg-white px-4 py-4 whitespace-nowrap`}>
-                              
-                                    <div className="flex items-center gap-1">
-                                      <Link
-                                  href={`/member/profile?id=${entry.member.id}`}
-                                  className={`font-medium hover:text-sky-600 transition-colors ${
-                                  currentUser?.id === entry.member.id ?
-                                  "font-bold text-sky-600" :
-                                  ""}`
-                                  }>
-                                  
-                                        {entry.member.username}
-                                      </Link>
-                                      {entry.clean_game &&
-                                <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                                }
-                                    </div>
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.overall} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-black text-emerald-600 text-2xl md:text-3xl`}
-                              style={{ color: "#16a34a" }}>
-                              
-                                    {entry.overall_score || "-"}
-                                  </td>
-
-                                  <td
-                              className={`sticky ${STICKY_LEFT.diff} z-10 bg-white px-4 py-4 whitespace-nowrap text-center font-semibold`}>
-                              
-                                    {entry.difference > 0 ? `+${entry.difference}` : entry.difference}
-                                  </td>
-
-                                  <td className="px-3 py-4 whitespace-nowrap text-center border-l border-gray-100">
-                                    {formatScore(entry.game1_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game2_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game3_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game4_score, entry.id)}
-                                  </td>
-                                  <td className="px-3 py-4 whitespace-nowrap text-center">
-                                    {formatScore(entry.game5_score, entry.id)}
-                                  </td>
-
-                                  <td className="px-3 py-2.5 text-sm font-semibold text-center text-sky-700 hover:bg-sky-50 transition-colors">
-                                    {entry.handicap || "-"}
-                                  </td>
-                                  <td className="px-3 py-2.5 text-center">
-                                    <button
-                                onClick={(e) => handleReaction(entry.id, e)}
-                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                className="inline-flex items-center gap-1.5 hover:scale-110 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-                                
-                                      <span className="text-2xl">{entry.likes_count > 0 ? '👍' : '👍'}</span>
-                                      <span className="text-sm font-medium">{entry.likes_count || 0}</span>
-                                    </button>
-                                  </td>
-                                </tr>
-                          )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </>
-                }
-                </CardContent>
-              </Card>
-            }
-          </main>
-        </div>
-
-        {cleanGameDialogOpen &&
-        <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-xl">
-                  <Sparkles className="w-6 h-6 text-yellow-500" />
-                  Clean Game {selectedGameForCleanGame} Winners
-                </DialogTitle>
-              </DialogHeader>
-
-              {loadingCleanGame ?
-            <div className="flex flex-col items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-sky-600 mb-2" />
-                  <p className="text-sm text-sky-600">Menyemak pemenang...</p>
-                </div> :
-            cleanGameWinners.length === 0 ?
-            <div className="text-center py-8">
-                  <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-600 font-medium text-lg">Tiada pemenang Clean Game</p>
-                </div> :
-
-            <div className="space-y-3">
-                  <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-amber-900 mb-1">
-                      Jumlah Hadiah: <span className="font-bold">RM{(leaderboard.filter((p) => p.clean_game).length * 2).toFixed(2)}</span>
-                    </p>
-                    <p className="text-xs text-amber-700">
-                      {cleanGameWinners.length} pemenang • RM{cleanGameWinners[0]?.prize.toFixed(2)} setiap orang
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    {cleanGameWinners.map((winner, idx) =>
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="flex items-center justify-between p-3 bg-white border border-yellow-200 rounded-lg hover:shadow-md transition-shadow">
-                  
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
-                            {idx + 1}
+              {/* Desktop View */}
+              <div className="hidden md:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1200px]">
+                    <thead>
+                      <tr className="border-b border-sky-200">
+                        <th
+                          className={`sticky ${STICKY_LEFT.rank} z-20 bg-white px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
+                          onClick={() => handleSort("rank")}>
+                          
+                          <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                            #
+                            {getSortIcon("rank")}
                           </div>
-                          <span className="font-semibold text-gray-900">{winner.member_name}</span>
-                        </div>
-                        <span className="font-bold text-green-600">RM{winner.prize.toFixed(2)}</span>
-                      </motion.div>
-                )}
-                  </div>
-                </div>
-            }
-            </DialogContent>
-          </Dialog>
-        }
+                        </th>
 
-        {/* Floating Reaction Hearts */}
-        {reactions.map((reaction) =>
+                        <th
+                          className={`sticky ${STICKY_LEFT.avatar} z-20 bg-white w-14 px-2 py-3 text-center`}>
+                          
+                          <span className="text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                            Avatar
+                          </span>
+                        </th>
+
+                        <th
+                          className={`sticky ${STICKY_LEFT.player} z-20 bg-white min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-50 transition-colors`}
+                          onClick={() => handleSort("username")}>
+                          
+                          <div className="flex items-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                            Player
+                            {getSortIcon("username")}
+                          </div>
+                        </th>
+
+                        <th
+                          className={`sticky ${STICKY_LEFT.overall} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
+                          onClick={() => handleSort("overall_score")}>
+                          
+                          <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                            Overall
+                            {getSortIcon("overall_score")}
+                          </div>
+                        </th>
+
+                        <th
+                          className={`sticky ${STICKY_LEFT.diff} z-20 bg-white px-4 py-3 text-center cursor-pointer hover:bg-sky-50 transition-colors`}
+                          onClick={() => handleSort("difference")}>
+                          
+                          <div className="flex items-center justify-center text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                            Diff
+                            {getSortIcon("difference")}
+                          </div>
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
+                          
+                          Game 1
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-600 to-blue-700 text-white z-10 border-l-2 border-white/20">
+                          
+                          Game 2
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-700 to-blue-800 text-white z-10 border-l-2 border-white/20">
+                          
+                          Game 3
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-800 to-blue-900 text-white z-10 border-l-2 border-white/20">
+                          
+                          Game 4
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-left text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-sky-500 to-blue-600 text-white z-10 border-l-2 border-white/20">
+                          
+                          Game 5
+                        </th>
+
+                        <th
+                          className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10">
+                          
+                          <Heart className="w-4 h-4 mx-auto" />
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {loadingLeaderboard ?
+                <div className="flex justify-center items-center py-20">
+                      <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                      <span className="ml-3 text-sky-600">Memuatkan skor...</span>
+                    </div> :
+                filteredLeaderboard.length === 0 ?
+                <div className="text-center py-20 text-sky-500">
+                      <Trophy className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p>Tiada skor dijumpai untuk kriteria carian</p>
+                    </div> :
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+
+      {/* Floating Reaction Hearts */}
+      {reactions.map((reaction) =>
         <div
           key={reaction.id}
           className="heart-pop fixed pointer-events-none z-50 text-6xl"
@@ -1449,12 +1296,12 @@ export default function BlokPage() {
             top: `${reaction.y}px`
           }}>
           
-            👍
-          </div>
-        )}
+          👍
+        </div>
+      )}
 
-        {/* Particle Effects */}
-        {particles.map((particle) =>
+      {/* Particle Effects */}
+      {particles.map((particle) =>
         <div
           key={particle.id}
           className="fixed pointer-events-none z-50"
@@ -1464,45 +1311,44 @@ export default function BlokPage() {
             animation: `particle-${Math.floor(Math.random() * 8)} 1s ease-out forwards`
           }}>
           
-            <span className="text-2xl">👍</span>
-          </div>
-        )}
+          <span className="text-2xl">👍</span>
+        </div>
+      )}
 
-        <style>{`
-          @keyframes particle-0 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-1 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-2 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-3 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-4 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-5 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-6 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
-          }
-          @keyframes particle-7 { 
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
-          }
-        `}</style>
-      </>
+      <style>{`
+        @keyframes particle-0 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-30px, -50px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-1 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(30px, -50px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-2 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-40px, -30px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-3 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(40px, -30px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-4 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-20px, -60px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-5 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(20px, -60px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-6 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(-50px, -40px) scale(0); opacity: 0; }
+        }
+        @keyframes particle-7 { 
+          0% { transform: translate(0, 0) scale(1); opacity: 1; }
+          100% { transform: translate(50px, -40px) scale(0); opacity: 0; }
+        }
+      `}</style>
     </MemberLayout>);
 
 }
