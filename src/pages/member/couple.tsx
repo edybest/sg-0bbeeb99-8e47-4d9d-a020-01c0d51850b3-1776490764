@@ -51,6 +51,8 @@ export default function CouplePage() {
 
   const prevLeaderboardRef = useRef<CoupleLeaderboardEntry[]>([]);
 
+  const currentGame = useMemo(() => games.find(g => g.id === selectedGameId), [games, selectedGameId]);
+
   useEffect(() => {
     loadGames();
   }, []);
