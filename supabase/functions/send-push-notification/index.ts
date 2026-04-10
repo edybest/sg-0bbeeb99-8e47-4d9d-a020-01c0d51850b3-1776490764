@@ -25,40 +25,79 @@ interface PushSubscription {
 }
 
 serve(async (req) => {
+  console.log("🚀 Edge Function triggered:", new Date().toISOString());
+  
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
+    console.log("✅ CORS preflight request");
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    console.log("📝 Request method:", req.method);
+    
     // Verify authentication
     const authHeader = req.headers.get("Authorization");
+    console.log("🔐 Auth header present:", !!authHeader);
+    
     if (!authHeader) {
+      console.error("❌ Missing authorization header");
       throw new Error("Missing authorization header");
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Check environment variables
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    console.log("🔧 Environment check:", {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseKey,
+    });
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("❌ Missing Supabase environment variables");
+      throw new Error("Server configuration error");
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify JWT and check if admin
     const jwt = authHeader.replace("Bearer ", "");
+    console.log("🔍 Verifying user JWT...");
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
     
-    if (authError || !user) {
+    if (authError) {
+      console.error("❌ Auth error:", authError);
+      throw new Error(`Authentication failed: ${authError.message}`);
+    }
+    
+    if (!user) {
+      console.error("❌ No user found");
       throw new Error("Invalid authentication");
     }
 
+    console.log("✅ User authenticated:", user.id);
+
     // Check if user is admin
+    console.log("👤 Checking admin status...");
     const { data: member, error: memberError } = await supabase
       .from("members")
       .select("is_admin")
       .eq("user_id", user.id)
       .single();
 
-    if (memberError || !member?.is_admin) {
+    if (memberError) {
+      console.error("❌ Member query error:", memberError);
+      throw new Error(`Failed to verify admin status: ${memberError.message}`);
+    }
+    
+    if (!member?.is_admin) {
+      console.error("❌ User is not admin");
       throw new Error("Unauthorized - Admin access required");
     }
+
+    console.log("✅ Admin verified");
 
     // Parse request body
     const payload: NotificationPayload = await req.json();
@@ -121,12 +160,28 @@ serve(async (req) => {
     }
 
     // Get VAPID keys from environment
+    console.log("🔑 Checking VAPID keys...");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
+    console.log("🔑 VAPID keys status:", {
+      hasPublicKey: !!vapidPublicKey,
+      hasPrivateKey: !!vapidPrivateKey,
+      publicKeyLength: vapidPublicKey?.length || 0,
+      privateKeyLength: vapidPrivateKey?.length || 0,
+    });
+
     if (!vapidPublicKey || !vapidPrivateKey) {
-      throw new Error("VAPID keys not configured");
+      console.error("❌ VAPID keys missing!");
+      throw new Error("VAPID keys not configured. Please add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Supabase secrets.");
     }
+
+    if (vapidPublicKey.length < 80 || vapidPrivateKey.length < 40) {
+      console.error("❌ VAPID keys seem invalid (too short)");
+      throw new Error("VAPID keys appear to be invalid. Please regenerate and update in Supabase secrets.");
+    }
+
+    console.log("✅ VAPID keys validated");
 
     // Send push notifications
     let successCount = 0;
@@ -194,14 +249,20 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("💥 Edge Function Error:", error);
+    console.error("💥 Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const statusCode = errorMessage.includes("authentication") || errorMessage.includes("Unauthorized") ? 401 : 400;
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
+        timestamp: new Date().toISOString(),
       }),
       {
-        status: 400,
+        status: statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
