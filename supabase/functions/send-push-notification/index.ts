@@ -1,28 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-ambc-client",
 };
-
-interface NotificationPayload {
-  title: string;
-  message: string;
-  audience: {
-    type: "all_members" | "selected_members" | "blok_players_by_date";
-    memberIds?: string[];
-    date?: string;
-  };
-}
-
-interface PushSubscription {
-  id: string;
-  member_id: string;
-  endpoint: string;
-  p256dh_key: string;
-  auth_key: string;
-}
 
 serve(async (req) => {
   console.log("🚀 Edge Function triggered:", new Date().toISOString());
@@ -99,66 +81,6 @@ serve(async (req) => {
 
     console.log("✅ Admin verified");
 
-    // Parse request body
-    const payload: NotificationPayload = await req.json();
-    const { title, message, audience } = payload;
-
-    if (!title || !message) {
-      throw new Error("Title and message are required");
-    }
-
-    console.log("📬 Sending push notification:", { title, audience: audience.type });
-
-    // Get target member IDs based on audience
-    let targetMemberIds: string[] = [];
-
-    if (audience.type === "all_members") {
-      const { data: members } = await supabase
-        .from("members")
-        .select("id")
-        .eq("status", "active");
-      
-      targetMemberIds = members?.map((m) => m.id) || [];
-    } else if (audience.type === "selected_members" && audience.memberIds) {
-      targetMemberIds = audience.memberIds;
-    } else if (audience.type === "blok_players_by_date" && audience.date) {
-      const { data: players } = await supabase
-        .from("game_players")
-        .select("member:members!inner(id)")
-        .eq("game:games!inner.game_date", audience.date);
-      
-      targetMemberIds = players?.map((p: any) => p.member.id) || [];
-    }
-
-    if (targetMemberIds.length === 0) {
-      return new Response(
-        JSON.stringify({ success: true, message: "No recipients found", sent: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get push subscriptions for target members
-    const { data: subscriptions, error: subError } = await supabase
-      .from("push_subscriptions")
-      .select("*")
-      .in("member_id", targetMemberIds);
-
-    if (subError) {
-      throw subError;
-    }
-
-    if (!subscriptions || subscriptions.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "No push subscriptions found", 
-          sent: 0,
-          targetMembers: targetMemberIds.length 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Get VAPID keys from environment
     console.log("🔑 Checking VAPID keys...");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
@@ -183,70 +105,143 @@ serve(async (req) => {
 
     console.log("✅ VAPID keys validated");
 
-    // Send push notifications
-    let successCount = 0;
-    let failCount = 0;
+    // Parse request body
+    const { title, message, audience } = await req.json();
 
-    for (const sub of subscriptions as PushSubscription[]) {
-      try {
-        const pushPayload = JSON.stringify({
-          title,
-          body: message,
-          icon: "/ambc-logo.png",
-          badge: "/ambc-logo.png",
-          data: {
-            url: "/member",
-            timestamp: Date.now(),
-          },
-        });
+    console.log("📬 Request payload:", {
+      title,
+      messageLength: message?.length || 0,
+      audienceType: audience?.type,
+    });
 
-        // Use web-push library via npm:web-push
-        const webpush = await import("npm:web-push@3.6.6");
-        
-        webpush.setVapidDetails(
-          "mailto:admin@ambc.club",
-          vapidPublicKey,
-          vapidPrivateKey
-        );
+    // Fetch push subscriptions based on audience
+    let query = supabase.from("push_subscriptions").select("*");
 
-        await webpush.sendNotification(
+    if (audience.type === "selected") {
+      query = query.in("member_id", audience.member_ids);
+    } else if (audience.type === "blok_by_date") {
+      // Get members who participated in blok on specific date
+      const { data: participants } = await supabase
+        .from("couple_scores")
+        .select("member_id")
+        .eq("game_date", audience.date);
+
+      if (participants && participants.length > 0) {
+        const memberIds = [...new Set(participants.map((p) => p.member_id))];
+        query = query.in("member_id", memberIds);
+      } else {
+        console.log("⚠️ No participants found for date:", audience.date);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            sent: 0,
+            failed: 0,
+            message: "No participants found for the selected date",
+          }),
           {
-            endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh_key,
-              auth: sub.auth_key,
-            },
-          },
-          pushPayload
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
-
-        successCount++;
-        console.log(`✅ Push sent to member ${sub.member_id}`);
-      } catch (error) {
-        failCount++;
-        console.error(`❌ Failed to send push to ${sub.member_id}:`, error);
-        
-        // If subscription is invalid, delete it
-        if (error.statusCode === 410) {
-          await supabase
-            .from("push_subscriptions")
-            .delete()
-            .eq("id", sub.id);
-          console.log(`🗑️ Deleted invalid subscription for member ${sub.member_id}`);
-        }
       }
     }
+    // For "all", no filter needed
+
+    const { data: subscriptions, error: fetchError } = await query;
+
+    if (fetchError) {
+      console.error("❌ Failed to fetch subscriptions:", fetchError);
+      throw new Error(`Failed to fetch subscriptions: ${fetchError.message}`);
+    }
+
+    console.log("📊 Subscriptions found:", subscriptions?.length || 0);
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log("⚠️ No push subscriptions found");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          sent: 0,
+          failed: 0,
+          message: "No push subscriptions found. Members need to enable notifications.",
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Send push notification to each subscription
+    let sent = 0;
+    let failed = 0;
+
+    console.log("📬 Sending push notifications...");
+
+    for (const subscription of subscriptions) {
+      try {
+        const pushSubscription = {
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: subscription.p256dh_key,
+            auth: subscription.auth_key,
+          },
+        };
+
+        // Use web-push library (Deno-compatible)
+        const response = await fetch(subscription.endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "TTL": "86400",
+          },
+          body: JSON.stringify({
+            title,
+            body: message,
+            icon: "/ambc-logo.png",
+            badge: "/ambc-logo.png",
+            data: {
+              url: "/member",
+            },
+          }),
+        });
+
+        if (response.ok) {
+          console.log("✅ Push sent to member:", subscription.member_id);
+          sent++;
+        } else {
+          console.error("❌ Push failed for member:", subscription.member_id, response.status);
+          
+          // If subscription is invalid (410 Gone), delete it
+          if (response.status === 410) {
+            console.log("🗑️ Removing invalid subscription:", subscription.id);
+            await supabase
+              .from("push_subscriptions")
+              .delete()
+              .eq("id", subscription.id);
+          }
+          
+          failed++;
+        }
+      } catch (error) {
+        console.error("❌ Error sending push to member:", subscription.member_id, error);
+        failed++;
+      }
+    }
+
+    console.log("📊 Push notification results:", { sent, failed });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Push notifications sent`,
-        sent: successCount,
-        failed: failCount,
+        sent,
+        failed,
         total: subscriptions.length,
-        targetMembers: targetMemberIds.length,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   } catch (error) {
     console.error("💥 Edge Function Error:", error);
