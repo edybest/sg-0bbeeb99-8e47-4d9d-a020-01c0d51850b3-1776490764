@@ -9,23 +9,21 @@ const corsHeaders = {
 serve(async (req) => {
   console.log("🚀 Edge Function triggered:", new Date().toISOString());
   console.log("🌐 Request URL:", req.url);
-  console.log("📋 Request headers:", Object.fromEntries(req.headers.entries()));
   
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    console.log("✅ CORS preflight request - returning OK");
+    console.log("✅ CORS preflight request");
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Wrap entire function in try-catch for safety
-  let requestBody;
   try {
     console.log("📝 Request method:", req.method);
     
     // Parse request body
+    let requestBody;
     try {
       requestBody = await req.json();
-      console.log("📦 Request body:", requestBody);
+      console.log("📦 Request body received");
     } catch (parseError) {
       console.error("❌ Failed to parse request body:", parseError);
       throw new Error("Invalid request body format");
@@ -102,7 +100,7 @@ serve(async (req) => {
       throw new Error("Title and message are required");
     }
 
-    console.log("📬 Sending notification:", { title, message, audienceType: audience?.type });
+    console.log("📬 Sending notification:", { title, audienceType: audience?.type });
 
     // Get VAPID keys from environment
     console.log("🔑 Checking VAPID keys...");
@@ -204,7 +202,18 @@ serve(async (req) => {
           console.log(`✅ Push sent to member: ${sub.member_id}`);
           sent++;
         } else {
-          console.error(`❌ Push failed for member ${sub.member_id}:`, await response.text());
+          const errorText = await response.text();
+          console.error(`❌ Push failed for member ${sub.member_id}:`, errorText);
+          
+          // If subscription is invalid, delete it
+          if (response.status === 410 || errorText.includes("unregistered")) {
+            console.log(`🗑️ Deleting invalid subscription for member ${sub.member_id}`);
+            await supabase
+              .from("push_subscriptions")
+              .delete()
+              .eq("id", sub.id);
+          }
+          
           failed++;
         }
       } catch (pushError) {
@@ -229,7 +238,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("💥 CRITICAL: Edge Function Error:", error);
+    console.error("💥 Edge Function Error:", error);
     console.error("💥 Error type:", error?.constructor?.name);
     console.error("💥 Error message:", error instanceof Error ? error.message : String(error));
     console.error("💥 Error stack:", error instanceof Error ? error.stack : "No stack trace");
@@ -239,7 +248,6 @@ serve(async (req) => {
                        errorMessage.includes("VAPID") ? 500 :
                        errorMessage.includes("Invalid request") ? 400 : 500;
     
-    // Always return a valid response, even on error
     return new Response(
       JSON.stringify({
         success: false,
@@ -250,20 +258,6 @@ serve(async (req) => {
       }),
       {
         status: statusCode,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  } catch (criticalError) {
-    // Final fallback if even error handling fails
-    console.error("💀 CRITICAL FAILURE:", criticalError);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "Critical server error",
-        timestamp: new Date().toISOString(),
-      }),
-      {
-        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
