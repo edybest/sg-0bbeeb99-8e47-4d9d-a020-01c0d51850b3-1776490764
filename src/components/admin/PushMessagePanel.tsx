@@ -87,27 +87,57 @@ export function PushMessagePanel() {
       const audience = buildAudience();
 
       // 1. Save in-app notification
+      console.log("📨 Creating in-app notification...");
       await notificationService.createNotification({ title, message, audience });
+      console.log("✅ In-app notification created");
 
       // 2. Send actual push notifications via Edge Function
-      const { data: session } = await supabase.auth.getSession();
-      if (session.session) {
-        const response = await supabase.functions.invoke("send-push-notification", {
-          body: { title, message, audience },
+      console.log("🔐 Checking session...");
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("❌ Session error:", sessionError);
+        toast({
+          title: "⚠️ Amaran",
+          description: `In-app notification berjaya, tetapi push notification gagal: ${sessionError.message}`,
         });
+      } else if (!sessionData?.session) {
+        console.error("❌ No active session");
+        toast({
+          title: "⚠️ Amaran",
+          description: "In-app notification berjaya, tetapi push notification memerlukan login semula.",
+        });
+      } else {
+        console.log("✅ Session active, invoking Edge Function...");
+        
+        try {
+          const response = await supabase.functions.invoke("send-push-notification", {
+            body: { title, message, audience },
+          });
 
-        if (response.error) {
-          console.error("Push notification error:", response.error);
+          console.log("📬 Edge Function response:", response);
+
+          if (response.error) {
+            console.error("❌ Push notification error:", response.error);
+            toast({
+              title: "⚠️ Sebahagian Berjaya",
+              description: `In-app notification berjaya. Push notification error: ${response.error.message}`,
+              variant: "destructive",
+            });
+          } else {
+            const result = response.data;
+            console.log("✅ Push sent:", result);
+            toast({
+              title: "✅ Berjaya",
+              description: `Notification dihantar: ${result.sent} berjaya, ${result.failed} gagal`,
+            });
+          }
+        } catch (invokeError) {
+          console.error("❌ Function invoke error:", invokeError);
           toast({
             title: "⚠️ Sebahagian Berjaya",
-            description: `In-app notification berjaya, tetapi push notification gagal: ${response.error.message}`,
+            description: `In-app notification berjaya. Push notification: ${invokeError instanceof Error ? invokeError.message : "Network error"}`,
             variant: "destructive",
-          });
-        } else {
-          const result = response.data;
-          toast({
-            title: "✅ Berjaya",
-            description: `Push notification dihantar kepada ${result.sent} ahli (${result.failed} gagal)`,
           });
         }
       }
