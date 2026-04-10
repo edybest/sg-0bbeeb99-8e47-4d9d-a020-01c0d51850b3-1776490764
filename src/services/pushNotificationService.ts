@@ -1,11 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import { VAPID_PUBLIC_KEY } from "@/config/vapid";
 
 /**
  * Push Notification Service
  * Handles Web Push notification subscriptions and management
  */
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
 interface PushSubscriptionData {
   endpoint: string;
