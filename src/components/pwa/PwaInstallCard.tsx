@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Info, X } from "lucide-react";
+import { Download, Info, X, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { pushNotificationService } from "@/services/pushNotificationService";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -27,8 +30,13 @@ function isInStandaloneMode() {
 export function PwaInstallCard({ className }: { className?: string }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
-  const [dismissed, setDismissed] = useState(true); // Default hide until we check client-side
+  const [dismissed, setDismissed] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
+  const { member } = useAuth();
+  const { toast } = useToast();
 
   const ios = useMemo(() => (mounted ? isIos() : false), [mounted]);
   const standalone = useMemo(() => (mounted ? isInStandaloneMode() : false), [mounted]);
@@ -73,13 +81,46 @@ export function PwaInstallCard({ className }: { className?: string }) {
     try {
       setInstalling(true);
       await deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
+      const choice = await deferredPrompt.userChoice;
       setDeferredPrompt(null);
-      handleDismiss(); // Sembunyikan selepas proses install
+      
+      if (choice.outcome === "accepted") {
+        // PWA installed successfully, show notification prompt
+        setTimeout(() => {
+          if (pushNotificationService.isSupported() && member?.id) {
+            setShowNotificationPrompt(true);
+          }
+        }, 2000);
+      }
+      
+      handleDismiss();
     } catch (err) {
       console.error("PWA Install Error:", err);
     } finally {
       setInstalling(false);
+    }
+  }
+
+  async function handleEnableNotifications() {
+    if (!member?.id) return;
+    
+    setSubscribing(true);
+    try {
+      await pushNotificationService.subscribe(member.id);
+      toast({
+        title: "✅ Berjaya",
+        description: "Push notifications telah diaktifkan!",
+      });
+      setShowNotificationPrompt(false);
+    } catch (error) {
+      console.error("Notification subscription error:", error);
+      toast({
+        title: "❌ Ralat",
+        description: error instanceof Error ? error.message : "Gagal mengaktifkan notifications",
+        variant: "destructive",
+      });
+    } finally {
+      setSubscribing(false);
     }
   }
 
@@ -151,6 +192,74 @@ export function PwaInstallCard({ className }: { className?: string }) {
                 onClick={handleDismiss}
               >
                 Nanti Dulu (Sembunyi 24 Jam)
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Notification Permission Prompt */}
+      {showNotificationPrompt && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className={`fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[60] ${className || ""}`}
+        >
+          <Card className="shadow-2xl border-orange-200 bg-white/95 backdrop-blur-md overflow-hidden">
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3 bg-orange-50/50">
+              <div className="space-y-1">
+                <CardTitle className="text-base text-orange-800 flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  Aktifkan Notifications
+                </CardTitle>
+                <p className="text-xs text-slate-500">
+                  Terima notifikasi walaupun app ditutup.
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 rounded-full -mt-1 -mr-1 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                onClick={() => setShowNotificationPrompt(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-3">
+              <div className="rounded-lg border border-orange-100 bg-orange-50/50 p-3 text-sm">
+                <p className="text-orange-800 text-xs">
+                  <strong>✨ Manfaat:</strong>
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-orange-700/80">
+                  <li>• Dapat notifikasi pengumuman AMBC</li>
+                  <li>• Alert untuk blok/game baru</li>
+                  <li>• Update keputusan secara real-time</li>
+                </ul>
+              </div>
+
+              <Button 
+                onClick={handleEnableNotifications}
+                disabled={subscribing}
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-md"
+              >
+                {subscribing ? (
+                  "Mengaktifkan..."
+                ) : (
+                  <>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Aktifkan Sekarang
+                  </>
+                )}
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                className="w-full text-xs text-slate-400 hover:text-slate-600" 
+                onClick={() => setShowNotificationPrompt(false)}
+              >
+                Nanti Dulu
               </Button>
             </CardContent>
           </Card>

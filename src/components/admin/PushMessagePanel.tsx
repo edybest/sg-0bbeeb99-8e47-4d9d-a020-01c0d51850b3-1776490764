@@ -75,9 +75,33 @@ export function PushMessagePanel() {
       }
 
       const audience = buildAudience();
+
+      // 1. Save in-app notification
       await notificationService.createNotification({ title, message, audience });
 
-      toast({ title: "✅ Berjaya", description: "Message telah dihantar (in-app)" });
+      // 2. Send actual push notifications via Edge Function
+      const { data: session } = await supabase.auth.getSession();
+      if (session.session) {
+        const response = await supabase.functions.invoke("send-push-notification", {
+          body: { title, message, audience },
+        });
+
+        if (response.error) {
+          console.error("Push notification error:", response.error);
+          toast({
+            title: "⚠️ Sebahagian Berjaya",
+            description: `In-app notification berjaya, tetapi push notification gagal: ${response.error.message}`,
+            variant: "destructive",
+          });
+        } else {
+          const result = response.data;
+          toast({
+            title: "✅ Berjaya",
+            description: `Push notification dihantar kepada ${result.sent} ahli (${result.failed} gagal)`,
+          });
+        }
+      }
+
       setMessage("");
       setSelected([]);
       setBlokDate("");
