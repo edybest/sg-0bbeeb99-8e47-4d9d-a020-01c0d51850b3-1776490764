@@ -70,14 +70,15 @@ export const authService = {
         return null;
       }
 
-      // Auto-refresh if session is close to expiry (within 1 hour)
+      // Auto-refresh if session is close to expiry (within 6 hours)
+      // This ensures session always stays fresh
       if (session.expires_at) {
         const expiresAt = new Date(session.expires_at * 1000);
         const now = new Date();
-        const oneHour = 60 * 60 * 1000;
+        const sixHours = 6 * 60 * 60 * 1000;
         
-        if (expiresAt.getTime() - now.getTime() < oneHour) {
-          console.log("Session close to expiry, refreshing...");
+        if (expiresAt.getTime() - now.getTime() < sixHours) {
+          console.log("Session will expire soon, refreshing preemptively...");
           await authService.refreshSession();
         }
       }

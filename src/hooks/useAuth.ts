@@ -16,7 +16,7 @@ interface CachedSession {
 }
 
 const SESSION_CACHE_KEY = "ambc_session_cache";
-const CACHE_DURATION = 86400000; // 24 hours
+const CACHE_DURATION = 31536000000; // 1 year (365 days)
 
 /* ================================
    Cache Helpers
@@ -288,14 +288,25 @@ export function useAuth(
                 loading: false,
             });
 
+            // Delay validation to improve perceived performance
+            // Only revalidate after 5 seconds (user already sees content)
             setTimeout(() => {
                 if (mountedRef.current) {
+                    console.log("📋 Validating cached session in background...");
                     checkAuth();
                 }
-            }, 100);
+            }, 5000);
         } else {
             checkAuth();
         }
+
+        // Periodic session refresh - check every 30 minutes
+        const refreshInterval = setInterval(() => {
+            if (mountedRef.current && isAuthenticated) {
+                console.log("⏰ Periodic session check...");
+                checkAuth();
+            }
+        }, 30 * 60 * 1000); // Every 30 minutes
 
         let authSubscription:
             | { subscription: { unsubscribe: () => void } }
@@ -336,6 +347,8 @@ export function useAuth(
 
         return () => {
             mountedRef.current = false;
+
+            clearInterval(refreshInterval);
 
             if (authSubscription) {
                 authSubscription.subscription.unsubscribe();

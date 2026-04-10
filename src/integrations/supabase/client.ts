@@ -15,14 +15,14 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    // Keep user logged in for 1 year (31536000 seconds)
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'ambc-auth-token',
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    // Set session expiry to 1 year
     flowType: 'pkce',
+    // Debug mode to see token refresh activity
+    debug: process.env.NODE_ENV === 'development',
   },
   db: {
     schema: 'public',
