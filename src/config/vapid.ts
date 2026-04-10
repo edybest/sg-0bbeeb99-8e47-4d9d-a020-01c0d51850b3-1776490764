@@ -7,7 +7,7 @@
  * 3. Replace the PUBLIC_KEY below with your generated public key
  */
 
-export const VAPID_PUBLIC_KEY = "REPLACE_WITH_YOUR_VAPID_PUBLIC_KEY";
+export const VAPID_PUBLIC_KEY = "BHgPq_heldkFm81B0FbFJXx_7H21KphOFP0EID6l9WzmulqeQL09jynTk5O4lv5b6LnbchSEEN3rNqpxwun4MLw";
 
 /**
  * IMPORTANT: Never commit your private key to code!
