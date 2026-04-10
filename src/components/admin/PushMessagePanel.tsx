@@ -109,34 +109,62 @@ export function PushMessagePanel() {
         });
       } else {
         console.log("✅ Session active, invoking Edge Function...");
+        console.log("📤 Request payload:", { title, message, audience });
         
         try {
           const response = await supabase.functions.invoke("send-push-notification", {
             body: { title, message, audience },
           });
 
-          console.log("📬 Edge Function response:", response);
+          console.log("📬 Edge Function full response:", JSON.stringify(response, null, 2));
+          console.log("📬 Response error:", response.error);
+          console.log("📬 Response data:", response.data);
 
           if (response.error) {
-            console.error("❌ Push notification error:", response.error);
+            console.error("❌ Push notification error details:", {
+              name: response.error.name,
+              message: response.error.message,
+              context: response.error.context,
+            });
+            
+            // More specific error messages
+            let errorMsg = response.error.message;
+            if (errorMsg.includes("VAPID")) {
+              errorMsg = "VAPID keys belum di-set dalam Supabase Secrets. Sila setup VAPID_PRIVATE_KEY.";
+            } else if (errorMsg.includes("fetch")) {
+              errorMsg = "Tidak dapat connect ke Edge Function. Check Supabase Edge Function status.";
+            } else if (errorMsg.includes("timeout")) {
+              errorMsg = "Request timeout. Cuba lagi.";
+            }
+            
             toast({
               title: "⚠️ Sebahagian Berjaya",
-              description: `In-app notification berjaya. Push notification error: ${response.error.message}`,
+              description: `In-app notification berjaya. Push: ${errorMsg}`,
+              variant: "destructive",
+            });
+          } else if (!response.data) {
+            console.error("❌ No response data received");
+            toast({
+              title: "⚠️ Sebahagian Berjaya", 
+              description: "In-app notification berjaya. Push notification: No response from server.",
               variant: "destructive",
             });
           } else {
             const result = response.data;
-            console.log("✅ Push sent:", result);
+            console.log("✅ Push sent successfully:", result);
             toast({
               title: "✅ Berjaya",
-              description: `Notification dihantar: ${result.sent} berjaya, ${result.failed} gagal`,
+              description: `Notification dihantar: ${result.sent || 0} berjaya, ${result.failed || 0} gagal`,
             });
           }
         } catch (invokeError) {
-          console.error("❌ Function invoke error:", invokeError);
+          console.error("❌ Function invoke exception:", invokeError);
+          console.error("❌ Exception type:", invokeError?.constructor?.name);
+          console.error("❌ Exception details:", JSON.stringify(invokeError, Object.getOwnPropertyNames(invokeError)));
+          
           toast({
             title: "⚠️ Sebahagian Berjaya",
-            description: `In-app notification berjaya. Push notification: ${invokeError instanceof Error ? invokeError.message : "Network error"}`,
+            description: `In-app notification berjaya. Push: ${invokeError instanceof Error ? invokeError.message : "Unknown error"}. Check console for details.`,
             variant: "destructive",
           });
         }
