@@ -1750,19 +1750,20 @@ export type Database = {
     }
     Functions: {
       add_player_reaction: {
-        Args: { p_game_id: string; p_member_id: string; p_player_id: string }
-        Returns: boolean
-      }
-      admin_delete_game_comment: {
-        Args: { admin_member_id: string; comment_id: string }
+        Args: {
+          p_game_id: string
+          p_member_id: string
+          p_player_id: string
+          p_type: string
+        }
         Returns: undefined
       }
-      cleanup_stale_viewers: { Args: never; Returns: undefined }
       current_member_id: { Args: never; Returns: string }
       generate_mini_blok_share: {
         Args: { p_mini_blok_id: string }
         Returns: string
       }
+      get_current_member_id: { Args: never; Returns: string }
       get_member_chat_rooms: {
         Args: { p_member_id: string }
         Returns: {
@@ -1777,6 +1778,7 @@ export type Database = {
         }[]
       }
       get_member_id_from_auth: { Args: never; Returns: string }
+      get_member_id_from_user: { Args: never; Returns: string }
       get_mini_blok_shared: {
         Args: { p_token: string }
         Returns: {
@@ -1802,20 +1804,25 @@ export type Database = {
         }[]
       }
       increment_game_player_reaction: {
-        Args: { p_id: string; p_type: string }
+        Args: { p_game_id: string; p_reaction_type: string }
         Returns: undefined
       }
       is_admin: { Args: { user_uuid: string }; Returns: boolean }
       is_admin_user: { Args: never; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
-      submit_player_reaction: {
-        Args: {
-          p_reaction_type: string
-          p_target_player_id: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
+      submit_player_reaction:
+        | {
+            Args: { p_game_id: string; p_reaction_type: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_reaction_type: string
+              p_target_player_id: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
     }
     Enums: {
       [_ in never]: never

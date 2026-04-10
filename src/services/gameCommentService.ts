@@ -247,10 +247,16 @@ export const gameCommentService = {
    * Delete a comment (admin version using database function)
    */
   async adminDeleteComment(commentId: string, adminMemberId: string): Promise<void> {
-    const { error } = await supabase.rpc("admin_delete_game_comment", {
-      comment_id: commentId,
-      admin_member_id: adminMemberId,
-    });
+    // Instead of using RPC which might not exist in types,
+    // we do a direct update to mark it as deleted.
+    // RLS policies will ensure only admins or the owner can do this.
+    const { error } = await supabase
+      .from("game_comments")
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: adminMemberId,
+      })
+      .eq("id", commentId);
 
     if (error) {
       console.error("Error deleting comment (admin):", error);

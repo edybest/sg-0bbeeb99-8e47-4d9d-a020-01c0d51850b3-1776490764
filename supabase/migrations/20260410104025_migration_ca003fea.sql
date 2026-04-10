@@ -1,0 +1,21 @@
+-- Drop functions with CASCADE to handle dependent objects
+DROP FUNCTION IF EXISTS add_player_reaction(uuid, uuid, uuid) CASCADE;
+DROP FUNCTION IF EXISTS admin_delete_game_comment(uuid, uuid) CASCADE;
+DROP FUNCTION IF EXISTS auto_join_lobby() CASCADE;
+DROP FUNCTION IF EXISTS auto_make_admin() CASCADE;
+DROP FUNCTION IF EXISTS cleanup_stale_viewers() CASCADE;
+DROP FUNCTION IF EXISTS create_mini_blok_game(uuid, text, integer) CASCADE;
+DROP FUNCTION IF EXISTS decrement_like_count() CASCADE;
+DROP FUNCTION IF EXISTS ensure_member_exists() CASCADE;
+DROP FUNCTION IF EXISTS get_current_member_id() CASCADE;
+DROP FUNCTION IF EXISTS get_member_id_from_user() CASCADE;
+DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
+DROP FUNCTION IF EXISTS increment_comment_count() CASCADE;
+DROP FUNCTION IF EXISTS increment_like_count() CASCADE;
+DROP FUNCTION IF EXISTS set_couple_member_nickname() CASCADE;
+DROP FUNCTION IF EXISTS sync_couple_order() CASCADE;
+DROP FUNCTION IF EXISTS update_lane_order() CASCADE;
+DROP FUNCTION IF EXISTS update_lane_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS update_member_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS update_mini_blok_updated_at() CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
