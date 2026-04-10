@@ -204,13 +204,16 @@ export async function sendTestNotification(): Promise<void> {
   }
 
   const registration = await navigator.serviceWorker.ready;
-  await registration.showNotification("AMBC Club", {
+  // Use 'any' cast because TS DOM lib might not include 'vibrate' in NotificationOptions
+  const options: any = {
     body: "Push notifications berfungsi dengan baik! ✅",
     icon: "/ambc-logo.png",
     badge: "/ambc-logo.png",
     vibrate: [200, 100, 200],
     tag: "test-notification",
-  });
+  };
+
+  await registration.showNotification("AMBC Club", options);
 }
 
 export const pushNotificationService = {
