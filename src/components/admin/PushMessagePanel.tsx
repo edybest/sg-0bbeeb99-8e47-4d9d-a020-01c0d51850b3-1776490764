@@ -30,6 +30,7 @@ export function PushMessagePanel() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [blokDate, setBlokDate] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function loadMembers() {
@@ -38,6 +39,15 @@ export function PushMessagePanel() {
     }
     void loadMembers();
   }, []);
+
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm.trim()) return members;
+    const term = searchTerm.toLowerCase();
+    return members.filter((m) => {
+      const name = formatMember(m).toLowerCase();
+      return name.includes(term);
+    });
+  }, [members, searchTerm]);
 
   const selectedPreview = useMemo(() => {
     if (selected.length === 0) return "Tiada ahli dipilih";
@@ -151,34 +161,73 @@ export function PushMessagePanel() {
         </div>
 
         {mode === "selected" && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Pilih ahli</Label>
-            <div className="grid gap-2 md:grid-cols-2">
-              {members.slice(0, 50).map((m) => {
-                const isChecked = selected.includes(m.id);
-                return (
-                  <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded border p-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={(e) => {
-                        const next = e.target.checked
-                          ? Array.from(new Set([...selected, m.id]))
-                          : selected.filter((id) => id !== m.id);
-                        setSelected(next);
-                      }}
-                    />
-                    <span className="truncate">{formatMember(m)}</span>
-                  </label>
-                );
-              })}
+            
+            {/* Search Box */}
+            <Input
+              placeholder="Cari ahli... (nama/username/phone)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="mb-2"
+            />
+
+            {/* Quick Actions */}
+            <div className="flex gap-2 mb-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelected(filteredMembers.map(m => m.id))}
+                className="text-xs"
+              >
+                Pilih Semua ({filteredMembers.length})
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSelected([])}
+                className="text-xs"
+              >
+                Clear Semua
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Preview: {selectedPreview}</p>
-            {members.length > 50 && (
-              <p className="text-xs text-muted-foreground">
-                Nota: Untuk performance, list dipaparkan 50 ahli pertama. Jika nak search/filter, saya boleh tambah.
-              </p>
-            )}
+
+            {/* Member List - Show ALL filtered members */}
+            <div className="max-h-96 overflow-y-auto border rounded-lg p-3 bg-slate-50">
+              <div className="grid gap-2 md:grid-cols-2">
+                {filteredMembers.map((m) => {
+                  const isChecked = selected.includes(m.id);
+                  return (
+                    <label key={m.id} className="flex cursor-pointer items-center gap-2 rounded border p-2 text-sm bg-white hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? Array.from(new Set([...selected, m.id]))
+                            : selected.filter((id) => id !== m.id);
+                          setSelected(next);
+                        }}
+                      />
+                      <span className="truncate">{formatMember(m)}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              
+              {filteredMembers.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">
+                  Tiada ahli dijumpai untuk carian "{searchTerm}"
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Preview: {selectedPreview}</span>
+              <span>{selected.length} daripada {members.length} ahli dipilih</span>
+            </div>
           </div>
         )}
 
