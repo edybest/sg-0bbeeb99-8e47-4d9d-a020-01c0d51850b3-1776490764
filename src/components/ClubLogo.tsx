@@ -5,10 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 interface ClubLogoProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   skipFetch?: boolean;
-  className?: string;
 }
 
-export function ClubLogo({ size = "md", skipFetch = false, className = "" }: ClubLogoProps) {
+export function ClubLogo({ size = "md", skipFetch = false }: ClubLogoProps) {
   const [logoData, setLogoData] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [useFallback, setUseFallback] = useState(skipFetch);
@@ -20,8 +19,6 @@ export function ClubLogo({ size = "md", skipFetch = false, className = "" }: Clu
     lg: "h-24 w-24",
     xl: "h-32 w-32",
   };
-
-  const baseSize = className || sizeClasses[size];
 
   useEffect(() => {
     // Skip fetch if explicitly told to or if we're already using fallback
@@ -80,7 +77,7 @@ export function ClubLogo({ size = "md", skipFetch = false, className = "" }: Clu
   // Show fallback immediately if skipFetch is true or fetch failed
   if (useFallback || loading) {
     return (
-      <div className={`${baseSize} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
+      <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
         <span className="text-white font-bold text-xs">AMBC</span>
       </div>
     );
@@ -89,7 +86,7 @@ export function ClubLogo({ size = "md", skipFetch = false, className = "" }: Clu
   // Show fetched logo if available
   if (logoData) {
     return (
-      <div className={`${baseSize} relative rounded-full overflow-hidden shadow-lg`}>
+      <div className={`${sizeClasses[size]} relative rounded-full overflow-hidden shadow-lg`}>
         <Image
           src={logoData}
           alt="AMBC Club Logo"
@@ -103,7 +100,7 @@ export function ClubLogo({ size = "md", skipFetch = false, className = "" }: Clu
 
   // Final fallback
   return (
-    <div className={`${baseSize} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
+    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg`}>
       <span className="text-white font-bold text-xs">AMBC</span>
     </div>
   );
