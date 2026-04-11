@@ -72,10 +72,7 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              New member?{" "}
-              <Link href="/signup" className="text-primary hover:underline">
-                Sign up here
-              </Link>
+              Need help? Contact admin for registration.
             </p>
           </div>
         </div>

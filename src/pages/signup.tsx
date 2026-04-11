@@ -1,21 +1,24 @@
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
-import { SignupForm } from "@/components/auth/SignupForm";
 
 export default function SignupPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to login - public signup is disabled
+    void router.push("/login");
+  }, [router]);
+
   return (
     <>
       <SEO 
-        title="Sign Up - Join AMBC Club"
-        description="Join AMBC Club bowling community today! Register with your WhatsApp number and become part of Malaysia's premier bowling club. Access member benefits, events, and more."
-        keywords={[
-          "AMBC signup",
-          "join bowling club",
-          "bowling club registration",
-          "AMBC membership",
-          "bowling community Malaysia"
-        ]}
+        title="Sign Up - AMBC Club"
+        description="Sign up for AMBC Club. Contact admin for registration."
       />
-      <SignupForm />
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Redirecting to login...</p>
+      </div>
     </>
   );
 }
