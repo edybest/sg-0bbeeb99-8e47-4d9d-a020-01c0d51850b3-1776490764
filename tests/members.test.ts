@@ -32,7 +32,7 @@ describe("Members Table RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("members")
-        .select("id, name, phone_number");
+        .select("id, full_name, phone");
 
       expect(error).toBeNull();
       expect(data).toBeDefined();
@@ -44,7 +44,7 @@ describe("Members Table RLS Tests", () => {
     it("should NOT allow unauthenticated users to view members", async () => {
       const { data, error } = await supabase
         .from("members")
-        .select("id, name");
+        .select("id, full_name");
 
       expect(data).toEqual([]);
       expect(error).toBeNull(); // RLS returns empty array, not error
@@ -58,18 +58,18 @@ describe("Members Table RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("members")
-        .update({ name: "Updated Name" })
+        .update({ full_name: "Updated Name" })
         .eq("id", member!.id)
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("Updated Name");
+      expect(data?.full_name).toBe("Updated Name");
 
       // Revert change
       await supabase
         .from("members")
-        .update({ name: "Test member" })
+        .update({ full_name: "Test member" })
         .eq("id", member!.id);
 
       await signOut();
@@ -80,7 +80,7 @@ describe("Members Table RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("members")
-        .update({ name: "Hacked Name" })
+        .update({ full_name: "Hacked Name" })
         .eq("id", testData.member2Id)
         .select();
 
@@ -93,18 +93,18 @@ describe("Members Table RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("members")
-        .update({ name: "Admin Updated" })
+        .update({ full_name: "Admin Updated" })
         .eq("id", testData.memberId)
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("Admin Updated");
+      expect(data?.full_name).toBe("Admin Updated");
 
       // Revert change
       await supabase
         .from("members")
-        .update({ name: "Test member" })
+        .update({ full_name: "Test member" })
         .eq("id", testData.memberId);
 
       await signOut();
@@ -118,14 +118,15 @@ describe("Members Table RLS Tests", () => {
       const { data, error } = await supabase
         .from("members")
         .insert({
-          phone_number: "+60123456999",
-          name: "New Test Member",
+          phone: "+60123456999",
+          full_name: "New Test Member",
+          username: "newtestmember",
         })
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("New Test Member");
+      expect(data?.full_name).toBe("New Test Member");
 
       // Cleanup
       if (data) {
@@ -141,8 +142,9 @@ describe("Members Table RLS Tests", () => {
       const { data, error } = await supabase
         .from("members")
         .insert({
-          phone_number: "+60123456998",
-          name: "Unauthorized Member",
+          phone: "+60123456998",
+          full_name: "Unauthorized Member",
+          username: "unauthorized",
         })
         .select();
 
@@ -160,8 +162,9 @@ describe("Members Table RLS Tests", () => {
       const { data: newMember } = await supabase
         .from("members")
         .insert({
-          phone_number: "+60123456997",
-          name: "To Be Deleted",
+          phone: "+60123456997",
+          full_name: "To Be Deleted",
+          username: "tobedeleted",
         })
         .select()
         .single();

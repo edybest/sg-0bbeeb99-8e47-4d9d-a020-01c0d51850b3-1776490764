@@ -54,11 +54,10 @@ export async function globalSetup() {
   // Create test users if they don't exist
   for (const [role, credentials] of Object.entries(TEST_USERS)) {
     try {
-      const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(
-        credentials.email
-      );
+      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = users.find(u => u.email === credentials.email);
 
-      if (!existingUser?.user) {
+      if (!existingUser) {
         const { data, error } = await supabaseAdmin.auth.admin.createUser({
           email: credentials.email,
           password: credentials.password,
@@ -77,8 +76,8 @@ export async function globalSetup() {
             .from("members")
             .insert({
               user_id: data.user.id,
-              phone_number: credentials.phone,
-              name: `Test ${role}`,
+              phone: credentials.phone,
+              full_name: `Test ${role}`,
               is_admin: role === "admin",
             });
 
@@ -177,7 +176,8 @@ export async function createTestData() {
     .from("chat_rooms")
     .insert({
       name: "Test Room",
-      description: "Test chat room",
+      type: "group",
+      created_by: testData.adminId,
     })
     .select()
     .single();
@@ -191,7 +191,7 @@ export async function createTestData() {
   const { data: miniBlok } = await supabase
     .from("mini_blok")
     .insert({
-      name: "Test Mini Blok",
+      title: "Test Mini Blok",
       owner_id: testData.memberId,
     })
     .select()

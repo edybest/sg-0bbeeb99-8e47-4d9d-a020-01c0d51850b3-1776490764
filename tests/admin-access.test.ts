@@ -44,20 +44,20 @@ describe("Admin Access RLS Tests", () => {
           await signInAs("admin");
 
           // Prepare minimal valid data for each table
-          const testData: Record<string, any> = {
+          const mockData: Record<string, any> = {
             club_settings: { key: `test_${Date.now()}`, value: "test" },
-            comment_bans: { member_id: testData.memberId },
-            fivefive_games: { name: "Test Game" },
-            fivefive_participants: { name: "Test Participant" },
-            fivefive_prizes: { name: "Test Prize" },
-            games: { name: "Test Game" },
+            comment_bans: { member_id: testData.memberId, room_id: testData.chatRoomId },
+            fivefive_games: { name: "Test Game", date: new Date().toISOString() },
+            fivefive_participants: { member_id: testData.memberId, game_id: "00000000-0000-0000-0000-000000000000" },
+            fivefive_prizes: { game_id: "00000000-0000-0000-0000-000000000000", position: 1, amount: 100 },
+            games: { title: "Test Game", date: new Date().toISOString() },
             lane_configurations: { name: "Test Lane", lane_number: 1 },
             page_access_control: { member_id: testData.memberId, page_name: "test" },
           };
 
           const { data, error } = await supabase
             .from(tableName)
-            .insert(testData[tableName])
+            .insert(mockData[tableName])
             .select()
             .single();
 
@@ -75,20 +75,20 @@ describe("Admin Access RLS Tests", () => {
         it("should NOT allow regular members to insert", async () => {
           await signInAs("member");
 
-          const testData: Record<string, any> = {
+          const mockData: Record<string, any> = {
             club_settings: { key: `test_${Date.now()}`, value: "test" },
-            comment_bans: { member_id: testData.memberId },
-            fivefive_games: { name: "Test Game" },
-            fivefive_participants: { name: "Test Participant" },
-            fivefive_prizes: { name: "Test Prize" },
-            games: { name: "Test Game" },
+            comment_bans: { member_id: testData.memberId, room_id: testData.chatRoomId },
+            fivefive_games: { name: "Test Game", date: new Date().toISOString() },
+            fivefive_participants: { member_id: testData.memberId, game_id: "00000000-0000-0000-0000-000000000000" },
+            fivefive_prizes: { game_id: "00000000-0000-0000-0000-000000000000", position: 1, amount: 100 },
+            games: { title: "Test Game", date: new Date().toISOString() },
             lane_configurations: { name: "Test Lane", lane_number: 1 },
             page_access_control: { member_id: testData.memberId, page_name: "test" },
           };
 
           const { data, error } = await supabase
             .from(tableName)
-            .insert(testData[tableName])
+            .insert(mockData[tableName])
             .select();
 
           expect(data).toBeNull();
@@ -108,8 +108,10 @@ describe("Admin Access RLS Tests", () => {
       const { data: feedback } = await supabase
         .from("member_feedback")
         .insert({
-          feedback_text: "Test feedback",
-          rating: 5,
+          message: "Test feedback",
+          category: "general",
+          subject: "Test",
+          member_id: testData.memberId,
         })
         .select()
         .single();
@@ -118,13 +120,13 @@ describe("Admin Access RLS Tests", () => {
       await signInAs("admin");
       const { data, error } = await supabase
         .from("member_feedback")
-        .update({ feedback_text: "Admin updated feedback" })
+        .update({ message: "Admin updated feedback" })
         .eq("id", feedback!.id)
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.feedback_text).toBe("Admin updated feedback");
+      expect(data?.message).toBe("Admin updated feedback");
 
       // Cleanup
       await supabaseAdmin.from("member_feedback").delete().eq("id", feedback!.id);
@@ -163,8 +165,9 @@ describe("Admin Access RLS Tests", () => {
       const { data: couple } = await supabase
         .from("couples")
         .insert({
-          member1_id: testData.memberId,
-          member2_id: testData.member2Id,
+          player1_id: testData.memberId,
+          player2_id: testData.member2Id,
+          couple_name: "Test Couple",
         })
         .select()
         .single();
@@ -174,7 +177,7 @@ describe("Admin Access RLS Tests", () => {
       // Update it
       const { error: updateError } = await supabase
         .from("couples")
-        .update({ is_active: false })
+        .update({ couple_name: "Updated Couple" })
         .eq("id", couple!.id);
 
       expect(updateError).toBeNull();

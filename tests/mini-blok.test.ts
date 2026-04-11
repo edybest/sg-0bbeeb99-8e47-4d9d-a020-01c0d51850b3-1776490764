@@ -35,14 +35,14 @@ describe("Mini Blok RLS Tests", () => {
       const { data, error } = await supabase
         .from("mini_blok")
         .insert({
-          name: "Member's Mini Blok",
+          title: "Member's Mini Blok",
           owner_id: member!.id,
         })
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("Member's Mini Blok");
+      expect(data?.title).toBe("Member's Mini Blok");
 
       // Cleanup
       if (data) {
@@ -57,18 +57,18 @@ describe("Mini Blok RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("mini_blok")
-        .update({ name: "Updated Mini Blok" })
+        .update({ title: "Updated Mini Blok" })
         .eq("id", testData.miniBlokId)
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("Updated Mini Blok");
+      expect(data?.title).toBe("Updated Mini Blok");
 
       // Revert
       await supabase
         .from("mini_blok")
-        .update({ name: "Test Mini Blok" })
+        .update({ title: "Test Mini Blok" })
         .eq("id", testData.miniBlokId);
 
       await signOut();
@@ -79,7 +79,7 @@ describe("Mini Blok RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("mini_blok")
-        .update({ name: "Hacked Name" })
+        .update({ title: "Hacked Title" })
         .eq("id", testData.miniBlokId)
         .select();
 
@@ -92,18 +92,18 @@ describe("Mini Blok RLS Tests", () => {
 
       const { data, error } = await supabase
         .from("mini_blok")
-        .update({ name: "Admin Updated" })
+        .update({ title: "Admin Updated" })
         .eq("id", testData.miniBlokId)
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.name).toBe("Admin Updated");
+      expect(data?.title).toBe("Admin Updated");
 
       // Revert
       await supabase
         .from("mini_blok")
-        .update({ name: "Test Mini Blok" })
+        .update({ title: "Test Mini Blok" })
         .eq("id", testData.miniBlokId);
 
       await signOut();
@@ -117,7 +117,7 @@ describe("Mini Blok RLS Tests", () => {
       const { data: miniBlok } = await supabase
         .from("mini_blok")
         .insert({
-          name: "To Be Deleted",
+          title: "To Be Deleted",
           owner_id: member!.id,
         })
         .select()
@@ -237,14 +237,15 @@ describe("Mini Blok RLS Tests", () => {
         .from("mini_blok_shares")
         .insert({
           mini_blok_id: testData.miniBlokId,
-          share_token: "test-token-123",
+          token: "test-token-123",
           expires_at: new Date(Date.now() + 86400000).toISOString(),
+          created_by_member_id: testData.memberId,
         })
         .select()
         .single();
 
       expect(error).toBeNull();
-      expect(data?.share_token).toBe("test-token-123");
+      expect(data?.token).toBe("test-token-123");
 
       // Cleanup
       if (data) {
@@ -261,8 +262,9 @@ describe("Mini Blok RLS Tests", () => {
         .from("mini_blok_shares")
         .insert({
           mini_blok_id: testData.miniBlokId,
-          share_token: "unauthorized-token",
+          token: "unauthorized-token",
           expires_at: new Date(Date.now() + 86400000).toISOString(),
+          created_by_member_id: testData.member2Id,
         })
         .select();
 
@@ -279,8 +281,9 @@ describe("Mini Blok RLS Tests", () => {
         .from("mini_blok_shares")
         .insert({
           mini_blok_id: testData.miniBlokId,
-          share_token: "to-delete-token",
+          token: "to-delete-token",
           expires_at: new Date(Date.now() + 86400000).toISOString(),
+          created_by_member_id: testData.memberId,
         })
         .select()
         .single();

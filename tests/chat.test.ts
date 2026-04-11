@@ -34,7 +34,8 @@ describe("Chat Tables RLS Tests", () => {
         .from("chat_rooms")
         .insert({
           name: "Member Created Room",
-          description: "Test room",
+          type: "group",
+          created_by: testData.memberId,
         })
         .select()
         .single();
@@ -58,7 +59,11 @@ describe("Chat Tables RLS Tests", () => {
       // Create room and add admin as participant
       const { data: room } = await supabase
         .from("chat_rooms")
-        .insert({ name: "Private Room" })
+        .insert({ 
+          name: "Private Room", 
+          type: "group", 
+          created_by: testData.adminId 
+        })
         .select()
         .single();
 
@@ -91,7 +96,11 @@ describe("Chat Tables RLS Tests", () => {
 
       const { data: room } = await supabase
         .from("chat_rooms")
-        .insert({ name: "To Delete" })
+        .insert({ 
+          name: "To Delete", 
+          type: "group", 
+          created_by: testData.adminId 
+        })
         .select()
         .single();
 

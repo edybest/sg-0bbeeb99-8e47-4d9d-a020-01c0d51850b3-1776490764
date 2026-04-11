@@ -55,8 +55,9 @@ describe("Unauthorized Access Prevention Tests", () => {
       const { data, error } = await supabase
         .from("members")
         .insert({
-          phone_number: "+60111111111",
-          name: "Unauthorized",
+          phone: "+60111111111",
+          full_name: "Unauthorized",
+          username: "unauth",
         })
         .select();
 
@@ -68,8 +69,8 @@ describe("Unauthorized Access Prevention Tests", () => {
     it("should NOT allow unauthenticated users to update data", async () => {
       const { data, error } = await supabase
         .from("members")
-        .update({ name: "Hacked" })
-        .eq("phone_number", "+60123456790")
+        .update({ full_name: "Hacked" })
+        .eq("phone", "+60123456790")
         .select();
 
       expect(data).toEqual([]);
@@ -80,7 +81,7 @@ describe("Unauthorized Access Prevention Tests", () => {
       const { error } = await supabase
         .from("members")
         .delete()
-        .eq("phone_number", "+60123456790");
+        .eq("phone", "+60123456790");
 
       expect(error).toBeDefined();
       expect(error?.message).toContain("violates row-level security");
@@ -98,7 +99,7 @@ describe("Unauthorized Access Prevention Tests", () => {
       const { data, error } = await supabase
         .from("members")
         .select("*")
-        .eq("name", maliciousInput);
+        .eq("full_name", maliciousInput);
 
       expect(data).toEqual([]);
       expect(error).toBeNull();
@@ -114,8 +115,9 @@ describe("Unauthorized Access Prevention Tests", () => {
       const { data, error } = await supabase
         .from("members")
         .insert({
-          phone_number: "+60999999999",
-          name: maliciousInput,
+          phone: "+60999999999",
+          full_name: maliciousInput,
+          username: "malicious",
         })
         .select();
 
