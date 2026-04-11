@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { ClubLogo } from "@/components/ClubLogo";
 import { SEO } from "@/components/SEO";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,9 +73,9 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               New member?{" "}
-              <a href="/signup" className="text-primary hover:underline">
+              <Link href="/signup" className="text-primary hover:underline">
                 Sign up here
-              </a>
+              </Link>
             </p>
           </div>
         </div>
