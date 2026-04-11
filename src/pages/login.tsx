@@ -11,17 +11,17 @@ import { SEO } from "@/components/SEO";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, memberData } = useAuth();
+  const { isAuthenticated, member } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated && memberData) {
-      if (memberData.is_admin) {
+    if (isAuthenticated && member) {
+      if (member.is_admin) {
         void router.push("/admin");
       } else {
         void router.push("/member");
       }
     }
-  }, [isAuthenticated, memberData, router]);
+  }, [isAuthenticated, member, router]);
 
   return (
     <>
