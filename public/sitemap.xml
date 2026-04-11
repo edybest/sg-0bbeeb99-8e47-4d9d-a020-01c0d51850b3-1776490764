@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://ambc-club.vercel.app/</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Login -->
+  <url>
+    <loc>https://ambc-club.vercel.app/login</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Signup -->
+  <url>
+    <loc>https://ambc-club.vercel.app/signup</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Member Portal -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Member - Gallery -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/gallery</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://ambc-club.vercel.app/ambc-logo.png</image:loc>
+      <image:caption>AMBC Club Gallery</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Member - Chat -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/chat</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Profile -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/profile</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Member - Training -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/training</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Five Five -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/five-five</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Hall of Fame -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/hall-of-fame</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Lane -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/lane</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Undi Lane -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/undi-lane</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Member - Couple -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/couple</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Mini Blok -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/mini-blok</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Blok -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/blok</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Average Score -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/average-score</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Member - Feedback -->
+  <url>
+    <loc>https://ambc-club.vercel.app/member/feedback</loc>
+    <lastmod>2026-04-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+</urlset>

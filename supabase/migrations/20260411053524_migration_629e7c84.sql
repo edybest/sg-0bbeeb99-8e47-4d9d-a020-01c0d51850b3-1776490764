@@ -1,0 +1,18 @@
+-- Add UPDATE policy for gallery_images for permitted members
+DROP POLICY IF EXISTS "Permitted members can edit images" ON gallery_images;
+
+CREATE POLICY "Permitted members can edit images"
+ON gallery_images
+FOR UPDATE
+TO authenticated
+USING (
+  is_current_user_admin()
+  OR
+  (EXISTS (
+    SELECT 1
+    FROM gallery_permissions gp
+    JOIN members m ON m.id = gp.member_id
+    WHERE m.user_id = (SELECT auth.uid())
+      AND gp.can_edit_images = true
+  ))
+);

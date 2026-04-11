@@ -1,105 +1,84 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppLoginForm } from "@/components/auth/WhatsAppLoginForm";
-import { SEO } from "@/components/SEO";
+import { AdminLoginForm } from "@/components/auth/AdminLoginForm";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-
-function AuthLoadingScreen({ message }: { message: string }) {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-            <div className="text-center" aria-live="polite" aria-busy="true">
-                <div
-                    className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"
-                    aria-hidden="true"
-                />
-                <p className="mt-4 text-muted-foreground">{message}</p>
-            </div>
-        </div>
-    );
-}
+import { ParticleBackground } from "@/components/ParticleBackground";
+import { ClubLogo } from "@/components/ClubLogo";
+import { SEO } from "@/components/SEO";
 
 export default function LoginPage() {
-    const router = useRouter();
-    const { isAuthenticated, loading } = useAuth(false, false, { subscribe: false });
-    const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated, member } = useAuth();
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!mounted || loading || !isAuthenticated) return;
-
-        const redirect = async () => {
-            try {
-                await router.replace("/member");
-            } catch (error) {
-                if (process.env.NODE_ENV !== "production") {
-                    console.error("Login redirect failed:", error);
-                }
-            }
-        };
-
-        void redirect();
-    }, [mounted, loading, isAuthenticated, router]);
-
-    if (!mounted) {
-        return (
-            <>
-                <SEO
-                    title="Login - AMBC Club"
-                    description="Login ke AMBC Club member area"
-                />
-                <AuthLoadingScreen message="Loading..." />
-            </>
-        );
+  useEffect(() => {
+    if (isAuthenticated && member) {
+      if (member.is_admin) {
+        void router.push("/admin");
+      } else {
+        void router.push("/member");
+      }
     }
+  }, [isAuthenticated, member, router]);
 
-    if (loading) {
-        return (
-            <>
-                <SEO
-                    title="Login - AMBC Club"
-                    description="Login ke AMBC Club member area"
-                />
-                <AuthLoadingScreen message="Checking session..." />
-            </>
-        );
-    }
-
-    if (isAuthenticated) {
-        return (
-            <>
-                <SEO
-                    title="Login - AMBC Club"
-                    description="Login ke AMBC Club member area"
-                />
-                <AuthLoadingScreen message="Redirecting..." />
-            </>
-        );
-    }
-
-    return (
-        <>
-            <SEO
-                title="Login - AMBC Club"
-                description="Login ke AMBC Club member area"
-            />
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-                <div className="container mx-auto px-4 py-8">
-                    <Button
-                        variant="ghost"
-                        onClick={() => router.push("/")}
-                        className="mb-4"
-                    >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Kembali
-                    </Button>
-                </div>
-                <WhatsAppLoginForm />
+  return (
+    <>
+      <SEO 
+        title="Login - AMBC Club"
+        description="Login to AMBC Club member portal. Access your bowling scores, gallery, chat rooms, and more. WhatsApp verification or admin access available."
+        keywords={[
+          "AMBC login",
+          "bowling club login",
+          "member portal login",
+          "WhatsApp login",
+          "bowling member access"
+        ]}
+      />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <ParticleBackground />
+        
+        <div className="relative z-10 w-full max-w-md px-4">
+          <div className="mb-8 flex flex-col items-center justify-center space-y-4">
+            <ClubLogo size="xl" skipFetch />
+            <div className="text-center">
+              <h1 className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-4xl font-bold text-transparent">
+                AMBC Club
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Bowling Community Portal
+              </p>
             </div>
-        </>
-    );
+          </div>
+
+          <Card className="border-slate-700 bg-slate-800/50 backdrop-blur-lg">
+            <CardContent className="pt-6">
+              <Tabs defaultValue="whatsapp" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+                  <TabsTrigger value="admin">Admin</TabsTrigger>
+                </TabsList>
+                <TabsContent value="whatsapp">
+                  <WhatsAppLoginForm />
+                </TabsContent>
+                <TabsContent value="admin">
+                  <AdminLoginForm />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              New member?{" "}
+              <a href="/signup" className="text-primary hover:underline">
+                Sign up here
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }
