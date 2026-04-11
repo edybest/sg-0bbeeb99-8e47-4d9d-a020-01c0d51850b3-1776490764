@@ -5,6 +5,7 @@ import { Bell, LogOut, User, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
+import { notificationService } from "@/services/notificationService";
 import {
   DropdownMenu,
   DropdownMenuContent,
