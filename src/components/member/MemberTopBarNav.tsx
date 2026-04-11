@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bell, LogOut, User, Users, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
 import { useAuth } from "@/hooks/useAuth";
 import { notificationService } from "@/services/notificationService";
@@ -38,45 +39,107 @@ export function MemberTopBarNav() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <Link href="/member/couple">
-        <Button variant="ghost" size="icon">
-          <Heart className="h-5 w-5" />
-        </Button>
-      </Link>
+    <TooltipProvider delayDuration={300}>
+      <div className="flex items-center gap-1">
+        {/* Couple Section */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/member/couple">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="relative hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+              >
+                <Heart className="h-5 w-5" />
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Couple Management</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <Link href="/member/chat">
-        <Button variant="ghost" size="icon">
-          <Users className="h-5 w-5" />
-        </Button>
-      </Link>
+        {/* Chat Section */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/member/chat">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="relative hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+              >
+                <Users className="h-5 w-5" />
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Chat Rooms</p>
+          </TooltipContent>
+        </Tooltip>
 
-      {/* Notification Bell with Badge */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-96" align="end">
-          <NotificationInbox />
-        </PopoverContent>
-      </Popover>
+        {/* Notification Bell with Badge */}
+        <Popover>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="relative hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow-lg animate-pulse">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>{unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : 'Notifications'}</p>
+            </TooltipContent>
+          </Tooltip>
+          <PopoverContent className="w-96" align="end">
+            <NotificationInbox />
+          </PopoverContent>
+        </Popover>
 
-      <Link href="/member/profile">
-        <Button variant="ghost" size="icon">
-          <User className="h-5 w-5" />
-        </Button>
-      </Link>
+        {/* Profile Section */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/member/profile">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="relative hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>My Profile</p>
+          </TooltipContent>
+        </Tooltip>
 
-      <Button variant="ghost" size="icon" onClick={handleSignOut}>
-        <LogOut className="h-5 w-5" />
-      </Button>
-    </div>
+        {/* Logout Section */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSignOut}
+              className="relative hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Sign Out</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
   );
 }
