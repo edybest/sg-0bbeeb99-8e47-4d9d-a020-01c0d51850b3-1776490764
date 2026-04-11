@@ -36,7 +36,7 @@ export function PageAccessGuard({
 
   const checkAccess = async () => {
     try {
-      // 1. Check if this is a public page based on our settings
+      // 1. Check if this is a public page
       if (pageAccessService.isPublicPage(pagePath)) {
         if (mountedRef.current) {
           setHasAccess(true);
@@ -62,14 +62,14 @@ export function PageAccessGuard({
         return;
       }
 
-      // Allow access for all logged-in users
+      // Logged in users have access
       if (mountedRef.current) {
         setHasAccess(true);
         setLoading(false);
       }
     } catch (error) {
       console.error("Error checking access:", error);
-      // Fail open to avoid locking users out due to network issues
+      // Fail open - allow access on error to avoid locking users out
       if (mountedRef.current) {
         setHasAccess(true);
         setLoading(false);
@@ -86,7 +86,7 @@ export function PageAccessGuard({
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
-          <p className="text-primary font-medium">Checking access...</p>
+          <p className="text-primary font-medium">Loading...</p>
         </div>
       </div>
     );
