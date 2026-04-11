@@ -1,181 +1,334 @@
-const CACHE_NAME = 'ambc-club-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `ambc-club-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
+const MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
-// Assets to cache immediately
-const PRECACHE_ASSETS = [
-  '/',
-  '/member',
-  '/login',
-  '/offline.html',
-  '/ambc-logo.png',
-  '/pwa-icon.jpg',
-  '/manifest.json',
+// Cache strategies
+const CACHE_STRATEGIES = {
+  CACHE_FIRST: 'cache-first',
+  NETWORK_FIRST: 'network-first',
+  STALE_WHILE_REVALIDATE: 'stale-while-revalidate',
+  NETWORK_ONLY: 'network-only',
+};
+
+// Route patterns and their strategies
+const ROUTE_STRATEGIES = [
+  // Static assets - Cache First (fastest)
+  { pattern: /\.(js|css|woff2?|ttf|otf)$/, strategy: CACHE_STRATEGIES.CACHE_FIRST },
+  { pattern: /\.(png|jpg|jpeg|gif|svg|webp|ico)$/, strategy: CACHE_STRATEGIES.CACHE_FIRST },
+  
+  // API calls - Network First (fresh data)
+  { pattern: /\/api\//, strategy: CACHE_STRATEGIES.NETWORK_FIRST },
+  { pattern: /supabase\.co/, strategy: CACHE_STRATEGIES.NETWORK_FIRST },
+  
+  // Pages - Stale While Revalidate (balance speed + freshness)
+  { pattern: /\/member\//, strategy: CACHE_STRATEGIES.STALE_WHILE_REVALIDATE },
+  { pattern: /\/admin\//, strategy: CACHE_STRATEGIES.NETWORK_FIRST },
+  
+  // Auth pages - Network Only (always fresh)
+  { pattern: /\/(login|signup)/, strategy: CACHE_STRATEGIES.NETWORK_ONLY },
 ];
 
-// Install event - cache assets
+// Essential resources to cache on install
+const ESSENTIAL_CACHE = [
+  '/',
+  '/offline.html',
+  '/manifest.json',
+  '/ambc-logo.png',
+];
+
+// Install event - cache essential resources
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Install');
+  console.log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Pre-caching offline page');
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.error('[ServiceWorker] Pre-cache failed:', err);
-      });
+      console.log('[SW] Caching essential resources');
+      return cache.addAll(ESSENTIAL_CACHE);
+    }).then(() => {
+      console.log('[SW] Skip waiting');
+      return self.skipWaiting();
     })
   );
-  self.skipWaiting();
 });
 
-// Activate event - cleanup old caches
+// Activate event - clean old caches
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activate');
+  console.log('[SW] Activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[ServiceWorker] Removing old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      // Clean old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Claim clients
+      self.clients.claim(),
+      // Clean expired cache entries
+      cleanExpiredCache(),
+    ])
   );
-  self.clients.claim();
 });
 
-// Fetch event - network first, then cache, then offline
+// Fetch event - implement caching strategies
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
   // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-
-  // Skip chrome-extension and non-http(s) requests
-  if (!event.request.url.startsWith('http')) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Don't cache responses that aren't ok
-        if (!response || response.status !== 200 || response.type === 'error') {
-          return response;
-        }
-
-        // Clone the response
-        const responseToCache = response.clone();
-
-        // Cache successful responses
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return response;
-      })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request).then((response) => {
-          if (response) {
-            return response;
-          }
-
-          // If no cache, return offline page for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
-          }
-
-          // For other requests, return a basic response
-          return new Response('Offline', {
-            status: 503,
-            statusText: 'Service Unavailable',
-            headers: new Headers({
-              'Content-Type': 'text/plain',
-            }),
-          });
-        });
-      })
-  );
-});
-
-// Push notification event
-self.addEventListener('push', (event) => {
-  console.log('[ServiceWorker] Push received');
-  
-  let notificationData = {
-    title: 'AMBC Club',
-    body: 'You have a new notification',
-    icon: '/ambc-logo.png',
-    badge: '/ambc-logo.png',
-    tag: 'ambc-notification',
-  };
-
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      notificationData = {
-        title: data.title || notificationData.title,
-        body: data.message || data.body || notificationData.body,
-        icon: data.icon || notificationData.icon,
-        badge: data.badge || notificationData.badge,
-        tag: data.tag || notificationData.tag,
-        data: data,
-      };
-    } catch (e) {
-      console.error('[ServiceWorker] Error parsing push data:', e);
-    }
+  if (request.method !== 'GET') {
+    return;
   }
 
-  event.waitUntil(
-    self.registration.showNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      tag: notificationData.tag,
-      data: notificationData.data,
-      requireInteraction: false,
-      vibrate: [200, 100, 200],
+  // Skip chrome extensions
+  if (url.protocol === 'chrome-extension:') {
+    return;
+  }
+
+  // Determine strategy for this request
+  const strategy = getStrategy(url.pathname + url.search);
+
+  // Apply strategy
+  event.respondWith(
+    applyStrategy(strategy, request).catch(() => {
+      // Return offline page for navigation requests
+      if (request.mode === 'navigate') {
+        return caches.match(OFFLINE_URL);
+      }
+      throw new Error('Network request failed and no cache available');
     })
   );
 });
 
-// Notification click event
-self.addEventListener('notificationclick', (event) => {
-  console.log('[ServiceWorker] Notification clicked');
-  event.notification.close();
+// Get caching strategy for URL
+function getStrategy(urlPath) {
+  for (const route of ROUTE_STRATEGIES) {
+    if (route.pattern.test(urlPath)) {
+      return route.strategy;
+    }
+  }
+  // Default strategy
+  return CACHE_STRATEGIES.STALE_WHILE_REVALIDATE;
+}
 
-  const urlToOpen = event.notification.data?.url || '/member';
+// Apply caching strategy
+async function applyStrategy(strategy, request) {
+  switch (strategy) {
+    case CACHE_STRATEGIES.CACHE_FIRST:
+      return cacheFirst(request);
+    
+    case CACHE_STRATEGIES.NETWORK_FIRST:
+      return networkFirst(request);
+    
+    case CACHE_STRATEGIES.STALE_WHILE_REVALIDATE:
+      return staleWhileRevalidate(request);
+    
+    case CACHE_STRATEGIES.NETWORK_ONLY:
+      return fetch(request);
+    
+    default:
+      return staleWhileRevalidate(request);
+  }
+}
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window open
-      for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // If not, open a new window
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
-  );
-});
-
-// Background sync event (for offline actions)
-self.addEventListener('sync', (event) => {
-  console.log('[ServiceWorker] Background sync:', event.tag);
+// Cache First Strategy
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
   
-  if (event.tag === 'sync-data') {
+  if (cached) {
+    // Check if cache is expired
+    const cacheTime = await getCacheTime(request.url);
+    if (cacheTime && Date.now() - cacheTime < MAX_AGE) {
+      return cached;
+    }
+  }
+  
+  // Fetch from network
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+      await setCacheTime(request.url);
+    }
+    return response;
+  } catch (error) {
+    // Return stale cache if network fails
+    if (cached) {
+      return cached;
+    }
+    throw error;
+  }
+}
+
+// Network First Strategy
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+      await setCacheTime(request.url);
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+    throw error;
+  }
+}
+
+// Stale While Revalidate Strategy
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  
+  // Fetch fresh data in background
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      cache.put(request, response.clone());
+      setCacheTime(request.url);
+    }
+    return response;
+  });
+  
+  // Return cached immediately if available, otherwise wait for network
+  return cached || fetchPromise;
+}
+
+// Cache time management using IndexedDB
+function openCacheTimeDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('cache-times', 1);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('times')) {
+        db.createObjectStore('times');
+      }
+    };
+  });
+}
+
+async function getCacheTime(url) {
+  try {
+    const db = await openCacheTimeDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('times', 'readonly');
+      const store = tx.objectStore('times');
+      const request = store.get(url);
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function setCacheTime(url) {
+  try {
+    const db = await openCacheTimeDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('times', 'readwrite');
+      const store = tx.objectStore('times');
+      const request = store.put(Date.now(), url);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    // Ignore errors
+  }
+}
+
+// Clean expired cache entries
+async function cleanExpiredCache() {
+  try {
+    const db = await openCacheTimeDB();
+    const cache = await caches.open(CACHE_NAME);
+    const requests = await cache.keys();
+    
+    for (const request of requests) {
+      const cacheTime = await getCacheTime(request.url);
+      if (cacheTime && Date.now() - cacheTime > MAX_AGE) {
+        await cache.delete(request);
+        console.log('[SW] Deleted expired cache:', request.url);
+      }
+    }
+  } catch (error) {
+    console.error('[SW] Error cleaning cache:', error);
+  }
+}
+
+// Background sync for failed requests
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-pending') {
+    event.waitUntil(syncPendingRequests());
+  }
+});
+
+async function syncPendingRequests() {
+  // Implement background sync logic here
+  console.log('[SW] Syncing pending requests...');
+}
+
+// Push notification support
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  const title = data.title || 'AMBC Club';
+  const options = {
+    body: data.message || 'You have a new notification',
+    icon: '/ambc-logo.png',
+    badge: '/ambc-logo.png',
+    data: data,
+    actions: data.actions || [],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.openWindow(event.notification.data?.url || '/')
+  );
+});
+
+// Message handler for cache control
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  
+  if (data && data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (data && data.type === 'CLEAR_CACHE') {
     event.waitUntil(
-      // Implement your sync logic here
-      Promise.resolve()
+      caches.delete(CACHE_NAME).then(() => {
+        return self.clients.matchAll();
+      }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'CACHE_CLEARED' });
+        });
+      })
     );
   }
 });
 
-// Message event (for communication with clients)
-self.addEventListener('message', (event) => {
-  console.log('[ServiceWorker] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
+console.log('[SW] Service Worker loaded');
