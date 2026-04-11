@@ -364,9 +364,6 @@ export function WhatsAppLoginForm() {
         try {
           setLoading(true);
           
-          // Save auth token to trigger useAuth re-evaluation
-          await authService.login(authToken);
-          
           toast({
             title: "Login Successful",
             description: "Welcome to AMBC Club!",
