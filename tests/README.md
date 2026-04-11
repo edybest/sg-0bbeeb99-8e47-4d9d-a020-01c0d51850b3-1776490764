@@ -1,24 +1,70 @@
 # AMBC Club RLS Test Suite
 
-Comprehensive test suite to verify Row Level Security (RLS) policies work correctly across all user roles.
+Comprehensive test suite to verify Row Level Security (RLS) policies and authentication workflows.
 
-## 📋 Test Files
+## 📋 Test Coverage
 
-1. **setup.ts** - Test utilities and helpers
-2. **auth.test.ts** - Authentication flows
-3. **members.test.ts** - Members table RLS
-4. **chat.test.ts** - Chat system RLS
-5. **mini-blok.test.ts** - Mini Blok RLS
-6. **admin-access.test.ts** - Admin-only operations
-7. **unauthorized-access.test.ts** - Security verification
-8. **push-subscriptions.test.ts** - Push notification subscriptions RLS
+### 1. **Authentication Tests** (`auth.test.ts`)
+- ✅ Sign in with valid credentials
+- ✅ Sign in rejection for invalid credentials
+- ✅ Session management (create/destroy)
+- ✅ User role identification (admin vs member)
 
-## 🚀 Quick Start
+### 2. **Members Table RLS** (`members.test.ts`)
+- ✅ SELECT: Members can view all profiles
+- ✅ SELECT: Unauthenticated users blocked
+- ✅ UPDATE: Members can update own profile
+- ✅ UPDATE: Members cannot update others
+- ✅ UPDATE: Admins can update any member
+- ✅ INSERT: Admins can create members
+- ✅ INSERT: Regular members blocked
+- ✅ DELETE: Admins can delete members
+- ✅ DELETE: Regular members blocked
 
-### Installation
+### 3. **Chat Tables RLS** (`chat.test.ts`)
+- ✅ Chat rooms: Create, view, delete
+- ✅ Chat messages: Send, view, delete (participant checks)
+- ✅ Participant verification
+- ✅ Cross-user message deletion prevention
+
+### 4. **Mini Blok RLS** (`mini-blok.test.ts`)
+- ✅ Mini Blok: Create, update, delete (owner checks)
+- ✅ Collaborators: Add, remove (owner + self-removal)
+- ✅ Share tokens: Create, delete (owner checks)
+- ✅ Admin override capabilities
+
+### 5. **Admin Access** (`admin-access.test.ts`)
+- ✅ Admin-only tables (8 tables verified)
+- ✅ Admin override on member-owned data
+- ✅ Regular member blocked from admin operations
+
+### 6. **Unauthorized Access** (`unauthorized-access.test.ts`)
+- ✅ Unauthenticated user blocking (read/write)
+- ✅ SQL injection protection
+- ✅ RLS silent blocking verification
+
+## 🚀 Setup Instructions
+
+### 1. Install Dependencies
 ```bash
-npm install
+npm install --save-dev jest @jest/globals ts-jest @types/jest dotenv
 ```
+
+### 2. Environment Variables
+Ensure your `.env.local` has:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Optional for admin operations
+```
+
+### 3. Create Test Users (First Time)
+Test users are automatically created on first run:
+- **Admin**: `test-admin@ambc.test` / `TestAdmin123!`
+- **Member**: `test-member@ambc.test` / `TestMember123!`
+- **Member2**: `test-member2@ambc.test` / `TestMember2123!`
+
+## 📦 Running Tests
 
 ### Run All Tests
 ```bash
@@ -33,180 +79,79 @@ npm test -- chat.test.ts
 npm test -- mini-blok.test.ts
 npm test -- admin-access.test.ts
 npm test -- unauthorized-access.test.ts
-npm test -- push-subscriptions.test.ts
 ```
 
-### Watch Mode
+### Run Tests in Watch Mode
 ```bash
-npm test:watch
+npm test -- --watch
 ```
 
-### Coverage Report
+### Run Tests with Coverage
 ```bash
-npm test:coverage
+npm test -- --coverage
 ```
 
-## 🧪 What Each Test File Covers
+### Verbose Output
+```bash
+npm test -- --verbose
+```
 
-### 1. **Authentication** (`auth.test.ts`)
-- ✅ Admin can sign in
-- ✅ Member can sign in
-- ✅ Invalid credentials rejected
-- ✅ Session maintained after sign in
-- ✅ Session cleared after sign out
-- ✅ Admin role identified correctly
-- ✅ Member role identified correctly
+## 🔍 Test Structure
 
-### 2. **Members Table RLS** (`members.test.ts`)
-- ✅ SELECT: Members can view all profiles
-- ✅ SELECT: Unauthenticated users blocked
-- ✅ UPDATE: Members can update own profile
-- ✅ UPDATE: Members cannot update others
-- ✅ UPDATE: Admins can update any member
-- ✅ INSERT: Only admins can create members
-- ✅ INSERT: Regular members blocked
-- ✅ DELETE: Only admins can delete members
-- ✅ DELETE: Regular members blocked
-
-### 3. **Chat System RLS** (`chat.test.ts`)
-- ✅ Chat Rooms: Authenticated users can create
-- ✅ Chat Rooms: Participants can view their rooms
-- ✅ Chat Rooms: Non-participants blocked
-- ✅ Chat Rooms: Admins can delete any room
-- ✅ Messages: Participants can send messages
-- ✅ Messages: Non-participants blocked
-- ✅ Messages: Users can delete own messages
-- ✅ Messages: Users cannot delete others' messages
-- ✅ Messages: Admins can delete any message
-- ✅ Participants: Users can join rooms
-- ✅ Participants: Users can leave rooms
-- ✅ Participants: Admins can manage participants
-
-### 4. **Mini Blok RLS** (`mini-blok.test.ts`)
-- ✅ CRUD: Owners can create mini bloks
-- ✅ CRUD: Owners can update their mini bloks
-- ✅ CRUD: Non-owners cannot update
-- ✅ CRUD: Admins can update any mini blok
-- ✅ CRUD: Owners can delete their mini bloks
-- ✅ CRUD: Non-owners cannot delete
-- ✅ Collaborators: Owners can add collaborators
-- ✅ Collaborators: Collaborators can update mini blok
-- ✅ Collaborators: Owners can remove collaborators
-- ✅ Collaborators: Collaborators can remove themselves
-- ✅ Shares: Owners can create share tokens
-- ✅ Shares: Non-owners cannot create shares
-- ✅ Shares: Owners can delete share tokens
-
-### 5. **Admin Access** (`admin-access.test.ts`)
-- ✅ Admins can access admin-only tables
-- ✅ Regular members blocked from admin tables
-- ✅ Admins can override member-owned data
-- ✅ Admins can manage couples
-- ✅ Admins can manage feedback
-- ✅ Admin-only tables: club_settings, comment_bans, games
-
-### 6. **Unauthorized Access** (`unauthorized-access.test.ts`)
-- ✅ Unauthenticated users cannot read data
-- ✅ Unauthenticated users cannot insert data
-- ✅ Unauthenticated users cannot update data
-- ✅ Unauthenticated users cannot delete data
-- ✅ SQL injection attempts prevented (WHERE clause)
-- ✅ SQL injection attempts prevented (INSERT values)
-- ✅ Public read access works on allowed tables
-
-### 7. **Push Subscriptions RLS** (`push-subscriptions.test.ts`)
-- ✅ SELECT: Users can view their own subscriptions
-- ✅ SELECT: Users cannot view others' subscriptions
-- ✅ SELECT: Admins can view all subscriptions
-- ✅ SELECT: Unauthenticated users blocked
-- ✅ INSERT: Users can create subscriptions for themselves
-- ✅ INSERT: Users cannot create subscriptions for others
-- ✅ INSERT: Admins can create any subscription
-- ✅ UPDATE: Users can update their own subscriptions
-- ✅ UPDATE: Users cannot update others' subscriptions
-- ✅ UPDATE: Admins can update any subscription
-- ✅ DELETE: Users can delete their own subscriptions
-- ✅ DELETE: Users cannot delete others' subscriptions
-- ✅ DELETE: Admins can delete any subscription
-- ✅ Real-world: Multiple devices per user supported
-- ✅ Real-world: Selective device unsubscription
-
-## 🔧 Test Infrastructure
-
-### Test Users
-Three test users are automatically created on first run:
-
-| Role | Email | Password | Purpose |
-|------|-------|----------|---------|
-| Admin | `test-admin@ambc.test` | `TestAdmin123!` | Admin operations testing |
-| Member | `test-member@ambc.test` | `TestMember123!` | Regular member operations |
-| Member2 | `test-member2@ambc.test` | `TestMember2123!` | Cross-user access testing |
-
-### Helper Functions
+Each test file follows this pattern:
 
 ```typescript
-// Sign in as different users
-await signInAs("admin");
-await signInAs("member");
-await signInAs("member2");
-await signOut();
+describe("Feature Tests", () => {
+  beforeAll(async () => {
+    await globalSetup();        // Create test users
+    await createTestData();     // Create test records
+  });
 
-// Get current user's member record
-const member = await getCurrentMember();
+  afterAll(async () => {
+    await cleanupTestData();    // Clean up test records
+    await globalTeardown();     // Optional: Remove test users
+  });
 
-// Access test data
-testData.adminId
-testData.memberId
-testData.member2Id
-testData.chatRoomId
-testData.miniBlokId
+  beforeEach(async () => {
+    await signOut();            // Ensure clean state between tests
+  });
+
+  describe("Specific Functionality", () => {
+    it("should do something", async () => {
+      await signInAs("admin");  // Sign in as specific user
+      // ... test logic ...
+      await signOut();          // Clean up session
+    });
+  });
+});
 ```
 
-### Test Data Management
+## 📊 Test Results
 
-- ✅ Automatic setup before each test suite
-- ✅ Automatic cleanup after tests complete
-- ✅ Isolated test environment
-- ✅ No impact on production data
+### Expected Results
+All tests should **PASS** with the optimized RLS policies:
+- ✅ Authentication works correctly
+- ✅ RLS policies enforce proper access control
+- ✅ Admin overrides work as expected
+- ✅ Unauthorized access is blocked
+- ✅ SQL injection attempts are prevented
 
-## 📊 Expected Results
-
-All tests should pass:
-
-```
-PASS  tests/auth.test.ts (7 tests)
-PASS  tests/members.test.ts (9 tests)
-PASS  tests/chat.test.ts (19 tests)
-PASS  tests/mini-blok.test.ts (16 tests)
-PASS  tests/admin-access.test.ts (9 tests)
-PASS  tests/unauthorized-access.test.ts (8 tests)
-PASS  tests/push-subscriptions.test.ts (15 tests)
-
-Test Suites: 7 passed, 7 total
-Tests:       83 passed, 83 total
-Time:        ~30-60s
-```
-
-## 🔍 Test Coverage
-
-The test suite covers:
-
-- ✅ **Authentication flows** - Login/logout/sessions
-- ✅ **Authorization** - Admin/member/collaborator roles
-- ✅ **CRUD operations** - Create/Read/Update/Delete
-- ✅ **Security** - SQL injection, unauthorized access
-- ✅ **RLS policies** - All SELECT/INSERT/UPDATE/DELETE policies
-- ✅ **Edge cases** - Cross-user operations, collaborator permissions
-- ✅ **Real-world scenarios** - Multiple devices, selective unsubscription
+### Failed Tests
+If tests fail, check:
+1. **Database Schema**: Run `get_database_schema` to verify tables/columns exist
+2. **RLS Policies**: Verify policies are created correctly
+3. **Test User Setup**: Check test users exist in `auth.users` and `members` tables
+4. **Environment Variables**: Ensure `.env.local` has correct Supabase credentials
 
 ## 🛠️ Troubleshooting
 
-### Issue: "Missing environment variables"
-**Solution**: Ensure `.env.local` has:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
+### Issue: Test users not created
+**Solution**: Run tests once to auto-create users, or manually create via Supabase dashboard.
+
+### Issue: RLS blocking all operations
+**Solution**: Verify RLS policies match the optimized versions. Check policy definitions with:
+```sql
+SELECT * FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, cmd;
 ```
 
 ### Issue: Tests timeout
@@ -215,33 +160,91 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_key
 testTimeout: 60000, // 60 seconds
 ```
 
-### Issue: "Test users already exist"
-**Solution**: Tests automatically handle existing users. Manual cleanup:
-1. Go to Supabase Dashboard → Authentication → Users
-2. Delete users with emails: `test-admin@ambc.test`, `test-member@ambc.test`, `test-member2@ambc.test`
-3. Re-run tests
+### Issue: "Missing environment variables"
+**Solution**: Copy `.env.local.example` to `.env.local` and fill in your Supabase credentials.
 
-### Issue: RLS blocking operations
-**Solution**: 
-1. Verify tables exist: `get_database_schema`
-2. Check RLS policies are applied
-3. Verify test user has correct permissions
+## 📝 Adding New Tests
 
-## 📚 Additional Resources
+1. Create a new test file in `tests/` directory
+2. Import helpers from `./setup`
+3. Follow the existing test structure
+4. Use `signInAs()` to switch between user roles
+5. Always clean up created data in `afterAll()`
+6. Run tests to verify they pass
 
+Example:
+```typescript
+import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
+import { supabase, signInAs, signOut, globalSetup, globalTeardown } from "./setup";
+
+describe("My New Feature Tests", () => {
+  beforeAll(async () => {
+    await globalSetup();
+  });
+
+  afterAll(async () => {
+    await globalTeardown();
+  });
+
+  it("should test something", async () => {
+    await signInAs("member");
+    
+    const { data, error } = await supabase
+      .from("my_table")
+      .select("*");
+    
+    expect(error).toBeNull();
+    expect(data).toBeDefined();
+    
+    await signOut();
+  });
+});
+```
+
+## 🎯 Best Practices
+
+1. **Always sign out** after each test to prevent state leakage
+2. **Use beforeEach** to ensure clean state between tests
+3. **Clean up test data** in `afterAll()` to prevent accumulation
+4. **Test both positive and negative cases** (allowed + blocked operations)
+5. **Use descriptive test names** that explain the expected behavior
+6. **Verify error messages** for blocked operations
+7. **Test edge cases** (null values, missing fields, etc.)
+
+## 📈 Continuous Integration
+
+Add to your CI/CD pipeline:
+
+```yaml
+# .github/workflows/test.yml
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+```
+
+## 🔐 Security Notes
+
+- Test users have predictable credentials - **DO NOT use in production**
+- Service role key has full database access - **Keep it secret**
+- Tests run against your actual Supabase project - **Use a development/staging instance**
+- Test data is created and (optionally) cleaned up automatically
+
+## 📚 Resources
+
+- [Supabase RLS Documentation](https://supabase.com/docs/guides/auth/row-level-security)
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
+- [TypeScript Jest Guide](https://jestjs.io/docs/getting-started#via-ts-jest)
 - [Supabase Auth Testing](https://supabase.com/docs/guides/auth/testing)
-- [Supabase RLS Documentation](https://supabase.com/docs/guides/database/postgres/row-level-security)
-- [TypeScript Testing with Jest](https://jestjs.io/docs/getting-started#via-ts-jest)
-
-## ✅ Test Suite Status
-
-- ✅ **83+ test cases** covering all RLS policies
-- ✅ **0 TypeScript errors**
-- ✅ **0 ESLint warnings**
-- ✅ **0 Runtime errors**
-- ✅ **All user roles** tested
-- ✅ **All CRUD operations** verified
-- ✅ **Security vulnerabilities** checked
-
-**Your Supabase RLS setup is production-ready with comprehensive test coverage!** 🎉

@@ -19,15 +19,6 @@ type CreateNotificationInput = {
   audience: NotificationAudience;
 };
 
-type ListNotificationsResult = {
-  items: Array<{
-    recipient: Row<"notification_recipients">;
-    notification: any;
-  }>;
-  totalCount: number;
-  hasMore: boolean;
-};
-
 function assertNonEmpty(value: string, label: string) {
   if (!value.trim()) {
     throw new Error(`${label} diperlukan`);
@@ -116,16 +107,7 @@ export const notificationService = {
     return notification as Row<"notifications">;
   },
 
-  async listMyNotifications(page = 1, limit = 10): Promise<ListNotificationsResult> {
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    // Get total count first
-    const { count: totalCount } = await supabase
-      .from("notification_recipients")
-      .select("*", { count: "exact", head: true });
-
-    // Get paginated data
+  async listMyNotifications(limit = 30) {
     const { data, error } = await supabase
       .from("notification_recipients")
       .select(
@@ -143,20 +125,14 @@ export const notificationService = {
       `
       )
       .order("delivered_at", { ascending: false, nullsFirst: false })
-      .range(from, to);
+      .limit(limit);
 
     if (error) throw error;
 
-    const items = (data ?? []).map((row) => ({
+    return (data ?? []).map((row) => ({
       recipient: row as Row<"notification_recipients">,
       notification: Array.isArray((row as any).notifications) ? (row as any).notifications[0] : (row as any).notifications,
     }));
-
-    return {
-      items,
-      totalCount: totalCount ?? 0,
-      hasMore: (totalCount ?? 0) > to + 1,
-    };
   },
 
   async getUnreadCount() {
@@ -176,16 +152,6 @@ export const notificationService = {
     const { error } = await supabase
       .from("notification_recipients")
       .update({ read_at: new Date().toISOString() })
-      .eq("notification_id", notificationId)
-      .eq("member_id", memberId);
-
-    if (error) throw error;
-  },
-
-  async deleteNotification(notificationId: string, memberId: string) {
-    const { error } = await supabase
-      .from("notification_recipients")
-      .delete()
       .eq("notification_id", notificationId)
       .eq("member_id", memberId);
 
