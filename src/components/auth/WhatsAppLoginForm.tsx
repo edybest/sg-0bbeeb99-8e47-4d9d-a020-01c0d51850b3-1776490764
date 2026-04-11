@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { pageAccessService } from "@/services/pageAccessService";
-import { authService } from "@/services/authService";
 import { Loader2, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
@@ -359,48 +358,8 @@ export function WhatsAppLoginForm() {
       clearCooldownTimestamp();
       clearLastTacPhone();
 
-      // Process successful login
-      const processLoginSuccess = async (memberData: any, authToken: string) => {
-        try {
-          setLoading(true);
-          
-          toast({
-            title: "Login Successful",
-            description: "Welcome to AMBC Club!",
-          });
-
-          // Clear any cached app data before navigating
-          if (typeof window !== "undefined") {
-            try {
-              if ('caches' in window) {
-                const cacheKeys = await caches.keys();
-                await Promise.all(
-                  cacheKeys.map(key => {
-                    if (key.includes('ambc-club')) {
-                      return caches.delete(key);
-                    }
-                  })
-                );
-              }
-            } catch (e) {
-              console.warn("Failed to clear service worker caches", e);
-            }
-          }
-
-          // Check if trying to access a shared link
-          const pendingSharePath = sessionStorage.getItem("pending_share_redirect");
-          if (pendingSharePath) {
-            await router.push(pendingSharePath);
-            sessionStorage.removeItem("pending_share_redirect");
-          } else {
-            await router.push("/member");
-          }
-        } catch (e) {
-          console.error("Error processing login success:", e);
-        } finally {
-          setLoading(false);
-        }
-      };
+      // Clear any cached role/page access decisions to avoid stale redirects
+      pageAccessService.clearCache();
 
       toast({
         title: "Log masuk berjaya!",

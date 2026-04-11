@@ -2,33 +2,25 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { SEO } from "@/components/SEO";
 
-export default function Home() {
+export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    void router.push("/login");
+    // Immediate redirect to member dashboard
+    router.replace("/member");
   }, [router]);
 
   return (
     <>
-      <SEO 
-        title="AMBC Club - Bowling Community & Member Portal"
-        description="Join AMBC Club, the premier bowling community in Malaysia. Access member portal, view gallery, chat with fellow bowlers, track your scores, and participate in events."
-        keywords={[
-          "AMBC Club",
-          "bowling club Malaysia",
-          "bowling community",
-          "member portal",
-          "bowling scores",
-          "bowling events",
-          "bowling gallery",
-          "bowling chat",
-          "sports club",
-          "bowling training"
-        ]}
+      <SEO
+        title="AMBC Club - Bowling Club"
+        description="Welcome to AMBC Club - Your premier bowling destination"
       />
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Redirecting...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="mt-4 text-sm text-muted-foreground">Redirecting...</p>
+        </div>
       </div>
     </>
   );

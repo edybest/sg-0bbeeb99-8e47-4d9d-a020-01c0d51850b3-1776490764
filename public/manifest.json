@@ -1,116 +1,84 @@
 {
-  "name": "AMBC Club - Member Portal",
-  "short_name": "AMBC Club",
-  "description": "AMBC Club adalah komuniti bowling yang aktif dengan portal ahli, galeri foto, chat rooms, sistem couple, dan banyak lagi.",
+  "name": "AMBC Club",
+  "short_name": "AMBC",
+  "description": "Sistem Pengurusan Keahlian dan Skor AMBC Bowling Club",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#dc2626",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
   "orientation": "portrait-primary",
-  "lang": "en-MY",
-  "dir": "ltr",
-  "categories": ["sports", "social", "lifestyle"],
-  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/ambc-logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/ambc-logo.png",
+      "src": "/pwa-icon.jpg",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/jpeg",
+      "purpose": "maskable"
     },
     {
-      "src": "/ambc-logo.png",
-      "sizes": "144x144",
-      "type": "image/png",
+      "src": "/pwa-icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/ambc-logo.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/ambc-logo.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "AMBC Club Home Screen"
+      "src": "/pwa-icon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     },
     {
-      "src": "/ambc-logo.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "AMBC Club Dashboard"
+      "src": "/pwa-icon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
     {
-      "name": "Gallery",
-      "short_name": "Gallery",
-      "description": "View photo gallery",
-      "url": "/member/gallery",
+      "name": "Member Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your member dashboard",
+      "url": "/member",
       "icons": [
         {
-          "src": "/ambc-logo.png",
-          "sizes": "96x96",
-          "type": "image/png"
+          "src": "/pwa-icon.jpg",
+          "sizes": "192x192",
+          "type": "image/jpeg"
         }
       ]
     },
     {
-      "name": "Chat",
-      "short_name": "Chat",
-      "description": "Open chat rooms",
-      "url": "/member/chat",
+      "name": "Login",
+      "short_name": "Login",
+      "description": "Login to your account",
+      "url": "/login",
       "icons": [
         {
-          "src": "/ambc-logo.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Profile",
-      "short_name": "Profile",
-      "description": "View your profile",
-      "url": "/member/profile",
-      "icons": [
-        {
-          "src": "/ambc-logo.png",
-          "sizes": "96x96",
-          "type": "image/png"
+          "src": "/pwa-icon.jpg",
+          "sizes": "192x192",
+          "type": "image/jpeg"
         }
       ]
     }
   ],
-  "share_target": {
-    "action": "/member/gallery",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url",
-      "files": [
-        {
-          "name": "image",
-          "accept": ["image/*"]
-        }
-      ]
+  "categories": ["sports", "social"],
+  "screenshots": [
+    {
+      "src": "/Screenshot_20260312_160635_Chrome.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AMBC Club - Member Dashboard"
+    },
+    {
+      "src": "/Screenshot_20260311_163801_Chrome.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "AMBC Club - Game Statistics"
     }
-  },
+  ],
   "related_applications": [],
-  "iarc_rating_id": ""
+  "prefer_related_applications": false
 }
