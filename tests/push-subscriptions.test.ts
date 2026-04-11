@@ -528,3 +528,393 @@ describe("Push Subscriptions RLS Tests", () => {
     });
   });
 });
+
+describe("Notification Recipients RLS & Pagination", () => {
+  let testNotificationIds: string[] = [];
+
+  beforeEach(async () => {
+    // Clean up previous test notifications
+    await signInAs("admin");
+    for (const id of testNotificationIds) {
+      await supabaseAdmin.from("notifications").delete().eq("id", id);
+    }
+    testNotificationIds = [];
+    await signOut();
+  });
+
+  describe("DELETE Policies", () => {
+    it("should allow users to delete their own notifications", async () => {
+      await signInAs("admin");
+      
+      // Create notification for member
+      const { data: notification } = await supabase
+        .from("notifications")
+        .insert({
+          title: "Test Notification",
+          message: "This can be deleted",
+          target_type: "members",
+        })
+        .select()
+        .single();
+
+      testNotificationIds.push(notification!.id);
+
+      await supabase.from("notification_recipients").insert({
+        notification_id: notification!.id,
+        member_id: testData.memberId,
+        delivered_at: new Date().toISOString(),
+        read_at: new Date().toISOString(), // Mark as read
+      });
+
+      await signOut();
+
+      // Member deletes their own notification
+      await signInAs("member");
+      const { error } = await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId);
+
+      expect(error).toBeNull();
+
+      // Verify deletion
+      const { data: check } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId)
+        .single();
+
+      expect(check).toBeNull();
+
+      await signOut();
+    });
+
+    it("should NOT allow users to delete other users' notifications", async () => {
+      await signInAs("admin");
+      
+      // Create notification for member2
+      const { data: notification } = await supabase
+        .from("notifications")
+        .insert({
+          title: "Test Notification",
+          message: "Someone else's notification",
+          target_type: "members",
+        })
+        .select()
+        .single();
+
+      testNotificationIds.push(notification!.id);
+
+      await supabase.from("notification_recipients").insert({
+        notification_id: notification!.id,
+        member_id: testData.member2Id,
+        delivered_at: new Date().toISOString(),
+        read_at: new Date().toISOString(),
+      });
+
+      await signOut();
+
+      // Member tries to delete member2's notification
+      await signInAs("member");
+      const { data, error } = await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.member2Id)
+        .select();
+
+      // Should return empty array (RLS blocks)
+      expect(data).toEqual([]);
+
+      await signOut();
+    });
+
+    it("should allow admins to delete any notification", async () => {
+      await signInAs("admin");
+      
+      // Create notification for member
+      const { data: notification } = await supabase
+        .from("notifications")
+        .insert({
+          title: "Admin Delete Test",
+          message: "Admin can delete this",
+          target_type: "members",
+        })
+        .select()
+        .single();
+
+      testNotificationIds.push(notification!.id);
+
+      await supabase.from("notification_recipients").insert({
+        notification_id: notification!.id,
+        member_id: testData.memberId,
+        delivered_at: new Date().toISOString(),
+        read_at: new Date().toISOString(),
+      });
+
+      // Admin deletes member's notification
+      const { error } = await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId);
+
+      expect(error).toBeNull();
+
+      // Verify deletion
+      const { data: check } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId)
+        .single();
+
+      expect(check).toBeNull();
+
+      await signOut();
+    });
+  });
+
+  describe("Pagination", () => {
+    beforeEach(async () => {
+      // Create 25 test notifications for pagination testing
+      await signInAs("admin");
+
+      for (let i = 1; i <= 25; i++) {
+        const { data: notification } = await supabase
+          .from("notifications")
+          .insert({
+            title: `Test Notification ${i}`,
+            message: `Message ${i}`,
+            target_type: "members",
+          })
+          .select()
+          .single();
+
+        testNotificationIds.push(notification!.id);
+
+        await supabase.from("notification_recipients").insert({
+          notification_id: notification!.id,
+          member_id: testData.memberId,
+          delivered_at: new Date(Date.now() + i * 1000).toISOString(), // Stagger times
+        });
+      }
+
+      await signOut();
+    });
+
+    it("should return first 10 notifications on page 1", async () => {
+      await signInAs("member");
+
+      const { data, error, count } = await supabase
+        .from("notification_recipients")
+        .select("*", { count: "exact" })
+        .eq("member_id", testData.memberId)
+        .order("delivered_at", { ascending: false })
+        .range(0, 9); // First 10 items (0-9)
+
+      expect(error).toBeNull();
+      expect(data?.length).toBe(10);
+      expect(count).toBeGreaterThanOrEqual(25);
+
+      await signOut();
+    });
+
+    it("should return next 10 notifications on page 2", async () => {
+      await signInAs("member");
+
+      const { data, error } = await supabase
+        .from("notification_recipients")
+        .select("*")
+        .eq("member_id", testData.memberId)
+        .order("delivered_at", { ascending: false })
+        .range(10, 19); // Second 10 items (10-19)
+
+      expect(error).toBeNull();
+      expect(data?.length).toBe(10);
+
+      await signOut();
+    });
+
+    it("should return remaining 5 notifications on page 3", async () => {
+      await signInAs("member");
+
+      const { data, error } = await supabase
+        .from("notification_recipients")
+        .select("*")
+        .eq("member_id", testData.memberId)
+        .order("delivered_at", { ascending: false })
+        .range(20, 29); // Third page (20-29)
+
+      expect(error).toBeNull();
+      expect(data?.length).toBe(5); // Only 5 remaining
+
+      await signOut();
+    });
+
+    it("should calculate hasMore correctly", async () => {
+      await signInAs("member");
+
+      // Page 1: hasMore = true (25 total > 10)
+      const { count: totalCount } = await supabase
+        .from("notification_recipients")
+        .select("*", { count: "exact", head: true })
+        .eq("member_id", testData.memberId);
+
+      const page1HasMore = (totalCount ?? 0) > 10;
+      expect(page1HasMore).toBe(true);
+
+      // Page 2: hasMore = true (25 total > 20)
+      const page2HasMore = (totalCount ?? 0) > 20;
+      expect(page2HasMore).toBe(true);
+
+      // Page 3: hasMore = false (25 total <= 30)
+      const page3HasMore = (totalCount ?? 0) > 30;
+      expect(page3HasMore).toBe(false);
+
+      await signOut();
+    });
+  });
+
+  describe("Real-World Notification Workflow", () => {
+    it("should support full notification lifecycle: create -> mark read -> delete", async () => {
+      await signInAs("admin");
+      
+      // 1. Admin creates notification
+      const { data: notification } = await supabase
+        .from("notifications")
+        .insert({
+          title: "Important Update",
+          message: "Please read this carefully",
+          target_type: "members",
+        })
+        .select()
+        .single();
+
+      testNotificationIds.push(notification!.id);
+
+      await supabase.from("notification_recipients").insert({
+        notification_id: notification!.id,
+        member_id: testData.memberId,
+        delivered_at: new Date().toISOString(),
+      });
+
+      await signOut();
+
+      // 2. Member reads notification
+      await signInAs("member");
+      
+      const { data: unreadNotif } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId)
+        .single();
+
+      expect(unreadNotif?.read_at).toBeNull();
+
+      // Mark as read
+      await supabase
+        .from("notification_recipients")
+        .update({ read_at: new Date().toISOString() })
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId);
+
+      const { data: readNotif } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId)
+        .single();
+
+      expect(readNotif?.read_at).not.toBeNull();
+
+      // 3. Member deletes notification
+      const { error: deleteError } = await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId);
+
+      expect(deleteError).toBeNull();
+
+      // Verify deletion
+      const { data: deletedNotif } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("notification_id", notification!.id)
+        .eq("member_id", testData.memberId)
+        .single();
+
+      expect(deletedNotif).toBeNull();
+
+      await signOut();
+    });
+
+    it("should support selective deletion while keeping unread notifications", async () => {
+      await signInAs("admin");
+      
+      // Create 3 notifications
+      const notifications = await Promise.all([
+        supabase.from("notifications").insert({ title: "Notif 1", message: "Read this", target_type: "members" }).select().single(),
+        supabase.from("notifications").insert({ title: "Notif 2", message: "And this", target_type: "members" }).select().single(),
+        supabase.from("notifications").insert({ title: "Notif 3", message: "Keep unread", target_type: "members" }).select().single(),
+      ]);
+
+      for (const { data: n } of notifications) {
+        testNotificationIds.push(n!.id);
+        await supabase.from("notification_recipients").insert({
+          notification_id: n!.id,
+          member_id: testData.memberId,
+          delivered_at: new Date().toISOString(),
+        });
+      }
+
+      await signOut();
+
+      // Member marks first 2 as read and deletes them
+      await signInAs("member");
+
+      // Mark first 2 as read
+      await supabase
+        .from("notification_recipients")
+        .update({ read_at: new Date().toISOString() })
+        .eq("notification_id", notifications[0].data!.id)
+        .eq("member_id", testData.memberId);
+
+      await supabase
+        .from("notification_recipients")
+        .update({ read_at: new Date().toISOString() })
+        .eq("notification_id", notifications[1].data!.id)
+        .eq("member_id", testData.memberId);
+
+      // Delete first 2
+      await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notifications[0].data!.id)
+        .eq("member_id", testData.memberId);
+
+      await supabase
+        .from("notification_recipients")
+        .delete()
+        .eq("notification_id", notifications[1].data!.id)
+        .eq("member_id", testData.memberId);
+
+      // Verify: Only 3rd notification remains
+      const { data: remaining } = await supabase
+        .from("notification_recipients")
+        .select()
+        .eq("member_id", testData.memberId)
+        .in("notification_id", testNotificationIds);
+
+      expect(remaining?.length).toBe(1);
+      expect(remaining?.[0].notification_id).toBe(notifications[2].data!.id);
+      expect(remaining?.[0].read_at).toBeNull(); // Still unread
+
+      await signOut();
+    });
+  });
+});
