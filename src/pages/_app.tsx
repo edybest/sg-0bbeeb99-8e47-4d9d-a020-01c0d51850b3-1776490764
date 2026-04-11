@@ -2,86 +2,136 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GlobalLoadingProvider } from "@/contexts/GlobalLoadingContext";
 import { GlobalLoadingOverlay } from "@/components/GlobalLoadingOverlay";
-import { ScrollToTop } from "@/components/ScrollToTop";
 import { SplashScreen } from "@/components/pwa/SplashScreen";
+import { PwaInstallCard } from "@/components/pwa/PwaInstallCard";
+import { SiteFooter } from "@/components/SiteFooter";
+import { useRouter } from "next/router";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashComplete, setSplashComplete] = useState(false);
+
   useEffect(() => {
-    // Register Service Worker for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('ServiceWorker registered:', registration);
-
-          // Check for updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available
-                  if (confirm('New version available! Reload to update?')) {
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    window.location.reload();
-                  }
-                }
-              });
-            }
-          });
-        } catch (error) {
-          console.error('ServiceWorker registration failed:', error);
-        }
-      });
-
-      // Handle service worker updates
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    }
-
-    // Prevent zoom on double tap (iOS)
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', (event) => {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, false);
-
-    // Add to home screen prompt handling
-    let deferredPrompt: any;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      // Store for later use
-      (window as any).deferredPrompt = deferredPrompt;
-    });
-
-    // Track installation
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA installed successfully');
-      deferredPrompt = null;
-    });
+    setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
+    const hasSeenSplash = sessionStorage.getItem("splash_shown");
+
+    if (!isStandalone || hasSeenSplash) {
+      setShowSplash(false);
+      setSplashComplete(true);
+    } else {
+      sessionStorage.setItem("splash_shown", "true");
+    }
+  }, [isMounted]);
+
+  useEffect(() => {
+    if (!isMounted) {
+      return;
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((registration) => {
+            console.log("Service Worker registered:", registration);
+
+            setInterval(() => {
+              registration.update();
+            }, 60 * 60 * 1000);
+
+            registration.addEventListener("updatefound", () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener("statechange", () => {
+                  if (
+                    newWorker.state === "installed" &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    if (
+                      confirm(
+                        "New version available! Click OK to update and reload."
+                      )
+                    ) {
+                      newWorker.postMessage({ type: "SKIP_WAITING" });
+                    }
+                  }
+                });
+              }
+            });
+          })
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
+          });
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          window.location.reload();
+        });
+      });
+    }
+  }, [isMounted]);
+
+  const handleSplashComplete = () => {
+    setSplashComplete(true);
+  };
+
+  const hideFooter = useState(() => false)[0];
+
+  const shouldHideFooter =
+    isMounted &&
+    (router.pathname.startsWith("/admin") ||
+      router.pathname === "/login" ||
+      router.pathname === "/signup" ||
+      router.pathname === "/admin/login");
+
   return (
-    <ThemeProvider>
-      <GlobalLoadingProvider>
-        <SplashScreen />
-        <Component {...pageProps} />
+    <GlobalLoadingProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+        storageKey="theme"
+      >
+        {showSplash && !splashComplete && (
+          <SplashScreen onComplete={handleSplashComplete} />
+        )}
+
+        {splashComplete && (
+          <div className="min-h-screen flex flex-col">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={router.asPath}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="flex-1 flex flex-col"
+              >
+                <Component {...pageProps} />
+              </motion.div>
+            </AnimatePresence>
+            {!shouldHideFooter && <SiteFooter />}
+          </div>
+        )}
+
+        <PwaInstallCard />
         <Toaster />
-        <GlobalLoadingOverlay />
-        <ScrollToTop />
-      </GlobalLoadingProvider>
-    </ThemeProvider>
+        {typeof window === "undefined" ? null : <GlobalLoadingOverlay />}
+      </ThemeProvider>
+    </GlobalLoadingProvider>
   );
 }

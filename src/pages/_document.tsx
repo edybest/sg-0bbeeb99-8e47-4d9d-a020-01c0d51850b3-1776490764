@@ -1,93 +1,93 @@
+import { cn } from "@/lib/utils";
 import { Html, Head, Main, NextScript } from "next/document";
 import { SEOElements } from "@/components/SEO";
 
 export default function Document() {
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "SportsOrganization",
-    "name": "AMBC Club",
-    "alternateName": "AMBC Bowling Club",
-    "url": "https://ambc-club.vercel.app",
-    "logo": "https://ambc-club.vercel.app/ambc-logo.png",
-    "description": "AMBC Club adalah komuniti bowling yang aktif dengan portal ahli, galeri foto, chat rooms, sistem couple, dan banyak lagi.",
-    "sport": "Bowling",
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "contactType": "Customer Service",
-      "availableLanguage": ["English", "Malay"]
-    },
-    "sameAs": [
-      "https://facebook.com/ambcclub",
-      "https://instagram.com/ambcclub"
-    ],
-    "potentialAction": {
-      "@type": "JoinAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://ambc-club.vercel.app/signup"
+  return (
+    <Html lang="ms" suppressHydrationWarning data-scroll-behavior="smooth">
+      <Head>
+        <SEOElements />
+        
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        
+        {/* Browser tab icons */}
+        <link rel="icon" href="/pwa-icon.jpg" type="image/jpeg" />
+        <link rel="icon" sizes="32x32" href="/pwa-icon.jpg" type="image/jpeg" />
+        <link rel="icon" sizes="16x16" href="/pwa-icon.jpg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        
+        {/* Theme Color */}
+        <meta name="theme-color" content="#0ea5e9" />
+        
+        {/* iOS PWA Support */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="AMBC Club" />
+        <link rel="apple-touch-icon" href="/pwa-icon.jpg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/pwa-icon.jpg" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/pwa-icon.jpg" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/pwa-icon.jpg" />
+
+        {/* Windows tiles (harmless on others) */}
+        <meta name="msapplication-TileColor" content="#0ea5e9" />
+        <meta name="msapplication-TileImage" content="/pwa-icon.jpg" />
+        
+        {/* Android PWA Support */}
+        <meta name="mobile-web-app-capable" content="yes" />
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  try {
+    var p = window.location && window.location.pathname ? window.location.pathname : "";
+    if (p.indexOf("/admin") === 0) {
+      var link = document.querySelector('link[rel="manifest"]');
+      if (link) link.setAttribute("href", "/manifest-admin.json");
+
+      var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (appleTitle) appleTitle.setAttribute("content", "AMBC Admin");
+
+      var tile = document.querySelector('meta[name="msapplication-TileImage"]');
+      if (tile) tile.setAttribute("content", "/pwa-icon.jpg");
+
+      var icons = document.querySelectorAll('link[rel="apple-touch-icon"]');
+      if (icons && icons.length) {
+        for (var i=0;i<icons.length;i++) icons[i].setAttribute("href", "/pwa-icon.jpg");
       }
     }
-  };
-
-  return (
-    <Html lang="en">
-      <Head>
-        {/* SEO Meta Tags */}
-        <SEOElements />
-
-        {/* Structured Data (JSON-LD) */}
+  } catch(e) {}
+})();`,
+          }}
+        />
+        
+        {/*
+          CRITICAL: DO NOT REMOVE THIS SCRIPT
+          The Softgen AI monitoring script is essential for core app functionality.
+          The application will not function without it.
+        */}
         <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+          src="https://cdn.softgen.ai/script.js"
+          async
+          data-softgen-monitoring="true"
         />
-
-        {/* PWA Primary Color */}
-        <meta name="theme-color" content="#dc2626" />
-        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" />
-
-        {/* PWA Meta Tags */}
-        <meta name="application-name" content="AMBC Club" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="AMBC Club" />
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-config" content="/browserconfig.xml" />
-        <meta name="msapplication-TileColor" content="#dc2626" />
-        <meta name="msapplication-tap-highlight" content="no" />
-
-        {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/ambc-logo.png" />
-        <link rel="apple-touch-icon" sizes="167x167" href="/ambc-logo.png" />
-
-        {/* Favicons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico" />
-        <link rel="shortcut icon" href="/favicon.ico" />
-
-        {/* Manifest */}
-        <link rel="manifest" href="/manifest.json" />
-
-        {/* Splash Screens for iOS */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <link
-          rel="apple-touch-startup-image"
-          href="/ambc-logo.png"
-          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
-        />
-
-        {/* Preconnect for Performance */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </Head>
-      <body>
+      <body
+        className={cn(
+          "min-h-screen w-full scroll-smooth bg-background text-foreground antialiased"
+        )}
+      >
         <Main />
         <NextScript />
+
+        {/* Visual Editor Script */}
+        {process.env.NODE_ENV === "development" && (
+          <script
+            src="https://cdn.softgen.dev/visual-editor.min.js"
+            async
+            data-softgen-visual-editor="true"
+          />
+        )}
       </body>
     </Html>
   );
