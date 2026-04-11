@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { notificationService } from "@/services/notificationService";
 
 export function MemberTopBarNav() {
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   async function loadUnreadCount() {
@@ -33,7 +33,7 @@ export function MemberTopBarNav() {
   }, []);
 
   async function handleSignOut() {
-    await signOut();
+    await logout();
     window.location.href = "/login";
   }
 
