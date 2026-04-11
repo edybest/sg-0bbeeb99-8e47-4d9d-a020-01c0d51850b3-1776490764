@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { Loader2 } from "lucide-react";
 import { pageAccessService } from "@/services/pageAccessService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PageAccessGuardProps {
   children: React.ReactNode;
@@ -73,7 +74,7 @@ export function PageAccessGuard({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     checkingRef.current = true;
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
@@ -86,14 +87,23 @@ export function PageAccessGuard({
     // Set aggressive timeout (4 seconds) - shorter than auth timeout
     timeoutRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
-      
       console.warn("⏱️ Page access check timeout - allowing access (fail open)");
       checkingRef.current = false;
       setHasAccess(true);
       setLoading(false);
     }, 4000);
-    
+
     try {
+      // Check if this is a public page based on our new settings
+      if (pageAccessService.isPublicPage(pagePath)) {
+        console.log("🔓 Allowing access to public page:", pagePath);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setHasAccess(true);
+        setLoading(false);
+        checkingRef.current = false;
+        return;
+      }
+
       // Bypass access check for public share links
       if (router.pathname === "/member/mini-blok" && router.query.share) {
         console.log("🔓 Allowing public access to shared Mini Blok");
@@ -110,70 +120,68 @@ export function PageAccessGuard({
         return;
       }
 
-      // Get user role with timeout
-      const userRolePromise = pageAccessService.getUserRole();
-      const userRoleTimeout = new Promise<"guest">((resolve) => 
+      // Get current session with timeout
+      const getSessionPromise = supabase.auth.getSession();
+      const getSessionTimeout = new Promise<{ data: { session: any }, error: any }>((resolve) => 
         setTimeout(() => {
-          console.warn("⏱️ getUserRole timeout, defaulting to guest");
-          resolve("guest");
+          console.warn("⏱️ getSession timeout");
+          resolve({ data: { session: null }, error: null });
         }, 2000)
       );
-      const userRole = await Promise.race([userRolePromise, userRoleTimeout]);
+
+      const { data: { session } } = await Promise.race([getSessionPromise, getSessionTimeout]);
       
       // Check if aborted
       if (signal.aborted || !mountedRef.current) {
-        console.log("⏸️ Access check aborted after getUserRole");
+        console.log("⏸️ Access check aborted after getSession");
         return;
       }
-      
-      // Check page access with timeout
-      const accessCheckPromise = pageAccessService.checkPageAccess(pagePath, userRole);
-      const accessCheckTimeout = new Promise<{ hasAccess: boolean; isEnabled: boolean; accessLevel: string }>((resolve) => 
-        setTimeout(() => {
-          console.warn("⏱️ checkPageAccess timeout, allowing access");
-          resolve({ hasAccess: true, isEnabled: true, accessLevel: "public" });
-        }, 2000)
-      );
-      const accessCheck = await Promise.race([accessCheckPromise, accessCheckTimeout]);
-      
+
+      // If page is not public and user is not logged in, redirect to login
+      if (!session) {
+        console.log("❌ Access denied (not logged in), redirecting...");
+        router.push("/login");
+        return;
+      }
+
+      // If user is logged in, check specific page permissions
+      // First get member info
+      const { data: member } = await supabase
+        .from('members')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (member) {
+        // Admin has access to everything
+        if (member.is_admin) {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          setHasAccess(true);
+          setLoading(false);
+          return;
+        }
+
+        // Check specific page access for regular members
+        const accessCheckPromise = pageAccessService.hasPageAccess(member.id, pagePath);
+        const accessCheckTimeout = new Promise<boolean>((resolve) => 
+          setTimeout(() => {
+            console.warn("⏱️ hasPageAccess timeout, allowing access");
+            resolve(true);
+          }, 2000)
+        );
+
+        const hasSpecificAccess = await Promise.race([accessCheckPromise, accessCheckTimeout]);
+
+        if (!hasSpecificAccess) {
+          console.log(`❌ Access denied to ${pagePath} for member ${member.id}`);
+          router.push("/member"); // Redirect to dashboard which is public
+          return;
+        }
+      }
+
       // Clear timeout since we got a response
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-      }
-
-      // Check if aborted or unmounted
-      if (signal.aborted || !mountedRef.current) {
-        console.log("⏸️ Access check aborted after checkPageAccess");
-        return;
-      }
-
-      console.log("🔐 Page Access Check:", {
-        pagePath,
-        userRole,
-        accessLevel: accessCheck.accessLevel,
-        isEnabled: accessCheck.isEnabled,
-        hasAccess: accessCheck.hasAccess
-      });
-
-      // If page is disabled, redirect to home
-      if (!accessCheck.isEnabled) {
-        console.log("⛔ Page disabled, redirecting to home");
-        router.push("/");
-        return;
-      }
-
-      // If no access, redirect based on role
-      if (!accessCheck.hasAccess) {
-        console.log("❌ Access denied, redirecting...");
-        
-        if (userRole === "guest") {
-          router.push("/login");
-        } else if (userRole === "member" && accessCheck.accessLevel === "admin") {
-          router.push("/member");
-        } else {
-          router.push("/");
-        }
-        return;
       }
 
       // Has access - show page
@@ -185,14 +193,14 @@ export function PageAccessGuard({
         console.log("⏸️ Access check was aborted");
         return;
       }
-      
+
       console.error("❌ Error checking page access:", error);
       
       // Clear timeout on error
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      
+
       // On error, allow access (fail open for better UX)
       if (mountedRef.current) {
         setHasAccess(true);
@@ -211,10 +219,10 @@ export function PageAccessGuard({
       return renderLoading();
     }
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
-          <p className="text-sky-600 font-medium">Loading...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-primary font-medium">Checking access...</p>
         </div>
       </div>
     );
