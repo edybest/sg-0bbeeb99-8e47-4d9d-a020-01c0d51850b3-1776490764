@@ -2,11 +2,44 @@ import { Html, Head, Main, NextScript } from "next/document";
 import { SEOElements } from "@/components/SEO";
 
 export default function Document() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SportsOrganization",
+    "name": "AMBC Club",
+    "alternateName": "AMBC Bowling Club",
+    "url": "https://ambc-club.vercel.app",
+    "logo": "https://ambc-club.vercel.app/ambc-logo.png",
+    "description": "AMBC Club adalah komuniti bowling yang aktif dengan portal ahli, galeri foto, chat rooms, sistem couple, dan banyak lagi.",
+    "sport": "Bowling",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "Customer Service",
+      "availableLanguage": ["English", "Malay"]
+    },
+    "sameAs": [
+      "https://facebook.com/ambcclub",
+      "https://instagram.com/ambcclub"
+    ],
+    "potentialAction": {
+      "@type": "JoinAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://ambc-club.vercel.app/signup"
+      }
+    }
+  };
+
   return (
     <Html lang="en">
       <Head>
         {/* SEO Meta Tags */}
         <SEOElements />
+
+        {/* Structured Data (JSON-LD) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
 
         {/* PWA Primary Color */}
         <meta name="theme-color" content="#dc2626" />
@@ -45,6 +78,12 @@ export default function Document() {
           href="/ambc-logo.png"
           media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
         />
+
+        {/* Preconnect for Performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
       </Head>
       <body>
         <Main />
