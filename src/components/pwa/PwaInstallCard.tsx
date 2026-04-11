@@ -1,270 +1,272 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Info, X, Bell } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { pushNotificationService } from "@/services/pushNotificationService";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Download, X, Chrome, ExternalLink, Smartphone } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-type BeforeInstallPromptEvent = Event & {
+interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
-};
-
-function isIos() {
-  if (typeof window === "undefined") return false;
-  const ua = window.navigator.userAgent || "";
-  return /iPad|iPhone|iPod/.test(ua);
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-function isInStandaloneMode() {
-  if (typeof window === "undefined") return false;
-  return (
-    (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
-    // @ts-expect-error - Safari iOS specific
-    window.navigator.standalone === true
-  );
-}
-
-export function PwaInstallCard({ className }: { className?: string }) {
+export function PwaInstallCard() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [installing, setInstalling] = useState(false);
-  const [dismissed, setDismissed] = useState(true);
-  const [mounted, setMounted] = useState(false);
-  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [subscribing, setSubscribing] = useState(false);
-
-  const { member } = useAuth();
-  const { toast } = useToast();
-
-  const ios = useMemo(() => (mounted ? isIos() : false), [mounted]);
-  const standalone = useMemo(() => (mounted ? isInStandaloneMode() : false), [mounted]);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [browserType, setBrowserType] = useState<"chrome" | "safari" | "whatsapp" | "other">("other");
+  const [platform, setPlatform] = useState<"android" | "ios" | "other">("other");
 
   useEffect(() => {
-    setMounted(true);
-    // Semak jika pengguna telah menekan dismiss dalam tempoh 24 jam lepas
-    const lastDismissed = localStorage.getItem("pwa_prompt_dismissed");
-    if (lastDismissed) {
-      const timePassed = Date.now() - parseInt(lastDismissed, 10);
-      const oneDay = 24 * 60 * 60 * 1000;
-      
-      if (timePassed < oneDay) {
-        setDismissed(true);
-      } else {
-        // Expired, buang dari localStorage dan tunjuk semula
-        localStorage.removeItem("pwa_prompt_dismissed");
-        setDismissed(false);
-      }
-    } else {
-      setDismissed(false);
+    // Detect browser and platform
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    // Detect platform
+    if (/iphone|ipad|ipod/.test(userAgent)) {
+      setPlatform("ios");
+    } else if (/android/.test(userAgent)) {
+      setPlatform("android");
     }
-  }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+    // Detect browser type
+    if (/whatsapp/.test(userAgent)) {
+      setBrowserType("whatsapp");
+      setShowInstallPrompt(true); // Show manual instructions for WhatsApp
+    } else if (/chrome/.test(userAgent) && !/edge/.test(userAgent)) {
+      setBrowserType("chrome");
+    } else if (/safari/.test(userAgent) && !/chrome/.test(userAgent)) {
+      setBrowserType("safari");
+    } else {
+      setBrowserType("other");
+    }
 
-    const handler = (e: Event) => {
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return;
+    }
+
+    // Listen for install prompt (Chrome/Edge on Android)
+    function handleBeforeInstallPrompt(e: Event) {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
+      setShowInstallPrompt(true);
+    }
 
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Listen for app installed
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setShowInstallPrompt(false);
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
-  if (!mounted) return null;
-  if (standalone || dismissed) return null;
-
-  async function handleInstall() {
+  async function handleInstallClick() {
     if (!deferredPrompt) return;
-    try {
-      setInstalling(true);
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      setDeferredPrompt(null);
-      
-      if (choice.outcome === "accepted") {
-        // PWA installed successfully, show notification prompt
-        setTimeout(() => {
-          if (pushNotificationService.isSupported() && member?.id) {
-            setShowNotificationPrompt(true);
-          }
-        }, 2000);
-      }
-      
-      handleDismiss();
-    } catch (err) {
-      console.error("PWA Install Error:", err);
-    } finally {
-      setInstalling(false);
-    }
-  }
 
-  async function handleEnableNotifications() {
-    if (!member?.id) return;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
     
-    setSubscribing(true);
-    try {
-      await pushNotificationService.subscribe(member.id);
-      toast({
-        title: "✅ Berjaya",
-        description: "Push notifications telah diaktifkan!",
-      });
-      setShowNotificationPrompt(false);
-    } catch (error) {
-      console.error("Notification subscription error:", error);
-      toast({
-        title: "❌ Ralat",
-        description: error instanceof Error ? error.message : "Gagal mengaktifkan notifications",
-        variant: "destructive",
-      });
-    } finally {
-      setSubscribing(false);
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowInstallPrompt(false);
     }
   }
 
   function handleDismiss() {
-    localStorage.setItem("pwa_prompt_dismissed", Date.now().toString());
-    setDismissed(true);
+    setShowInstallPrompt(false);
+    // Remember dismissal for 7 days
+    localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   }
 
-  return (
-    <AnimatePresence>
-      {!dismissed && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", damping: 25, stiffness: 200, delay: 2.5 }} // Delay sikit sebelum popup muncul
-          className={`fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[60] ${className || ""}`}
-        >
-          <Card className="shadow-2xl border-sky-200 bg-white/95 backdrop-blur-md overflow-hidden">
-            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3 bg-sky-50/50">
-              <div className="space-y-1">
-                <CardTitle className="text-base text-sky-800 flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Install App AMBC
-                </CardTitle>
-                <p className="text-xs text-slate-500">
-                  Akses lebih pantas seperti aplikasi sebenar.
-                </p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 rounded-full -mt-1 -mr-1 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                onClick={handleDismiss}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-3">
-              {deferredPrompt ? (
-                <Button 
-                  onClick={handleInstall} 
-                  disabled={installing} 
-                  className="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white shadow-md"
-                >
-                  {installing ? "Memasang..." : "Install Sekarang"}
-                </Button>
-              ) : ios ? (
-                <div className="rounded-lg border border-sky-100 bg-sky-50/50 p-3 text-sm">
-                  <div className="flex items-start gap-2 text-sky-800">
-                    <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                    <div className="space-y-1 text-xs">
-                      <p className="font-semibold">Pengguna iPhone/iPad (Safari)</p>
-                      <p className="text-sky-700/80">
-                        Tekan butang <span className="font-bold border border-sky-200 px-1 rounded bg-white">Share</span> di bawah, kemudian pilih <span className="font-bold border border-sky-200 px-1 rounded bg-white">Add to Home Screen</span>.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+  function openInBrowser() {
+    // Copy current URL to clipboard
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Link copied! Paste in Chrome/Safari to install.');
+    });
+  }
+
+  // Don't show if already installed
+  if (isInstalled) {
+    return null;
+  }
+
+  // Check if dismissed recently (7 days)
+  const dismissed = localStorage.getItem('pwa-install-dismissed');
+  if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) {
+    return null;
+  }
+
+  // Don't show if no install option available
+  if (!showInstallPrompt && !deferredPrompt) {
+    return null;
+  }
+
+  // WhatsApp specific instructions
+  if (browserType === "whatsapp") {
+    return (
+      <Card className="fixed bottom-4 left-4 right-4 z-50 border-primary shadow-2xl md:left-auto md:right-4 md:w-96">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Install AMBC Club App</CardTitle>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleDismiss}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>
+            Untuk install app, buka link ini di browser
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <ExternalLink className="h-4 w-4" />
+            <AlertDescription>
+              {platform === "android" ? (
+                <>
+                  <strong>Android:</strong> Tap menu (⋮) → Open in Chrome
+                </>
+              ) : platform === "ios" ? (
+                <>
+                  <strong>iOS:</strong> Tap menu → Open in Safari
+                </>
               ) : (
-                <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
-                  Sila guna browser Google Chrome dan pastikan anda tidak membukanya melalui in-app browser (seperti dari dalam Facebook/WhatsApp).
-                </div>
+                <>
+                  Buka link ini di Chrome atau Safari untuk install
+                </>
               )}
+            </AlertDescription>
+          </Alert>
 
-              <Button 
-                variant="ghost" 
-                className="w-full text-xs text-slate-400 hover:text-slate-600" 
-                onClick={handleDismiss}
-              >
-                Nanti Dulu (Sembunyi 24 Jam)
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Langkah-langkah:</p>
+            {platform === "android" ? (
+              <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+                <li>Tap menu WhatsApp (⋮) di atas</li>
+                <li>Pilih "Open in Chrome"</li>
+                <li>Tap icon "Install" yang muncul</li>
+                <li>Confirm installation</li>
+              </ol>
+            ) : platform === "ios" ? (
+              <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+                <li>Tap menu WhatsApp di atas</li>
+                <li>Pilih "Open in Safari"</li>
+                <li>Tap icon Share (⬆️) di bawah</li>
+                <li>Scroll dan tap "Add to Home Screen"</li>
+                <li>Tap "Add"</li>
+              </ol>
+            ) : (
+              <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+                <li>Buka menu WhatsApp</li>
+                <li>Pilih "Open in Browser"</li>
+                <li>Install dari browser</li>
+              </ol>
+            )}
+          </div>
 
-      {/* Notification Permission Prompt */}
-      {showNotificationPrompt && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className={`fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 sm:w-96 z-[60] ${className || ""}`}
-        >
-          <Card className="shadow-2xl border-orange-200 bg-white/95 backdrop-blur-md overflow-hidden">
-            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3 bg-orange-50/50">
-              <div className="space-y-1">
-                <CardTitle className="text-base text-orange-800 flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
-                  Aktifkan Notifications
-                </CardTitle>
-                <p className="text-xs text-slate-500">
-                  Terima notifikasi walaupun app ditutup.
-                </p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 rounded-full -mt-1 -mr-1 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                onClick={() => setShowNotificationPrompt(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-3">
-              <div className="rounded-lg border border-orange-100 bg-orange-50/50 p-3 text-sm">
-                <p className="text-orange-800 text-xs">
-                  <strong>✨ Manfaat:</strong>
-                </p>
-                <ul className="mt-2 space-y-1 text-xs text-orange-700/80">
-                  <li>• Dapat notifikasi pengumuman AMBC</li>
-                  <li>• Alert untuk blok/game baru</li>
-                  <li>• Update keputusan secara real-time</li>
-                </ul>
-              </div>
+          <Button onClick={openInBrowser} className="w-full" variant="outline">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Copy Link & Open Browser
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
-              <Button 
-                onClick={handleEnableNotifications}
-                disabled={subscribing}
-                className="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-md"
-              >
-                {subscribing ? (
-                  "Mengaktifkan..."
-                ) : (
-                  <>
-                    <Bell className="mr-2 h-4 w-4" />
-                    Aktifkan Sekarang
-                  </>
-                )}
-              </Button>
+  // Safari/iOS instructions
+  if (browserType === "safari" && platform === "ios") {
+    return (
+      <Card className="fixed bottom-4 left-4 right-4 z-50 border-primary shadow-2xl md:left-auto md:right-4 md:w-96">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Install AMBC Club</CardTitle>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleDismiss}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>
+            Add app to your home screen for quick access
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert>
+            <Smartphone className="h-4 w-4" />
+            <AlertDescription>
+              <strong>iOS Safari:</strong> Use Share button to install
+            </AlertDescription>
+          </Alert>
 
-              <Button 
-                variant="ghost" 
-                className="w-full text-xs text-slate-400 hover:text-slate-600" 
-                onClick={() => setShowNotificationPrompt(false)}
-              >
-                Nanti Dulu
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Installation Steps:</p>
+            <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+              <li>Tap Share button (⬆️) at the bottom</li>
+              <li>Scroll down and tap "Add to Home Screen"</li>
+              <li>Tap "Add" in the top right</li>
+              <li>App icon will appear on your home screen</li>
+            </ol>
+          </div>
+
+          <Button onClick={handleDismiss} className="w-full" variant="outline">
+            Got it!
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Chrome/Android with native install prompt
+  if (deferredPrompt) {
+    return (
+      <Card className="fixed bottom-4 left-4 right-4 z-50 border-primary shadow-2xl md:left-auto md:right-4 md:w-96">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Install AMBC Club</CardTitle>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleDismiss}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <CardDescription>
+            Install app untuk akses lebih pantas dan boleh offline
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">App Benefits:</p>
+            <ul className="space-y-1 text-sm text-muted-foreground">
+              <li>✓ Faster loading times</li>
+              <li>✓ Works offline</li>
+              <li>✓ Home screen icon</li>
+              <li>✓ Full-screen experience</li>
+              <li>✓ Push notifications</li>
+            </ul>
+          </div>
+
+          <Button onClick={handleInstallClick} className="w-full">
+            <Download className="mr-2 h-4 w-4" />
+            Install Now
+          </Button>
+
+          <Button onClick={handleDismiss} variant="ghost" className="w-full">
+            Maybe Later
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
 }
