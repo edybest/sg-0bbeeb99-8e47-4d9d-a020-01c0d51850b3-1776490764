@@ -54,39 +54,40 @@ export async function globalSetup() {
   // Create test users if they don't exist
   for (const [role, credentials] of Object.entries(TEST_USERS)) {
     try {
-      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = users.find(u => u.email === credentials.email);
+      // Create user (will fail if exists, which is fine)
+      const { data, error } = await supabaseAdmin.auth.admin.createUser({
+        email: credentials.email,
+        password: credentials.password,
+        phone: credentials.phone,
+        email_confirm: true,
+        phone_confirm: true,
+      });
 
-      if (!existingUser) {
-        const { data, error } = await supabaseAdmin.auth.admin.createUser({
-          email: credentials.email,
-          password: credentials.password,
-          phone: credentials.phone,
-          email_confirm: true,
-          phone_confirm: true,
-        });
-
-        if (error) {
-          console.error(`Failed to create ${role}:`, error);
+      if (error) {
+        if (error.message.includes("already exists") || error.message.includes("already registered")) {
+          console.log(`✅ Test user exists: ${role}`);
         } else {
-          console.log(`✅ Created test user: ${role}`);
-
-          // Create member profile
-          const { error: memberError } = await supabaseAdmin
-            .from("members")
-            .insert({
-              user_id: data.user.id,
-              phone: credentials.phone,
-              full_name: `Test ${role}`,
-              is_admin: role === "admin",
-            });
-
-          if (memberError) {
-            console.error(`Failed to create member profile for ${role}:`, memberError);
-          }
+          console.error(`Failed to create ${role}:`, error);
         }
-      } else {
-        console.log(`✅ Test user exists: ${role}`);
+      } else if (data?.user) {
+        console.log(`✅ Created test user: ${role}`);
+
+        // Create member profile
+        const { error: memberError } = await supabaseAdmin
+          .from("members")
+          .insert({
+            user_id: data.user.id,
+            phone: credentials.phone,
+            full_name: `Test ${role}`,
+            username: `test_${role}_${Date.now()}`,
+            birthday: "2000-01-01",
+            sex: "male",
+            is_admin: role === "admin",
+          });
+
+        if (memberError) {
+          console.error(`Failed to create member profile for ${role}:`, memberError);
+        }
       }
     } catch (error) {
       console.error(`Error setting up ${role}:`, error);
@@ -99,26 +100,6 @@ export async function globalSetup() {
 // Global teardown - runs once after all tests
 export async function globalTeardown() {
   console.log("\n🧹 Cleaning up test environment...");
-
-  // Optional: Clean up test data
-  // In development, you might want to keep test users for debugging
-  // In CI/CD, uncomment the cleanup code below
-
-  /*
-  for (const credentials of Object.values(TEST_USERS)) {
-    try {
-      const { data } = await supabaseAdmin.auth.admin.getUserByEmail(
-        credentials.email
-      );
-      if (data?.user) {
-        await supabaseAdmin.auth.admin.deleteUser(data.user.id);
-      }
-    } catch (error) {
-      console.error("Cleanup error:", error);
-    }
-  }
-  */
-
   console.log("✅ Cleanup complete");
 }
 

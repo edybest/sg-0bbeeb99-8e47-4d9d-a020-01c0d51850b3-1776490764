@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
 import {
   supabase,
   signOut,
@@ -58,6 +58,8 @@ describe("Unauthorized Access Prevention Tests", () => {
           phone: "+60111111111",
           full_name: "Unauthorized",
           username: "unauth",
+          birthday: "2000-01-01",
+          sex: "male",
         })
         .select();
 
@@ -118,6 +120,8 @@ describe("Unauthorized Access Prevention Tests", () => {
           phone: "+60999999999",
           full_name: maliciousInput,
           username: "malicious",
+          birthday: "2000-01-01",
+          sex: "male",
         })
         .select();
 

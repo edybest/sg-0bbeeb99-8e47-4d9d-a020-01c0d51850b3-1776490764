@@ -121,6 +121,8 @@ describe("Members Table RLS Tests", () => {
           phone: "+60123456999",
           full_name: "New Test Member",
           username: "newtestmember",
+          birthday: "2000-01-01",
+          sex: "male",
         })
         .select()
         .single();
@@ -145,6 +147,8 @@ describe("Members Table RLS Tests", () => {
           phone: "+60123456998",
           full_name: "Unauthorized Member",
           username: "unauthorized",
+          birthday: "2000-01-01",
+          sex: "male",
         })
         .select();
 
@@ -165,6 +169,8 @@ describe("Members Table RLS Tests", () => {
           phone: "+60123456997",
           full_name: "To Be Deleted",
           username: "tobedeleted",
+          birthday: "2000-01-01",
+          sex: "male",
         })
         .select()
         .single();

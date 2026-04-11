@@ -13,9 +13,6 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable");
 }
 
-// Set test environment
-process.env.NODE_ENV = "test";
-
 // Extend Jest matchers if needed
 expect.extend({
   toBeValidUUID(received: string) {

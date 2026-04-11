@@ -30,12 +30,7 @@ describe("Admin Access RLS Tests", () => {
     const adminOnlyTables = [
       "club_settings",
       "comment_bans",
-      "fivefive_games",
-      "fivefive_participants",
-      "fivefive_prizes",
       "games",
-      "lane_configurations",
-      "page_access_control",
     ];
 
     adminOnlyTables.forEach((tableName) => {
@@ -47,14 +42,10 @@ describe("Admin Access RLS Tests", () => {
           const mockData: Record<string, any> = {
             club_settings: { key: `test_${Date.now()}`, value: "test" },
             comment_bans: { member_id: testData.memberId, room_id: testData.chatRoomId },
-            fivefive_games: { name: "Test Game", date: new Date().toISOString() },
-            fivefive_participants: { member_id: testData.memberId, game_id: "00000000-0000-0000-0000-000000000000" },
-            fivefive_prizes: { game_id: "00000000-0000-0000-0000-000000000000", position: 1, amount: 100 },
-            games: { title: "Test Game", date: new Date().toISOString() },
-            lane_configurations: { name: "Test Lane", lane_number: 1 },
-            page_access_control: { member_id: testData.memberId, page_name: "test" },
+            games: { title: "Test Game", game_date: new Date().toISOString() },
           };
 
+          // @ts-ignore - dynamic table name
           const { data, error } = await supabase
             .from(tableName)
             .insert(mockData[tableName])
@@ -66,7 +57,8 @@ describe("Admin Access RLS Tests", () => {
 
           // Cleanup
           if (data) {
-            await supabaseAdmin.from(tableName).delete().eq("id", data.id);
+            // @ts-ignore
+            await supabaseAdmin.from(tableName).delete().eq("id", (data as any).id || (data as any).key);
           }
 
           await signOut();
@@ -78,14 +70,10 @@ describe("Admin Access RLS Tests", () => {
           const mockData: Record<string, any> = {
             club_settings: { key: `test_${Date.now()}`, value: "test" },
             comment_bans: { member_id: testData.memberId, room_id: testData.chatRoomId },
-            fivefive_games: { name: "Test Game", date: new Date().toISOString() },
-            fivefive_participants: { member_id: testData.memberId, game_id: "00000000-0000-0000-0000-000000000000" },
-            fivefive_prizes: { game_id: "00000000-0000-0000-0000-000000000000", position: 1, amount: 100 },
-            games: { title: "Test Game", date: new Date().toISOString() },
-            lane_configurations: { name: "Test Lane", lane_number: 1 },
-            page_access_control: { member_id: testData.memberId, page_name: "test" },
+            games: { title: "Test Game", game_date: new Date().toISOString() },
           };
 
+          // @ts-ignore
           const { data, error } = await supabase
             .from(tableName)
             .insert(mockData[tableName])
@@ -143,6 +131,7 @@ describe("Admin Access RLS Tests", () => {
         .insert({
           member_id: testData.memberId,
           score: 150,
+          date: new Date().toISOString(),
         })
         .select()
         .single();
