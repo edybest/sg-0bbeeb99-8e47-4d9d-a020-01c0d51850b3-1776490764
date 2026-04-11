@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { pageAccessService } from "@/services/pageAccessService";
+import { authService } from "@/services/authService";
 import { Loader2, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
@@ -403,9 +404,6 @@ export function WhatsAppLoginForm() {
           setLoading(false);
         }
       };
-
-      // Clear any cached role/page access decisions to avoid stale redirects
-      pageAccessService.clearCache();
 
       toast({
         title: "Log masuk berjaya!",

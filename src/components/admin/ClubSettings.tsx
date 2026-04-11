@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
-  Building2, Users, LayoutDashboard, Shield, ShieldCheck, ShieldAlert,
-  Bell, FileText, Image as ImageIcon, Save, Lock, ArrowRight, Info
+  Building2, Shield, ShieldCheck,
+  ImageIcon, Save, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +16,12 @@ import { ClubLogo } from "@/components/ClubLogo";
 import { ThemeSettingsPanel } from "./ThemeSettingsPanel";
 
 interface ClubSettings {
-  id: string;
+  id?: string;
   club_name: string;
-  description: string | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  rules: string | null;
+  description: string;
+  contact_email: string;
+  contact_phone: string;
+  rules: string;
   require_approval: boolean;
   max_members: number;
 }
@@ -40,17 +40,34 @@ export function ClubSettings() {
     try {
       const { data, error } = await supabase
         .from('club_settings')
-        .select('*')
-        .single();
+        .select('*');
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          await initializeSettings();
-        } else {
-          throw error;
-        }
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const parsedSettings: ClubSettings = {
+          club_name: "AMBC Club",
+          description: "",
+          contact_email: "",
+          contact_phone: "",
+          rules: "",
+          require_approval: true,
+          max_members: 100
+        };
+
+        data.forEach(item => {
+          if (item.setting_key === 'club_name') parsedSettings.club_name = item.setting_value || "";
+          if (item.setting_key === 'description') parsedSettings.description = item.setting_value || "";
+          if (item.setting_key === 'contact_email') parsedSettings.contact_email = item.setting_value || "";
+          if (item.setting_key === 'contact_phone') parsedSettings.contact_phone = item.setting_value || "";
+          if (item.setting_key === 'rules') parsedSettings.rules = item.setting_value || "";
+          if (item.setting_key === 'require_approval') parsedSettings.require_approval = item.setting_value === 'true';
+          if (item.setting_key === 'max_members') parsedSettings.max_members = parseInt(item.setting_value || "100", 10);
+        });
+
+        setSettings(parsedSettings);
       } else {
-        setSettings(data);
+        await initializeSettings();
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -66,21 +83,19 @@ export function ClubSettings() {
 
   async function initializeSettings() {
     try {
-      const defaultSettings = {
-        club_name: "AMBC Club",
-        description: "Welcome to AMBC Bowling Club",
-        require_approval: true,
-        max_members: 100
-      };
+      const defaultSettings = [
+        { setting_key: 'club_name', setting_value: 'AMBC Club' },
+        { setting_key: 'description', setting_value: 'Welcome to AMBC Bowling Club' },
+        { setting_key: 'require_approval', setting_value: 'true' },
+        { setting_key: 'max_members', setting_value: '100' }
+      ];
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('club_settings')
-        .insert([defaultSettings])
-        .select()
-        .single();
+        .insert(defaultSettings);
 
       if (error) throw error;
-      setSettings(data);
+      await fetchSettings();
     } catch (error) {
       console.error('Error initializing settings:', error);
     }
@@ -96,20 +111,35 @@ export function ClubSettings() {
     
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('club_settings')
-        .update({
-          club_name: settings.club_name,
-          description: settings.description,
-          contact_email: settings.contact_email,
-          contact_phone: settings.contact_phone,
-          rules: settings.rules,
-          require_approval: settings.require_approval,
-          max_members: settings.max_members,
-        })
-        .eq('id', settings.id);
+      const settingsToSave = [
+        { setting_key: 'club_name', setting_value: settings.club_name },
+        { setting_key: 'description', setting_value: settings.description },
+        { setting_key: 'contact_email', setting_value: settings.contact_email },
+        { setting_key: 'contact_phone', setting_value: settings.contact_phone },
+        { setting_key: 'rules', setting_value: settings.rules },
+        { setting_key: 'require_approval', setting_value: String(settings.require_approval) },
+        { setting_key: 'max_members', setting_value: String(settings.max_members) }
+      ];
 
-      if (error) throw error;
+      for (const setting of settingsToSave) {
+        // Upsert by checking if it exists
+        const { data: existing } = await supabase
+          .from('club_settings')
+          .select('id')
+          .eq('setting_key', setting.setting_key)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('club_settings')
+            .update({ setting_value: setting.setting_value })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('club_settings')
+            .insert([setting]);
+        }
+      }
 
       toast({
         title: "Success",
@@ -194,7 +224,7 @@ export function ClubSettings() {
                     <Textarea 
                       id="description" 
                       rows={3}
-                      value={settings.description || ''} 
+                      value={settings.description} 
                       onChange={(e) => handleSettingChange('description', e.target.value)}
                       placeholder="Brief description of your bowling club"
                     />
@@ -206,7 +236,7 @@ export function ClubSettings() {
                       <Input 
                         id="contact_email" 
                         type="email"
-                        value={settings.contact_email || ''} 
+                        value={settings.contact_email} 
                         onChange={(e) => handleSettingChange('contact_email', e.target.value)}
                         placeholder="admin@ambc.club"
                       />
@@ -215,7 +245,7 @@ export function ClubSettings() {
                       <Label htmlFor="contact_phone">Contact Phone</Label>
                       <Input 
                         id="contact_phone" 
-                        value={settings.contact_phone || ''} 
+                        value={settings.contact_phone} 
                         onChange={(e) => handleSettingChange('contact_phone', e.target.value)}
                         placeholder="+60123456789"
                       />
@@ -272,7 +302,7 @@ export function ClubSettings() {
                 <Textarea 
                   id="rules" 
                   rows={8}
-                  value={settings.rules || ''} 
+                  value={settings.rules} 
                   onChange={(e) => handleSettingChange('rules', e.target.value)}
                   placeholder="1. Be respectful to all members..."
                   className="font-mono text-sm"
@@ -302,7 +332,7 @@ export function ClubSettings() {
                   <ShieldCheck className="h-5 w-5 shrink-0 mt-0.5" />
                   <p>
                     <strong>Private Pages (Login Required):</strong><br />
-                    Chat, Gallery, Profile, Training, Five-Five, Hall of Fame, Lane, Undi Lane, and Feedback require user login and specific permissions.
+                    Chat, Gallery, Profile, Training, Five-Five, Hall of Fame, Lane, Undi Lane, dan Feedback require user login and specific permissions.
                   </p>
                 </div>
               </div>
