@@ -49,7 +49,6 @@ export default async function handler(
         console.log("Phone:", phone);
         console.log("Code:", code);
 
-        // Normalize phone format to match +60 or +65
         const phoneRegex = /^\+(60|65)\d{8,10}$/;
         let cleanPhone = phone.replace(/\D/g, "");
 
@@ -73,7 +72,6 @@ export default async function handler(
             });
         }
 
-        // Create Supabase admin client
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
             auth: {
                 autoRefreshToken: false,
@@ -81,7 +79,6 @@ export default async function handler(
             },
         });
 
-        // Find member by phone and verify TAC
         const { data: member, error: memberError } = await supabaseAdmin
             .from("members")
             .select("id, username, full_name, is_admin, user_id, tac_code, tac_expiry")
@@ -104,20 +101,14 @@ export default async function handler(
             tac_expiry: member.tac_expiry,
         });
 
-        // Verify TAC code
         if (!member.tac_code || member.tac_code !== code) {
             console.log("❌ Invalid TAC code");
-            console.log("Stored TAC:", member.tac_code);
-            console.log("Provided TAC:", code);
-            console.log("Match:", member.tac_code === code);
-
             return res.status(400).json({
                 success: false,
                 error: "Kod TAC tidak sah",
             });
         }
 
-        // Check expiry
         if (!member.tac_expiry || new Date(member.tac_expiry) < new Date()) {
             console.log("❌ TAC expired");
 
@@ -134,7 +125,6 @@ export default async function handler(
 
         console.log("✅ TAC verified successfully");
 
-        // Clear TAC after verification
         await supabaseAdmin
             .from("members")
             .update({ tac_code: null, tac_expiry: null })
@@ -180,15 +170,13 @@ export default async function handler(
             member.user_id = newAuthUser.user.id;
         }
 
-        // Create a session using fake email + temp password (reliable across all Supabase configs)
         try {
-            console.log("🔐 Step 1: Generating session tokens...");
+            console.log("🔐 Generating session tokens...");
             console.log("🔐 User ID:", member.user_id);
 
             const tempPassword = crypto.randomUUID() + crypto.randomUUID();
             const fakeEmail = `${cleanPhone.replace("+", "")}@auth.ambc.local`;
 
-            // Update auth user with fake email + temp password
             const { error: updateCredError } = await supabaseAdmin.auth.admin.updateUserById(
                 member.user_id,
                 {
@@ -203,12 +191,51 @@ export default async function handler(
                 throw new Error("Gagal menyediakan sesi log masuk");
             }
 
-            // Sign in with email + password
+            // Try generateLink first (faster — no extra round-trip)
+            const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+                type: "magiclink",
+                email: fakeEmail,
+            });
+
+            if (!linkError && linkData?.properties?.hashed_token) {
+                // Exchange magic link token for session
+                const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+                    auth: { autoRefreshToken: false, persistSession: false },
+                });
+
+                const { data: sessionData, error: sessionError } = await supabaseClient.auth.verifyOtp({
+                    token_hash: linkData.properties.hashed_token,
+                    type: "magiclink",
+                });
+
+                if (!sessionError && sessionData.session) {
+                    console.log("✅ Session tokens generated via magic link");
+
+                    return res.status(200).json({
+                        success: true,
+                        message: "Login successful",
+                        data: {
+                            access_token: sessionData.session.access_token,
+                            refresh_token: sessionData.session.refresh_token,
+                            user: {
+                                id: member.user_id,
+                                username: member.username,
+                                full_name: member.full_name,
+                                is_admin: member.is_admin || false,
+                                phone: cleanPhone,
+                            },
+                        },
+                    });
+                }
+
+                console.warn("⚠️ Magic link verify failed, falling back to signInWithPassword:", sessionError);
+            } else {
+                console.warn("⚠️ generateLink failed, falling back to signInWithPassword:", linkError);
+            }
+
+            // Fallback: signInWithPassword
             const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false,
-                },
+                auth: { autoRefreshToken: false, persistSession: false },
             });
 
             const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
@@ -234,7 +261,7 @@ export default async function handler(
                 });
             }
 
-            console.log("✅ Session tokens generated successfully");
+            console.log("✅ Session tokens generated via signInWithPassword");
 
             return res.status(200).json({
                 success: true,
