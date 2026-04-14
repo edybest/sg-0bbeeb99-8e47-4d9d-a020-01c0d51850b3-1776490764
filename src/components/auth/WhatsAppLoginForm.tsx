@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -174,8 +174,7 @@ export function WhatsAppLoginForm() {
       }
 
       setFormData((prev) => ({
-        ...prev,
-        phone: normalizedPhone,
+        ...prev,        
         tac: ""
       }));
 
