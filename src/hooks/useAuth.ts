@@ -16,7 +16,15 @@ interface CachedSession {
 }
 
 const SESSION_CACHE_KEY = "ambc_session_cache";
-const CACHE_DURATION = 31536000000; // 1 year (365 days)
+
+// FIX (Security): Reduced from 1 year to 15 minutes to limit PII exposure
+// on shared devices. A background revalidation refreshes this on every load.
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+const isDev = process.env.NODE_ENV === "development";
+const log = (...args: unknown[]) => isDev && console.log(...args);
+const warn = (...args: unknown[]) => isDev && console.warn(...args);
+const error = (...args: unknown[]) => console.error(...args);
 
 /* ================================
    Cache Helpers
@@ -26,13 +34,13 @@ function getCachedSession(): CachedSession | null {
     if (typeof window === "undefined") return null;
 
     try {
-        const raw = localStorage.getItem(SESSION_CACHE_KEY);
+        const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
         if (!raw) return null;
 
         const parsed = JSON.parse(raw) as CachedSession;
 
         if (Date.now() - parsed.timestamp > CACHE_DURATION) {
-            localStorage.removeItem(SESSION_CACHE_KEY);
+            sessionStorage.removeItem(SESSION_CACHE_KEY);
             return null;
         }
 
@@ -46,15 +54,23 @@ function setCachedSession(member: Member) {
     if (typeof window === "undefined") return;
 
     try {
-        localStorage.setItem(
+        // FIX (Security): Use sessionStorage instead of localStorage.
+        // sessionStorage is cleared when the tab/browser closes, limiting
+        // the exposure window on shared devices. Only cache non-sensitive
+        // fields to further reduce PII at rest.
+        sessionStorage.setItem(
             SESSION_CACHE_KEY,
             JSON.stringify({
-                member,
+                member: {
+                    id: member.id,
+                    user_id: member.user_id,
+                    is_admin: member.is_admin,
+                },
                 timestamp: Date.now(),
             })
         );
     } catch (e) {
-        console.warn("Failed to cache session:", e);
+        warn("Failed to cache session:", e);
     }
 }
 
@@ -62,9 +78,9 @@ function clearCachedSession() {
     if (typeof window === "undefined") return;
 
     try {
-        localStorage.removeItem(SESSION_CACHE_KEY);
+        sessionStorage.removeItem(SESSION_CACHE_KEY);
     } catch (e) {
-        console.warn("Failed to clear cache:", e);
+        warn("Failed to clear cache:", e);
     }
 }
 
@@ -78,11 +94,35 @@ export function useAuth(
     options?: UseAuthOptions
 ) {
     const router = useRouter();
+
+    // FIX (Correctness): Extract stable primitives from router to avoid
+    // unstable object references in useCallback dependency arrays, which
+    // would cause loadMemberData/checkAuth to be recreated on every render.
+    const { push: routerPush, asPath: routerAsPath } = router;
+
     const subscribe = options?.subscribe ?? true;
 
     const mountedRef = useRef(true);
     const checkingRef = useRef(false);
     const loadingMemberRef = useRef(false);
+
+    // FIX (Bug): Track isAuthenticated in a ref so the periodic interval
+    // closure reads the latest value instead of the stale value from mount.
+    const isAuthenticatedRef = useRef(false);
+
+    // FIX (Correctness): Stabilise requireAuth/requireAdmin in refs so
+    // changes to those props don't cause loadMemberData/checkAuth to be
+    // recreated and the useEffect to re-run.
+    const requireAuthRef = useRef(requireAuth);
+    const requireAdminRef = useRef(requireAdmin);
+
+    useEffect(() => {
+        requireAuthRef.current = requireAuth;
+    }, [requireAuth]);
+
+    useEffect(() => {
+        requireAdminRef.current = requireAdmin;
+    }, [requireAdmin]);
 
     const [member, setMember] = useState < Member | null > (null);
     const [loading, setLoading] = useState(true);
@@ -92,7 +132,7 @@ export function useAuth(
        Helpers
     ================================ */
 
-    const safeSetState = (data: {
+    const safeSetState = useCallback((data: {
         member?: Member | null;
         loading?: boolean;
         isAuthenticated?: boolean;
@@ -101,15 +141,23 @@ export function useAuth(
 
         if ("member" in data) setMember(data.member ?? null);
         if ("loading" in data) setLoading(data.loading ?? false);
-        if ("isAuthenticated" in data)
-            setIsAuthenticated(data.isAuthenticated ?? false);
-    };
-
-    const redirectIfNeeded = (path: string) => {
-        if (router.pathname !== path) {
-            router.push(path);
+        if ("isAuthenticated" in data) {
+            const val = data.isAuthenticated ?? false;
+            // FIX (Bug): Keep ref in sync so the periodic interval closure
+            // always sees the latest authentication state.
+            isAuthenticatedRef.current = val;
+            setIsAuthenticated(val);
         }
-    };
+    }, []);
+
+    // FIX (Correctness): Use router.asPath (the real URL) instead of
+    // router.pathname (the template, e.g. "/member/[id]") to avoid
+    // incorrectly redirecting users who are already on the target page.
+    const redirectIfNeeded = useCallback((path: string) => {
+        if (routerAsPath !== path) {
+            routerPush(path);
+        }
+    }, [routerPush, routerAsPath]);
 
     /* ================================
        Load Member Data
@@ -117,16 +165,20 @@ export function useAuth(
 
     const loadMemberData = useCallback(
         async (userId: string, email: string | null) => {
-            if (loadingMemberRef.current) return;
+            if (loadingMemberRef.current) {
+                // FIX (Minor): Log the skip so callers can observe it in dev.
+                log("⏸️ loadMemberData already running, skipping.");
+                return;
+            }
             loadingMemberRef.current = true;
 
             try {
-                console.log("📊 Loading member data:", { userId });
+                log("📊 Loading member data:", { userId });
 
                 let memberData = await memberService.getMemberByUserId(userId);
 
                 if (!memberData && email) {
-                    console.log("🔁 Trying email fallback...");
+                    log("🔁 Trying email fallback...");
                     memberData = await memberService.getMemberByEmail(email);
 
                     if (memberData && memberData.user_id !== userId) {
@@ -134,13 +186,13 @@ export function useAuth(
                             await memberService.linkAuthUser(memberData.id, userId);
                             memberData = { ...memberData, user_id: userId };
                         } catch (err) {
-                            console.warn("⚠️ Failed linking user_id:", err);
+                            warn("⚠️ Failed linking user_id:", err);
                         }
                     }
                 }
 
                 if (!memberData) {
-                    console.error("❌ Member not found");
+                    error("❌ Member not found for userId:", userId);
                     clearCachedSession();
 
                     safeSetState({
@@ -149,7 +201,7 @@ export function useAuth(
                         loading: false,
                     });
 
-                    if (requireAuth) {
+                    if (requireAuthRef.current) {
                         redirectIfNeeded("/login");
                     }
 
@@ -164,11 +216,11 @@ export function useAuth(
                     loading: false,
                 });
 
-                if (requireAdmin && !memberData.is_admin) {
+                if (requireAdminRef.current && !memberData.is_admin) {
                     redirectIfNeeded("/member");
                 }
-            } catch (error) {
-                console.error("❌ loadMemberData error:", error);
+            } catch (err) {
+                error("❌ loadMemberData error:", err);
 
                 clearCachedSession();
 
@@ -178,14 +230,17 @@ export function useAuth(
                     loading: false,
                 });
 
-                if (requireAuth) {
+                if (requireAuthRef.current) {
                     redirectIfNeeded("/login");
                 }
             } finally {
                 loadingMemberRef.current = false;
             }
         },
-        [requireAuth, requireAdmin, router]
+        // FIX (Correctness): requireAuth/requireAdmin are now read via refs
+        // inside the callback, so they are no longer in the dependency array.
+        // This prevents the function from being recreated on every prop change.
+        [safeSetState, redirectIfNeeded]
     );
 
     /* ================================
@@ -194,28 +249,27 @@ export function useAuth(
 
     const checkAuth = useCallback(async () => {
         if (checkingRef.current) {
-            console.log("⏸️ Auth check already running...");
+            log("⏸️ Auth check already running...");
             return;
         }
 
         checkingRef.current = true;
 
         try {
-            console.log("🔍 Checking auth...");
+            log("🔍 Checking auth...");
 
-            // Retry once if Supabase temporary failure
             let sessionResult = null;
             let lastError = null;
 
             for (let i = 0; i < 2; i++) {
-                const { data, error } = await supabase.auth.getSession();
+                const { data, error: sessionError } = await supabase.auth.getSession();
 
-                if (!error) {
+                if (!sessionError) {
                     sessionResult = data;
                     break;
                 }
 
-                lastError = error;
+                lastError = sessionError;
             }
 
             if (lastError && !sessionResult) {
@@ -225,7 +279,7 @@ export function useAuth(
             const session = sessionResult?.session;
 
             if (!session) {
-                console.log("❌ No session");
+                log("❌ No active session");
 
                 clearCachedSession();
 
@@ -235,7 +289,7 @@ export function useAuth(
                     loading: false,
                 });
 
-                if (requireAuth) {
+                if (requireAuthRef.current) {
                     redirectIfNeeded("/login");
                 }
 
@@ -243,8 +297,8 @@ export function useAuth(
             }
 
             await loadMemberData(session.user.id, session.user.email ?? null);
-        } catch (error) {
-            console.error("❌ checkAuth error:", error);
+        } catch (err) {
+            error("❌ checkAuth error:", err);
 
             const cached = getCachedSession();
 
@@ -257,18 +311,18 @@ export function useAuth(
                     loading: false,
                 });
 
-                if (requireAuth) {
+                if (requireAuthRef.current) {
                     redirectIfNeeded("/login");
                 }
             } else {
-                safeSetState({
-                    loading: false,
-                });
+                // Network error but we have a recent cache — stay logged in
+                // but don't hide the loading spinner change.
+                safeSetState({ loading: false });
             }
         } finally {
             checkingRef.current = false;
         }
-    }, [requireAuth, loadMemberData, router]);
+    }, [safeSetState, redirectIfNeeded, loadMemberData]);
 
     /* ================================
        Init
@@ -280,19 +334,21 @@ export function useAuth(
         const cached = getCachedSession();
 
         if (cached?.member) {
-            console.log("⚡ Using cached session");
+            log("⚡ Using cached session");
 
             safeSetState({
-                member: cached.member,
+                member: cached.member as Member,
                 isAuthenticated: true,
                 loading: false,
             });
 
-            // Delay validation to improve perceived performance
-            // Only revalidate after 5 seconds (user already sees content)
+            // FIX (Bug): Guard the delayed revalidation against the case
+            // where the user has already logged out in the 5-second window.
+            // The isAuthenticatedRef check prevents a SIGNED_OUT event from
+            // being overwritten by the delayed checkAuth resolving later.
             setTimeout(() => {
-                if (mountedRef.current) {
-                    console.log("📋 Validating cached session in background...");
+                if (mountedRef.current && isAuthenticatedRef.current) {
+                    log("📋 Validating cached session in background...");
                     checkAuth();
                 }
             }, 5000);
@@ -300,24 +356,23 @@ export function useAuth(
             checkAuth();
         }
 
-        // Periodic session refresh - check every 30 minutes
+        // FIX (Bug): Read from isAuthenticatedRef (not the stale state
+        // closure) so the interval correctly observes the current auth state.
         const refreshInterval = setInterval(() => {
-            if (mountedRef.current && isAuthenticated) {
-                console.log("⏰ Periodic session check...");
+            if (mountedRef.current && isAuthenticatedRef.current) {
+                log("⏰ Periodic session check...");
                 checkAuth();
             }
-        }, 30 * 60 * 1000); // Every 30 minutes
+        }, 30 * 60 * 1000);
 
-        let authSubscription:
-            | { subscription: { unsubscribe: () => void } }
-            | null = null;
+        let authSubscription: { subscription: { unsubscribe: () => void } } | null = null;
 
         if (subscribe) {
             const { data: listener } = supabase.auth.onAuthStateChange(
                 async (event, session) => {
                     if (!mountedRef.current) return;
 
-                    console.log("🔄 Auth event:", event);
+                    log("🔄 Auth event:", event);
 
                     if (event === "SIGNED_IN" && session) {
                         await loadMemberData(
@@ -335,7 +390,7 @@ export function useAuth(
                             loading: false,
                         });
 
-                        if (requireAuth) {
+                        if (requireAuthRef.current) {
                             redirectIfNeeded("/login");
                         }
                     }
@@ -347,19 +402,24 @@ export function useAuth(
 
         return () => {
             mountedRef.current = false;
-
             clearInterval(refreshInterval);
 
             if (authSubscription) {
                 authSubscription.subscription.unsubscribe();
             }
         };
-    }, [checkAuth, loadMemberData, requireAuth, subscribe]);
+        // FIX (Correctness): checkAuth and loadMemberData are now stable because
+        // they read requireAuth/requireAdmin from refs. The effect will not
+        // re-run unnecessarily when those props change.
+    }, [checkAuth, loadMemberData, safeSetState, redirectIfNeeded, subscribe]);
 
     /* ================================
        Logout
     ================================ */
 
+    // FIX (Minor): safeSetState is called after the async signOut, so it is
+    // intentionally guarded by mountedRef.current inside safeSetState. If
+    // the component unmounts during signOut the state updates are no-ops.
     async function logout(options?: { redirectTo?: string }) {
         try {
             await supabase.auth.signOut();
@@ -373,8 +433,8 @@ export function useAuth(
             });
 
             redirectIfNeeded(options?.redirectTo ?? "/login");
-        } catch (error) {
-            console.error("Logout error:", error);
+        } catch (err) {
+            error("Logout error:", err);
         }
     }
 
@@ -386,7 +446,7 @@ export function useAuth(
         member,
         loading,
         isAuthenticated,
-        isAdmin: member?.is_admin || false,
+        isAdmin: member?.is_admin ?? false,
         refetch: checkAuth,
         logout,
     };
