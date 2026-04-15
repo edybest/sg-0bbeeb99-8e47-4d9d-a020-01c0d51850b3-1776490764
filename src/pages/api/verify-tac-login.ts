@@ -57,7 +57,7 @@ export default async function handler(
     console.log("Try 1: Searching with format:", cleanPhone);
     let { data: member, error: memberError } = await supabaseAdmin
       .from("members")
-      .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+      .select("id, user_id, full_name, username, is_admin, is_verified, tac_code, tac_expiry")
       .eq("phone", cleanPhone)
       .single();
 
@@ -68,7 +68,7 @@ export default async function handler(
       
       const result = await supabaseAdmin
         .from("members")
-        .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+        .select("id, user_id, full_name, username, is_admin, is_verified, tac_code, tac_expiry")
         .eq("phone", phoneWithoutPlus)
         .single();
       
@@ -83,7 +83,7 @@ export default async function handler(
       
       const result = await supabaseAdmin
         .from("members")
-        .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+        .select("id, user_id, full_name, username, is_admin, is_verified, tac_code, tac_expiry")
         .eq("phone", phoneWithZero)
         .single();
       
@@ -139,11 +139,11 @@ export default async function handler(
 
     console.log("✅ Valid TAC found for member:", member.full_name || member.username);
 
-    // 3. Check if member is approved (is_approved column)
-    if (!member.is_approved) {
-      console.log("❌ Member not approved");
+    // 3. Check if member is verified (is_verified column)
+    if (!member.is_verified) {
+      console.log("❌ Member not verified");
       return res.status(403).json({ 
-        error: "Akaun anda belum diluluskan oleh admin." 
+        error: "Akaun anda belum disahkan. Sila hubungi admin." 
       });
     }
 
