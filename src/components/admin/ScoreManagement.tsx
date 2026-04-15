@@ -50,6 +50,7 @@ type Member = {
   id: string;
   username: string;
   full_name: string;
+  handicap?: number;
 };
 
 type ParsedScore = {
@@ -149,7 +150,8 @@ export function ScoreManagement() {
       setAllMembers(data.map((m: any) => ({
         id: m.id,
         username: m.username,
-        full_name: m.full_name
+        full_name: m.full_name,
+        handicap: m.handicap || 0
       })));
     } catch (error) {
       console.error("Error loading members:", error);
@@ -786,6 +788,41 @@ export function ScoreManagement() {
     setShowCsvModal(false);
   }
 
+  function handleResetHandicap() {
+    if (!selectedGameId) return;
+    if (!confirm("Adakah anda pasti untuk menyelaraskan handicap semua pemain dalam perlawanan ini berdasarkan rekod purata (average) semasa?")) return;
+
+    let hasChanges = false;
+    setEditingScores(prev => {
+      const next = { ...prev };
+      players.forEach(p => {
+        const memberProfile = allMembers.find(m => m.id === p.member_id);
+        if (memberProfile && memberProfile.handicap !== undefined) {
+          const currentHandicap = getPlayerScore(p, "handicap");
+          if (currentHandicap !== memberProfile.handicap) {
+            hasChanges = true;
+            const updated = { ...(next[p.id] || p) };
+            updated.handicap = memberProfile.handicap;
+            
+            const total = updated.game1_score + updated.game2_score + updated.game3_score + 
+                          updated.game4_score + updated.game5_score;
+            updated.total_score = total;
+            updated.overall_score = total + updated.handicap;
+            
+            next[p.id] = updated;
+          }
+        }
+      });
+      return next;
+    });
+
+    if (hasChanges) {
+      alert("Handicap telah diselaraskan pada paparan. Sila tekan butang 'Save All' berwarna merah untuk menyimpan perubahan tersebut ke dalam pangkalan data.");
+    } else {
+      alert("Tiada perubahan. Semua handicap pemain sudah selari dengan profil semasa.");
+    }
+  }
+
   if (loading && !selectedGameId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -801,7 +838,7 @@ export function ScoreManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Score Management</h2>
           <p className="text-gray-600 mt-1">Edit player scores for games</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {Object.keys(editingScores).length > 0 && (
             <Button
               onClick={handleSaveAll}
@@ -814,6 +851,17 @@ export function ScoreManagement() {
                 <Save className="h-4 w-4 mr-2" />
               )}
               Save All ({Object.keys(editingScores).length})
+            </Button>
+          )}
+          {selectedGameId && !isCoupleGame && players.length > 0 && (
+            <Button
+              onClick={handleResetHandicap}
+              variant="outline"
+              className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+              title="Selaraskan Handicap dari Average Score"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sync Handicap
             </Button>
           )}
           <Button
