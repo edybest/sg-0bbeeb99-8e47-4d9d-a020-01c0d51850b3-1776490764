@@ -976,7 +976,9 @@ export type Database = {
           id: string
           is_official: boolean | null
           location: string | null
+          men_vs_women_enabled: boolean | null
           updated_at: string | null
+          women_handicap: number | null
           year: number
         }
         Insert: {
@@ -990,7 +992,9 @@ export type Database = {
           id?: string
           is_official?: boolean | null
           location?: string | null
+          men_vs_women_enabled?: boolean | null
           updated_at?: string | null
+          women_handicap?: number | null
           year: number
         }
         Update: {
@@ -1004,7 +1008,9 @@ export type Database = {
           id?: string
           is_official?: boolean | null
           location?: string | null
+          men_vs_women_enabled?: boolean | null
           updated_at?: string | null
+          women_handicap?: number | null
           year?: number
         }
         Relationships: []
