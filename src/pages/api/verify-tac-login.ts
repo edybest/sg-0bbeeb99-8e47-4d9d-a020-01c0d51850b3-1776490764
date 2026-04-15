@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_SERVICE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Set timeout for this API route
+  res.setHeader('X-Vercel-Timeout', '30');
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -22,102 +26,149 @@ export default async function handler(
   try {
     console.log("🔐 Verifying TAC for:", phone_number);
 
-    // 1. Find valid TAC - Use correct column names from schema
+    // Normalize phone format to match the database
+    let cleanPhone = phone_number.replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "6" + cleanPhone;
+    } else if (!cleanPhone.startsWith("6") && cleanPhone.length > 0) {
+      cleanPhone = "60" + cleanPhone;
+    }
+    if (cleanPhone) {
+      cleanPhone = "+" + cleanPhone;
+    }
+
+    console.log("Normalized phone for verification:", cleanPhone);
+
+    // Create Supabase admin client
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // 1. Find member by phone and valid TAC
     const now = new Date().toISOString();
-    const { data: tacRecords, error: tacError } = await supabase
-      .from("whatsapp_tac")
-      .select("*")
-      .eq("phone_number", phone_number)
-      .eq("tac", tac)
-      .eq("used", false)
-      .gt("expires_at", now)
-      .order("created_at", { ascending: false });
-
-    if (tacError) {
-      console.error("TAC query error:", tacError);
-      return res.status(500).json({ 
-        error: "Ralat pangkalan data semasa mengesahkan TAC",
-        details: tacError.message 
-      });
-    }
-
-    if (!tacRecords || tacRecords.length === 0) {
-      console.log("❌ Invalid or expired TAC");
-      return res.status(401).json({ 
-        error: "Kod TAC tidak sah atau telah tamat tempoh" 
-      });
-    }
-
-    const tacRecord = tacRecords[0];
-    console.log("✅ Valid TAC found, member_id:", tacRecord.member_id);
-
-    // 2. Get member details using member_id from TAC record
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
-      .select("id, user_id, full_name, is_admin, is_approved")
-      .eq("id", tacRecord.member_id)
+      .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+      .eq("phone", cleanPhone)
       .single();
 
     if (memberError || !member) {
-      console.error("Member query error:", memberError);
+      console.error("❌ Member not found or query error:", memberError);
       return res.status(404).json({ 
-        error: "Ahli tidak dijumpai" 
+        error: "Akaun tidak dijumpai untuk nombor telefon ini." 
       });
     }
 
-    // 3. Check if member is approved
+    // 2. Verify TAC code and expiry
+    if (!member.tac_code || member.tac_code !== tac) {
+      console.log("❌ Invalid TAC code");
+      return res.status(401).json({ 
+        error: "Kod TAC tidak sah. Sila semak semula." 
+      });
+    }
+
+    if (!member.tac_expiry || member.tac_expiry < now) {
+      console.log("❌ Expired TAC code");
+      return res.status(401).json({ 
+        error: "Kod TAC telah tamat tempoh. Sila minta kod baru." 
+      });
+    }
+
+    console.log("✅ Valid TAC found for member:", member.full_name || member.username);
+
+    // 3. Check if member is approved (is_approved column)
     if (!member.is_approved) {
       console.log("❌ Member not approved");
       return res.status(403).json({ 
-        error: "Akaun anda belum diluluskan oleh admin" 
+        error: "Akaun anda belum diluluskan oleh admin." 
       });
     }
 
-    console.log("✅ Member approved, generating token...");
+    // 4. Generate Auth Token
+    let authToken = "";
 
-    // 4. Generate login token using the API
-    const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/generate-login-token`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ memberId: member.id }),
-    });
+    if (member.user_id) {
+      // If auth user exists, generate token by signing them in or generating a link
+      console.log("Generating session for existing auth user:", member.user_id);
+      
+      // We use the admin API to generate a link which provides a session token
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: `${member.user_id}@ambc.temp`, // Dummy email used for phone-auth accounts
+      });
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json();
-      console.error("Token generation error:", errorData);
+      if (linkError) {
+        console.error("❌ Failed to generate login link:", linkError);
+        
+        // Fallback: try generating a token via our custom endpoint if it exists
+        try {
+          const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/generate-login-token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ memberId: member.id }),
+          });
+          
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            if (tokenData.success && tokenData.token) {
+              authToken = tokenData.token;
+            }
+          }
+        } catch (e) {
+          console.error("Fallback token generation also failed");
+        }
+
+        if (!authToken) {
+          return res.status(500).json({ error: "Gagal mencipta sesi log masuk." });
+        }
+      } else {
+        // If we got a magic link, we'd normally need to click it to get a session
+        // Since we are building an API, we will use our internal token generator as the primary way
+        console.log("Requesting token from internal token generator...");
+        const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/generate-login-token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ memberId: member.id }),
+        });
+        
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          if (tokenData.success && tokenData.token) {
+            authToken = tokenData.token;
+          } else {
+            throw new Error("Invalid token format received");
+          }
+        } else {
+          throw new Error("Token generator returned error");
+        }
+      }
+    } else {
+      console.error("❌ Member has no linked auth user_id");
       return res.status(500).json({ 
-        error: "Ralat mencipta token log masuk" 
+        error: "Akaun belum dikonfigurasi sepenuhnya. Sila hubungi admin." 
       });
     }
 
-    const tokenData = await tokenResponse.json();
+    // 5. Clear the used TAC (fire and forget)
+    supabaseAdmin
+      .from("members")
+      .update({ tac_code: null, tac_expiry: null })
+      .eq("id", member.id)
+      .then(() => console.log("✅ TAC cleared from member record"))
+      .catch((err) => console.error("Failed to clear TAC:", err));
 
-    if (!tokenData.success || !tokenData.token) {
-      console.error("Invalid token response:", tokenData);
-      return res.status(500).json({ 
-        error: "Ralat mencipta token log masuk" 
-      });
-    }
-
-    // 5. Mark TAC as used (non-blocking)
-    supabase
-      .from("whatsapp_tac")
-      .update({ used: true })
-      .eq("id", tacRecord.id)
-      .then(() => console.log("✅ TAC marked as used"))
-      .catch((err) => console.error("Failed to mark TAC as used:", err));
-
-    console.log("✅ Login successful for member:", member.full_name);
+    console.log("✅ Login successful");
 
     // 6. Return success with auth token
     return res.status(200).json({
       success: true,
-      auth_token: tokenData.token,
+      auth_token: authToken,
       member: {
         id: member.id,
-        full_name: member.full_name,
+        full_name: member.full_name || member.username,
         is_admin: member.is_admin,
       },
     });
@@ -125,8 +176,7 @@ export default async function handler(
   } catch (error: any) {
     console.error("❌ Verify TAC error:", error);
     return res.status(500).json({ 
-      error: "Ralat sistem. Sila cuba lagi atau hubungi admin.",
-      details: error.message
+      error: "Ralat sistem. Sila cuba lagi atau hubungi admin." 
     });
   }
 }
