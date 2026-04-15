@@ -153,14 +153,16 @@ export default async function handler(
     if (member.user_id) {
       console.log("Generating session for existing auth user:", member.user_id);
       
-      const { data: memberDetails } = await supabaseAdmin
-        .from("members")
-        .select("email")
-        .eq("id", member.id)
-        .single();
-        
-      // Ensure we have an email to generate the link (fallback to generated email if missing)
-      const email = memberDetails?.email || `${member.user_id}@ambc.temp`;
+      // Fetch user's actual email from Supabase Auth
+      const { data: userAuth, error: userError } = await supabaseAdmin.auth.admin.getUserById(member.user_id);
+      
+      if (userError || !userAuth.user || !userAuth.user.email) {
+        console.error("❌ Failed to fetch auth user:", userError);
+        return res.status(500).json({ error: "Akaun pengesahan tidak lengkap atau tiada emel." });
+      }
+      
+      const email = userAuth.user.email;
+      console.log("Found user email for magic link:", email);
 
       // We use the admin API to generate a link which provides a session token
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
