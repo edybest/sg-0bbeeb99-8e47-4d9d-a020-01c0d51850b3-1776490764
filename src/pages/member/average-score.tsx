@@ -25,6 +25,7 @@ type PlayerStats = {
   }[];
   average_of_3: number;
   calculated_handicap: number;
+  current_handicap_in_db?: number;
 };
 
 export default function AverageScorePage() {
@@ -65,7 +66,7 @@ export default function AverageScorePage() {
         .not("game_name", "ilike", "%9pin%")
         .not("game_name", "ilike", "%369%")
         .order("game_date", { ascending: false })
-        .limit(100); // Limit untuk performance
+        .limit(60); // Kurangkan limit ke 60 untuk jadikan load lebih pantas
 
       if (error) {
         console.error("Error loading games:", error);
@@ -97,7 +98,7 @@ export default function AverageScorePage() {
       // STEP 3: Fetch member details (non-admin only) dengan order by username
       const { data: membersData, error: membersError } = await supabase
         .from("members")
-        .select("id, username, full_name, avatar_url, sex, birthday")
+        .select("id, username, full_name, avatar_url, sex, birthday, handicap")
         .in("id", Array.from(memberIds))
         .eq("is_admin", false)
         .order("username", { ascending: true });
@@ -133,6 +134,7 @@ export default function AverageScorePage() {
               avatar_url: member.avatar_url,
               sex: member.sex,
               birthday: member.birthday,
+              current_handicap_in_db: member.handicap,
               recent_games: [],
               average_of_3: 0,
               calculated_handicap: 0,
@@ -178,8 +180,10 @@ export default function AverageScorePage() {
           avgOf3
         );
 
-        // Fire & forget update DB (tidak ganggu loading screen)
-        updateMemberHandicap(player.member_id, handicap).catch(() => {});
+        // Hanya update pangkalan data jika handicap berubah (mengelakkan panggilan API serentak yang melambatkan page)
+        if (player.current_handicap_in_db !== handicap) {
+          updateMemberHandicap(player.member_id, handicap).catch(() => {});
+        }
 
         stats.push({
           ...player,
