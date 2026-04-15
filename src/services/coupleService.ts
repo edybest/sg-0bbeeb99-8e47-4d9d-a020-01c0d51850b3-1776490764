@@ -202,27 +202,22 @@ class CoupleService {
     // Parallel fetch: scores and reaction counts
     const [scoresResult, reactionCountsResult] = await Promise.all([
       this.getCoupleScoresByGame(gameId),
-      // Use database aggregation for counts (much faster)
+      // Fetch all reactions for this game
       supabase
         .from("couple_reactions_log")
-        .select("couple_score_id, count:couple_score_id.count()")
+        .select("couple_score_id")
         .eq("game_id", gameId)
         .eq("reaction_type", "like")
     ]);
 
     const scores = scoresResult;
     
-    // Build reaction counts map from aggregated data
+    // Build reaction counts map from data
     const reactionCounts: Record<string, number> = {};
     if (reactionCountsResult.data) {
-      // Group by couple_score_id and count
-      const countMap = new Map<string, number>();
       reactionCountsResult.data.forEach((row: any) => {
         const id = row.couple_score_id;
-        countMap.set(id, (countMap.get(id) || 0) + 1);
-      });
-      countMap.forEach((count, id) => {
-        reactionCounts[id] = count;
+        reactionCounts[id] = (reactionCounts[id] || 0) + 1;
       });
     }
 
