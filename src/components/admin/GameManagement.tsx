@@ -676,11 +676,10 @@ ${closingMsg}`;
   };
 
   const handleAddDouble = async () => {
-    if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id || 
-        !doubleForm.player1_score || !doubleForm.player2_score) {
+    if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id) {
       toast({
         title: "Ralat",
-        description: "Sila isi semua ruangan",
+        description: "Sila pilih kedua-dua pemain",
         variant: "destructive",
       });
       return;
@@ -696,6 +695,30 @@ ${closingMsg}`;
     }
 
     try {
+      // Fetch player scores from game_players table
+      const { data: gamePlayers, error: fetchError } = await supabase
+        .from("game_players")
+        .select("member_id, total_score, handicap")
+        .eq("game_id", selectedGameForDouble.id)
+        .in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
+
+      if (fetchError) throw fetchError;
+
+      if (!gamePlayers || gamePlayers.length !== 2) {
+        toast({
+          title: "Ralat",
+          description: "Pemain belum ada score dalam game ini. Sila masukkan score dahulu.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const player1 = gamePlayers.find(p => p.member_id === doubleForm.player1_id);
+      const player2 = gamePlayers.find(p => p.member_id === doubleForm.player2_id);
+
+      const player1Score = (player1?.total_score || 0) + (player1?.handicap || 0);
+      const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
+
       const { data: { user } } = await supabase.auth.getUser();
       const { data: member } = await supabase
         .from("members")
@@ -707,8 +730,8 @@ ${closingMsg}`;
         game_id: selectedGameForDouble.id,
         player1_id: doubleForm.player1_id,
         player2_id: doubleForm.player2_id,
-        player1_score: parseInt(doubleForm.player1_score),
-        player2_score: parseInt(doubleForm.player2_score),
+        player1_score: player1Score,
+        player2_score: player2Score,
         created_by: member?.id,
       }]);
 
@@ -716,7 +739,7 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: "Rekod double telah ditambah",
+        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`,
       });
 
       setIsDoubleDialogOpen(false);
@@ -1453,7 +1476,7 @@ ${closingMsg}`;
             <DialogHeader>
               <DialogTitle>Tambah Rekod Double</DialogTitle>
               <DialogDescription>
-                Rekod permainan double untuk {selectedGameForDouble?.game_name}
+                Score akan diambil automatik dari rekod game pemain
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1477,18 +1500,6 @@ ${closingMsg}`;
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Skor 1</Label>
-                  <Input
-                    type="number"
-                    value={doubleForm.player1_score}
-                    onChange={(e) => setDoubleForm({ ...doubleForm, player1_score: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
                   <Label>Pemain 2</Label>
                   <Select
                     value={doubleForm.player2_id}
@@ -1506,33 +1517,23 @@ ${closingMsg}`;
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Skor 2</Label>
-                  <Input
-                    type="number"
-                    value={doubleForm.player2_score}
-                    onChange={(e) => setDoubleForm({ ...doubleForm, player2_score: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
               </div>
 
-              {doubleForm.player1_score && doubleForm.player2_score && (
-                <div className="p-3 bg-primary/10 rounded-md border border-primary/20 text-center">
-                  <p className="text-sm font-medium text-primary">
-                    Jumlah Skor: <span className="text-xl font-bold ml-1">
-                      {parseInt(doubleForm.player1_score || "0") + parseInt(doubleForm.player2_score || "0")}
-                    </span>
-                  </p>
-                </div>
-              )}
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm font-medium text-blue-900 mb-2">💡 Nota Penting:</p>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Score akan diambil automatik dari rekod game</li>
+                  <li>Score = Total Score + Handicap setiap pemain</li>
+                  <li>Pastikan kedua-dua pemain sudah ada score dalam game ini</li>
+                </ul>
+              </div>
               
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDoubleDialogOpen(false)}>
                   Batal
                 </Button>
                 <Button onClick={handleAddDouble}>
-                  Simpan Rekod
+                  Tambah Rekod Double
                 </Button>
               </DialogFooter>
             </div>
