@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer, Sparkles, Edit2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
@@ -39,10 +50,27 @@ interface DoubleRecord {
   };
 }
 
+const ITEMS_PER_PAGE = 5;
+
+const OPENING_MESSAGES = [
+  "Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
+  "Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
+  "Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
+  "Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"
+];
+
+const CLOSING_MESSAGES = [
+  "Jumpa lagi di blok akan datang.",
+  "See you next blok! Semoga lebih ramai join!",
+  "Blok seterusnya tunggu anda semua ya!",
+  "Sampai jumpa lagi dalam blok akan datang. Good luck!"
+];
+
 export function GameManagement() {
   const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Create/Edit Game Dialog
   const [isGameDialogOpen, setIsGameDialogOpen] = useState(false);
@@ -53,7 +81,7 @@ export function GameManagement() {
     game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI",
   });
 
-  // Double Game States - NEW
+  // Double Game States
   const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
   const [selectedGameForDouble, setSelectedGameForDouble] = useState<Game | null>(null);
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
@@ -67,6 +95,42 @@ export function GameManagement() {
     player2_score: "",
   });
 
+  // Delete Game Dialog
+  const [deleteGameDialog, setDeleteGameDialog] = useState<{ open: boolean; game: Game | null }>({
+    open: false,
+    game: null,
+  });
+
+  // Delete Player Dialog
+  const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
+    open: boolean;
+    playerId: string | null;
+    playerName: string;
+    gameId: string | null;
+  }>({
+    open: false,
+    playerId: null,
+    playerName: "",
+    gameId: null,
+  });
+
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // WhatsApp Share states
+  const [showWhatsAppShare, setShowWhatsAppShare] = useState(false);
+  const [selectedGameForShare, setSelectedGameForShare] = useState<Game | null>(null);
+  const [selectedOpeningMessage, setSelectedOpeningMessage] = useState(0);
+  const [selectedClosingMessage, setSelectedClosingMessage] = useState(0);
+  const [sharePreview, setSharePreview] = useState("");
+  const [loadingTopPlayers, setLoadingTopPlayers] = useState(false);
+  const [topPlayers, setTopPlayers] = useState<Array<{rank: number; username: string; overall_score: number}>>([]);
+
+  // Add Player states
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [selectedGameForPlayer, setSelectedGameForPlayer] = useState<string | null>(null);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [newPlayerFiveFive, setNewPlayerFiveFive] = useState(false);
+
   useEffect(() => {
     loadGames();
   }, []);
@@ -75,7 +139,18 @@ export function GameManagement() {
     try {
       setLoading(true);
       const data = await gameService.listGamesWithPlayers();
-      setGames(data);
+      
+      // Sort players alphabetically A-Z for each game
+      const formattedGames = (data as any[]).map(game => ({
+        ...game,
+        players: game.players?.sort((a: any, b: any) => {
+          const nameA = (a.username || a.full_name || "").toLowerCase();
+          const nameB = (b.username || b.full_name || "").toLowerCase();
+          return nameA.localeCompare(nameB, 'ms-MY');
+        }) || []
+      }));
+      
+      setGames(formattedGames);
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
@@ -85,163 +160,6 @@ export function GameManagement() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Double Game Functions - NEW
-  const loadAvailableMembersForDouble = async (gameId: string) => {
-    try {
-      const data = await gameService.getAvailableMembersForGame(gameId);
-      setAvailableMembers(data || []);
-    } catch (error) {
-      console.error("Error loading members:", error);
-    }
-  };
-
-  const fetchDoubleRecords = async (gameId: string) => {
-    try {
-      setLoadingDoubles(prev => ({ ...prev, [gameId]: true }));
-
-      const { data, error } = await (supabase as any)
-        .from("double_records")
-        .select(`
-          *,
-          player1:members!double_records_player1_id_fkey(id, username, full_name),
-          player2:members!double_records_player2_id_fkey(id, username, full_name)
-        `)
-        .eq("game_id", gameId)
-        .order("total_score", { ascending: false });
-
-      if (error) throw error;
-
-      setDoubleRecords(prev => ({
-        ...prev,
-        [gameId]: data || []
-      }));
-    } catch (error) {
-      console.error("Error fetching double records:", error);
-    } finally {
-      setLoadingDoubles(prev => ({ ...prev, [gameId]: false }));
-    }
-  };
-
-  const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("games")
-        .update({ double_enabled: !currentValue })
-        .eq("id", gameId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Berjaya",
-        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
-      });
-
-      loadGames();
-    } catch (error) {
-      console.error("Error toggling double:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal mengemaskini tetapan double game",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAddDouble = async () => {
-    if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id || 
-        !doubleForm.player1_score || !doubleForm.player2_score) {
-      toast({
-        title: "Ralat",
-        description: "Sila isi semua ruangan",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (doubleForm.player1_id === doubleForm.player2_id) {
-      toast({
-        title: "Ralat",
-        description: "Sila pilih pemain yang berbeza",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase
-        .from("members")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single();
-
-      const { error } = await supabase.from("double_records").insert([{
-        game_id: selectedGameForDouble.id,
-        player1_id: doubleForm.player1_id,
-        player2_id: doubleForm.player2_id,
-        player1_score: parseInt(doubleForm.player1_score),
-        player2_score: parseInt(doubleForm.player2_score),
-        created_by: member?.id,
-      }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Berjaya",
-        description: "Rekod double telah ditambah",
-      });
-
-      setIsDoubleDialogOpen(false);
-      setDoubleForm({ player1_id: "", player2_id: "", player1_score: "", player2_score: "" });
-      fetchDoubleRecords(selectedGameForDouble.id);
-    } catch (error) {
-      console.error("Error adding double:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal menambah rekod double",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteDouble = async (doubleId: string, gameId: string) => {
-    if (!confirm("Adakah anda pasti mahu memadam rekod double ini?")) return;
-
-    try {
-      const { error } = await supabase
-        .from("double_records")
-        .delete()
-        .eq("id", doubleId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Berjaya",
-        description: "Rekod double telah dipadam",
-      });
-
-      fetchDoubleRecords(gameId);
-    } catch (error) {
-      console.error("Error deleting double:", error);
-      toast({
-        title: "Ralat",
-        description: "Gagal memadam rekod double",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const toggleExpandedGame = (gameId: string) => {
-    if (expandedGame === gameId) {
-      setExpandedGame(null);
-    } else {
-      setExpandedGame(gameId);
-      if (!doubleRecords[gameId]) {
-        fetchDoubleRecords(gameId);
-      }
     }
   };
 
@@ -694,6 +612,163 @@ ${closingMsg}`;
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
+  // Double Game Functions
+  const loadAvailableMembersForDouble = async (gameId: string) => {
+    try {
+      const data = await gameService.getAvailableMembersForGame(gameId);
+      setAvailableMembers(data || []);
+    } catch (error) {
+      console.error("Error loading members:", error);
+    }
+  };
+
+  const fetchDoubleRecords = async (gameId: string) => {
+    try {
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: true }));
+
+      const { data, error } = await (supabase as any)
+        .from("double_records")
+        .select(`
+          *,
+          player1:members!double_records_player1_id_fkey(id, username, full_name),
+          player2:members!double_records_player2_id_fkey(id, username, full_name)
+        `)
+        .eq("game_id", gameId)
+        .order("total_score", { ascending: false });
+
+      if (error) throw error;
+
+      setDoubleRecords(prev => ({
+        ...prev,
+        [gameId]: data || []
+      }));
+    } catch (error) {
+      console.error("Error fetching double records:", error);
+    } finally {
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: false }));
+    }
+  };
+
+  const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("games")
+        .update({ double_enabled: !currentValue })
+        .eq("id", gameId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
+
+      loadGames();
+    } catch (error) {
+      console.error("Error toggling double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini tetapan double game",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddDouble = async () => {
+    if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id || 
+        !doubleForm.player1_score || !doubleForm.player2_score) {
+      toast({
+        title: "Ralat",
+        description: "Sila isi semua ruangan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (doubleForm.player1_id === doubleForm.player2_id) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih pemain yang berbeza",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
+
+      const { error } = await supabase.from("double_records").insert([{
+        game_id: selectedGameForDouble.id,
+        player1_id: doubleForm.player1_id,
+        player2_id: doubleForm.player2_id,
+        player1_score: parseInt(doubleForm.player1_score),
+        player2_score: parseInt(doubleForm.player2_score),
+        created_by: member?.id,
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Rekod double telah ditambah",
+      });
+
+      setIsDoubleDialogOpen(false);
+      setDoubleForm({ player1_id: "", player2_id: "", player1_score: "", player2_score: "" });
+      fetchDoubleRecords(selectedGameForDouble.id);
+    } catch (error) {
+      console.error("Error adding double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal menambah rekod double",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteDouble = async (doubleId: string, gameId: string) => {
+    if (!confirm("Adakah anda pasti mahu memadam rekod double ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("double_records")
+        .delete()
+        .eq("id", doubleId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Rekod double telah dipadam",
+      });
+
+      fetchDoubleRecords(gameId);
+    } catch (error) {
+      console.error("Error deleting double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memadam rekod double",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleExpandedGame = (gameId: string) => {
+    if (expandedGame === gameId) {
+      setExpandedGame(null);
+    } else {
+      setExpandedGame(gameId);
+      if (!doubleRecords[gameId]) {
+        fetchDoubleRecords(gameId);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -836,7 +911,7 @@ ${closingMsg}`;
                         </div>
                       </div>
 
-                      {/* Double Game Section - NEW */}
+                      {/* Double Game Section */}
                       <div className="border-t pt-4 mt-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
@@ -877,56 +952,6 @@ ${closingMsg}`;
                           </div>
                         )}
                       </div>
-
-                      {/* Double Records List - NEW */}
-                      {expandedGame === game.id && game.double_enabled && (
-                        <CardContent className="border-t bg-muted/20 pt-4">
-                          {loadingDoubles[game.id] ? (
-                            <div className="text-center py-4">
-                              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                            </div>
-                          ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
-                            <div className="text-center py-6 text-muted-foreground">
-                              <p>Tiada rekod double lagi</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
-                              {doubleRecords[game.id].map((record, index) => (
-                                <div
-                                  key={record.id}
-                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className="w-8 justify-center">
-                                      #{index + 1}
-                                    </Badge>
-                                    <div>
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <span className="font-medium">@{record.player1?.username}</span>
-                                        <Badge variant="secondary">{record.player1_score}</Badge>
-                                        <span className="text-muted-foreground">+</span>
-                                        <span className="font-medium">@{record.player2?.username}</span>
-                                        <Badge variant="secondary">{record.player2_score}</Badge>
-                                      </div>
-                                      <p className="text-sm text-muted-foreground mt-1">
-                                        Jumlah: <span className="font-bold text-primary">{record.total_score}</span>
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteDouble(record.id, game.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      )}
 
                       {/* Players List */}
                       {game.players && game.players.length > 0 ? (
@@ -995,6 +1020,56 @@ ${closingMsg}`;
                         <p className="text-sm text-muted-foreground italic">
                           Belum ada pemain didaftarkan untuk permainan ini.
                         </p>
+                      )}
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled && (
+                        <CardContent className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ? (
+                            <div className="text-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
+                            </div>
+                          ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) => (
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">{record.player1_score}</Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">{record.player2_score}</Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Jumlah: <span className="font-bold text-primary">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
                       )}
                     </CardContent>
                   </Card>
@@ -1339,7 +1414,7 @@ ${closingMsg}`;
           </DialogContent>
         </Dialog>
 
-        {/* Add Double Dialog - NEW */}
+        {/* Add Double Dialog */}
         <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
           <DialogContent>
             <DialogHeader>
