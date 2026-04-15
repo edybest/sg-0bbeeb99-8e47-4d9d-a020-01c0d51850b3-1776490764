@@ -29,6 +29,8 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   five_five_count?: number;
   clean_game_count?: number;
   players?: any[];
+  men_vs_women_enabled?: boolean;
+  women_handicap?: number;
 };
 
 interface DoubleRecord {
@@ -700,6 +702,56 @@ ${closingMsg}`;
         description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
+    }
+  };
+
+  const toggleMenVsWomen = async (gameId: string, currentValue: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("is_admin")
+        .eq("user_id", user?.id)
+        .single();
+      
+      if (!member?.is_admin) {
+        toast({ title: "Akses Ditolak", description: "Hanya admin boleh mengubah", variant: "destructive" });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("games")
+        .update({ men_vs_women_enabled: !currentValue })
+        .eq("id", gameId);
+
+      if (error) throw error;
+      toast({ title: "Berjaya", description: `Men vs Women ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}` });
+      await loadGames();
+    } catch (error) {
+      toast({ title: "Ralat", description: "Gagal mengemaskini", variant: "destructive" });
+    }
+  };
+
+  const updateWomenHandicap = async (gameId: string, handicap: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("is_admin")
+        .eq("user_id", user?.id)
+        .single();
+      
+      if (!member?.is_admin) return;
+
+      const { error } = await supabase
+        .from("games")
+        .update({ women_handicap: handicap })
+        .eq("id", gameId);
+
+      if (error) throw error;
+      setGames(prev => prev.map(g => g.id === gameId ? { ...g, women_handicap: handicap } : g));
+    } catch (error) {
+      console.error("Error updating women handicap:", error);
     }
   };
 

@@ -50,6 +50,8 @@ class GameService {
           is_official,
           game_format,
           double_enabled,
+          men_vs_women_enabled,
+          women_handicap,
           game_players (
             id,
             member_id,
