@@ -695,7 +695,7 @@ ${closingMsg}`;
     }
 
     try {
-      // Fetch player scores from game_players table
+      // Fetch player scores from game_players table (if exists)
       const { data: gamePlayers, error: fetchError } = await supabase
         .from("game_players")
         .select("member_id, total_score, handicap")
@@ -704,17 +704,9 @@ ${closingMsg}`;
 
       if (fetchError) throw fetchError;
 
-      if (!gamePlayers || gamePlayers.length !== 2) {
-        toast({
-          title: "Ralat",
-          description: "Pemain belum ada score dalam game ini. Sila masukkan score dahulu.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const player1 = gamePlayers.find(p => p.member_id === doubleForm.player1_id);
-      const player2 = gamePlayers.find(p => p.member_id === doubleForm.player2_id);
+      // Get scores or default to 0 if not yet entered
+      const player1 = gamePlayers?.find(p => p.member_id === doubleForm.player1_id);
+      const player2 = gamePlayers?.find(p => p.member_id === doubleForm.player2_id);
 
       const player1Score = (player1?.total_score || 0) + (player1?.handicap || 0);
       const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
