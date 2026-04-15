@@ -652,24 +652,32 @@ ${closingMsg}`;
 
   const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
     try {
-      const { error } = await supabase
+      console.log("Toggling double for game:", gameId, "Current value:", currentValue, "New value:", !currentValue);
+
+      const { data, error } = await supabase
         .from("games")
         .update({ double_enabled: !currentValue })
-        .eq("id", gameId);
+        .eq("id", gameId)
+        .select();
 
-      if (error) throw error;
+      console.log("Update result:", { data, error });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
       toast({
         title: "Berjaya",
         description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
       });
 
-      loadGames();
+      await loadGames();
     } catch (error) {
       console.error("Error toggling double:", error);
       toast({
         title: "Ralat",
-        description: "Gagal mengemaskini tetapan double game",
+        description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
     }
