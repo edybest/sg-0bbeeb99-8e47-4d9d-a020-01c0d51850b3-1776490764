@@ -37,7 +37,10 @@ import { Badge } from "@/components/ui/badge";
 type GameSummary = Pick<
     Tables<"games">,
     "id" | "game_name" | "game_format" | "game_date" | "created_at" | "double_enabled"
->;
+> & {
+    men_vs_women_enabled?: boolean;
+    women_handicap?: number;
+};
 
 interface RawPlayerScore extends Tables<"game_players"> {
     member: {
@@ -218,6 +221,16 @@ export default function BlokPage() {
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
     const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
     const [loadingDoubles, setLoadingDoubles] = useState(false);
+
+    const [isMenVsWomenDialogOpen, setIsMenVsWomenDialogOpen] = useState(false);
+    const [menVsWomenData, setMenVsWomenData] = useState<{
+        menTotal: number;
+        womenTotal: number;
+        menCount: number;
+        womenCount: number;
+        womenHandicap: number;
+    } | null>(null);
+    const [loadingMenVsWomen, setLoadingMenVsWomen] = useState(false);
 
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
@@ -532,60 +545,67 @@ export default function BlokPage() {
         await loadDoubleRecords(selectedGame);
     };
 
-    const handleOpenCleanGameDialog = async (gameNumber: number) => {
+    const handleOpenMenVsWomenDialog = async () => {
         if (!selectedGame) return;
 
-        setSelectedGameForCleanGame(gameNumber);
-        setLoadingCleanGame(true);
-        setCleanGameDialogOpen(true);
+        setIsMenVsWomenDialogOpen(true);
+        setLoadingMenVsWomen(true);
 
         try {
-            const { data: gameData, error } = await supabase
-                .from("games")
-                .select("clean_game_data")
-                .eq("id", selectedGame)
-                .single();
+            const currentGame = games.find(g => g.id === selectedGame);
+            const womenHandicap = currentGame?.women_handicap || 0;
+
+            // Get all players in this game with their sex from members table
+            const { data: gamePlayers, error } = await supabase
+                .from("game_players")
+                .select(`
+                    total_score,
+                    member:members!game_players_member_id_fkey (
+                        sex
+                    )
+                `)
+                .eq("game_id", selectedGame);
 
             if (error) throw error;
 
-            // FIX #10: typed instead of `as any`
-            const cleanGameData = gameData?.clean_game_data as CleanGameData | null;
-            const gameKey = `game${gameNumber}`;
-            const winnerIds = (cleanGameData?.[gameKey] ?? []).filter(Boolean);
+            // Calculate totals
+            let menTotal = 0;
+            let womenTotal = 0;
+            let menCount = 0;
+            let womenCount = 0;
 
-            if (winnerIds.length === 0) {
-                setCleanGameWinners([]);
-                setLoadingCleanGame(false);
-                return;
-            }
+            (gamePlayers || []).forEach((gp: any) => {
+                const score = gp.total_score || 0;
+                const sex = gp.member?.sex;
 
-            // FIX #7: use leaderboardBase so count is never affected by active filters
-            const cleanGamePlayersCount = leaderboardBase.filter((p) => p.clean_game).length;
-            const totalPrize = cleanGamePlayersCount * 2;
-            const prizePerWinner = totalPrize / winnerIds.length;
+                if (sex === "men") {
+                    menTotal += score;
+                    menCount++;
+                } else if (sex === "women") {
+                    womenTotal += score;
+                    womenCount++;
+                }
+            });
 
-            const { data: winners, error: winnersError } = await supabase
-                .from("members")
-                .select("id, username, full_name")
-                .in("id", winnerIds);
+            // Add handicap for women: total + (handicap × count)
+            const womenFinalTotal = womenTotal + (womenHandicap * womenCount);
 
-            if (winnersError) throw winnersError;
-
-            setCleanGameWinners(
-                (winners ?? []).map((w) => ({
-                    member_name: w.username || w.full_name,
-                    prize: prizePerWinner,
-                }))
-            );
+            setMenVsWomenData({
+                menTotal,
+                womenTotal: womenFinalTotal,
+                menCount,
+                womenCount,
+                womenHandicap,
+            });
         } catch (err) {
-            console.error("Error loading clean game winners:", err);
+            console.error("Error loading Men vs Women data:", err);
             toast({
-                title: "Ralat",
-                description: "Gagal memuatkan pemenang clean game",
+                title: "Error",
+                description: "Failed to load Men vs Women data",
                 variant: "destructive",
             });
         } finally {
-            setLoadingCleanGame(false);
+            setLoadingMenVsWomen(false);
         }
     };
 
@@ -1037,6 +1057,18 @@ export default function BlokPage() {
                                                     Score Double
                                                 </Button>
                                             )}
+
+                                            {/* Men vs Women Button */}
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.men_vs_women_enabled && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
+                                                    onClick={handleOpenMenVsWomenDialog}
+                                                >
+                                                    <Users className="w-4 h-4 mr-2" />
+                                                    Men vs Women
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </CardContent>
@@ -1306,7 +1338,7 @@ export default function BlokPage() {
                                     {filteredLeaderboard.map((player, index) => {
                                         const isTop3 = player.rank <= 3;
                                         const cardBg = isTop3
-                                            ? "bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200"
+                                            ? "bg-gradient-to-br from-amber-500 to-yellow-100 border-amber-200"
                                             : "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200";
 
                                         return (
@@ -1738,7 +1770,6 @@ export default function BlokPage() {
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4 flex-1">
-                                                    {/* Rank Badge */}
                                                     <div className={`
                                                         flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg
                                                         ${index === 0 ? "bg-yellow-500 text-white" : 
@@ -1749,10 +1780,8 @@ export default function BlokPage() {
                                                         #{index + 1}
                                                     </div>
 
-                                                    {/* Players Info */}
                                                     <div className="flex-1">
                                                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                            {/* Player 1 */}
                                                             <div className="flex items-center gap-2">
                                                                 {record.player1?.avatar_url ? (
                                                                     <Image
@@ -1781,7 +1810,6 @@ export default function BlokPage() {
 
                                                             <span className="text-gray-400 font-bold">+</span>
 
-                                                            {/* Player 2 */}
                                                             <div className="flex items-center gap-2">
                                                                 {record.player2?.avatar_url ? (
                                                                     <Image
@@ -1809,7 +1837,6 @@ export default function BlokPage() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Total Score */}
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-sm text-gray-600">Jumlah:</span>
                                                             <span className={`text-2xl font-black ${
@@ -1821,7 +1848,6 @@ export default function BlokPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Trophy for Top 3 */}
                                                 {isTop3 && (
                                                     <Trophy className={`w-8 h-8 ${
                                                         index === 0 ? "text-yellow-500" :
@@ -1833,6 +1859,166 @@ export default function BlokPage() {
                                         </motion.div>
                                     );
                                 })}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* ── Men vs Women Dialog ── */}
+                <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-purple-500" />
+                                Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}
+                            </DialogTitle>
+                        </DialogHeader>
+                        {loadingMenVsWomen ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                            </div>
+                        ) : !menVsWomenData ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p>Tiada data Men vs Women</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {/* Score Comparison */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Men Team */}
+                                    <motion.div
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className={`p-6 rounded-xl border-4 ${
+                                            menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
+                                                : "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300"
+                                        }`}
+                                    >
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2">👨</div>
+                                            <h3 className={`text-xl font-bold mb-4 ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "text-white"
+                                                    : "text-blue-900"
+                                            }`}>
+                                                MEN TEAM
+                                                {menVsWomenData.menTotal > menVsWomenData.womenTotal && (
+                                                    <Trophy className="w-6 h-6 inline-block ml-2 text-yellow-300" />
+                                                )}
+                                            </h3>
+                                            <div className={`text-5xl font-black mb-4 ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "text-white"
+                                                    : "text-blue-700"
+                                            }`}>
+                                                {menVsWomenData.menTotal}
+                                            </div>
+                                            <div className={`text-sm ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "text-blue-100"
+                                                    : "text-blue-600"
+                                            }`}>
+                                                {menVsWomenData.menCount} pemain
+                                            </div>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* Women Team */}
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className={`p-6 rounded-xl border-4 ${
+                                            menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
+                                                : "bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300"
+                                        }`}
+                                    >
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2">👩</div>
+                                            <h3 className={`text-xl font-bold mb-4 ${
+                                                menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "text-white"
+                                                    : "text-pink-900"
+                                            }`}>
+                                                WOMEN TEAM
+                                                {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
+                                                    <Trophy className="w-6 h-6 inline-block ml-2 text-yellow-300" />
+                                                )}
+                                            </h3>
+                                            <div className={`text-5xl font-black mb-4 ${
+                                                menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "text-white"
+                                                    : "text-pink-700"
+                                            }`}>
+                                                {menVsWomenData.womenTotal}
+                                            </div>
+                                            <div className={`text-sm ${
+                                                menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "text-pink-100"
+                                                    : "text-pink-600"
+                                            }`}>
+                                                {menVsWomenData.womenCount} pemain
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Calculation Breakdown */}
+                                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                                    <h4 className="font-bold text-purple-900 mb-3">📊 Breakdown Kiraan:</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">👨 Men Total Score:</span>
+                                            <span className="font-bold text-blue-700">{menVsWomenData.menTotal}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">👩 Women Total Score:</span>
+                                            <span className="font-bold text-pink-700">
+                                                {menVsWomenData.womenTotal - (menVsWomenData.womenHandicap * menVsWomenData.womenCount)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">➕ Women Handicap:</span>
+                                            <span className="font-bold text-pink-700">
+                                                {menVsWomenData.womenHandicap} × {menVsWomenData.womenCount} = {menVsWomenData.womenHandicap * menVsWomenData.womenCount}
+                                            </span>
+                                        </div>
+                                        <div className="border-t border-purple-300 pt-2 mt-2 flex justify-between">
+                                            <span className="text-gray-700 font-bold">👩 Women Final Total:</span>
+                                            <span className="font-black text-pink-700">{menVsWomenData.womenTotal}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Winner Announcement */}
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.3, type: "spring" }}
+                                    className={`p-6 rounded-xl text-center ${
+                                        menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                            ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                                            : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                ? "bg-gradient-to-r from-pink-500 to-pink-600"
+                                                : "bg-gradient-to-r from-gray-500 to-gray-600"
+                                    }`}
+                                >
+                                    <div className="text-6xl mb-3">
+                                        {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "👨🏆" :
+                                         menVsWomenData.womenTotal > menVsWomenData.menTotal ? "👩🏆" :
+                                         "🤝"}
+                                    </div>
+                                    <h3 className="text-3xl font-black text-white mb-2">
+                                        {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "MEN TEAM MENANG!" :
+                                         menVsWomenData.womenTotal > menVsWomenData.menTotal ? "WOMEN TEAM MENANG!" :
+                                         "SERI!"}
+                                    </h3>
+                                    <p className="text-white text-lg">
+                                        Perbezaan: {Math.abs(menVsWomenData.menTotal - menVsWomenData.womenTotal)} pin
+                                    </p>
+                                </motion.div>
                             </div>
                         )}
                     </DialogContent>
