@@ -205,7 +205,6 @@ export default function BlokPage() {
 
     const [loadingGames, setLoadingGames] = useState(true);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
-    const [loadingDoubles, setLoadingDoubles] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [leaderboardBase, setLeaderboardBase] = useState<LeaderboardEntry[]>([]);
@@ -218,6 +217,7 @@ export default function BlokPage() {
 
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
     const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
+    const [loadingDoubles, setLoadingDoubles] = useState(false);
 
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
@@ -235,15 +235,6 @@ export default function BlokPage() {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [genderFilter, setGenderFilter] = useState<string>("ALL");
     const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
-
-    const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
-    const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
-    const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
-    const [loadingCleanGame, setLoadingCleanGame] = useState(false);
-
-    const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
-    const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
-    const [loadingDoubles, setLoadingDoubles] = useState(false);
 
     const isInitialLoading = loadingGames && games.length === 0;
     const isPageLoading = authLoading || isInitialLoading;
@@ -1149,6 +1140,7 @@ export default function BlokPage() {
                                     </div>
                                 ) : cleanGameWinners.length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">
+                                        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                                         <p>Tiada pemenang clean game untuk Game {selectedGameForCleanGame}</p>
                                     </div>
                                 ) : (
