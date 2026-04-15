@@ -23,7 +23,8 @@ import {
     ThumbsUp,
     Heart,
     Target,
-    Search
+    Search,
+    Users
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -34,7 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 
 type GameSummary = Pick<
     Tables<"games">,
-    "id" | "game_name" | "game_format" | "game_date" | "created_at"
+    "id" | "game_name" | "game_format" | "game_date" | "created_at" | "double_enabled"
 >;
 
 interface RawPlayerScore extends Tables<"game_players"> {
@@ -45,6 +46,28 @@ interface RawPlayerScore extends Tables<"game_players"> {
         avatar_url: string | null;
         sex: string;
         bowling_technique: string | null;
+    };
+}
+
+interface DoubleRecord {
+    id: string;
+    game_id: string;
+    player1_id: string;
+    player2_id: string;
+    player1_score: number;
+    player2_score: number;
+    total_score: number;
+    player1?: {
+        id: string;
+        username: string;
+        full_name: string;
+        avatar_url: string | null;
+    };
+    player2?: {
+        id: string;
+        username: string;
+        full_name: string;
+        avatar_url: string | null;
     };
 }
 
@@ -176,36 +199,40 @@ export default function BlokPage() {
     const { loading: authLoading, member: currentUser } = useAuth(false);
     const { toast } = useToast();
 
-    const [games, setGames] = useState < GameSummary[] > ([]);
-    const [selectedGame, setSelectedGame] = useState < string | null > (null);
+    const [games, setGames] = useState<GameSummary[]>([]);
+    const [selectedGame, setSelectedGame] = useState<string | null>(null);
 
     const [loadingGames, setLoadingGames] = useState(true);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
-    const [error, setError] = useState < string | null > (null);
+    const [loadingDoubles, setLoadingDoubles] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const [leaderboardBase, setLeaderboardBase] = useState < LeaderboardEntry[] > ([]);
-    const [leaderboard, setLeaderboard] = useState < LeaderboardEntry[] > ([]);
+    const [leaderboardBase, setLeaderboardBase] = useState<LeaderboardEntry[]>([]);
+    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-    const previousLeaderboardRef = useRef < LeaderboardEntry[] > ([]);
+    const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
+    const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
 
-    const [animatingScores, setAnimatingScores] = useState < Set < string >> (new Set());
+    const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
+
+    const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
     const [retryCount, setRetryCount] = useState(0);
 
-    const [sortField, setSortField] = useState < SortField > ("rank");
-    const [sortDirection, setSortDirection] = useState < SortDirection > ("asc");
+    const [sortField, setSortField] = useState<SortField>("rank");
+    const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-    const [reactions, setReactions] = useState < { id: string; playerId: string; x: number; y: number }[] > ([]);
+    const [reactions, setReactions] = useState<{ id: string; playerId: string; x: number; y: number }[]>([]);
     // FIX #3: particles carry their own stable direction index
-    const [particles, setParticles] = useState < ParticleEntry[] > ([]);
-    const [userLikesCount, setUserLikesCount] = useState < number > (0);
+    const [particles, setParticles] = useState<ParticleEntry[]>([]);
+    const [userLikesCount, setUserLikesCount] = useState<number>(0);
 
-    const [searchQuery, setSearchQuery] = useState < string > ("");
-    const [genderFilter, setGenderFilter] = useState < string > ("ALL");
-    const [techniqueFilter, setTechniqueFilter] = useState < string > ("ALL");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [genderFilter, setGenderFilter] = useState<string>("ALL");
+    const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
 
     const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
-    const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState < number | null > (null);
-    const [cleanGameWinners, setCleanGameWinners] = useState < Array < { member_name: string; prize: number } >> ([]);
+    const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
+    const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
     const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
     const isInitialLoading = loadingGames && games.length === 0;
@@ -274,7 +301,7 @@ export default function BlokPage() {
 
                 const { data, error: dbError } = await supabase
                     .from("games")
-                    .select("id, game_name, game_format, game_date, created_at")
+                    .select("id, game_name, game_format, game_date, created_at, double_enabled")
                     .neq("game_type", "COUPLE")
                     .order("game_date", { ascending: false });
 
@@ -323,8 +350,40 @@ export default function BlokPage() {
         [router.query, toast]
     );
 
-    // FIX #2: accept gameId as a parameter to avoid stale selectedGame closure.
-    // FIX #1: wrapped in useCallback with complete dep list — no more eslint-disable.
+    const loadDoubleRecords = useCallback(
+        async (gameId: string) => {
+            if (!gameId) return;
+
+            try {
+                setLoadingDoubles(true);
+
+                const { data: doublesData, error: doublesError } = await (supabase as any)
+                    .from("double_records")
+                    .select(`
+                        *,
+                        player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
+                        player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
+                    `)
+                    .eq("game_id", gameId)
+                    .order("total_score", { ascending: false });
+
+                if (doublesError) throw doublesError;
+
+                setDoubleRecords((doublesData as any) || []);
+            } catch (err) {
+                console.error("Error loading double records:", err);
+                toast({
+                    title: "Error",
+                    description: "Failed to load double records",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoadingDoubles(false);
+            }
+        },
+        [toast]
+    );
+
     const loadUserLikesCount = useCallback(
         async (playerIds: string[], gameId: string) => {
             if (!currentUser?.user_id || !gameId || playerIds.length === 0) {
@@ -369,7 +428,7 @@ export default function BlokPage() {
                 const nextBase = buildLeaderboard(scores);
 
                 if (previousLeaderboardRef.current.length > 0) {
-                    const changedIds = new Set < string > ();
+                    const changedIds = new Set<string>();
                     const notifications: string[] = [];
 
                     nextBase.forEach((newEntry) => {
@@ -464,6 +523,13 @@ export default function BlokPage() {
     }, [selectedGame, loadLeaderboard]);
 
     // ─── Handlers ─────────────────────────────────────────────────────────────
+
+    const handleOpenDoubleDialog = async () => {
+        if (!selectedGame) return;
+
+        setIsDoubleDialogOpen(true);
+        await loadDoubleRecords(selectedGame);
+    };
 
     const handleOpenCleanGameDialog = async (gameNumber: number) => {
         if (!selectedGame) return;
@@ -958,6 +1024,18 @@ export default function BlokPage() {
                                                     <ChevronRight className="w-5 h-5 rotate-90" />
                                                 </div>
                                             </div>
+
+                                            {/* Double Game Button */}
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.double_enabled && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full mt-2 border-2 border-blue-500 text-blue-700 hover:bg-blue-50"
+                                                    onClick={handleOpenDoubleDialog}
+                                                >
+                                                    <Users className="w-4 h-4 mr-2" />
+                                                    Score Double
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </CardContent>
@@ -1104,7 +1182,7 @@ export default function BlokPage() {
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             placeholder="Contoh: zali, samdol, lan"
-                                            className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sky-900"
+                                            className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900"
                                         />
                                         {searchQuery && (
                                             <p className="text-xs text-sky-600 mt-1">
@@ -1616,6 +1694,147 @@ export default function BlokPage() {
                         <span className="text-2xl">👍</span>
                     </div>
                 ))}
+
+                {/* ── Double Game Dialog ── */}
+                <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-blue-500" />
+                                Score Double - {games.find(g => g.id === selectedGame)?.game_name}
+                            </DialogTitle>
+                        </DialogHeader>
+                        {loadingDoubles ? (
+                            <div className="flex justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                            </div>
+                        ) : doubleRecords.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p>Tiada rekod double untuk game ini</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="text-sm text-gray-600 mb-4">
+                                    Jumlah Pasukan: <span className="font-bold">{doubleRecords.length}</span>
+                                </div>
+                                {doubleRecords.map((record, index) => {
+                                    const isTop3 = index < 3;
+                                    const rankBg = 
+                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
+                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
+                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
+                                        "bg-white border-gray-200";
+
+                                    return (
+                                        <motion.div
+                                            key={record.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className={`border-2 rounded-lg p-4 ${rankBg}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4 flex-1">
+                                                    {/* Rank Badge */}
+                                                    <div className={`
+                                                        flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg
+                                                        ${index === 0 ? "bg-yellow-500 text-white" : 
+                                                          index === 1 ? "bg-gray-400 text-white" :
+                                                          index === 2 ? "bg-orange-600 text-white" :
+                                                          "bg-blue-100 text-blue-700"}
+                                                    `}>
+                                                        #{index + 1}
+                                                    </div>
+
+                                                    {/* Players Info */}
+                                                    <div className="flex-1">
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            {/* Player 1 */}
+                                                            <div className="flex items-center gap-2">
+                                                                {record.player1?.avatar_url ? (
+                                                                    <Image
+                                                                        src={record.player1.avatar_url}
+                                                                        alt={record.player1.username}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                                                                        unoptimized
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
+                                                                        {record.player1?.username[0].toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <Link
+                                                                    href={`/member/profile?id=${record.player1_id}`}
+                                                                    className="font-semibold text-blue-900 hover:text-blue-700"
+                                                                >
+                                                                    @{record.player1?.username}
+                                                                </Link>
+                                                                <Badge variant="secondary" className="font-bold">
+                                                                    {record.player1_score}
+                                                                </Badge>
+                                                            </div>
+
+                                                            <span className="text-gray-400 font-bold">+</span>
+
+                                                            {/* Player 2 */}
+                                                            <div className="flex items-center gap-2">
+                                                                {record.player2?.avatar_url ? (
+                                                                    <Image
+                                                                        src={record.player2.avatar_url}
+                                                                        alt={record.player2.username}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                                                                        unoptimized
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
+                                                                        {record.player2?.username[0].toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <Link
+                                                                    href={`/member/profile?id=${record.player2_id}`}
+                                                                    className="font-semibold text-blue-900 hover:text-blue-700"
+                                                                >
+                                                                    @{record.player2?.username}
+                                                                </Link>
+                                                                <Badge variant="secondary" className="font-bold">
+                                                                    {record.player2_score}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Total Score */}
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm text-gray-600">Jumlah:</span>
+                                                            <span className={`text-2xl font-black ${
+                                                                isTop3 ? "text-blue-600" : "text-gray-700"
+                                                            }`}>
+                                                                {record.total_score}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Trophy for Top 3 */}
+                                                {isTop3 && (
+                                                    <Trophy className={`w-8 h-8 ${
+                                                        index === 0 ? "text-yellow-500" :
+                                                        index === 1 ? "text-gray-400" :
+                                                        "text-orange-600"
+                                                    }`} />
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </>
         </MemberLayout>
     );
