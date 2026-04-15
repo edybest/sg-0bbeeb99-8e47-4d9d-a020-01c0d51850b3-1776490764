@@ -619,19 +619,19 @@ ${closingMsg}`;
   };
 
   const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
+    console.log("🔄 Toggling double game:", { gameId, currentValue, newValue: !currentValue });
+    
     try {
-      console.log("Toggling double for game:", gameId, "Current value:", currentValue, "New value:", !currentValue);
-
       const { data, error } = await supabase
         .from("games")
         .update({ double_enabled: !currentValue })
         .eq("id", gameId)
         .select();
 
-      console.log("Update result:", { data, error });
+      console.log("✅ Update result:", { data, error });
 
       if (error) {
-        console.error("Supabase error:", error);
+        console.error("❌ Supabase error:", error);
         throw error;
       }
 
@@ -642,7 +642,7 @@ ${closingMsg}`;
 
       await loadGames();
     } catch (error) {
-      console.error("Error toggling double:", error);
+      console.error("❌ Error toggling double:", error);
       toast({
         title: "Ralat",
         description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
