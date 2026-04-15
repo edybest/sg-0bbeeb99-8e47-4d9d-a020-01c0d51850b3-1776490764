@@ -47,7 +47,7 @@ describe("Admin Access RLS Tests", () => {
 
           // @ts-ignore - dynamic table name
           const { data, error } = await supabase
-            .from(tableName)
+            .from(tableName as any)
             .insert(mockData[tableName])
             .select()
             .single();
@@ -58,7 +58,7 @@ describe("Admin Access RLS Tests", () => {
           // Cleanup
           if (data) {
             // @ts-ignore
-            await supabaseAdmin.from(tableName).delete().eq("id", (data as any).id || (data as any).key);
+            await supabaseAdmin.from(tableName as any).delete().eq("id", (data as any).id || (data as any).key);
           }
 
           await signOut();
@@ -75,7 +75,7 @@ describe("Admin Access RLS Tests", () => {
 
           // @ts-ignore
           const { data, error } = await supabase
-            .from(tableName)
+            .from(tableName as any)
             .insert(mockData[tableName])
             .select();
 
