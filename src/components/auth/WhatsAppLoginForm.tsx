@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { pageAccessService } from "@/services/pageAccessService";
+import { authService } from "@/services/authService";
 import { Loader2, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
@@ -79,6 +80,7 @@ export function WhatsAppLoginForm() {
     const [sendingTAC, setSendingTAC] = useState(false);
     const [tacSent, setTacSent] = useState(false);
     const [cooldownRemaining, setCooldownRemaining] = useState(0);
+    const [error, setError] = useState<string | null>(null);
 
     const [countryCode, setCountryCode] = useState("+60");
     const [formData, setFormData] = useState({
@@ -249,6 +251,7 @@ export function WhatsAppLoginForm() {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), VERIFICATION_TIMEOUT);
 
+                console.log("Sending verification request...");
                 const response = await fetch("/api/verify-tac-login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -260,6 +263,7 @@ export function WhatsAppLoginForm() {
                 });
 
                 clearTimeout(timeoutId);
+                console.log("Received response:", response.status);
 
                 const data = await response.json();
 
@@ -316,12 +320,14 @@ export function WhatsAppLoginForm() {
                 console.error("TAC verification error:", err);
                 
                 if (err.name === 'AbortError') {
+                    setError("Ralat: Mengambil masa terlalu lama. Sila cuba lagi.");
                     toast({
                         title: "Timeout",
-                        description: "Verifikasi mengambil masa terlalu lama. Sila cuba lagi.",
+                        description: "Verifikasi mengambil masa terlalu lama. Sila pastikan capaian internet anda stabil.",
                         variant: "destructive"
                     });
                 } else {
+                    setError(err.message || "Ralat semasa mengesahkan kod TAC");
                     toast({
                         title: "Ralat Verifikasi",
                         description: err.message || "Kod TAC tidak sah atau tamat tempoh",
@@ -358,7 +364,13 @@ export function WhatsAppLoginForm() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    {error && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 p-3 rounded-md text-sm text-center mb-4">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={(e) => { e.preventDefault(); verifyTac(); }} className="space-y-5">
                         <div className="space-y-2">
                             <Label htmlFor="phone" className="text-sm font-medium">
                                 Nombor WhatsApp
