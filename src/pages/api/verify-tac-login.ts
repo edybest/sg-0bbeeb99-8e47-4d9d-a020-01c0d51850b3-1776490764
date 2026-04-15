@@ -152,13 +152,17 @@ export default async function handler(
       });
     }
 
-    // 5. Clear the used TAC (fire and forget)
-    supabaseAdmin
+    // 5. Clear the used TAC
+    const { error: updateError } = await supabaseAdmin
       .from("members")
       .update({ tac_code: null, tac_expiry: null })
-      .eq("id", member.id)
-      .then(() => console.log("✅ TAC cleared from member record"))
-      .catch((err) => console.error("Failed to clear TAC:", err));
+      .eq("id", member.id);
+      
+    if (updateError) {
+      console.error("Failed to clear TAC:", updateError);
+    } else {
+      console.log("✅ TAC cleared from member record");
+    }
 
     console.log("✅ Login successful");
 
