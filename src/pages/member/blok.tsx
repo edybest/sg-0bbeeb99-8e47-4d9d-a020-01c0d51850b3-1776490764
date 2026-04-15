@@ -315,7 +315,7 @@ export default function BlokPage() {
 
                 const { data, error: dbError } = await supabase
                     .from("games")
-                    .select("id, game_name, game_format, game_date, created_at, double_enabled")
+                    .select("id, game_name, game_format, game_date, created_at, double_enabled, men_vs_women_enabled, women_handicap")
                     .neq("game_type", "COUPLE")
                     .order("game_date", { ascending: false });
 
@@ -543,6 +543,22 @@ export default function BlokPage() {
 
         setIsDoubleDialogOpen(true);
         await loadDoubleRecords(selectedGame);
+    };
+
+    const handleOpenCleanGameDialog = async (gameNum: number) => {
+        if (!selectedGame) return;
+        setSelectedGameForCleanGame(gameNum);
+        setCleanGameDialogOpen(true);
+        setLoadingCleanGame(true);
+
+        try {
+            // Placeholder: Set empty winners or fetch actual winners if available
+            setCleanGameWinners([]);
+        } catch (error) {
+            console.error("Error loading clean game winners:", error);
+        } finally {
+            setLoadingCleanGame(false);
+        }
     };
 
     const handleOpenMenVsWomenDialog = async () => {
