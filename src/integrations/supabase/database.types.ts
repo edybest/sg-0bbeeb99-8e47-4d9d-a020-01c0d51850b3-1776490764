@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -852,6 +852,7 @@ export type Database = {
           average_score: number | null
           clean_game: boolean | null
           created_at: string | null
+          exclude_from_men_vs_women: boolean | null
           game_id: string
           game1_score: number | null
           game2_score: number | null
@@ -872,6 +873,7 @@ export type Database = {
           average_score?: number | null
           clean_game?: boolean | null
           created_at?: string | null
+          exclude_from_men_vs_women?: boolean | null
           game_id: string
           game1_score?: number | null
           game2_score?: number | null
@@ -892,6 +894,7 @@ export type Database = {
           average_score?: number | null
           clean_game?: boolean | null
           created_at?: string | null
+          exclude_from_men_vs_women?: boolean | null
           game_id?: string
           game1_score?: number | null
           game2_score?: number | null
