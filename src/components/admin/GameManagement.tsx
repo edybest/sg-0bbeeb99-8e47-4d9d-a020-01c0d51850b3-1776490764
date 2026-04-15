@@ -581,38 +581,6 @@ ${closingMsg}`;
     printWindow.document.close();
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ms-MY", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const gameTypeLabels = {
-    BLOK: "Blok",
-    BLOK_SUKA_SUKI: "Blok Suka Suki",
-    COUPLE: "Couple",
-  };
-
-  const gameTypeColors = {
-    BLOK: "bg-blue-500",
-    BLOK_SUKA_SUKI: "bg-green-500",
-    COUPLE: "bg-pink-500",
-  };
-
-  // Pagination
-  const totalPages = Math.ceil(games.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentGames = games.slice(startIndex, endIndex);
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
   // Double Game Functions
   const loadAvailableMembersForDouble = async (gameId: string) => {
     try {
@@ -776,6 +744,38 @@ ${closingMsg}`;
         fetchDoubleRecords(gameId);
       }
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ms-MY", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const gameTypeLabels = {
+    BLOK: "Blok",
+    BLOK_SUKA_SUKI: "Blok Suka Suki",
+    COUPLE: "Couple",
+  };
+
+  const gameTypeColors = {
+    BLOK: "bg-blue-500",
+    BLOK_SUKA_SUKI: "bg-green-500",
+    COUPLE: "bg-pink-500",
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(games.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentGames = games.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   if (loading) {
