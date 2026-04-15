@@ -28,6 +28,7 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
   five_five_count?: number;
   clean_game_count?: number;
+  players?: any[];
 };
 
 interface DoubleRecord {
@@ -78,7 +79,7 @@ export function GameManagement() {
   const [gameForm, setGameForm] = useState({
     game_name: "",
     game_date: "",
-    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI",
+    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE",
   });
 
   // Double Game States
