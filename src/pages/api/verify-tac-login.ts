@@ -47,18 +47,51 @@ export default async function handler(
       },
     });
 
-    // 1. Find member by phone and valid TAC
+    // 1. Find member by phone and valid TAC - try multiple phone formats
     const now = new Date().toISOString();
-    const { data: member, error: memberError } = await supabaseAdmin
+    
+    // Try format 1: +60... (normalized)
+    let { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
       .eq("phone", cleanPhone)
       .single();
 
+    // If not found, try format 2: without + prefix (60...)
+    if (memberError && cleanPhone.startsWith("+")) {
+      const phoneWithoutPlus = cleanPhone.substring(1);
+      console.log("Trying phone without +:", phoneWithoutPlus);
+      
+      const result = await supabaseAdmin
+        .from("members")
+        .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+        .eq("phone", phoneWithoutPlus)
+        .single();
+      
+      member = result.data;
+      memberError = result.error;
+    }
+
+    // If still not found, try format 3: with leading 0 (0123456789)
+    if (memberError && cleanPhone.length > 3) {
+      const phoneWithZero = "0" + cleanPhone.substring(3); // +60123... → 0123...
+      console.log("Trying phone with leading 0:", phoneWithZero);
+      
+      const result = await supabaseAdmin
+        .from("members")
+        .select("id, user_id, full_name, username, is_admin, is_approved, tac_code, tac_expiry")
+        .eq("phone", phoneWithZero)
+        .single();
+      
+      member = result.data;
+      memberError = result.error;
+    }
+
     if (memberError || !member) {
       console.error("❌ Member not found or query error:", memberError);
+      console.error("Tried phone formats:", cleanPhone, cleanPhone.substring(1), "0" + cleanPhone.substring(3));
       return res.status(404).json({ 
-        error: "Akaun tidak dijumpai untuk nombor telefon ini." 
+        error: "Akaun tidak dijumpai untuk nombor telefon ini. Sila daftar terlebih dahulu atau hubungi admin." 
       });
     }
 
