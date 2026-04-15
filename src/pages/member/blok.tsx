@@ -211,8 +211,14 @@ export default function BlokPage() {
     const [leaderboardBase, setLeaderboardBase] = useState<LeaderboardEntry[]>([]);
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
+    const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
+    const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
+    const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
+    const [loadingCleanGame, setLoadingCleanGame] = useState(false);
+
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
     const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
+    const [loadingDoubles, setLoadingDoubles] = useState(false);
 
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
@@ -235,6 +241,10 @@ export default function BlokPage() {
     const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
     const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
     const [loadingCleanGame, setLoadingCleanGame] = useState(false);
+
+    const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
+    const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
+    const [loadingDoubles, setLoadingDoubles] = useState(false);
 
     const isInitialLoading = loadingGames && games.length === 0;
     const isPageLoading = authLoading || isInitialLoading;
@@ -405,6 +415,40 @@ export default function BlokPage() {
             }
         },
         [currentUser?.user_id]
+    );
+
+    const loadDoubleRecords = useCallback(
+        async (gameId: string) => {
+            if (!gameId) return;
+
+            try {
+                setLoadingDoubles(true);
+
+                const { data: doublesData, error: doublesError } = await (supabase as any)
+                    .from("double_records")
+                    .select(`
+                        *,
+                        player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
+                        player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
+                    `)
+                    .eq("game_id", gameId)
+                    .order("total_score", { ascending: false });
+
+                if (doublesError) throw doublesError;
+
+                setDoubleRecords((doublesData as any) || []);
+            } catch (err) {
+                console.error("Error loading double records:", err);
+                toast({
+                    title: "Error",
+                    description: "Failed to load double records",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoadingDoubles(false);
+            }
+        },
+        [toast]
     );
 
     // FIX #1: useCallback with full deps — sortField/sortDirection changes now
@@ -1384,7 +1428,7 @@ export default function BlokPage() {
 
                                                 <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="text-sm font-semibold text-slate-600">
+                                                        <div className="text-sm font-semibold text-slate-500">
                                                             Overall Score
                                                         </div>
                                                         <div className="text-3xl font-black text-emerald-600">
@@ -1722,9 +1766,9 @@ export default function BlokPage() {
                                 {doubleRecords.map((record, index) => {
                                     const isTop3 = index < 3;
                                     const rankBg = 
-                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
-                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
-                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
+                                        index === 0 ? "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-300" :
+                                        index === 1 ? "bg-gradient-to-r from-gray-50 to-slate-50 border-gray-300" :
+                                        index === 2 ? "bg-gradient-to-r from-orange-50 to-amber-50 border-orange-300" :
                                         "bg-white border-gray-200";
 
                                     return (
