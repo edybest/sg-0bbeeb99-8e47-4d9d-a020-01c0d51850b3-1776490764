@@ -25,15 +25,11 @@ export function PageAccessGuard({
   useEffect(() => {
     mountedRef.current = true;
 
-    // Wait for router to be ready
     if (!router.isReady) return;
-
-    // Prevent multiple simultaneous checks
     if (checkingRef.current) return;
     
     checkAccess();
 
-    // Cleanup
     return () => {
       mountedRef.current = false;
       checkingRef.current = false;
@@ -41,25 +37,21 @@ export function PageAccessGuard({
   }, [pagePath, router.isReady, router.query.share]);
 
   const checkAccess = async () => {
-    // Prevent concurrent checks
-    if (checkingRef.current) {
-      return;
-    }
+    if (checkingRef.current) return;
 
     checkingRef.current = true;
 
-    // Set timeout for fail-open after 2 seconds
+    // Fail-open timeout: 1.5s
     const timeoutId = setTimeout(() => {
       if (!mountedRef.current) return;
-      
-      console.warn("⏱️ Page access check timeout - allowing access (fail open)");
+      console.warn("⏱️ Page access check timeout - allowing access");
       checkingRef.current = false;
       setHasAccess(true);
       setLoading(false);
-    }, 2000);
+    }, 1500);
     
     try {
-      // Bypass access check for public share links
+      // Bypass for public share links
       if (router.pathname === "/member/mini-blok" && router.query.share) {
         clearTimeout(timeoutId);
         setHasAccess(true);
@@ -68,25 +60,21 @@ export function PageAccessGuard({
         return;
       }
 
-      // Get user role and check access
       const userRole = await pageAccessService.getUserRole();
       
       if (!mountedRef.current) return;
       
       const accessCheck = await pageAccessService.checkPageAccess(pagePath, userRole);
       
-      // Clear timeout since we got a response
       clearTimeout(timeoutId);
 
       if (!mountedRef.current) return;
 
-      // If page is disabled, redirect to home
       if (!accessCheck.isEnabled) {
         router.push("/");
         return;
       }
 
-      // If no access, redirect based on role
       if (!accessCheck.hasAccess) {
         if (userRole === "guest") {
           router.push("/login");
@@ -98,14 +86,12 @@ export function PageAccessGuard({
         return;
       }
 
-      // Has access - show page
       setHasAccess(true);
       setLoading(false);
     } catch (error) {
       console.error("❌ Error checking page access:", error);
       clearTimeout(timeoutId);
       
-      // On error, allow access (fail open for better UX)
       if (mountedRef.current) {
         setHasAccess(true);
         setLoading(false);
@@ -117,7 +103,6 @@ export function PageAccessGuard({
     }
   };
 
-  // Show loading state
   if (loading) {
     if (renderLoading) {
       return renderLoading();
@@ -133,7 +118,7 @@ export function PageAccessGuard({
   }
 
   if (!hasAccess) {
-    return null; // Will redirect
+    return null;
   }
 
   return <>{children}</>;
