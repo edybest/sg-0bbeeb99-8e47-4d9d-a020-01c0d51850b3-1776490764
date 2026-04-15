@@ -1,8 +1,7 @@
-<![CDATA[
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabase } from "@/integrations/supabase/client";
 
-const ADMIN_SERVICE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!; // Note: usually service_role key is used for admin tasks, but we'll use what's provided
+const ADMIN_SERVICE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export default async function handler(
   req: NextApiRequest,
@@ -77,10 +76,6 @@ export default async function handler(
     }
 
     console.log("✅ Member approved, generating session via token API...");
-
-    // Instead of creating a user here which fails if they exist, 
-    // we use our internal generate-login-token API or do it properly.
-    // For security and proper token generation, we'll fetch the generate-login-token endpoint locally
     
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.host}`;
     
@@ -89,8 +84,7 @@ export default async function handler(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          member_id: member.id,
-          user_id: member.user_id 
+          memberId: member.id
         })
       });
 
@@ -98,7 +92,6 @@ export default async function handler(
 
       if (!tokenResponse.ok) {
         console.error("Token generation failed:", tokenData);
-        // Fallback: If custom API fails, try to issue a custom JWT or use Supabase standard auth
         throw new Error(tokenData.error || "Gagal menjana token log masuk");
       }
 
@@ -125,8 +118,6 @@ export default async function handler(
 
     } catch (tokenErr) {
       console.error("Failed to generate token:", tokenErr);
-      
-      // Fallback: Try signInWithOtp or generating a custom response if the token endpoint fails
       return res.status(500).json({ 
         error: "Gagal menjana sesi log masuk. Sila hubungi admin." 
       });
@@ -139,6 +130,3 @@ export default async function handler(
     });
   }
 }
-]]>
-
-[Tool result trimmed: kept first 100 chars and last 100 chars of 4066 chars.]
