@@ -49,6 +49,7 @@ class GameService {
           location,
           is_official,
           game_format,
+          double_enabled,
           game_players (
             id,
             member_id,
