@@ -1882,11 +1882,11 @@ export default function BlokPage() {
 
                 {/* ── Men vs Women Dialog ── */}
                 <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Users className="w-5 h-5 text-purple-500" />
-                                Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                                <span className="line-clamp-1">Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}</span>
                             </DialogTitle>
                         </DialogHeader>
                         {loadingMenVsWomen ? (
@@ -1896,42 +1896,42 @@ export default function BlokPage() {
                         ) : !menVsWomenData ? (
                             <div className="text-center py-8 text-gray-500">
                                 <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>Tiada data Men vs Women</p>
+                                <p className="text-sm">Tiada data Men vs Women</p>
                             </div>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                                 {/* Score Comparison */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     {/* Men Team */}
                                     <motion.div
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className={`p-6 rounded-xl border-4 ${
+                                        initial={{ opacity: 0, y: -20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
                                             menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                 ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
                                                 : "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300"
                                         }`}
                                     >
                                         <div className="text-center">
-                                            <div className="text-4xl mb-2">👨</div>
-                                            <h3 className={`text-xl font-bold mb-4 ${
+                                            <div className="text-3xl sm:text-4xl mb-2">👨</div>
+                                            <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-white"
                                                     : "text-blue-900"
                                             }`}>
-                                                MEN TEAM
+                                                <span>MEN TEAM</span>
                                                 {menVsWomenData.menTotal > menVsWomenData.womenTotal && (
-                                                    <Trophy className="w-6 h-6 inline-block ml-2 text-yellow-300" />
+                                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
                                                 )}
                                             </h3>
-                                            <div className={`text-5xl font-black mb-4 ${
+                                            <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-white"
                                                     : "text-blue-700"
                                             }`}>
                                                 {menVsWomenData.menTotal}
                                             </div>
-                                            <div className={`text-sm ${
+                                            <div className={`text-xs sm:text-sm ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-blue-100"
                                                     : "text-blue-600"
@@ -1943,34 +1943,35 @@ export default function BlokPage() {
 
                                     {/* Women Team */}
                                     <motion.div
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className={`p-6 rounded-xl border-4 ${
+                                        initial={{ opacity: 0, y: -20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 }}
+                                        className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
                                             menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                 ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
                                                 : "bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300"
                                         }`}
                                     >
                                         <div className="text-center">
-                                            <div className="text-4xl mb-2">👩</div>
-                                            <h3 className={`text-xl font-bold mb-4 ${
+                                            <div className="text-3xl sm:text-4xl mb-2">👩</div>
+                                            <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
                                                     : "text-pink-900"
                                             }`}>
-                                                WOMEN TEAM
+                                                <span>WOMEN TEAM</span>
                                                 {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
-                                                    <Trophy className="w-6 h-6 inline-block ml-2 text-yellow-300" />
+                                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
                                                 )}
                                             </h3>
-                                            <div className={`text-5xl font-black mb-4 ${
+                                            <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
                                                     : "text-pink-700"
                                             }`}>
                                                 {menVsWomenData.womenTotal}
                                             </div>
-                                            <div className={`text-sm ${
+                                            <div className={`text-xs sm:text-sm ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-pink-100"
                                                     : "text-pink-600"
@@ -1982,27 +1983,30 @@ export default function BlokPage() {
                                 </div>
 
                                 {/* Calculation Breakdown */}
-                                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                                    <h4 className="font-bold text-purple-900 mb-3">📊 Breakdown Kiraan:</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
+                                <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
+                                    <h4 className="font-bold text-purple-900 mb-2 sm:mb-3 text-sm sm:text-base flex items-center gap-2">
+                                        <span className="text-base sm:text-lg">📊</span>
+                                        Breakdown Kiraan:
+                                    </h4>
+                                    <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                                        <div className="flex justify-between items-center gap-2">
                                             <span className="text-gray-700">👨 Men Total Score:</span>
                                             <span className="font-bold text-blue-700">{menVsWomenData.menTotal}</span>
                                         </div>
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between items-center gap-2">
                                             <span className="text-gray-700">👩 Women Total Score:</span>
                                             <span className="font-bold text-pink-700">
                                                 {menVsWomenData.womenTotal - (menVsWomenData.womenHandicap * menVsWomenData.womenCount)}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-700">➕ Women Handicap:</span>
-                                            <span className="font-bold text-pink-700">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="text-gray-700 flex-shrink-0">➕ Women Handicap:</span>
+                                            <span className="font-bold text-pink-700 text-right">
                                                 {menVsWomenData.womenHandicap} × {menVsWomenData.womenCount} = {menVsWomenData.womenHandicap * menVsWomenData.womenCount}
                                             </span>
                                         </div>
-                                        <div className="border-t border-purple-300 pt-2 mt-2 flex justify-between">
-                                            <span className="text-gray-700 font-bold">👩 Women Final Total:</span>
+                                        <div className="border-t border-purple-300 pt-2 mt-2 flex justify-between items-center gap-2">
+                                            <span className="text-gray-700 font-bold flex-shrink-0">👩 Women Final Total:</span>
                                             <span className="font-black text-pink-700">{menVsWomenData.womenTotal}</span>
                                         </div>
                                     </div>
@@ -2013,7 +2017,7 @@ export default function BlokPage() {
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ delay: 0.3, type: "spring" }}
-                                    className={`p-6 rounded-xl text-center ${
+                                    className={`p-4 sm:p-6 rounded-xl text-center ${
                                         menVsWomenData.menTotal > menVsWomenData.womenTotal
                                             ? "bg-gradient-to-r from-blue-500 to-blue-600"
                                             : menVsWomenData.womenTotal > menVsWomenData.menTotal
@@ -2021,17 +2025,17 @@ export default function BlokPage() {
                                                 : "bg-gradient-to-r from-gray-500 to-gray-600"
                                     }`}
                                 >
-                                    <div className="text-6xl mb-3">
+                                    <div className="text-4xl sm:text-6xl mb-2 sm:mb-3">
                                         {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "👨🏆" :
                                          menVsWomenData.womenTotal > menVsWomenData.menTotal ? "👩🏆" :
                                          "🤝"}
                                     </div>
-                                    <h3 className="text-3xl font-black text-white mb-2">
+                                    <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">
                                         {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "MEN TEAM MENANG!" :
                                          menVsWomenData.womenTotal > menVsWomenData.menTotal ? "WOMEN TEAM MENANG!" :
                                          "SERI!"}
                                     </h3>
-                                    <p className="text-white text-lg">
+                                    <p className="text-white text-sm sm:text-lg">
                                         Perbezaan: {Math.abs(menVsWomenData.menTotal - menVsWomenData.womenTotal)} pin
                                     </p>
                                 </motion.div>
