@@ -21,8 +21,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
@@ -56,32 +56,32 @@ interface DoubleRecord {
 const ITEMS_PER_PAGE = 5;
 
 const OPENING_MESSAGES = [
-  "Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
-  "Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
-  "Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
-  "Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"
-];
+"Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
+"Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
+"Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
+"Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"];
+
 
 const CLOSING_MESSAGES = [
-  "Jumpa lagi di blok akan datang.",
-  "See you next blok! Semoga lebih ramai join!",
-  "Blok seterusnya tunggu anda semua ya!",
-  "Sampai jumpa lagi dalam blok akan datang. Good luck!"
-];
+"Jumpa lagi di blok akan datang.",
+"See you next blok! Semoga lebih ramai join!",
+"Blok seterusnya tunggu anda semua ya!",
+"Sampai jumpa lagi dalam blok akan datang. Good luck!"];
+
 
 export function GameManagement() {
   const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Create/Edit Game Dialog
   const [isGameDialogOpen, setIsGameDialogOpen] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [gameForm, setGameForm] = useState({
     game_name: "",
     game_date: "",
-    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE",
+    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE"
   });
 
   // Double Game States
@@ -90,18 +90,18 @@ export function GameManagement() {
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
   const [doubleRecords, setDoubleRecords] = useState<Record<string, DoubleRecord[]>>({});
   const [loadingDoubles, setLoadingDoubles] = useState<Record<string, boolean>>({});
-  const [availableMembers, setAvailableMembers] = useState<Array<{ id: string; username: string; full_name: string }>>([]);
+  const [availableMembers, setAvailableMembers] = useState<Array<{id: string;username: string;full_name: string;}>>([]);
   const [doubleForm, setDoubleForm] = useState({
     player1_id: "",
     player2_id: "",
     player1_score: "",
-    player2_score: "",
+    player2_score: ""
   });
 
   // Delete Game Dialog
-  const [deleteGameDialog, setDeleteGameDialog] = useState<{ open: boolean; game: Game | null }>({
+  const [deleteGameDialog, setDeleteGameDialog] = useState<{open: boolean;game: Game | null;}>({
     open: false,
-    game: null,
+    game: null
   });
 
   // Delete Player Dialog
@@ -114,7 +114,7 @@ export function GameManagement() {
     open: false,
     playerId: null,
     playerName: "",
-    gameId: null,
+    gameId: null
   });
 
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -126,7 +126,7 @@ export function GameManagement() {
   const [selectedClosingMessage, setSelectedClosingMessage] = useState(0);
   const [sharePreview, setSharePreview] = useState("");
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(false);
-  const [topPlayers, setTopPlayers] = useState<Array<{rank: number; username: string; overall_score: number}>>([]);
+  const [topPlayers, setTopPlayers] = useState<Array<{rank: number;username: string;overall_score: number;}>>([]);
 
   // Add Player states
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -142,9 +142,9 @@ export function GameManagement() {
     try {
       setLoading(true);
       const data = await gameService.listGamesWithPlayers();
-      
+
       // Sort players alphabetically A-Z for each game
-      const formattedGames = (data as any[]).map(game => ({
+      const formattedGames = (data as any[]).map((game) => ({
         ...game,
         players: game.players?.sort((a: any, b: any) => {
           const nameA = (a.username || a.full_name || "").toLowerCase();
@@ -152,14 +152,14 @@ export function GameManagement() {
           return nameA.localeCompare(nameB, 'ms-MY');
         }) || []
       }));
-      
+
       setGames(formattedGames);
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
         title: "Ralat",
         description: "Gagal memuatkan senarai permainan",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
@@ -170,21 +170,21 @@ export function GameManagement() {
     try {
       setLoadingMembers(true);
       const data = await gameService.getAvailableMembersForGame(gameId);
-      
+
       // Sort available members alphabetically A-Z
       const sortedMembers = (data || []).sort((a: any, b: any) => {
         const nameA = (a.username || a.full_name || "").toLowerCase();
         const nameB = (b.username || b.full_name || "").toLowerCase();
         return nameA.localeCompare(nameB, 'ms-MY');
       });
-      
+
       setAvailableMembers(sortedMembers);
     } catch (error) {
       console.error("Error loading available members:", error);
       toast({
         title: "Ralat",
         description: "Gagal memuatkan senarai ahli",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoadingMembers(false);
@@ -196,7 +196,7 @@ export function GameManagement() {
     setGameForm({
       game_name: "",
       game_date: new Date().toISOString().split("T")[0],
-      game_type: "BLOK",
+      game_type: "BLOK"
     });
     setIsGameDialogOpen(true);
   };
@@ -206,7 +206,7 @@ export function GameManagement() {
     setGameForm({
       game_name: game.game_name,
       game_date: game.game_date,
-      game_type: (game.game_type as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") || "BLOK",
+      game_type: game.game_type as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE" || "BLOK"
     });
     setIsGameDialogOpen(true);
   };
@@ -217,7 +217,7 @@ export function GameManagement() {
         toast({
           title: "Ralat",
           description: "Sila masukkan nama permainan",
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
@@ -226,13 +226,13 @@ export function GameManagement() {
         await gameService.updateGame(editingGame.id, gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan telah dikemaskini",
+          description: "Permainan telah dikemaskini"
         });
       } else {
         await gameService.createGame(gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan baharu telah dicipta",
+          description: "Permainan baharu telah dicipta"
         });
       }
 
@@ -243,7 +243,7 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: editingGame ? "Gagal mengemaskini permainan" : "Gagal mencipta permainan",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -254,9 +254,9 @@ export function GameManagement() {
     setLoadingTopPlayers(true);
 
     try {
-      const { data: players, error } = await supabase
-        .from("game_players")
-        .select(`
+      const { data: players, error } = await supabase.
+      from("game_players").
+      select(`
           id,
           member:members(id, username, full_name),
           game1_score,
@@ -266,18 +266,18 @@ export function GameManagement() {
           game5_score,
           total_score,
           handicap
-        `)
-        .eq("game_id", game.id);
+        `).
+      eq("game_id", game.id);
 
       if (error) throw error;
 
       const leaderboard = (players || []).map((p: any) => ({
         username: p.member.username || p.member.full_name || "Unknown",
         overall_score: (p.total_score || 0) + (p.handicap || 0)
-      }))
-      .sort((a, b) => b.overall_score - a.overall_score)
-      .slice(0, 3)
-      .map((p, idx) => ({
+      })).
+      sort((a, b) => b.overall_score - a.overall_score).
+      slice(0, 3).
+      map((p, idx) => ({
         rank: idx + 1,
         username: p.username,
         overall_score: p.overall_score
@@ -345,7 +345,7 @@ ${closingMsg}`;
       await gameService.deleteGame(deleteGameDialog.game.id);
       toast({
         title: "Berjaya Dipadam",
-        description: `Permainan "${deleteGameDialog.game.game_name}" telah dipadam.`,
+        description: `Permainan "${deleteGameDialog.game.game_name}" telah dipadam.`
       });
       setDeleteGameDialog({ open: false, game: null });
       loadGames();
@@ -354,7 +354,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: error.message || "Gagal memadam permainan.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -364,7 +364,7 @@ ${closingMsg}`;
       await gameService.updatePlayerFiveFiveStatus(playerId, !currentStatus);
       toast({
         title: "Berjaya",
-        description: `Status Five-Five telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
+        description: `Status Five-Five telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`
       });
       loadGames();
     } catch (error) {
@@ -372,23 +372,23 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal mengemaskini status Five-Five",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
   const handleToggleCleanGame = async (playerId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("game_players")
-        .update({ clean_game: !currentStatus })
-        .eq("id", playerId);
+      const { error } = await supabase.
+      from("game_players").
+      update({ clean_game: !currentStatus }).
+      eq("id", playerId);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: `Status Clean Game telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
+        description: `Status Clean Game telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`
       });
       loadGames();
     } catch (error) {
@@ -396,7 +396,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal mengemaskini status Clean Game",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -408,13 +408,13 @@ ${closingMsg}`;
       await gameService.deletePlayerFromGameById(deletePlayerDialog.playerId);
       toast({
         title: "Berjaya",
-        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`,
+        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`
       });
       setDeletePlayerDialog({
         open: false,
         playerId: null,
         playerName: "",
-        gameId: null,
+        gameId: null
       });
       loadGames();
     } catch (error) {
@@ -422,7 +422,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal membuang pemain",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -440,7 +440,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih sekurang-kurangnya seorang ahli",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -448,7 +448,7 @@ ${closingMsg}`;
     try {
       const players = selectedMemberIds.map((memberId) => ({
         member_id: memberId,
-        is_fivefive: newPlayerFiveFive,
+        is_fivefive: newPlayerFiveFive
       }));
 
       const result = await gameService.addPlayersToGameWithFiveFive(
@@ -458,7 +458,7 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: result?.message || "Pemain telah ditambah ke permainan",
+        description: result?.message || "Pemain telah ditambah ke permainan"
       });
 
       setShowAddPlayer(false);
@@ -471,7 +471,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal menambah pemain",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -587,32 +587,32 @@ ${closingMsg}`;
   const loadAvailableMembersForDouble = async (gameId: string) => {
     try {
       // Fetch players who are playing in this specific game
-      const { data: gamePlayers, error } = await supabase
-        .from("game_players")
-        .select(`
+      const { data: gamePlayers, error } = await supabase.
+      from("game_players").
+      select(`
           member_id,
           members (
             id,
             username,
             full_name
           )
-        `)
-        .eq("game_id", gameId);
+        `).
+      eq("game_id", gameId);
 
       if (error) throw error;
 
       // Extract and sort members
-      const players = (gamePlayers || [])
-        .map((gp: any) => ({
-          id: gp.members.id,
-          username: gp.members.username,
-          full_name: gp.members.full_name
-        }))
-        .sort((a: any, b: any) => {
-          const nameA = (a.username || a.full_name || "").toLowerCase();
-          const nameB = (b.username || b.full_name || "").toLowerCase();
-          return nameA.localeCompare(nameB, 'ms-MY');
-        });
+      const players = (gamePlayers || []).
+      map((gp: any) => ({
+        id: gp.members.id,
+        username: gp.members.username,
+        full_name: gp.members.full_name
+      })).
+      sort((a: any, b: any) => {
+        const nameA = (a.username || a.full_name || "").toLowerCase();
+        const nameB = (b.username || b.full_name || "").toLowerCase();
+        return nameA.localeCompare(nameB, 'ms-MY');
+      });
 
       setAvailableMembers(players);
     } catch (error) {
@@ -623,62 +623,62 @@ ${closingMsg}`;
 
   const fetchDoubleRecords = async (gameId: string) => {
     try {
-      setLoadingDoubles(prev => ({ ...prev, [gameId]: true }));
+      setLoadingDoubles((prev) => ({ ...prev, [gameId]: true }));
 
-      const { data, error } = await (supabase as any)
-        .from("double_records")
-        .select(`
+      const { data, error } = await (supabase as any).
+      from("double_records").
+      select(`
           *,
           player1:members!double_records_player1_id_fkey(id, username, full_name),
           player2:members!double_records_player2_id_fkey(id, username, full_name)
-        `)
-        .eq("game_id", gameId)
-        .order("total_score", { ascending: false });
+        `).
+      eq("game_id", gameId).
+      order("total_score", { ascending: false });
 
       if (error) throw error;
 
-      setDoubleRecords(prev => ({
+      setDoubleRecords((prev) => ({
         ...prev,
         [gameId]: data || []
       }));
     } catch (error) {
       console.error("Error fetching double records:", error);
     } finally {
-      setLoadingDoubles(prev => ({ ...prev, [gameId]: false }));
+      setLoadingDoubles((prev) => ({ ...prev, [gameId]: false }));
     }
   };
 
   const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
     console.log("🔄 Toggling double game:", { gameId, currentValue, newValue: !currentValue });
-    
+
     try {
       // Check if user is admin first
       const { data: { user } } = await supabase.auth.getUser();
       console.log("👤 Current user:", user?.id);
-      
-      const { data: member } = await supabase
-        .from("members")
-        .select("id, username, is_admin")
-        .eq("user_id", user?.id)
-        .single();
-      
+
+      const { data: member } = await supabase.
+      from("members").
+      select("id, username, is_admin").
+      eq("user_id", user?.id).
+      single();
+
       console.log("👤 Member data:", member);
-      
+
       if (!member?.is_admin) {
         toast({
           title: "Akses Ditolak",
           description: "Hanya admin boleh mengubah tetapan ini",
-          variant: "destructive",
+          variant: "destructive"
         });
         return;
       }
 
       console.log("⚙️ Updating game double_enabled...");
-      const { data, error } = await supabase
-        .from("games")
-        .update({ double_enabled: !currentValue })
-        .eq("id", gameId)
-        .select();
+      const { data, error } = await supabase.
+      from("games").
+      update({ double_enabled: !currentValue }).
+      eq("id", gameId).
+      select();
 
       console.log("✅ Update result:", { data, error });
 
@@ -689,7 +689,7 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
+        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`
       });
 
       console.log("🔄 Reloading games...");
@@ -700,7 +700,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -708,21 +708,21 @@ ${closingMsg}`;
   const toggleMenVsWomen = async (gameId: string, currentValue: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", user?.id)
-        .single();
-      
+      const { data: member } = await supabase.
+      from("members").
+      select("is_admin").
+      eq("user_id", user?.id).
+      single();
+
       if (!member?.is_admin) {
         toast({ title: "Akses Ditolak", description: "Hanya admin boleh mengubah", variant: "destructive" });
         return;
       }
 
-      const { error } = await supabase
-        .from("games")
-        .update({ men_vs_women_enabled: !currentValue })
-        .eq("id", gameId);
+      const { error } = await supabase.
+      from("games").
+      update({ men_vs_women_enabled: !currentValue }).
+      eq("id", gameId);
 
       if (error) throw error;
       toast({ title: "Berjaya", description: `Men vs Women ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}` });
@@ -735,21 +735,21 @@ ${closingMsg}`;
   const updateWomenHandicap = async (gameId: string, handicap: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase
-        .from("members")
-        .select("is_admin")
-        .eq("user_id", user?.id)
-        .single();
-      
+      const { data: member } = await supabase.
+      from("members").
+      select("is_admin").
+      eq("user_id", user?.id).
+      single();
+
       if (!member?.is_admin) return;
 
-      const { error } = await supabase
-        .from("games")
-        .update({ women_handicap: handicap })
-        .eq("id", gameId);
+      const { error } = await supabase.
+      from("games").
+      update({ women_handicap: handicap }).
+      eq("id", gameId);
 
       if (error) throw error;
-      setGames(prev => prev.map(g => g.id === gameId ? { ...g, women_handicap: handicap } : g));
+      setGames((prev) => prev.map((g) => g.id === gameId ? { ...g, women_handicap: handicap } : g));
     } catch (error) {
       console.error("Error updating women handicap:", error);
     }
@@ -760,7 +760,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih kedua-dua pemain",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -769,34 +769,34 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih pemain yang berbeza",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
 
     try {
       // Fetch player scores from game_players table (if exists)
-      const { data: gamePlayers, error: fetchError } = await supabase
-        .from("game_players")
-        .select("member_id, total_score, handicap")
-        .eq("game_id", selectedGameForDouble.id)
-        .in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
+      const { data: gamePlayers, error: fetchError } = await supabase.
+      from("game_players").
+      select("member_id, total_score, handicap").
+      eq("game_id", selectedGameForDouble.id).
+      in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
 
       if (fetchError) throw fetchError;
 
       // Get scores or default to 0 if not yet entered
-      const player1 = gamePlayers?.find(p => p.member_id === doubleForm.player1_id);
-      const player2 = gamePlayers?.find(p => p.member_id === doubleForm.player2_id);
+      const player1 = gamePlayers?.find((p) => p.member_id === doubleForm.player1_id);
+      const player2 = gamePlayers?.find((p) => p.member_id === doubleForm.player2_id);
 
       const player1Score = (player1?.total_score || 0) + (player1?.handicap || 0);
       const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
 
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase
-        .from("members")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single();
+      const { data: member } = await supabase.
+      from("members").
+      select("id").
+      eq("user_id", user?.id).
+      single();
 
       const { error } = await supabase.from("double_records").insert([{
         game_id: selectedGameForDouble.id,
@@ -804,14 +804,14 @@ ${closingMsg}`;
         player2_id: doubleForm.player2_id,
         player1_score: player1Score,
         player2_score: player2Score,
-        created_by: member?.id,
+        created_by: member?.id
       }]);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`,
+        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`
       });
 
       setIsDoubleDialogOpen(false);
@@ -822,7 +822,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal menambah rekod double",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -831,16 +831,16 @@ ${closingMsg}`;
     if (!confirm("Adakah anda pasti mahu memadam rekod double ini?")) return;
 
     try {
-      const { error } = await supabase
-        .from("double_records")
-        .delete()
-        .eq("id", doubleId);
+      const { error } = await supabase.
+      from("double_records").
+      delete().
+      eq("id", doubleId);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: "Rekod double telah dipadam",
+        description: "Rekod double telah dipadam"
       });
 
       fetchDoubleRecords(gameId);
@@ -849,7 +849,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal memadam rekod double",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -871,20 +871,20 @@ ${closingMsg}`;
       weekday: "long",
       year: "numeric",
       month: "long",
-      day: "numeric",
+      day: "numeric"
     });
   };
 
   const gameTypeLabels = {
     BLOK: "Blok",
     BLOK_SUKA_SUKI: "Blok Suka Suki",
-    COUPLE: "Couple",
+    COUPLE: "Couple"
   };
 
   const gameTypeColors = {
     BLOK: "bg-blue-500",
     BLOK_SUKA_SUKI: "bg-green-500",
-    COUPLE: "bg-pink-500",
+    COUPLE: "bg-pink-500"
   };
 
   // Pagination
@@ -901,8 +901,8 @@ ${closingMsg}`;
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -919,8 +919,8 @@ ${closingMsg}`;
           </Button>
         </div>
 
-        {games.length === 0 ? (
-          <Card>
+        {games.length === 0 ?
+        <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-center">
@@ -929,17 +929,17 @@ ${closingMsg}`;
                 Klik butang di atas untuk tambah permainan baharu.
               </p>
             </CardContent>
-          </Card>
-        ) : (
-          <>
+          </Card> :
+
+        <>
             <div className="grid gap-4">
-              {currentGames.map((game) => (
-                <motion.div
-                  key={game.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+              {currentGames.map((game) =>
+            <motion.div
+              key={game.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}>
+              
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="space-y-1">
@@ -959,10 +959,10 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handlePrintScoresheet(game)}
-                            >
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePrintScoresheet(game)}>
+                          
                               <Printer className="h-4 w-4 text-slate-600 hover:text-slate-900" />
                             </Button>
                           </TooltipTrigger>
@@ -971,13 +971,13 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenWhatsAppShare(game)}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            >
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenWhatsAppShare(game)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                          
                               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                               </svg>
                             </Button>
                           </TooltipTrigger>
@@ -986,10 +986,10 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenAddPlayer(game.id)}
-                            >
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenAddPlayer(game.id)}>
+                          
                               <Plus className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -998,10 +998,10 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditGame(game)}
-                            >
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditGame(game)}>
+                          
                               <Edit className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1010,11 +1010,11 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteGameDialog({ open: true, game })}
-                            >
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteGameDialog({ open: true, game })}>
+                          
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1046,39 +1046,39 @@ ${closingMsg}`;
                             <Label>Double Game</Label>
                             <p className="text-sm text-muted-foreground">Pemain main berpasangan</p>
                           </div>
-                          <Switch
-                            checked={game.double_enabled || false}
-                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
-                          />
+                          
+
+
+                      
                         </div>
 
-                        {game.double_enabled && (
-                          <div className="flex gap-2">
+                        {game.double_enabled &&
+                    <div className="flex gap-2">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleExpandedGame(game.id)}
-                            >
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleExpandedGame(game.id)}>
+                        
                               {expandedGame === game.id ? "Tutup" : "Lihat"} Rekod Double
-                              {doubleRecords[game.id] && doubleRecords[game.id].length > 0 && (
-                                <Badge variant="secondary" className="ml-2">
+                              {doubleRecords[game.id] && doubleRecords[game.id].length > 0 &&
+                        <Badge variant="secondary" className="ml-2">
                                   {doubleRecords[game.id].length}
                                 </Badge>
-                              )}
+                        }
                             </Button>
                             <Button
-                              size="sm"
-                              onClick={() => {
-                                setSelectedGameForDouble(game);
-                                setIsDoubleDialogOpen(true);
-                                loadAvailableMembersForDouble(game.id);
-                              }}
-                            >
+                        size="sm"
+                        onClick={() => {
+                          setSelectedGameForDouble(game);
+                          setIsDoubleDialogOpen(true);
+                          loadAvailableMembersForDouble(game.id);
+                        }}>
+                        
                               <Plus className="h-4 w-4 mr-2" />
                               Tambah Double
                             </Button>
                           </div>
-                        )}
+                    }
                       </div>
 
                       {/* Men vs Women Toggle */}
@@ -1088,10 +1088,10 @@ ${closingMsg}`;
                             Double Game
                           </Label>
                           <Switch
-                            id={`double-${game.id}`}
-                            checked={game.double_enabled || false}
-                            onCheckedChange={(checked) => toggleGameDouble(game.id, game.double_enabled || false)}
-                          />
+                        id={`double-${game.id}`}
+                        checked={game.double_enabled || false}
+                        onCheckedChange={(checked) => toggleGameDouble(game.id, game.double_enabled || false)} />
+                      
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1099,47 +1099,47 @@ ${closingMsg}`;
                             Men vs Women
                           </Label>
                           <Switch
-                            id={`mvw-${game.id}`}
-                            checked={game.men_vs_women_enabled || false}
-                            onCheckedChange={(checked) => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
-                          />
+                        id={`mvw-${game.id}`}
+                        checked={game.men_vs_women_enabled || false}
+                        onCheckedChange={(checked) => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)} />
+                      
                         </div>
 
-                        {game.men_vs_women_enabled && (
-                          <div className="flex items-center gap-2">
+                        {game.men_vs_women_enabled &&
+                    <div className="flex items-center gap-2">
                             <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
                               HCP Women
                             </Label>
                             <Input
-                              id={`hcp-${game.id}`}
-                              type="number"
-                              min="0"
-                              value={game.women_handicap || 0}
-                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
-                              className="w-20"
-                            />
+                        id={`hcp-${game.id}`}
+                        type="number"
+                        min="0"
+                        value={game.women_handicap || 0}
+                        onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                        className="w-20" />
+                      
                           </div>
-                        )}
+                    }
                       </div>
 
                       {/* Players List */}
-                      {game.players && game.players.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {game.players.map((player) => (
-                            <DropdownMenu key={player.id}>
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
                               <DropdownMenuTrigger asChild>
                                 <Badge
-                                  variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
-                                  className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
-                                    player.is_fivefive && player.clean_game
-                                      ? "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
-                                      : player.is_fivefive
-                                      ? "bg-pink-500 hover:bg-pink-600 text-white border-0"
-                                      : player.clean_game
-                                      ? "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
-                                      : ""
-                                  }`}
-                                >
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
                                   {player.username || "Unknown"}
                                   {player.is_fivefive && " ⭐"}
                                   {player.clean_game && " ✨"}
@@ -1151,65 +1151,65 @@ ${closingMsg}`;
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    handleToggleFiveFive(player.id, !!player.is_fivefive)
-                                  }
-                                >
-                                  {player.is_fivefive
-                                    ? "Nyahaktifkan Five-Five"
-                                    : "Tandakan sebagai Five-Five"}
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    handleToggleCleanGame(player.id, !!player.clean_game)
-                                  }
-                                >
-                                  {player.clean_game
-                                    ? "Nyahaktifkan Clean Game"
-                                    : "Tandakan sebagai Clean Game"}
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() =>
-                                    setDeletePlayerDialog({
-                                      open: true,
-                                      playerId: player.id,
-                                      playerName: player.username || player.full_name || "Pemain",
-                                      gameId: game.id,
-                                    })
-                                  }
-                                >
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
                                   Buang dari permainan
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
                           Belum ada pemain didaftarkan untuk permainan ini.
                         </p>
-                      )}
+                  }
 
                       {/* Double Records List */}
-                      {expandedGame === game.id && game.double_enabled && (
-                        <CardContent className="border-t bg-muted/20 pt-4">
-                          {loadingDoubles[game.id] ? (
-                            <div className="text-center py-4">
+                      {expandedGame === game.id && game.double_enabled &&
+                  <CardContent className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                    <div className="text-center py-4">
                               <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
-                            </div>
-                          ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
-                            <div className="text-center py-6 text-muted-foreground">
+                            </div> :
+                    !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                    <div className="text-center py-6 text-muted-foreground">
                               <p>Tiada rekod double lagi</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
+                            </div> :
+
+                    <div className="space-y-2">
                               <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
-                              {doubleRecords[game.id].map((record, index) => (
-                                <div
-                                  key={record.id}
-                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
-                                >
+                              {doubleRecords[game.id].map((record, index) =>
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                        
                                   <div className="flex items-center gap-3">
                                     <Badge variant="outline" className="w-8 justify-center">
                                       #{index + 1}
@@ -1228,66 +1228,66 @@ ${closingMsg}`;
                                     </div>
                                   </div>
                                   <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteDouble(record.id, game.id)}
-                                  >
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteDouble(record.id, game.id)}>
+                          
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
                       )}
+                            </div>
+                    }
+                        </CardContent>
+                  }
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
+            )}
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
+            {totalPages > 1 &&
+          <div className="flex items-center justify-center gap-2 mt-6">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}>
+              
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 
                 <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => goToPage(page)}
-                      className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}
-                    >
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) =>
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => goToPage(page)}
+                className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}>
+                
                       {page}
                     </Button>
-                  ))}
+              )}
                 </div>
 
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}>
+              
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-            )}
+          }
 
             <p className="text-sm text-center text-muted-foreground">
               Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada {games.length} permainan
             </p>
           </>
-        )}
+        }
 
         {/* Create/Edit Game Dialog */}
         <Dialog open={isGameDialogOpen} onOpenChange={setIsGameDialogOpen}>
@@ -1295,9 +1295,9 @@ ${closingMsg}`;
             <DialogHeader>
               <DialogTitle>{editingGame ? "Edit Permainan" : "Tambah Permainan Baharu"}</DialogTitle>
               <DialogDescription>
-                {editingGame
-                  ? "Kemaskini maklumat permainan"
-                  : "Isikan maklumat untuk permainan baharu"}
+                {editingGame ?
+                "Kemaskini maklumat permainan" :
+                "Isikan maklumat untuk permainan baharu"}
               </DialogDescription>
             </DialogHeader>
 
@@ -1308,8 +1308,8 @@ ${closingMsg}`;
                   id="game_name"
                   placeholder="Contoh: Blok 1"
                   value={gameForm.game_name}
-                  onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
-                />
+                  onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })} />
+                
               </div>
 
               <div className="space-y-2">
@@ -1318,8 +1318,8 @@ ${closingMsg}`;
                   id="game_date"
                   type="date"
                   value={gameForm.game_date}
-                  onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
-                />
+                  onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })} />
+                
               </div>
 
               <div className="space-y-2">
@@ -1327,9 +1327,9 @@ ${closingMsg}`;
                 <Select
                   value={gameForm.game_type}
                   onValueChange={(value: "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") =>
-                    setGameForm({ ...gameForm, game_type: value })
-                  }
-                >
+                  setGameForm({ ...gameForm, game_type: value })
+                  }>
+                  
                   <SelectTrigger id="game_type">
                     <SelectValue />
                   </SelectTrigger>
@@ -1363,55 +1363,55 @@ ${closingMsg}`;
               </DialogDescription>
             </DialogHeader>
 
-            {loadingTopPlayers ? (
-              <div className="flex justify-center py-8">
+            {loadingTopPlayers ?
+            <div className="flex justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
-              </div>
-            ) : (
-              <div className="space-y-6">
+              </div> :
+
+            <div className="space-y-6">
                 <div className="space-y-2">
                   <Label>Pilih Ayat Pembuka</Label>
                   <div className="grid gap-2">
-                    {OPENING_MESSAGES.map((msg, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setSelectedOpeningMessage(idx);
-                          generatePreview(topPlayers, idx, selectedClosingMessage);
-                        }}
-                        className={`text-left p-3 rounded-lg border-2 transition-all ${
-                          selectedOpeningMessage === idx
-                            ? "border-pink-600 bg-pink-50"
-                            : "border-gray-200 hover:border-pink-300"
-                        }`}
-                      >
+                    {OPENING_MESSAGES.map((msg, idx) =>
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedOpeningMessage(idx);
+                      generatePreview(topPlayers, idx, selectedClosingMessage);
+                    }}
+                    className={`text-left p-3 rounded-lg border-2 transition-all ${
+                    selectedOpeningMessage === idx ?
+                    "border-pink-600 bg-pink-50" :
+                    "border-gray-200 hover:border-pink-300"}`
+                    }>
+                    
                         <p className="text-sm text-gray-700">
                           {msg.replace("[WINNER]", topPlayers[0]?.username || "N/A")}
                         </p>
                       </button>
-                    ))}
+                  )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Pilih Ayat Penutup</Label>
                   <div className="grid gap-2">
-                    {CLOSING_MESSAGES.map((msg, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setSelectedClosingMessage(idx);
-                          generatePreview(topPlayers, selectedOpeningMessage, idx);
-                        }}
-                        className={`text-left p-3 rounded-lg border-2 transition-all ${
-                          selectedClosingMessage === idx
-                            ? "border-pink-600 bg-pink-50"
-                            : "border-gray-200 hover:border-pink-300"
-                        }`}
-                      >
+                    {CLOSING_MESSAGES.map((msg, idx) =>
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedClosingMessage(idx);
+                      generatePreview(topPlayers, selectedOpeningMessage, idx);
+                    }}
+                    className={`text-left p-3 rounded-lg border-2 transition-all ${
+                    selectedClosingMessage === idx ?
+                    "border-pink-600 bg-pink-50" :
+                    "border-gray-200 hover:border-pink-300"}`
+                    }>
+                    
                         <p className="text-sm text-gray-700">{msg}</p>
                       </button>
-                    ))}
+                  )}
                   </div>
                 </div>
 
@@ -1424,7 +1424,7 @@ ${closingMsg}`;
                   </div>
                 </div>
               </div>
-            )}
+            }
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowWhatsAppShare(false)}>
@@ -1433,10 +1433,10 @@ ${closingMsg}`;
               <Button
                 onClick={handleShareToWhatsApp}
                 disabled={loadingTopPlayers}
-                className="bg-green-600 hover:bg-green-700"
-              >
+                className="bg-green-600 hover:bg-green-700">
+                
                 <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                 </svg>
                 Share ke WhatsApp
               </Button>
@@ -1460,8 +1460,8 @@ ${closingMsg}`;
               <AlertDialogCancel>Batal</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeleteGame}
-                className="bg-destructive hover:bg-destructive/90"
-              >
+                className="bg-destructive hover:bg-destructive/90">
+                
                 Padam
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -1472,14 +1472,14 @@ ${closingMsg}`;
         <AlertDialog
           open={deletePlayerDialog.open}
           onOpenChange={(open) =>
-            setDeletePlayerDialog({
-              open,
-              playerId: null,
-              playerName: "",
-              gameId: null,
-            })
-          }
-        >
+          setDeletePlayerDialog({
+            open,
+            playerId: null,
+            playerName: "",
+            gameId: null
+          })
+          }>
+          
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Buang Pemain?</AlertDialogTitle>
@@ -1494,8 +1494,8 @@ ${closingMsg}`;
               <AlertDialogCancel>Batal</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDeletePlayer}
-                className="bg-destructive hover:bg-destructive/90"
-              >
+                className="bg-destructive hover:bg-destructive/90">
+                
                 Buang
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -1511,46 +1511,46 @@ ${closingMsg}`;
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Pilih Ahli (boleh pilih ramai)</label>
-                {loadingMembers ? (
-                  <div className="flex items-center justify-center py-4">
+                {loadingMembers ?
+                <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
-                  </div>
-                ) : availableMembers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
+                  </div> :
+                availableMembers.length === 0 ?
+                <p className="text-sm text-muted-foreground py-4 text-center">
                     Semua ahli sudah didaftarkan dalam permainan ini
-                  </p>
-                ) : (
-                  <div className="max-h-64 overflow-y-auto rounded-md border p-2 space-y-1">
+                  </p> :
+
+                <div className="max-h-64 overflow-y-auto rounded-md border p-2 space-y-1">
                     {availableMembers.map((member) => {
-                      const checked = selectedMemberIds.includes(member.id);
-                      return (
-                        <button
-                          key={member.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedMemberIds((prev) =>
-                              prev.includes(member.id)
-                                ? prev.filter((id) => id !== member.id)
-                                : [...prev, member.id]
-                            );
-                          }}
-                          className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-muted ${
-                            checked ? "bg-muted" : ""
-                          }`}
-                        >
+                    const checked = selectedMemberIds.includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMemberIds((prev) =>
+                          prev.includes(member.id) ?
+                          prev.filter((id) => id !== member.id) :
+                          [...prev, member.id]
+                          );
+                        }}
+                        className={`flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-muted ${
+                        checked ? "bg-muted" : ""}`
+                        }>
+                        
                           <span>
                             {member.username} ({member.full_name})
                           </span>
                           <span
-                            className={`h-4 w-4 rounded border ${
-                              checked ? "bg-pink-600 border-pink-600" : "border-muted-foreground/40"
-                            }`}
-                          />
-                        </button>
-                      );
-                    })}
+                          className={`h-4 w-4 rounded border ${
+                          checked ? "bg-pink-600 border-pink-600" : "border-muted-foreground/40"}`
+                          } />
+                        
+                        </button>);
+
+                  })}
                   </div>
-                )}
+                }
                 <p className="text-xs text-muted-foreground">
                   {selectedMemberIds.length} ahli dipilih
                 </p>
@@ -1559,12 +1559,12 @@ ${closingMsg}`;
                 <Switch
                   id="add-fivefive"
                   checked={newPlayerFiveFive}
-                  onCheckedChange={setNewPlayerFiveFive}
-                />
+                  onCheckedChange={setNewPlayerFiveFive} />
+                
                 <label
                   htmlFor="add-fivefive"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  
                   Main Five-Five ⭐ (aplikasi kepada semua yang dipilih)
                 </label>
               </div>
@@ -1575,8 +1575,8 @@ ${closingMsg}`;
               </Button>
               <Button
                 onClick={handleAddPlayer}
-                disabled={selectedMemberIds.length === 0 || loadingMembers}
-              >
+                disabled={selectedMemberIds.length === 0 || loadingMembers}>
+                
                 Tambah {selectedMemberIds.length > 0 ? `${selectedMemberIds.length} Pemain` : "Pemain"}
               </Button>
             </DialogFooter>
@@ -1598,17 +1598,17 @@ ${closingMsg}`;
                   <Label>Pemain 1</Label>
                   <Select
                     value={doubleForm.player1_id}
-                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}
-                  >
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}>
+                    
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih pemain 1" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableMembers.map((member) => (
-                        <SelectItem key={`p1-${member.id}`} value={member.id}>
+                      {availableMembers.map((member) =>
+                      <SelectItem key={`p1-${member.id}`} value={member.id}>
                           @{member.username}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1616,17 +1616,17 @@ ${closingMsg}`;
                   <Label>Pemain 2</Label>
                   <Select
                     value={doubleForm.player2_id}
-                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}
-                  >
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}>
+                    
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih pemain 2" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableMembers.map((member) => (
-                        <SelectItem key={`p2-${member.id}`} value={member.id}>
+                      {availableMembers.map((member) =>
+                      <SelectItem key={`p2-${member.id}`} value={member.id}>
                           @{member.username}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1653,6 +1653,6 @@ ${closingMsg}`;
           </DialogContent>
         </Dialog>
       </div>
-    </TooltipProvider>
-  );
+    </TooltipProvider>);
+
 }
