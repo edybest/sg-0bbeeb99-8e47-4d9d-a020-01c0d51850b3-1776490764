@@ -30,6 +30,7 @@ import {
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1111,7 +1112,7 @@ export default function BlokPage() {
                                             <button
                                                 key={`game-${gameNum}`}
                                                 onClick={() => handleOpenCleanGameDialog(gameNum)}
-                                                className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow-md transition-all hover:bg-white text-center"
+                                                className="bg-amber-50 rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow-md transition-all hover:bg-amber-100 text-center"
                                             >
                                                 <div className="text-amber-900 font-bold text-lg mb-1">
                                                     Game {gameNum}
