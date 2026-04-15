@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
-import { 
-  Trophy, Plus, Trash2, Save, Users, Calendar, Clock, X
-} from "lucide-react";
+import { Trophy, Plus, Trash2, Edit2, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -29,21 +27,16 @@ interface DoubleRecord {
   player2?: Member;
 }
 
-interface GamePlayers {
-  players: Member[];
-  doubles: DoubleRecord[];
-}
-
 export function GameManagement() {
   const [games, setGames] = useState<Game[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [gamePlayers, setGamePlayers] = useState<Record<string, GamePlayers>>({});
   const [loading, setLoading] = useState(true);
-  const [loadingPlayers, setLoadingPlayers] = useState<Record<string, boolean>>({});
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
+  const [doubleRecords, setDoubleRecords] = useState<Record<string, DoubleRecord[]>>({});
+  const [loadingDoubles, setLoadingDoubles] = useState<Record<string, boolean>>({});
   
   const [newGame, setNewGame] = useState({
     game_name: "",
@@ -70,7 +63,7 @@ export function GameManagement() {
       const { data, error } = await supabase
         .from("members")
         .select("*")
-        .order("username");
+        .order("full_name");
 
       if (error) throw error;
       setMembers(data || []);
@@ -101,23 +94,11 @@ export function GameManagement() {
     }
   }
 
-  async function fetchGamePlayers(gameId: string) {
+  async function fetchDoubleRecords(gameId: string) {
     try {
-      setLoadingPlayers(prev => ({ ...prev, [gameId]: true }));
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: true }));
 
-      // Fetch players who played this game
-      const { data: playersData, error: playersError } = await supabase
-        .from("game_players")
-        .select(`
-          member_id,
-          members:member_id (*)
-        `)
-        .eq("game_id", gameId);
-
-      if (playersError) throw playersError;
-
-      // Fetch double records
-      const { data: doublesData, error: doublesError } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("double_records")
         .select(`
           *,
@@ -127,29 +108,16 @@ export function GameManagement() {
         .eq("game_id", gameId)
         .order("total_score", { ascending: false });
 
-      if (doublesError) throw doublesError;
+      if (error) throw error;
 
-      // Extract unique players
-      const players = (playersData || [])
-        .map((p: any) => p.members)
-        .filter((m: any) => m !== null);
-
-      setGamePlayers(prev => ({
+      setDoubleRecords(prev => ({
         ...prev,
-        [gameId]: {
-          players: players as Member[],
-          doubles: (doublesData as any) || [],
-        }
+        [gameId]: data || []
       }));
     } catch (error) {
-      console.error("Error fetching game players:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load game players",
-        variant: "destructive",
-      });
+      console.error("Error fetching double records:", error);
     } finally {
-      setLoadingPlayers(prev => ({ ...prev, [gameId]: false }));
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: false }));
     }
   }
 
@@ -164,20 +132,12 @@ export function GameManagement() {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase
-        .from("members")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single();
-
       const { error } = await supabase.from("games").insert([{
         game_name: newGame.game_name,
         game_date: newGame.game_date,
         location: newGame.location,
         year: new Date(newGame.game_date).getFullYear(),
         double_enabled: false,
-        created_by: member?.id,
       }]);
 
       if (error) throw error;
@@ -200,6 +160,33 @@ export function GameManagement() {
     }
   }
 
+  async function handleDeleteGame(gameId: string) {
+    if (!confirm("Are you sure you want to delete this game? All related records will also be deleted.")) return;
+
+    try {
+      const { error } = await supabase
+        .from("games")
+        .delete()
+        .eq("id", gameId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Game deleted successfully",
+      });
+
+      fetchGames();
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete game",
+        variant: "destructive",
+      });
+    }
+  }
+
   async function toggleGameDouble(gameId: string, currentValue: boolean) {
     try {
       const { error } = await supabase
@@ -211,15 +198,15 @@ export function GameManagement() {
 
       toast({
         title: "Success",
-        description: `Double ${!currentValue ? "enabled" : "disabled"} for this game`,
+        description: `Double game ${!currentValue ? "enabled" : "disabled"}`,
       });
 
       fetchGames();
     } catch (error) {
-      console.error("Error toggling double:", error);
+      console.error("Error toggling double game:", error);
       toast({
         title: "Error",
-        description: "Failed to update double setting",
+        description: "Failed to update double game setting",
         variant: "destructive",
       });
     }
@@ -271,9 +258,7 @@ export function GameManagement() {
 
       setIsDoubleDialogOpen(false);
       setDoubleForm({ player1_id: "", player2_id: "", player1_score: "", player2_score: "" });
-      if (expandedGame === selectedGame.id) {
-        fetchGamePlayers(selectedGame.id);
-      }
+      fetchDoubleRecords(selectedGame.id);
     } catch (error) {
       console.error("Error adding double:", error);
       toast({
@@ -300,7 +285,7 @@ export function GameManagement() {
         description: "Double record deleted",
       });
 
-      fetchGamePlayers(gameId);
+      fetchDoubleRecords(gameId);
     } catch (error) {
       console.error("Error deleting double:", error);
       toast({
@@ -311,39 +296,14 @@ export function GameManagement() {
     }
   }
 
-  async function handleDeleteGame(gameId: string) {
-    if (!confirm("Are you sure you want to delete this game? All related records will also be deleted.")) return;
-
-    try {
-      const { error } = await supabase
-        .from("games")
-        .delete()
-        .eq("id", gameId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Game deleted successfully",
-      });
-
-      fetchGames();
-    } catch (error) {
-      console.error("Error deleting game:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete game",
-        variant: "destructive",
-      });
-    }
-  }
-
-  const toggleGameExpanded = async (gameId: string) => {
+  const toggleExpandedGame = (gameId: string) => {
     if (expandedGame === gameId) {
       setExpandedGame(null);
     } else {
       setExpandedGame(gameId);
-      await fetchGamePlayers(gameId);
+      if (!doubleRecords[gameId]) {
+        fetchDoubleRecords(gameId);
+      }
     }
   };
 
@@ -404,7 +364,6 @@ export function GameManagement() {
                 />
               </div>
               <Button onClick={handleAddGame} className="w-full">
-                <Save className="mr-2 h-4 w-4" />
                 Create Game
               </Button>
             </div>
@@ -412,7 +371,6 @@ export function GameManagement() {
         </Dialog>
       </div>
 
-      {/* Games List */}
       <div className="space-y-4">
         {games.length === 0 ? (
           <Card>
@@ -421,45 +379,34 @@ export function GameManagement() {
             </CardContent>
           </Card>
         ) : (
-          games.map((game) => {
-            const players = gamePlayers[game.id];
-            const isLoading = loadingPlayers[game.id];
-
-            return (
-              <Card key={game.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="flex items-center gap-2">
-                          <Trophy className="h-5 w-5 text-primary" />
-                          {game.game_name}
-                        </CardTitle>
-                        {game.double_enabled && (
-                          <Badge variant="secondary" className="gap-1">
-                            <Users className="h-3 w-3" />
-                            Double Enabled
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="mt-2">
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(game.game_date).toLocaleDateString()}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {new Date(game.game_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {game.location && (
-                            <span className="flex items-center gap-1">
-                              📍 {game.location}
-                            </span>
-                          )}
-                        </div>
-                      </CardDescription>
-                    </div>
+          games.map((game) => (
+            <Card key={game.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      {game.game_name}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      {new Date(game.game_date).toLocaleString("ms-MY", {
+                        dateStyle: "medium",
+                        timeStyle: "short"
+                      })}
+                      {game.location && ` • ${game.location}`}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {game.double_enabled && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleExpandedGame(game.id)}
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Double Records
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -468,121 +415,87 @@ export function GameManagement() {
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
+                </div>
 
-                  {/* Double Game Controls */}
-                  <div className="mt-4 space-y-4 border-t pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <Label htmlFor={`double-${game.id}`}>Double Game</Label>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Enable players to compete in doubles
-                        </p>
-                      </div>
-                      <Switch
-                        id={`double-${game.id}`}
-                        checked={game.double_enabled || false}
-                        onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
-                      />
-                    </div>
-
-                    {game.double_enabled && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleGameExpanded(game.id)}
-                        >
-                          {expandedGame === game.id ? "Hide" : "Show"} Double Records
-                          {players?.doubles && players.doubles.length > 0 && (
-                            <Badge variant="secondary" className="ml-2">
-                              {players.doubles.length}
-                            </Badge>
-                          )}
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedGame(game);
-                            setIsDoubleDialogOpen(true);
-                            if (!players) {
-                              fetchGamePlayers(game.id);
-                            }
-                          }}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Double
-                        </Button>
-                      </div>
-                    )}
+                <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Double Game Feature</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable to allow players to form teams of two
+                    </p>
                   </div>
-                </CardHeader>
+                  <Switch
+                    checked={game.double_enabled || false}
+                    onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                  />
+                </div>
+              </CardHeader>
 
-                {/* Expanded Double Records */}
-                {expandedGame === game.id && game.double_enabled && (
-                  <CardContent className="border-t">
-                    {isLoading ? (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                      </div>
-                    ) : !players?.doubles || players.doubles.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No double records yet</p>
-                        <p className="text-sm mt-1">Add the first double record for this game</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <h4 className="font-semibold mb-3">Double Records ({players.doubles.length})</h4>
-                        {players.doubles.map((record, index) => (
-                          <div
-                            key={record.id}
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                          >
-                            <div className="flex items-center gap-4">
-                              <Badge variant="outline" className="text-lg font-bold w-12 justify-center">
-                                #{index + 1}
-                              </Badge>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">
-                                    @{record.player1?.username || "Unknown"}
-                                  </span>
-                                  <Badge variant="secondary">{record.player1_score}</Badge>
-                                  <span className="text-muted-foreground">+</span>
-                                  <span className="font-medium">
-                                    @{record.player2?.username || "Unknown"}
-                                  </span>
-                                  <Badge variant="secondary">{record.player2_score}</Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  Total: <span className="font-bold text-primary">{record.total_score}</span>
-                                </p>
+              {expandedGame === game.id && game.double_enabled && (
+                <CardContent className="border-t bg-slate-50/50 dark:bg-slate-900/50 pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-sm">Double Game Records</h4>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedGame(game);
+                        setIsDoubleDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Record
+                    </Button>
+                  </div>
+
+                  {loadingDoubles[game.id] ? (
+                    <div className="text-center py-4">Loading records...</div>
+                  ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                      <p>No double records yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {doubleRecords[game.id].map((record, index) => (
+                        <div key={record.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 border rounded-lg shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="font-bold text-muted-foreground w-6">#{index + 1}</div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-sm truncate max-w-[120px]">
+                                  @{record.player1?.username || "Unknown"}
+                                </span>
+                                <Badge variant="outline">{record.player1_score}</Badge>
+                                <span className="text-muted-foreground">+</span>
+                                <span className="font-medium text-sm truncate max-w-[120px]">
+                                  @{record.player2?.username || "Unknown"}
+                                </span>
+                                <Badge variant="outline">{record.player2_score}</Badge>
+                              </div>
+                              <div className="text-sm font-semibold text-primary">
+                                Total: {record.total_score}
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteDouble(record.id, game.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
-            );
-          })
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteDouble(record.id, game.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+          ))
         )}
       </div>
 
-      {/* Add Double Dialog */}
       <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -591,76 +504,79 @@ export function GameManagement() {
               Record a double game for {selectedGame?.game_name}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="player1">Player 1 *</Label>
-              <Select
-                value={doubleForm.player1_id}
-                onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select player 1" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(gamePlayers[selectedGame?.id || ""]?.players || members).map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      @{member.username} ({member.full_name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Player 1</Label>
+                <Select
+                  value={doubleForm.player1_id}
+                  onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select player 1" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={`p1-${member.id}`} value={member.id}>
+                        @{member.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Score 1</Label>
+                <Input
+                  type="number"
+                  value={doubleForm.player1_score}
+                  onChange={(e) => setDoubleForm({ ...doubleForm, player1_score: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="player1_score">Player 1 Score *</Label>
-              <Input
-                id="player1_score"
-                type="number"
-                value={doubleForm.player1_score}
-                onChange={(e) => setDoubleForm({ ...doubleForm, player1_score: e.target.value })}
-                placeholder="0"
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Player 2</Label>
+                <Select
+                  value={doubleForm.player2_id}
+                  onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select player 2" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={`p2-${member.id}`} value={member.id}>
+                        @{member.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Score 2</Label>
+                <Input
+                  type="number"
+                  value={doubleForm.player2_score}
+                  onChange={(e) => setDoubleForm({ ...doubleForm, player2_score: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="player2">Player 2 *</Label>
-              <Select
-                value={doubleForm.player2_id}
-                onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select player 2" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(gamePlayers[selectedGame?.id || ""]?.players || members).map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      @{member.username} ({member.full_name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="player2_score">Player 2 Score *</Label>
-              <Input
-                id="player2_score"
-                type="number"
-                value={doubleForm.player2_score}
-                onChange={(e) => setDoubleForm({ ...doubleForm, player2_score: e.target.value })}
-                placeholder="0"
-              />
-            </div>
+
             {doubleForm.player1_score && doubleForm.player2_score && (
-              <div className="p-3 bg-primary/10 rounded-md">
-                <p className="text-sm font-medium">
-                  Total Combined Score: 
-                  <span className="text-lg font-bold text-primary ml-2">
+              <div className="p-3 bg-primary/10 rounded-md border border-primary/20 text-center">
+                <p className="text-sm font-medium text-primary">
+                  Total Score: <span className="text-xl font-bold ml-1">
                     {parseInt(doubleForm.player1_score || "0") + parseInt(doubleForm.player2_score || "0")}
                   </span>
                 </p>
               </div>
             )}
+            
             <Button onClick={handleAddDouble} className="w-full">
-              <Save className="mr-2 h-4 w-4" />
-              Add Double Record
+              Save Double Record
             </Button>
           </div>
         </DialogContent>

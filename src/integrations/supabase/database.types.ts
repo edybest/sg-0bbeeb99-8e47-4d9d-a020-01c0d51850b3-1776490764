@@ -471,6 +471,71 @@ export type Database = {
           },
         ]
       }
+      double_records: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          game_id: string | null
+          id: string
+          player1_id: string | null
+          player1_score: number
+          player2_id: string | null
+          player2_score: number
+          total_score: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          game_id?: string | null
+          id?: string
+          player1_id?: string | null
+          player1_score: number
+          player2_id?: string | null
+          player2_score: number
+          total_score?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          game_id?: string | null
+          id?: string
+          player1_id?: string | null
+          player1_score?: number
+          player2_id?: string | null
+          player2_score?: number
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "double_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "double_records_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "double_records_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "double_records_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fivefive_games: {
         Row: {
           created_at: string | null
@@ -903,6 +968,7 @@ export type Database = {
         Row: {
           clean_game_data: Json | null
           created_at: string | null
+          double_enabled: boolean | null
           game_date: string
           game_format: string | null
           game_name: string
@@ -916,6 +982,7 @@ export type Database = {
         Insert: {
           clean_game_data?: Json | null
           created_at?: string | null
+          double_enabled?: boolean | null
           game_date: string
           game_format?: string | null
           game_name: string
@@ -929,6 +996,7 @@ export type Database = {
         Update: {
           clean_game_data?: Json | null
           created_at?: string | null
+          double_enabled?: boolean | null
           game_date?: string
           game_format?: string | null
           game_name?: string
