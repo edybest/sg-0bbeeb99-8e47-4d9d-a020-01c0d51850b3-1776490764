@@ -319,7 +319,7 @@ export default function BlokPage() {
             }
         },
         // router.query primitives are stable references; we depend on them explicitly
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
         [router.query, toast]
     );
 

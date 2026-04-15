@@ -13,6 +13,8 @@ import Image from "next/image";
 const TAC_COOLDOWN_KEY = "tac_cooldown_timestamp";
 const COOLDOWN_DURATION = 90;
 const TAC_PHONE_KEY = "tac_phone_last";
+const VERIFICATION_TIMEOUT = 120000; // 2 minutes (increased from 30s)
+const TAC_RESEND_COOLDOWN = 60; // 60 seconds
 
 function combinePhone(code: string, phone: string) {
     let value = phone.replace(/\D/g, "");
@@ -229,160 +231,109 @@ export function WhatsAppLoginForm() {
             return;
         }
 
-        setLoading(true);
+        // Step 3: Verify TAC
+        const verifyTac = async () => {
+            if (formData.tac.length !== 6) {
+                toast({
+                    title: "Kod TAC tidak lengkap",
+                    description: "Sila masukkan 6 digit kod TAC",
+                    variant: "destructive"
+                });
+                return;
+            }
 
-        // Show error if takes > 25 seconds
-        const loadingTimeout = setTimeout(() => {
-            setLoading(false);
-            toast({
-                title: "Ralat: Mengambil masa terlalu lama",
-                description: "Sila cuba lagi. Jika masalah berterusan, hubungi admin.",
-                variant: "destructive"
-            });
-        }, 25000);
+            setLoading(true);
 
-        try {
-            console.log("🔐 Submitting login with:", {
-                phone: phoneToUse,
-                code: formData.tac,
-                phoneLength: phoneToUse.length,
-                codeLength: formData.tac.length
-            });
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 20000);
-
-            let response: Response;
             try {
-                response = await fetch("/api/verify-tac-login", {
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), VERIFICATION_TIMEOUT);
+
+                const response = await fetch("/api/verify-tac-login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        phone: phoneToUse,
-                        code: formData.tac
+                        phone_number: phoneToUse,
+                        tac: formData.tac
                     }),
                     signal: controller.signal
                 });
-            } catch (fetchError) {
+
                 clearTimeout(timeoutId);
 
-                if (fetchError instanceof Error && fetchError.name === "AbortError") {
-                    // Request timed out on client side, but server may have succeeded
-                    // Check if session already exists before showing error
-                    const { data: existingSession } = await supabase.auth.getSession();
-                    if (existingSession.session) {
-                        clearTimeout(loadingTimeout);
-                        clearCooldownTimestamp();
-                        clearLastTacPhone();
-                        pageAccessService.clearCache();
-                        toast({
-                            title: "Log masuk berjaya!",
-                            description: "Mengalihkan ke dashboard..."
-                        });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Verifikasi gagal");
+                }
+
+                if (data.success && data.auth_token) {
+                    // Set session using Supabase auth
+                    const { error: sessionError } = await supabase.auth.setSession({
+                        access_token: data.auth_token,
+                        refresh_token: data.auth_token
+                    });
+
+                    if (sessionError) {
+                        throw new Error("Gagal menetapkan sesi");
+                    }
+
+                    toast({
+                        title: "Log masuk berjaya!",
+                        description: "Mengalihkan ke dashboard..."
+                    });
+
+                    // Clear any cached app data before navigating
+                    if (typeof window !== "undefined") {
+                        try {
+                            if ('caches' in window) {
+                                const cacheKeys = await caches.keys();
+                                await Promise.all(
+                                    cacheKeys.map(key => {
+                                        if (key.includes('ambc-club')) {
+                                            return caches.delete(key);
+                                        }
+                                    })
+                                );
+                            }
+                        } catch (e) {
+                            console.warn("Failed to clear service worker caches", e);
+                        }
+                    }
+
+                    // Check if trying to access a shared link
+                    const pendingSharePath = sessionStorage.getItem("pending_share_redirect");
+                    if (pendingSharePath) {
+                        await router.push(pendingSharePath);
+                        sessionStorage.removeItem("pending_share_redirect");
+                    } else {
                         await router.push("/member");
-                        return;
                     }
-                    throw new Error("Permintaan tamat masa. Sila cuba lagi.");
+                } else {
+                    throw new Error("Kod TAC tidak sah");
                 }
-                throw fetchError;
+            } catch (err: any) {
+                console.error("TAC verification error:", err);
+                
+                if (err.name === 'AbortError') {
+                    toast({
+                        title: "Timeout",
+                        description: "Verifikasi mengambil masa terlalu lama. Sila cuba lagi.",
+                        variant: "destructive"
+                    });
+                } else {
+                    toast({
+                        title: "Ralat Verifikasi",
+                        description: err.message || "Kod TAC tidak sah atau tamat tempoh",
+                        variant: "destructive"
+                    });
+                }
+            } finally {
+                setLoading(false);
             }
+        };
 
-            clearTimeout(timeoutId);
-
-            const data = await response.json();
-
-            console.log("🔍 Verify TAC Response:", {
-                status: response.status,
-                ok: response.ok,
-                data: data
-            });
-
-            if (!response.ok) {
-                console.error("❌ Verify TAC Failed:", {
-                    status: response.status,
-                    error: data.error,
-                    message: data.message,
-                    fullData: data
-                });
-                throw new Error(data.error || "Verification failed");
-            }
-
-            if (!data.success) {
-                console.error("❌ Verify TAC Not Successful:", data);
-                throw new Error(data.error || "Verification failed");
-            }
-
-            if (data.data?.access_token && data.data?.refresh_token) {
-                const { error: sessionError } = await supabase.auth.setSession({
-                    access_token: data.data.access_token,
-                    refresh_token: data.data.refresh_token
-                });
-
-                if (sessionError) {
-                    throw new Error("Gagal mencipta sesi. Sila cuba lagi.");
-                }
-
-                let sessionOk = false;
-                const maxRetries = 8;
-                const retryDelay = 200;
-
-                for (let i = 0; i < maxRetries; i++) {
-                    const { data: sessionData, error: sessionReadError } = await supabase.auth.getSession();
-                    if (!sessionReadError && sessionData.session) {
-                        sessionOk = true;
-                        console.log(`✅ Session verified on attempt ${i + 1}`);
-                        break;
-                    }
-
-                    if (i < maxRetries - 1) {
-                        await new Promise((resolve) => setTimeout(resolve, retryDelay));
-                    }
-                }
-
-                if (!sessionOk) {
-                    const { data: refreshData } = await supabase.auth.refreshSession();
-                    if (refreshData.session) {
-                        sessionOk = true;
-                        console.log("✅ Session verified after refresh");
-                    }
-                }
-
-                if (!sessionOk) {
-                    throw new Error("Sesi log masuk belum sedia. Sila cuba lagi.");
-                }
-            } else {
-                throw new Error("Token sesi tidak diterima dari server.");
-            }
-
-            clearTimeout(loadingTimeout);
-            clearCooldownTimestamp();
-            clearLastTacPhone();
-            pageAccessService.clearCache();
-
-            toast({
-                title: "Log masuk berjaya!",
-                description: "Mengalihkan ke dashboard..."
-            });
-
-            await router.push("/member");
-        } catch (error: unknown) {
-            console.error("Login error:", error);
-
-            clearTimeout(loadingTimeout);
-
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : "Kod TAC tidak sah atau telah tamat tempoh";
-
-            toast({
-                title: "Ralat semasa log masuk",
-                description: errorMessage,
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
+        await verifyTac();
     }
 
     return (
