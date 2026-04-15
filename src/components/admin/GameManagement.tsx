@@ -1,65 +1,48 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Edit, Calendar, Users, Target, ChevronLeft, ChevronRight, Trophy, Printer, Sparkles, Edit2 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Plus, Trash2, Edit } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { gameService } from "@/services/gameService";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
   five_five_count?: number;
   clean_game_count?: number;
-  players?: Array<{
-    id: string;
-    member_id: string;
-    member_name: string;
-    is_fivefive: boolean;
-    clean_game?: boolean;
-    username?: string;
-    full_name?: string;
-  }>;
 };
 
-const ITEMS_PER_PAGE = 5;
-
-const OPENING_MESSAGES = [
-  "Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
-  "Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
-  "Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
-  "Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"
-];
-
-const CLOSING_MESSAGES = [
-  "Jumpa lagi di blok akan datang.",
-  "See you next blok! Semoga lebih ramai join!",
-  "Blok seterusnya tunggu anda semua ya!",
-  "Sampai jumpa lagi dalam blok akan datang. Good luck!"
-];
+interface DoubleRecord {
+  id: string;
+  game_id: string;
+  player1_id: string;
+  player2_id: string;
+  player1_score: number;
+  player2_score: number;
+  total_score: number;
+  player1?: {
+    id: string;
+    username: string;
+    full_name: string;
+  };
+  player2?: {
+    id: string;
+    username: string;
+    full_name: string;
+  };
+}
 
 export function GameManagement() {
   const { toast } = useToast();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
   
   // Create/Edit Game Dialog
   const [isGameDialogOpen, setIsGameDialogOpen] = useState(false);
@@ -67,45 +50,22 @@ export function GameManagement() {
   const [gameForm, setGameForm] = useState({
     game_name: "",
     game_date: "",
-    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE",
+    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI",
   });
 
-  // Delete Game Dialog
-  const [deleteGameDialog, setDeleteGameDialog] = useState<{ open: boolean; game: Game | null }>({
-    open: false,
-    game: null,
-  });
-
-  // Delete Player Dialog
-  const [deletePlayerDialog, setDeletePlayerDialog] = useState<{
-    open: boolean;
-    playerId: string | null;
-    playerName: string;
-    gameId: string | null;
-  }>({
-    open: false,
-    playerId: null,
-    playerName: "",
-    gameId: null,
-  });
-
-  const [loadingMembers, setLoadingMembers] = useState(false);
-
-  // WhatsApp Share states
-  const [showWhatsAppShare, setShowWhatsAppShare] = useState(false);
-  const [selectedGameForShare, setSelectedGameForShare] = useState<Game | null>(null);
-  const [selectedOpeningMessage, setSelectedOpeningMessage] = useState(0);
-  const [selectedClosingMessage, setSelectedClosingMessage] = useState(0);
-  const [sharePreview, setSharePreview] = useState("");
-  const [loadingTopPlayers, setLoadingTopPlayers] = useState(false);
-  const [topPlayers, setTopPlayers] = useState<Array<{rank: number; username: string; overall_score: number}>>([]);
-
-  // Add Player states
-  const [showAddPlayer, setShowAddPlayer] = useState(false);
-  const [selectedGameForPlayer, setSelectedGameForPlayer] = useState<string | null>(null);
+  // Double Game States - NEW
+  const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
+  const [selectedGameForDouble, setSelectedGameForDouble] = useState<Game | null>(null);
+  const [expandedGame, setExpandedGame] = useState<string | null>(null);
+  const [doubleRecords, setDoubleRecords] = useState<Record<string, DoubleRecord[]>>({});
+  const [loadingDoubles, setLoadingDoubles] = useState<Record<string, boolean>>({});
   const [availableMembers, setAvailableMembers] = useState<Array<{ id: string; username: string; full_name: string }>>([]);
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [newPlayerFiveFive, setNewPlayerFiveFive] = useState(false);
+  const [doubleForm, setDoubleForm] = useState({
+    player1_id: "",
+    player2_id: "",
+    player1_score: "",
+    player2_score: "",
+  });
 
   useEffect(() => {
     loadGames();
@@ -115,18 +75,7 @@ export function GameManagement() {
     try {
       setLoading(true);
       const data = await gameService.listGamesWithPlayers();
-      
-      // Sort players alphabetically A-Z for each game
-      const formattedGames = (data as any[]).map(game => ({
-        ...game,
-        players: game.players?.sort((a: any, b: any) => {
-          const nameA = (a.username || a.full_name || "").toLowerCase();
-          const nameB = (b.username || b.full_name || "").toLowerCase();
-          return nameA.localeCompare(nameB, 'ms-MY');
-        }) || []
-      }));
-      
-      setGames(formattedGames);
+      setGames(data);
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
@@ -136,6 +85,163 @@ export function GameManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Double Game Functions - NEW
+  const loadAvailableMembersForDouble = async (gameId: string) => {
+    try {
+      const data = await gameService.getAvailableMembersForGame(gameId);
+      setAvailableMembers(data || []);
+    } catch (error) {
+      console.error("Error loading members:", error);
+    }
+  };
+
+  const fetchDoubleRecords = async (gameId: string) => {
+    try {
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: true }));
+
+      const { data, error } = await (supabase as any)
+        .from("double_records")
+        .select(`
+          *,
+          player1:members!double_records_player1_id_fkey(id, username, full_name),
+          player2:members!double_records_player2_id_fkey(id, username, full_name)
+        `)
+        .eq("game_id", gameId)
+        .order("total_score", { ascending: false });
+
+      if (error) throw error;
+
+      setDoubleRecords(prev => ({
+        ...prev,
+        [gameId]: data || []
+      }));
+    } catch (error) {
+      console.error("Error fetching double records:", error);
+    } finally {
+      setLoadingDoubles(prev => ({ ...prev, [gameId]: false }));
+    }
+  };
+
+  const toggleGameDouble = async (gameId: string, currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("games")
+        .update({ double_enabled: !currentValue })
+        .eq("id", gameId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
+
+      loadGames();
+    } catch (error) {
+      console.error("Error toggling double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini tetapan double game",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddDouble = async () => {
+    if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id || 
+        !doubleForm.player1_score || !doubleForm.player2_score) {
+      toast({
+        title: "Ralat",
+        description: "Sila isi semua ruangan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (doubleForm.player1_id === doubleForm.player2_id) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih pemain yang berbeza",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
+
+      const { error } = await supabase.from("double_records").insert([{
+        game_id: selectedGameForDouble.id,
+        player1_id: doubleForm.player1_id,
+        player2_id: doubleForm.player2_id,
+        player1_score: parseInt(doubleForm.player1_score),
+        player2_score: parseInt(doubleForm.player2_score),
+        created_by: member?.id,
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Rekod double telah ditambah",
+      });
+
+      setIsDoubleDialogOpen(false);
+      setDoubleForm({ player1_id: "", player2_id: "", player1_score: "", player2_score: "" });
+      fetchDoubleRecords(selectedGameForDouble.id);
+    } catch (error) {
+      console.error("Error adding double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal menambah rekod double",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteDouble = async (doubleId: string, gameId: string) => {
+    if (!confirm("Adakah anda pasti mahu memadam rekod double ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("double_records")
+        .delete()
+        .eq("id", doubleId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Rekod double telah dipadam",
+      });
+
+      fetchDoubleRecords(gameId);
+    } catch (error) {
+      console.error("Error deleting double:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memadam rekod double",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleExpandedGame = (gameId: string) => {
+    if (expandedGame === gameId) {
+      setExpandedGame(null);
+    } else {
+      setExpandedGame(gameId);
+      if (!doubleRecords[gameId]) {
+        fetchDoubleRecords(gameId);
+      }
     }
   };
 
@@ -715,20 +821,112 @@ ${closingMsg}`;
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {/* Statistics */}
-                      <div className="flex items-center gap-6 p-3 bg-muted/50 rounded-lg flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium">{game.player_count || 0} pemain berdaftar</span>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Pemain</p>
+                          <p className="text-2xl font-bold">{game.player_count || 0}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Target className="w-5 h-5 text-pink-600" />
-                          <span className="font-medium">{game.five_five_count || 0} main Five-Five</span>
+                        <div>
+                          <p className="text-muted-foreground">Five-Five</p>
+                          <p className="text-2xl font-bold text-pink-600">{game.five_five_count || 0}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 text-amber-500" />
-                          <span className="font-medium">{game.clean_game_count || 0} main Clean Game</span>
+                        <div>
+                          <p className="text-muted-foreground">Clean Game</p>
+                          <p className="text-2xl font-bold text-green-600">{game.clean_game_count || 0}</p>
                         </div>
                       </div>
+
+                      {/* Double Game Section - NEW */}
+                      <div className="border-t pt-4 mt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Double Game</Label>
+                            <p className="text-sm text-muted-foreground">Pemain main berpasangan</p>
+                          </div>
+                          <Switch
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        {game.double_enabled && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleExpandedGame(game.id)}
+                            >
+                              {expandedGame === game.id ? "Tutup" : "Lihat"} Rekod Double
+                              {doubleRecords[game.id] && doubleRecords[game.id].length > 0 && (
+                                <Badge variant="secondary" className="ml-2">
+                                  {doubleRecords[game.id].length}
+                                </Badge>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedGameForDouble(game);
+                                setIsDoubleDialogOpen(true);
+                                loadAvailableMembersForDouble(game.id);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Tambah Double
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Double Records List - NEW */}
+                      {expandedGame === game.id && game.double_enabled && (
+                        <CardContent className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ? (
+                            <div className="text-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                            </div>
+                          ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) => (
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">{record.player1_score}</Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">{record.player2_score}</Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Jumlah: <span className="font-bold text-primary">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      )}
 
                       {/* Players List */}
                       {game.players && game.players.length > 0 ? (
@@ -1138,6 +1336,98 @@ ${closingMsg}`;
                 Tambah {selectedMemberIds.length > 0 ? `${selectedMemberIds.length} Pemain` : "Pemain"}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Double Dialog - NEW */}
+        <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Rekod Double</DialogTitle>
+              <DialogDescription>
+                Rekod permainan double untuk {selectedGameForDouble?.game_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Pemain 1</Label>
+                  <Select
+                    value={doubleForm.player1_id}
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`p1-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Skor 1</Label>
+                  <Input
+                    type="number"
+                    value={doubleForm.player1_score}
+                    onChange={(e) => setDoubleForm({ ...doubleForm, player1_score: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Pemain 2</Label>
+                  <Select
+                    value={doubleForm.player2_id}
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`p2-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Skor 2</Label>
+                  <Input
+                    type="number"
+                    value={doubleForm.player2_score}
+                    onChange={(e) => setDoubleForm({ ...doubleForm, player2_score: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {doubleForm.player1_score && doubleForm.player2_score && (
+                <div className="p-3 bg-primary/10 rounded-md border border-primary/20 text-center">
+                  <p className="text-sm font-medium text-primary">
+                    Jumlah Skor: <span className="text-xl font-bold ml-1">
+                      {parseInt(doubleForm.player1_score || "0") + parseInt(doubleForm.player2_score || "0")}
+                    </span>
+                  </p>
+                </div>
+              )}
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDoubleDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handleAddDouble}>
+                  Simpan Rekod
+                </Button>
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
