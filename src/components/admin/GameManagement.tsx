@@ -584,10 +584,38 @@ ${closingMsg}`;
   // Double Game Functions
   const loadAvailableMembersForDouble = async (gameId: string) => {
     try {
-      const data = await gameService.getAvailableMembersForGame(gameId);
-      setAvailableMembers(data || []);
+      // Fetch players who are playing in this specific game
+      const { data: gamePlayers, error } = await supabase
+        .from("game_players")
+        .select(`
+          member_id,
+          members (
+            id,
+            username,
+            full_name
+          )
+        `)
+        .eq("game_id", gameId);
+
+      if (error) throw error;
+
+      // Extract and sort members
+      const players = (gamePlayers || [])
+        .map((gp: any) => ({
+          id: gp.members.id,
+          username: gp.members.username,
+          full_name: gp.members.full_name
+        }))
+        .sort((a: any, b: any) => {
+          const nameA = (a.username || a.full_name || "").toLowerCase();
+          const nameB = (b.username || b.full_name || "").toLowerCase();
+          return nameA.localeCompare(nameB, 'ms-MY');
+        });
+
+      setAvailableMembers(players);
     } catch (error) {
-      console.error("Error loading members:", error);
+      console.error("Error loading players for double:", error);
+      setAvailableMembers([]);
     }
   };
 
@@ -1468,7 +1496,7 @@ ${closingMsg}`;
             <DialogHeader>
               <DialogTitle>Tambah Rekod Double</DialogTitle>
               <DialogDescription>
-                Score akan diambil automatik dari rekod game pemain
+                Pilih 2 pemain yang main game ini. Score akan diambil automatik dari rekod game (atau 0 jika belum isi).
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1512,11 +1540,11 @@ ${closingMsg}`;
               </div>
 
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm font-medium text-blue-900 mb-2">💡 Nota Penting:</p>
+                <p className="text-sm font-medium text-blue-900 mb-2">💡 Nota:</p>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>Score akan diambil automatik dari rekod game</li>
-                  <li>Score = Total Score + Handicap setiap pemain</li>
-                  <li>Pastikan kedua-dua pemain sudah ada score dalam game ini</li>
+                  <li>Hanya pemain yang main game ini akan dipaparkan</li>
+                  <li>Score akan diambil automatik: Total Score + Handicap</li>
+                  <li>Jika score belum diisi, akan guna 0 sebagai default</li>
                 </ul>
               </div>
               
