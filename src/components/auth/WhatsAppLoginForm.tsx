@@ -370,7 +370,7 @@ export function WhatsAppLoginForm() {
                         </div>
                     )}
 
-                    <form onSubmit={(e) => { e.preventDefault(); verifyTac(); }} className="space-y-5">
+                    <form onSubmit={handleLogin} className="space-y-5">
                         <div className="space-y-2">
                             <Label htmlFor="phone" className="text-sm font-medium">
                                 Nombor WhatsApp
