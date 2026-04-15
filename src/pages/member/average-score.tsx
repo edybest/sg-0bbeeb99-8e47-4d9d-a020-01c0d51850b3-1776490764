@@ -154,8 +154,11 @@ export default function AverageScorePage() {
       const stats: PlayerStats[] = [];
       
       for (const player of Array.from(statsMap.values())) {
+        // Tapis skor bawah 400 (tidak dikira untuk purata)
+        const validGames = player.recent_games.filter(g => g.overall_score >= 400);
+
         // Susun games mengikut tarikh (terkini dulu)
-        const sortedGames = [...player.recent_games].sort((a, b) => {
+        const sortedGames = [...validGames].sort((a, b) => {
           return new Date(b.game_date).getTime() - new Date(a.game_date).getTime();
         });
 
@@ -370,6 +373,7 @@ export default function AverageScorePage() {
                   <p>• Kurang dari 3 BLOK → handicap = 0</p>
                   <p>• Tidak sertai 10 BLOK berturut-turut → handicap = 0</p>
                   <p className="font-semibold text-red-500 mt-1">• Game 9 PIN dan 369 TIDAK dikira</p>
+                  <p className="font-semibold text-red-500">• Skor bawah 400 TIDAK dikira</p>
                   
                   <p className="font-semibold mt-3 text-slate-800">Lelaki:</p>
                   <p>• Total score bawah ≤799 → handicap 15</p>
