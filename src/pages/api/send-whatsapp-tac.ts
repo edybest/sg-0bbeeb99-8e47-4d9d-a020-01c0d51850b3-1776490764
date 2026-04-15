@@ -84,13 +84,45 @@ export default async function handler(
       },
     });
 
-    // Check if member exists with this phone number
+    // Check if member exists with this phone number - try multiple formats
     console.log("Searching for member with phone:", cleanPhone);
-    const { data: member, error: memberError } = await supabaseAdmin
+    
+    // Try format 1: +60... (normalized)
+    let { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .select("id, username, phone, user_id, full_name")
       .eq("phone", cleanPhone)
       .maybeSingle();
+
+    // If not found, try format 2: without + prefix (60...)
+    if (!member && !memberError && cleanPhone.startsWith("+")) {
+      const phoneWithoutPlus = cleanPhone.substring(1);
+      console.log("Trying phone without +:", phoneWithoutPlus);
+      
+      const result = await supabaseAdmin
+        .from("members")
+        .select("id, username, phone, user_id, full_name")
+        .eq("phone", phoneWithoutPlus)
+        .maybeSingle();
+      
+      member = result.data;
+      memberError = result.error;
+    }
+
+    // If still not found, try format 3: with leading 0 (0123456789)
+    if (!member && !memberError && cleanPhone.length > 3) {
+      const phoneWithZero = "0" + cleanPhone.substring(3); // +60123... → 0123...
+      console.log("Trying phone with leading 0:", phoneWithZero);
+      
+      const result = await supabaseAdmin
+        .from("members")
+        .select("id, username, phone, user_id, full_name")
+        .eq("phone", phoneWithZero)
+        .maybeSingle();
+      
+      member = result.data;
+      memberError = result.error;
+    }
 
     if (memberError) {
       console.error("❌ Database error:", memberError);
@@ -101,7 +133,8 @@ export default async function handler(
     }
 
     if (!member) {
-      console.log("❌ Member not found with phone:", cleanPhone);
+      console.log("❌ Member not found with any phone format");
+      console.log("Tried formats:", cleanPhone, cleanPhone.substring(1), "0" + cleanPhone.substring(3));
       
       // List all available phone numbers for debugging (only in development)
       if (process.env.NODE_ENV === "development") {
@@ -116,7 +149,7 @@ export default async function handler(
       
       return res.status(404).json({
         success: false,
-        error: `Nombor telefon ${cleanPhone} tidak dijumpai dalam sistem. Sila hubungi admin untuk mendaftar.`,
+        error: `Nombor telefon tidak dijumpai dalam sistem. Sila hubungi admin untuk mendaftar.`,
       });
     }
 
