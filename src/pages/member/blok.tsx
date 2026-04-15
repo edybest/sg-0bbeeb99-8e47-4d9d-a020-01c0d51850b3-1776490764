@@ -218,7 +218,6 @@ export default function BlokPage() {
 
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
     const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
-    const [loadingDoubles, setLoadingDoubles] = useState(false);
 
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
@@ -415,40 +414,6 @@ export default function BlokPage() {
             }
         },
         [currentUser?.user_id]
-    );
-
-    const loadDoubleRecords = useCallback(
-        async (gameId: string) => {
-            if (!gameId) return;
-
-            try {
-                setLoadingDoubles(true);
-
-                const { data: doublesData, error: doublesError } = await (supabase as any)
-                    .from("double_records")
-                    .select(`
-                        *,
-                        player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
-                        player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
-                    `)
-                    .eq("game_id", gameId)
-                    .order("total_score", { ascending: false });
-
-                if (doublesError) throw doublesError;
-
-                setDoubleRecords((doublesData as any) || []);
-            } catch (err) {
-                console.error("Error loading double records:", err);
-                toast({
-                    title: "Error",
-                    description: "Failed to load double records",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoadingDoubles(false);
-            }
-        },
-        [toast]
     );
 
     // FIX #1: useCallback with full deps — sortField/sortDirection changes now
@@ -1111,11 +1076,11 @@ export default function BlokPage() {
                                                                 alt={player.member.username}
                                                                 width={28}
                                                                 height={28}
-                                                                className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover flex-shrink-0"
+                                                                className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border-2 border-white shadow-sm"
                                                                 unoptimized
                                                             />
                                                         ) : (
-                                                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-red-100 flex items-center justify-center font-bold text-red-600 text-xs md:text-sm flex-shrink-0">
+                                                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-red-100 flex items-center justify-center font-bold text-red-600 text-xs md:text-sm border-2 border-white shadow-sm">
                                                                 {player.member.username[0].toUpperCase()}
                                                             </div>
                                                         )}
@@ -1619,7 +1584,7 @@ export default function BlokPage() {
                                                                             </div>
                                                                         )}
                                                                         {player.clean_game && (
-                                                                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                                                                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-md">
                                                                                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                                             </div>
                                                                         )}
@@ -1634,14 +1599,14 @@ export default function BlokPage() {
                                                                     >
                                                                         {player.member.username}
                                                                     </Link>
-                                                                    <div className="flex gap-2 mt-0.5 text-[10px] text-slate-500">
-                                                                        <span>
+                                                                    <div className="flex items-center gap-1 mt-1">
+                                                                        <span className="text-xs font-bold text-slate-500">
                                                                             {player.member.sex === "men" ? "♂️ L" : "♀️ P"}
                                                                         </span>
                                                                         {player.member.bowling_technique && (
                                                                             <>
                                                                                 <span>•</span>
-                                                                                <span className="truncate max-w-[80px]">
+                                                                                <span className="text-xs font-bold text-slate-500">
                                                                                     {player.member.bowling_technique}
                                                                                 </span>
                                                                             </>
@@ -1766,9 +1731,9 @@ export default function BlokPage() {
                                 {doubleRecords.map((record, index) => {
                                     const isTop3 = index < 3;
                                     const rankBg = 
-                                        index === 0 ? "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-300" :
-                                        index === 1 ? "bg-gradient-to-r from-gray-50 to-slate-50 border-gray-300" :
-                                        index === 2 ? "bg-gradient-to-r from-orange-50 to-amber-50 border-orange-300" :
+                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
+                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
+                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
                                         "bg-white border-gray-200";
 
                                     return (
