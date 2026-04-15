@@ -54,8 +54,8 @@ type NavigationCard = {
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, isAuthenticated } = useAuth(false);
-  const [loading, setLoading] = useState(false);
+  const { member, isAuthenticated, loading: authLoading } = useAuth(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalGames: 0,
     averageScore: 0,
@@ -66,10 +66,13 @@ export default function MemberDashboard() {
   useEffect(() => {
     if (isAuthenticated && member) {
       loadStats();
+    } else if (!authLoading && !isAuthenticated) {
+      setStatsLoading(false);
     }
-  }, [isAuthenticated, member]);
+  }, [isAuthenticated, member, authLoading]);
 
   async function loadStats() {
+    setStatsLoading(true);
     try {
       if (!member?.id) return;
 
@@ -94,7 +97,7 @@ export default function MemberDashboard() {
     } catch (error) {
       console.error("Error loading stats:", error);
     } finally {
-      setLoading(false);
+      setStatsLoading(false);
     }
   }
 
@@ -230,7 +233,8 @@ export default function MemberDashboard() {
   }];
 
 
-  if (loading) {
+  // Tunjuk loading screen jika sistem masih memeriksa status log masuk
+  if (authLoading) {
     return (
       <MemberLayout>
         <SEO 
@@ -240,7 +244,7 @@ export default function MemberDashboard() {
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
-            <p className="text-sky-600 font-medium">Loading dashboard...</p>
+            <p className="text-sky-600 font-medium">Memuatkan profil anda...</p>
           </div>
         </div>
       </MemberLayout>
@@ -272,7 +276,7 @@ export default function MemberDashboard() {
               </div>
               
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 drop-shadow-lg">
-                {member?.full_name || "Tetamu"}
+                {member?.full_name ? member.full_name : "Memuatkan..."}
               </h1>
               <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto px-4">
                 Dashboard anda untuk semua aktiviti bowling di AMBC Club 🎳

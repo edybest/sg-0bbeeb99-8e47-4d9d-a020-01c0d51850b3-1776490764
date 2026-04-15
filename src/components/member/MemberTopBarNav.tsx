@@ -25,8 +25,8 @@ export function MemberTopBarNav() {
     router.push("/login");
   };
 
-  const displayName = member?.full_name || member?.username || "Member";
-  const initials = displayName.substring(0, 2).toUpperCase();
+  const displayName = member?.full_name || "Memuatkan...";
+  const initials = member?.full_name ? member.full_name.substring(0, 2).toUpperCase() : "??";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-sky-200/50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md shadow-soft">
@@ -76,7 +76,7 @@ export function MemberTopBarNav() {
                 <div className="flex flex-col space-y-1.5">
                   <p className="text-sm font-semibold leading-none text-foreground">{displayName}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {member?.email || "AMBC Member"}
+                    {member?.email || member?.phone || "AMBC Member"}
                   </p>
                 </div>
               </DropdownMenuLabel>

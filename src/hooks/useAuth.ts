@@ -65,6 +65,10 @@ function setCachedSession(member: Member) {
                     id: member.id,
                     user_id: member.user_id,
                     is_admin: member.is_admin,
+                    full_name: member.full_name,
+                    email: member.email,
+                    avatar_url: member.avatar_url,
+                    phone: member.phone
                 },
                 timestamp: Date.now(),
             })
