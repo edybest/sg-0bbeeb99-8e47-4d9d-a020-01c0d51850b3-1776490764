@@ -300,6 +300,25 @@ export function ScoreManagement() {
     if (!updates) return;
 
     setSaving(playerId);
+    
+    // 1. Optimistic Update: Kemaskini UI serta merta
+    const updatedPlayers = players.map(p => p.id === playerId ? { ...p, ...updates } : p);
+    
+    // Susun semula kedudukan berdasarkan skor baru
+    const sortedData = [...updatedPlayers].sort((a, b) => {
+      if (a.overall_score !== b.overall_score) return b.overall_score - a.overall_score;
+      if (a.game5_score !== b.game5_score) return b.game5_score - a.game5_score;
+      if (a.game4_score !== b.game4_score) return b.game4_score - a.game4_score;
+      if (a.game3_score !== b.game3_score) return b.game3_score - a.game3_score;
+      if (a.game2_score !== b.game2_score) return b.game2_score - a.game2_score;
+      return b.game1_score - a.game1_score;
+    });
+    
+    setPlayers(sortedData);
+    setFilteredPlayers(sortedData);
+    setSortField("rank");
+    setSortDirection("asc");
+
     try {
       await gameService.updatePlayerScores(playerId, {
         game1_score: updates.game1_score,
@@ -310,7 +329,7 @@ export function ScoreManagement() {
         handicap: updates.handicap
       });
 
-      await loadGamePlayers(selectedGameId);
+      // Melangkau panggilan "loadGamePlayers" untuk mengelakkan UI tersekat (freeze)
       
       setEditingScores(prev => {
         const { [playerId]: _, ...rest } = prev;
@@ -319,6 +338,8 @@ export function ScoreManagement() {
     } catch (error) {
       console.error("Error saving score:", error);
       alert("Gagal menyimpan skor");
+      // Rollback jika terdapat ralat (tarik balik data dari pelayan)
+      await loadGamePlayers(selectedGameId);
     } finally {
       setSaving(null);
     }
@@ -329,27 +350,52 @@ export function ScoreManagement() {
     if (playerIds.length === 0) return;
 
     setSaving("all");
+    
+    // 1. Optimistic Update: Kemaskini UI serta merta
+    const updatedPlayers = players.map(p => editingScores[p.id] ? { ...p, ...editingScores[p.id] } : p);
+    
+    // Susun semula kedudukan berdasarkan skor baru
+    const sortedData = [...updatedPlayers].sort((a, b) => {
+      if (a.overall_score !== b.overall_score) return b.overall_score - a.overall_score;
+      if (a.game5_score !== b.game5_score) return b.game5_score - a.game5_score;
+      if (a.game4_score !== b.game4_score) return b.game4_score - a.game4_score;
+      if (a.game3_score !== b.game3_score) return b.game3_score - a.game3_score;
+      if (a.game2_score !== b.game2_score) return b.game2_score - a.game2_score;
+      return b.game1_score - a.game1_score;
+    });
+    
+    setPlayers(sortedData);
+    setFilteredPlayers(sortedData);
+    setSortField("rank");
+    setSortDirection("asc");
+
     try {
-      const promises = playerIds.map(playerId => {
-        const updates = editingScores[playerId];
-        return gameService.updatePlayerScores(playerId, {
-          game1_score: updates.game1_score,
-          game2_score: updates.game2_score,
-          game3_score: updates.game3_score,
-          game4_score: updates.game4_score,
-          game5_score: updates.game5_score,
-          handicap: updates.handicap
+      // Pecahkan penyimpanan kepada kumpulan 10-10 untuk mengelakkan kesesakan sambungan pelayan
+      const chunkSize = 10;
+      for (let i = 0; i < playerIds.length; i += chunkSize) {
+        const chunk = playerIds.slice(i, i + chunkSize);
+        const promises = chunk.map(playerId => {
+          const updates = editingScores[playerId];
+          return gameService.updatePlayerScores(playerId, {
+            game1_score: updates.game1_score,
+            game2_score: updates.game2_score,
+            game3_score: updates.game3_score,
+            game4_score: updates.game4_score,
+            game5_score: updates.game5_score,
+            handicap: updates.handicap
+          });
         });
-      });
+        
+        await Promise.all(promises);
+      }
 
-      await Promise.all(promises);
-
-      await loadGamePlayers(selectedGameId);
-      
+      // Melangkau panggilan "loadGamePlayers" untuk kelajuan maksimum
       setEditingScores({});
     } catch (error) {
       console.error("Error saving all scores:", error);
-      alert("Gagal menyimpan semua skor");
+      alert("Gagal menyimpan sebahagian skor. Sistem akan memuat turun semula data.");
+      // Rollback jika terdapat ralat (tarik balik data dari pelayan)
+      await loadGamePlayers(selectedGameId);
     } finally {
       setSaving(null);
     }
