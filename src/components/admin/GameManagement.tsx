@@ -622,6 +622,28 @@ ${closingMsg}`;
     console.log("🔄 Toggling double game:", { gameId, currentValue, newValue: !currentValue });
     
     try {
+      // Check if user is admin first
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("👤 Current user:", user?.id);
+      
+      const { data: member } = await supabase
+        .from("members")
+        .select("id, username, is_admin")
+        .eq("user_id", user?.id)
+        .single();
+      
+      console.log("👤 Member data:", member);
+      
+      if (!member?.is_admin) {
+        toast({
+          title: "Akses Ditolak",
+          description: "Hanya admin boleh mengubah tetapan ini",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("⚙️ Updating game double_enabled...");
       const { data, error } = await supabase
         .from("games")
         .update({ double_enabled: !currentValue })
@@ -640,7 +662,9 @@ ${closingMsg}`;
         description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
       });
 
+      console.log("🔄 Reloading games...");
       await loadGames();
+      console.log("✅ Games reloaded!");
     } catch (error) {
       console.error("❌ Error toggling double:", error);
       toast({
