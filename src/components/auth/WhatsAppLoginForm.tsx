@@ -272,14 +272,14 @@ export function WhatsAppLoginForm() {
                 }
 
                 if (data.success && data.auth_token) {
-                    // Set session using Supabase auth
-                    const { error: sessionError } = await supabase.auth.setSession({
-                        access_token: data.auth_token,
-                        refresh_token: data.auth_token
+                    // Set session using Supabase auth verifyOtp
+                    const { error: sessionError } = await supabase.auth.verifyOtp({
+                        token_hash: data.auth_token,
+                        type: 'magiclink'
                     });
 
                     if (sessionError) {
-                        throw new Error("Gagal menetapkan sesi");
+                        throw new Error("Gagal menetapkan sesi: " + sessionError.message);
                     }
 
                     toast({

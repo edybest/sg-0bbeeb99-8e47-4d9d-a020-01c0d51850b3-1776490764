@@ -151,60 +151,29 @@ export default async function handler(
     let authToken = "";
 
     if (member.user_id) {
-      // If auth user exists, generate token by signing them in or generating a link
       console.log("Generating session for existing auth user:", member.user_id);
       
+      const { data: memberDetails } = await supabaseAdmin
+        .from("members")
+        .select("email")
+        .eq("id", member.id)
+        .single();
+        
+      // Ensure we have an email to generate the link (fallback to generated email if missing)
+      const email = memberDetails?.email || `${member.user_id}@ambc.temp`;
+
       // We use the admin API to generate a link which provides a session token
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
-        email: `${member.user_id}@ambc.temp`, // Dummy email used for phone-auth accounts
+        email: email,
       });
 
-      if (linkError) {
+      if (linkError || !linkData?.properties?.hashed_token) {
         console.error("❌ Failed to generate login link:", linkError);
-        
-        // Fallback: try generating a token via our custom endpoint if it exists
-        try {
-          const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/generate-login-token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ memberId: member.id }),
-          });
-          
-          if (tokenResponse.ok) {
-            const tokenData = await tokenResponse.json();
-            if (tokenData.success && tokenData.token) {
-              authToken = tokenData.token;
-            }
-          }
-        } catch (e) {
-          console.error("Fallback token generation also failed");
-        }
-
-        if (!authToken) {
-          return res.status(500).json({ error: "Gagal mencipta sesi log masuk." });
-        }
-      } else {
-        // If we got a magic link, we'd normally need to click it to get a session
-        // Since we are building an API, we will use our internal token generator as the primary way
-        console.log("Requesting token from internal token generator...");
-        const tokenResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/generate-login-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ memberId: member.id }),
-        });
-        
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          if (tokenData.success && tokenData.token) {
-            authToken = tokenData.token;
-          } else {
-            throw new Error("Invalid token format received");
-          }
-        } else {
-          throw new Error("Token generator returned error");
-        }
+        return res.status(500).json({ error: "Gagal mencipta sesi log masuk." });
       }
+      
+      authToken = linkData.properties.hashed_token;
     } else {
       console.error("❌ Member has no linked auth user_id");
       return res.status(500).json({ 
