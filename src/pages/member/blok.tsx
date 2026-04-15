@@ -576,6 +576,7 @@ export default function BlokPage() {
                 .from("game_players")
                 .select(`
                     total_score,
+                    exclude_from_men_vs_women,
                     member:members!game_players_member_id_fkey (
                         sex
                     )
@@ -591,6 +592,8 @@ export default function BlokPage() {
             let womenCount = 0;
 
             (gamePlayers || []).forEach((gp: any) => {
+                if (gp.exclude_from_men_vs_women) return; // Skip excluded players
+                
                 const score = gp.total_score || 0;
                 const sex = gp.member?.sex;
 
