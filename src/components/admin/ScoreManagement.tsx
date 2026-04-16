@@ -112,6 +112,8 @@ export function ScoreManagement() {
     game5: string[];
   }>({ game1: [], game2: [], game3: [], game4: [], game5: [] });
 
+  const [isSyncingCouples, setIsSyncingCouples] = useState(false);
+
   const selectedGame = games.find((g) => g.id === selectedGameId);
   const isCoupleGame = selectedGame?.game_type === "COUPLE";
 
@@ -837,6 +839,20 @@ export function ScoreManagement() {
     }
   }
 
+  async function handleManualSyncCouples() {
+    if (!selectedGameId) return;
+    try {
+      setIsSyncingCouples(true);
+      await coupleService.syncCoupleScoresForGame(selectedGameId);
+      alert("Berjaya menyelaraskan skor double dari skor individu secara automatik!");
+    } catch (error) {
+      console.error(error);
+      alert("Ralat semasa sync skor double.");
+    } finally {
+      setIsSyncingCouples(false);
+    }
+  }
+
   if (loading && !selectedGameId) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -892,6 +908,15 @@ export function ScoreManagement() {
             <FileText className="h-4 w-4 mr-2" />
             Upload CSV
           </Button>
+          <Button 
+              size="sm" 
+              onClick={handleManualSyncCouples}
+              disabled={isSyncingCouples}
+              className="ml-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0"
+            >
+              {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              {isSyncingCouples ? "Syncing..." : "Sync Double Scores"}
+            </Button>
         </div>
       </div>
 
@@ -941,6 +966,15 @@ export function ScoreManagement() {
               <h4 className="font-semibold">Automated Double Scores</h4>
               <p className="text-sm">Skor double dikira secara automatik apabila anda memasukkan skor individu pemain di bawah. Skor double <strong>tidak mengambil kira handicap</strong>.</p>
             </div>
+            <Button 
+              size="sm" 
+              onClick={handleManualSyncCouples}
+              disabled={isSyncingCouples}
+              className="ml-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0"
+            >
+              {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              {isSyncingCouples ? "Syncing..." : "Sync Double Scores"}
+            </Button>
           </div>
           <CoupleScoreEntry selectedGameId={selectedGameId} />
         </div>

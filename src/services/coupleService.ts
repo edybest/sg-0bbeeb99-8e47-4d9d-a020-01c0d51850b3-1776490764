@@ -280,6 +280,17 @@ class CoupleService {
         .eq("game_id", gameId);
       if (playersError || !players) return;
 
+      // Dapatkan id skor sedia ada untuk elak masalah tiada constraint unique pada couple_id+game_id
+      const { data: existingScores, error: existingError } = await supabase
+        .from("couple_scores")
+        .select("id, couple_id")
+        .eq("game_id", gameId);
+        
+      const existingMap = new Map();
+      if (existingScores) {
+        existingScores.forEach(s => existingMap.set(s.couple_id, s.id));
+      }
+
       const playerMap = new Map();
       players.forEach(p => playerMap.set(p.member_id, p));
 
@@ -297,8 +308,9 @@ class CoupleService {
           const game6 = (p1?.game6_score || 0) + (p2?.game6_score || 0);
           
           const total = game1 + game2 + game3 + game4 + game5 + game6;
+          const existingId = existingMap.get(couple.id);
           
-          upserts.push({
+          const scoreData: any = {
             couple_id: couple.id,
             game_id: gameId,
             game1_score: game1,
@@ -310,12 +322,21 @@ class CoupleService {
             handicap: 0,
             total_score: total,
             overall_score: total,
-          });
+          };
+          
+          if (existingId) {
+             scoreData.id = existingId;
+          }
+          
+          upserts.push(scoreData);
         }
       }
 
       if (upserts.length > 0) {
-        await supabase.from("couple_scores").upsert(upserts, { onConflict: "couple_id,game_id" });
+        const { error } = await supabase.from("couple_scores").upsert(upserts);
+        if (error) {
+          console.error("UPSERT ERROR in syncCoupleScoresForGame:", error);
+        }
       }
     } catch (error) {
       console.error("Error auto-syncing couple scores:", error);
