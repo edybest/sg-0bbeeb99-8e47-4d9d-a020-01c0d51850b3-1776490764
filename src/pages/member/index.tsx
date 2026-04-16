@@ -54,7 +54,7 @@ type NavigationCard = {
 
 export default function MemberDashboard() {
   const router = useRouter();
-  const { member, isAuthenticated, loading: authLoading } = useAuth(true);
+  const { member, isAuthenticated, loading: authLoading } = useAuth(false); // Tidak require login
   const [statsLoading, setStatsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalGames: 0,
@@ -66,7 +66,7 @@ export default function MemberDashboard() {
   useEffect(() => {
     if (isAuthenticated && member) {
       loadStats();
-    } else if (!authLoading && !isAuthenticated) {
+    } else {
       setStatsLoading(false);
     }
   }, [isAuthenticated, member, authLoading]);
@@ -233,23 +233,23 @@ export default function MemberDashboard() {
   }];
 
 
-  // Tunjuk loading screen jika sistem masih memeriksa status log masuk
-  if (authLoading) {
-    return (
-      <MemberLayout>
-        <SEO 
-          title="Dashboard | AMBC Club" 
-          description="Member dashboard for AMBC Bowling Club"
-        />
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
-            <p className="text-sky-600 font-medium">Memuatkan profil anda...</p>
-          </div>
-        </div>
-      </MemberLayout>
-    );
-  }
+  // Tidak perlu loading screen - biar user terus masuk ke dashboard
+  // if (authLoading) {
+  //   return (
+  //     <MemberLayout>
+  //       <SEO 
+  //         title="Dashboard | AMBC Club" 
+  //         description="Member dashboard for AMBC Bowling Club"
+  //       />
+  //       <div className="min-h-[60vh] flex items-center justify-center">
+  //         <div className="flex flex-col items-center gap-4">
+  //           <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
+  //           <p className="text-sky-600 font-medium">Memuatkan profil anda...</p>
+  //         </div>
+  //       </div>
+  //     </MemberLayout>
+  //   );
+  // }
 
   return (
     <MemberLayout>
@@ -276,7 +276,7 @@ export default function MemberDashboard() {
               </div>
               
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 drop-shadow-lg">
-                {member?.full_name ? member.full_name : "Memuatkan..."}
+                {member?.full_name || "AMBC Club"}
               </h1>
               <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto px-4">
                 Dashboard anda untuk semua aktiviti bowling di AMBC Club 🎳
