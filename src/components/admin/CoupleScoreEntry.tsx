@@ -315,7 +315,7 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
       <CardContent className="p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Heart className="h-5 w-5 text-pink-600" />
-          Couple Score Entry
+          Couple Score Entry (Manual Override)
         </h3>
 
         <div className="space-y-4">
@@ -578,13 +578,12 @@ export function CoupleScoreEntry({ selectedGameId }: CoupleScoreEntryProps) {
           {selectedCoupleId && editingCoupleScore && (
             <div className="grid grid-cols-3 gap-4 pt-2 border-t border-pink-200">
               <div>
-                <label className="block text-xs font-medium text-yellow-700 mb-1">Handicap</label>
+                <label className="block text-xs font-medium text-yellow-700 mb-1">Handicap (N/A)</label>
                 <Input
                   type="number"
-                  value={editingCoupleScore.handicap}
-                  onChange={(e) => handleCoupleScoreChange("handicap", e.target.value, handicapRef)}
-                  className="bg-yellow-50 border-yellow-200 text-center font-bold"
-                  placeholder="0"
+                  value={0}
+                  disabled
+                  className="bg-gray-100 border-gray-300 text-center font-bold text-gray-500"
                 />
               </div>
               <div>

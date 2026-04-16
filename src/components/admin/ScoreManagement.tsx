@@ -331,6 +331,9 @@ export function ScoreManagement() {
         handicap: updates.handicap
       });
 
+      // Auto-sync couple scores if there are any
+      await coupleService.syncCoupleScoresForGame(selectedGameId);
+
       // Melangkau panggilan "loadGamePlayers" untuk mengelakkan UI tersekat (freeze)
       
       setEditingScores(prev => {
@@ -390,6 +393,9 @@ export function ScoreManagement() {
         
         await Promise.all(promises);
       }
+
+      // Auto-sync couple scores
+      await coupleService.syncCoupleScoresForGame(selectedGameId);
 
       // Melangkau panggilan "loadGamePlayers" untuk kelajuan maksimum
       setEditingScores({});
@@ -662,7 +668,7 @@ export function ScoreManagement() {
     }
   }
 
-  async function handleApplyCsvScore(parsedScore: ParsedScore) {
+  async function handleApplyCsvScore(parsedScore: ParsedScore, skipSync: boolean = false) {
     if (!parsedScore.matchedMember) return;
 
     let targetGameId = selectedGameId;
@@ -747,6 +753,10 @@ export function ScoreManagement() {
       return next;
     });
 
+    if (!skipSync) {
+      await coupleService.syncCoupleScoresForGame(targetGameId);
+    }
+
     setTimeout(() => {
       const playerElement = document.getElementById(`player-${player!.id}`);
       if (playerElement) {
@@ -776,7 +786,11 @@ export function ScoreManagement() {
     }
 
     for (const score of highConfidenceScores) {
-      await handleApplyCsvScore(score);
+      await handleApplyCsvScore(score, true);
+    }
+
+    if (selectedGameId) {
+      await coupleService.syncCoupleScoresForGame(selectedGameId);
     }
 
     alert(`${highConfidenceScores.length} skor telah berjaya diaplikasikan!`);
@@ -920,7 +934,16 @@ export function ScoreManagement() {
       </Card>
 
       {selectedGameId && isCoupleGame && (
-        <CoupleScoreEntry selectedGameId={selectedGameId} />
+        <div className="mb-6">
+          <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-4 flex items-start gap-3 border border-blue-200">
+            <Info className="h-5 w-5 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold">Automated Double Scores</h4>
+              <p className="text-sm">Skor double dikira secara automatik apabila anda memasukkan skor individu pemain di bawah. Skor double <strong>tidak mengambil kira handicap</strong>.</p>
+            </div>
+          </div>
+          <CoupleScoreEntry selectedGameId={selectedGameId} />
+        </div>
       )}
 
       {selectedGameId && !isCoupleGame && (

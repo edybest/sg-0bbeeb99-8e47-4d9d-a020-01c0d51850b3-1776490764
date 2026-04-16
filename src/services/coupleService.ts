@@ -231,7 +231,8 @@ class CoupleService {
         (score.game5_score || 0) +
         (score.game6_score || 0);
 
-      const overall = total + (score.couple_handicap || 0);
+      // FIX: Score double tidak termasuk handicap
+      const overall = total;
 
       return {
         id: score.id,
@@ -246,7 +247,7 @@ class CoupleService {
         game5_score: score.game5_score || 0,
         game6_score: score.game6_score || 0,
         total_score: total,
-        handicap: score.couple_handicap || 0,
+        handicap: 0,
         overall_score: overall,
         difference: 0,
         rank: 0,
@@ -267,7 +268,61 @@ class CoupleService {
     return leaderboard;
   }
 
-  upsertCoupleScore(score) {
+  // NEW: Auto-sync couple scores from individual game_players
+  async syncCoupleScoresForGame(gameId: string): Promise<void> {
+    try {
+      const { data: couples, error: couplesError } = await supabase.from("couples").select("*");
+      if (couplesError || !couples) return;
+
+      const { data: players, error: playersError } = await supabase
+        .from("game_players")
+        .select("*")
+        .eq("game_id", gameId);
+      if (playersError || !players) return;
+
+      const playerMap = new Map();
+      players.forEach(p => playerMap.set(p.member_id, p));
+
+      const upserts = [];
+      for (const couple of couples) {
+        const p1 = playerMap.get(couple.player1_id);
+        const p2 = playerMap.get(couple.player2_id);
+
+        if (p1 || p2) {
+          const game1 = (p1?.game1_score || 0) + (p2?.game1_score || 0);
+          const game2 = (p1?.game2_score || 0) + (p2?.game2_score || 0);
+          const game3 = (p1?.game3_score || 0) + (p2?.game3_score || 0);
+          const game4 = (p1?.game4_score || 0) + (p2?.game4_score || 0);
+          const game5 = (p1?.game5_score || 0) + (p2?.game5_score || 0);
+          const game6 = (p1?.game6_score || 0) + (p2?.game6_score || 0);
+          
+          const total = game1 + game2 + game3 + game4 + game5 + game6;
+          
+          upserts.push({
+            couple_id: couple.id,
+            game_id: gameId,
+            game1_score: game1,
+            game2_score: game2,
+            game3_score: game3,
+            game4_score: game4,
+            game5_score: game5,
+            game6_score: game6,
+            handicap: 0,
+            total_score: total,
+            overall_score: total,
+          });
+        }
+      }
+
+      if (upserts.length > 0) {
+        await supabase.from("couple_scores").upsert(upserts, { onConflict: "couple_id,game_id" });
+      }
+    } catch (error) {
+      console.error("Error auto-syncing couple scores:", error);
+    }
+  }
+
+  upsertCoupleScore(score: any) {
     const client: any = supabase;
     const tableName = "couple_scores";
     return (client.from(tableName).upsert(score, { onConflict: "couple_id,game_id" }) as any).then((result: any) => {
