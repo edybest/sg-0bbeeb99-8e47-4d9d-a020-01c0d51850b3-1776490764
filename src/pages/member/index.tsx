@@ -288,7 +288,7 @@ export default function MemberDashboard() {
                   <Link href="/login">
                     <Button size="lg" className="bg-white text-sky-600 hover:bg-gray-100 font-semibold shadow-lg px-8 py-6 text-lg">
                       <Users className="h-5 w-5 mr-2" />
-                      Log Masuk untuk Lihat Statistik
+                      Log Masuk
                     </Button>
                   </Link>
                 </div>
