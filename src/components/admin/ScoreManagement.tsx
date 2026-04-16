@@ -894,6 +894,16 @@ export function ScoreManagement() {
               Sync Handicap
             </Button>
           )}
+          {selectedGameId && (
+            <Button 
+              onClick={handleManualSyncCouples}
+              disabled={isSyncingCouples}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              {isSyncingCouples ? "Syncing..." : "Sync Double"}
+            </Button>
+          )}
           <Button
             onClick={() => setShowUploadModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -908,15 +918,6 @@ export function ScoreManagement() {
             <FileText className="h-4 w-4 mr-2" />
             Upload CSV
           </Button>
-          <Button 
-              size="sm" 
-              onClick={handleManualSyncCouples}
-              disabled={isSyncingCouples}
-              className="ml-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0"
-            >
-              {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              {isSyncingCouples ? "Syncing..." : "Sync Double Scores"}
-            </Button>
         </div>
       </div>
 
@@ -966,15 +967,6 @@ export function ScoreManagement() {
               <h4 className="font-semibold">Automated Double Scores</h4>
               <p className="text-sm">Skor double dikira secara automatik apabila anda memasukkan skor individu pemain di bawah. Skor double <strong>tidak mengambil kira handicap</strong>.</p>
             </div>
-            <Button 
-              size="sm" 
-              onClick={handleManualSyncCouples}
-              disabled={isSyncingCouples}
-              className="ml-auto bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0"
-            >
-              {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              {isSyncingCouples ? "Syncing..." : "Sync Double Scores"}
-            </Button>
           </div>
           <CoupleScoreEntry selectedGameId={selectedGameId} />
         </div>
