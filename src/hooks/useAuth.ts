@@ -109,6 +109,9 @@ export function useAuth(
     const mountedRef = useRef(true);
     const checkingRef = useRef(false);
     const loadingMemberRef = useRef(false);
+    
+    // FIX (Orphaned Lock): AbortController untuk cancel operasi auth bila unmount
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // FIX (Bug): Track isAuthenticated in a ref so the periodic interval
     // closure reads the latest value instead of the stale value from mount.
@@ -128,7 +131,7 @@ export function useAuth(
         requireAdminRef.current = requireAdmin;
     }, [requireAdmin]);
 
-    const [member, setMember] = useState < Member | null > (null);
+    const [member, setMember] = useState<Member | null>(null);
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -174,6 +177,12 @@ export function useAuth(
                 log("⏸️ loadMemberData already running, skipping.");
                 return;
             }
+            
+            if (!mountedRef.current) {
+                log("⏸️ Component unmounted, skipping loadMemberData.");
+                return;
+            }
+            
             loadingMemberRef.current = true;
 
             try {
@@ -181,19 +190,26 @@ export function useAuth(
 
                 let memberData = await memberService.getMemberByUserId(userId);
 
+                if (!mountedRef.current) return; // Check selepas async operation
+
                 if (!memberData && email) {
                     log("🔁 Trying email fallback...");
                     memberData = await memberService.getMemberByEmail(email);
 
+                    if (!mountedRef.current) return; // Check selepas async operation
+
                     if (memberData && memberData.user_id !== userId) {
                         try {
                             await memberService.linkAuthUser(memberData.id, userId);
+                            if (!mountedRef.current) return;
                             memberData = { ...memberData, user_id: userId };
                         } catch (err) {
                             warn("⚠️ Failed linking user_id:", err);
                         }
                     }
                 }
+
+                if (!mountedRef.current) return; // Final check before state update
 
                 if (!memberData) {
                     error("❌ Member not found for userId:", userId);
@@ -226,6 +242,8 @@ export function useAuth(
             } catch (err) {
                 error("❌ loadMemberData error:", err);
 
+                if (!mountedRef.current) return;
+
                 clearCachedSession();
 
                 safeSetState({
@@ -257,7 +275,18 @@ export function useAuth(
             return;
         }
 
+        if (!mountedRef.current) {
+            log("⏸️ Component unmounted, skipping checkAuth.");
+            return;
+        }
+
         checkingRef.current = true;
+
+        // FIX (Orphaned Lock): Cancel previous operation if any
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
 
         try {
             log("🔍 Checking auth...");
@@ -265,7 +294,13 @@ export function useAuth(
             let sessionResult = null;
             let lastError = null;
 
+            // Retry logic with abort signal
             for (let i = 0; i < 2; i++) {
+                if (!mountedRef.current || abortControllerRef.current?.signal.aborted) {
+                    log("⏸️ Auth check cancelled.");
+                    return;
+                }
+
                 const { data, error: sessionError } = await supabase.auth.getSession();
 
                 if (!sessionError) {
@@ -274,6 +309,10 @@ export function useAuth(
                 }
 
                 lastError = sessionError;
+            }
+
+            if (!mountedRef.current || abortControllerRef.current?.signal.aborted) {
+                return;
             }
 
             if (lastError && !sessionResult) {
@@ -301,8 +340,16 @@ export function useAuth(
             }
 
             await loadMemberData(session.user.id, session.user.email ?? null);
-        } catch (err) {
+        } catch (err: any) {
+            // Ignore abort errors
+            if (err?.name === 'AbortError') {
+                log("⏸️ Auth check aborted (normal cleanup)");
+                return;
+            }
+
             error("❌ checkAuth error:", err);
+
+            if (!mountedRef.current) return;
 
             const cached = getCachedSession();
 
@@ -325,6 +372,7 @@ export function useAuth(
             }
         } finally {
             checkingRef.current = false;
+            abortControllerRef.current = null;
         }
     }, [safeSetState, redirectIfNeeded, loadMemberData]);
 
@@ -350,12 +398,17 @@ export function useAuth(
             // where the user has already logged out in the 5-second window.
             // The isAuthenticatedRef check prevents a SIGNED_OUT event from
             // being overwritten by the delayed checkAuth resolving later.
-            setTimeout(() => {
+            const revalidateTimeout = setTimeout(() => {
                 if (mountedRef.current && isAuthenticatedRef.current) {
                     log("📋 Validating cached session in background...");
                     checkAuth();
                 }
             }, 5000);
+
+            // Cleanup timeout on unmount
+            return () => {
+                clearTimeout(revalidateTimeout);
+            };
         } else {
             checkAuth();
         }
@@ -408,6 +461,12 @@ export function useAuth(
             mountedRef.current = false;
             clearInterval(refreshInterval);
 
+            // FIX (Orphaned Lock): Cancel pending auth operations
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
+
             if (authSubscription) {
                 authSubscription.subscription.unsubscribe();
             }
@@ -426,6 +485,12 @@ export function useAuth(
     // the component unmounts during signOut the state updates are no-ops.
     async function logout(options?: { redirectTo?: string }) {
         try {
+            // Cancel any pending auth checks
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
+
             await supabase.auth.signOut();
 
             clearCachedSession();
