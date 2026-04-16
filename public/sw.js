@@ -85,7 +85,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         const fetchPromise = fetch(request.clone()).then((networkResponse) => {
-          if (networkResponse && networkResponse.ok) {
+          // Only cache complete responses (200-299), not partial (206)
+          if (networkResponse && networkResponse.ok && networkResponse.status !== 206) {
             const responseToCache = networkResponse.clone();
             caches.open(IMAGE_CACHE).then((cache) => {
               cache.put(request, responseToCache);
@@ -110,7 +111,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
         const fetchPromise = fetch(request.clone()).then((networkResponse) => {
-          if (networkResponse && networkResponse.ok) {
+          // Only cache complete responses (200-299), not partial (206)
+          if (networkResponse && networkResponse.ok && networkResponse.status !== 206) {
             const responseToCache = networkResponse.clone();
             caches.open(STATIC_CACHE).then((cache) => {
               cache.put(request, responseToCache);
@@ -135,8 +137,8 @@ self.addEventListener("fetch", (event) => {
         .then((response) => {
           // Always pass through the network response if we got one
           if (response && response.status < 500) {
-            // Cache successful navigations (200-299, 300-399, 400-499)
-            if (response.ok) {
+            // Cache successful navigations (200-299, 300-399, 400-499) - exclude partial (206)
+            if (response.ok && response.status !== 206) {
               const clone = response.clone();
               caches.open(DYNAMIC_CACHE).then((cache) => {
                 cache.put(request, clone);
@@ -179,8 +181,8 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request.clone())
       .then((response) => {
-        // Cache successful responses
-        if (response && response.ok) {
+        // Cache successful responses - exclude partial (206)
+        if (response && response.ok && response.status !== 206) {
           const clone = response.clone();
           caches.open(DYNAMIC_CACHE).then((cache) => {
             cache.put(request, clone);
