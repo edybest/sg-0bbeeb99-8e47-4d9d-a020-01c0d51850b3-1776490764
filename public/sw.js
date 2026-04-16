@@ -84,11 +84,7 @@ self.addEventListener("fetch", (event) => {
   if (request.destination === "image") {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        // Clone the request before using it
-        const fetchRequest = request.clone();
-
-        const fetchPromise = fetch(fetchRequest).then((networkResponse) => {
-          // Clone the response BEFORE using it
+        const fetchPromise = fetch(request.clone()).then((networkResponse) => {
           if (networkResponse && networkResponse.ok) {
             const responseToCache = networkResponse.clone();
             caches.open(IMAGE_CACHE).then((cache) => {
@@ -96,8 +92,9 @@ self.addEventListener("fetch", (event) => {
             });
           }
           return networkResponse;
-        }).catch(() => {
-          // If network fails and no cache, return empty response (broken image icon)
+        }).catch((err) => {
+          // If network fails, return cached or fetch will handle it
+          console.log('[SW] Image fetch failed:', err.message);
           return cachedResponse;
         });
 
@@ -112,11 +109,7 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/_next/")) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        // Clone the request before using it
-        const fetchRequest = request.clone();
-
-        const fetchPromise = fetch(fetchRequest).then((networkResponse) => {
-          // Clone the response BEFORE using it
+        const fetchPromise = fetch(request.clone()).then((networkResponse) => {
           if (networkResponse && networkResponse.ok) {
             const responseToCache = networkResponse.clone();
             caches.open(STATIC_CACHE).then((cache) => {
@@ -125,6 +118,7 @@ self.addEventListener("fetch", (event) => {
           }
           return networkResponse;
         }).catch(() => {
+          // Return cached or let it fail naturally
           return cachedResponse;
         });
 
@@ -137,24 +131,33 @@ self.addEventListener("fetch", (event) => {
   // 4. HTML pages & Navigations - Network First, fallback to Cache
   if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
-      fetch(request)
+      fetch(request.clone())
         .then((response) => {
-          // Cache successful navigations
-          if (response && response.ok) {
-            const clone = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, clone);
-            });
+          // Always pass through the network response if we got one
+          if (response && response.status < 500) {
+            // Cache successful navigations (200-299, 300-399, 400-499)
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(request, clone);
+              }).catch(() => {});
+            }
+            return response;
           }
-          return response;
+          
+          // For 500+ errors, try cache first, then fallback
+          return caches.match(request).then((cached) => {
+            return cached || response;
+          });
         })
-        .catch(() => {
-          // Fallback to cache if offline
+        .catch((err) => {
+          console.log('[SW] Navigation fetch failed (offline?):', err.message);
+          // Only show offline page if truly offline (no network)
           return caches.match(request).then((cached) => {
             if (cached) {
               return cached;
             }
-            // Return offline fallback page
+            // Return offline fallback page only for network errors
             return new Response(
               '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Offline - AMBC Club</title><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);color:#0369a1;text-align:center;padding:20px;}h2{font-size:1.5rem;margin:0 0 1rem;}p{font-size:1rem;margin:0.5rem 0;max-width:400px;line-height:1.6;}.icon{font-size:3rem;margin-bottom:1rem;}</style></head><body><div class="icon">🔴</div><h2>Aplikasi Offline</h2><p>Tiada sambungan internet. Sila semak capaian data/Wi-Fi anda dan cuba sebentar lagi.</p><p style="margin-top:2rem;font-size:0.9rem;opacity:0.7;">AMBC Club</p></body></html>', 
               { 
@@ -172,31 +175,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 5. Default - Network First with cache fallback
+  // 5. Default - Network First, let errors pass through naturally
   event.respondWith(
-    fetch(request)
+    fetch(request.clone())
       .then((response) => {
+        // Cache successful responses
         if (response && response.ok) {
           const clone = response.clone();
           caches.open(DYNAMIC_CACHE).then((cache) => {
             cache.put(request, clone);
-          });
+          }).catch(() => {});
         }
+        // Always return the network response (even if it's an error)
         return response;
       })
       .catch(() => {
-        // Try to return from cache, or empty 503 response
-        return caches.match(request).then((cached) => {
-          if (cached) {
-            return cached;
-          }
-          // Return a proper empty response for non-critical resources
-          return new Response("", { 
-            status: 503, 
-            statusText: "Service Unavailable",
-            headers: { 'Cache-Control': 'no-store' }
-          });
-        });
+        // Only use cache fallback for network errors (offline)
+        return caches.match(request);
       })
   );
 });
