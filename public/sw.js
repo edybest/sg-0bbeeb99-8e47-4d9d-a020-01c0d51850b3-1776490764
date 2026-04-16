@@ -140,7 +140,7 @@ self.addEventListener("fetch", (event) => {
       fetch(request)
         .then((response) => {
           // Cache successful navigations
-          if (response.ok) {
+          if (response && response.ok) {
             const clone = response.clone();
             caches.open(DYNAMIC_CACHE).then((cache) => {
               cache.put(request, clone);
@@ -154,24 +154,29 @@ self.addEventListener("fetch", (event) => {
             if (cached) {
               return cached;
             }
-            // Last resort offline page
-            return caches.match("/").then(rootCached => {
-              return rootCached || new Response(
-                '<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f0f9ff;color:#0369a1;text-align:center;padding:20px;}</style></head><body><h2>🔴 Aplikasi Offline</h2><p>Tiada sambungan internet. Sila semak capaian data/Wi-Fi anda dan cuba sebentar lagi.</p></body></html>', 
-                { status: 503, headers: { 'Content-Type': 'text/html' } }
-              );
-            });
+            // Return offline fallback page
+            return new Response(
+              '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Offline - AMBC Club</title><style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);color:#0369a1;text-align:center;padding:20px;}h2{font-size:1.5rem;margin:0 0 1rem;}p{font-size:1rem;margin:0.5rem 0;max-width:400px;line-height:1.6;}.icon{font-size:3rem;margin-bottom:1rem;}</style></head><body><div class="icon">🔴</div><h2>Aplikasi Offline</h2><p>Tiada sambungan internet. Sila semak capaian data/Wi-Fi anda dan cuba sebentar lagi.</p><p style="margin-top:2rem;font-size:0.9rem;opacity:0.7;">AMBC Club</p></body></html>', 
+              { 
+                status: 503, 
+                statusText: "Service Unavailable",
+                headers: { 
+                  'Content-Type': 'text/html; charset=utf-8',
+                  'Cache-Control': 'no-store'
+                } 
+              }
+            );
           });
         })
     );
     return;
   }
 
-  // 5. Default - Network First
+  // 5. Default - Network First with cache fallback
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (response.ok) {
+        if (response && response.ok) {
           const clone = response.clone();
           caches.open(DYNAMIC_CACHE).then((cache) => {
             cache.put(request, clone);
@@ -180,7 +185,18 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(request);
+        // Try to return from cache, or empty 503 response
+        return caches.match(request).then((cached) => {
+          if (cached) {
+            return cached;
+          }
+          // Return a proper empty response for non-critical resources
+          return new Response("", { 
+            status: 503, 
+            statusText: "Service Unavailable",
+            headers: { 'Cache-Control': 'no-store' }
+          });
+        });
       })
   );
 });
