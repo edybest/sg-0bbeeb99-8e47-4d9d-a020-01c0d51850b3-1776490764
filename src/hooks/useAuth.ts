@@ -55,8 +55,11 @@ export function useAuth() {
             setTimeout(() => reject(new Error("Member data fetch timeout")), 3000);
           });
 
+          // Fix excessive depth error by casting to any early
+          const fetchPromise = supabase.from("members").select("*").eq("auth_user_id", session.user.id).single() as any;
+          
           const { data: member } = await Promise.race([
-            supabase.from("members").select("*").eq("auth_user_id", session.user.id).single(),
+            fetchPromise,
             memberDataPromise
           ]) as any;
 
@@ -142,8 +145,11 @@ export function useAuth() {
 
   return {
     ...authState,
+    member: authState.memberData,
+    isAuthenticated: !!authState.session,
     user: authState.session?.user ?? null,
     signOut,
+    logout: signOut, // Alias for signOut
     refreshSession: checkSession,
   };
 }
