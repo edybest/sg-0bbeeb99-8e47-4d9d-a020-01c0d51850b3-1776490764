@@ -562,10 +562,52 @@ export default function BlokPage() {
         setLoadingCleanGame(true);
 
         try {
-            // Placeholder: Set empty winners or fetch actual winners if available
-            setCleanGameWinners([]);
+            // Fetch clean game data from the games table
+            const { data: gameData, error } = await supabase
+                .from("games")
+                .select("clean_game_data")
+                .eq("id", selectedGame)
+                .single();
+
+            if (error) throw error;
+
+            const cleanGameData = gameData?.clean_game_data as any;
+            
+            if (!cleanGameData || !cleanGameData[`game${gameNum}`]) {
+                setCleanGameWinners([]);
+                setLoadingCleanGame(false);
+                return;
+            }
+
+            // Get member IDs from clean game data
+            const winnerIds = cleanGameData[`game${gameNum}`] || [];
+            
+            if (winnerIds.length === 0) {
+                setCleanGameWinners([]);
+                setLoadingCleanGame(false);
+                return;
+            }
+
+            // Fetch member details
+            const { data: members, error: membersError } = await supabase
+                .from("members")
+                .select("id, username")
+                .in("id", winnerIds);
+
+            if (membersError) throw membersError;
+
+            // Calculate prize split
+            const prizePerWinner = winnerIds.length > 0 ? 5 / winnerIds.length : 0;
+
+            const winners = (members || []).map(member => ({
+                member_name: member.username,
+                prize: prizePerWinner
+            }));
+
+            setCleanGameWinners(winners);
         } catch (error) {
             console.error("Error loading clean game winners:", error);
+            setCleanGameWinners([]);
         } finally {
             setLoadingCleanGame(false);
         }
