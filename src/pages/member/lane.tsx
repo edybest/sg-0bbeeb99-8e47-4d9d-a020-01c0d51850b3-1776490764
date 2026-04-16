@@ -52,6 +52,7 @@ export default function LanePage() {
   const [editValue, setEditValue] = useState("");
   const { member, loading: authLoading, isAuthenticated, isAdmin } = useAuth(true);
   const [downloading, setDownloading] = useState(false);
+  const [isScreenshotMode, setIsScreenshotMode] = useState(false);
   const screenshotRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -275,6 +276,7 @@ export default function LanePage() {
 
     try {
       setDownloading(true);
+      setIsScreenshotMode(true); // Aktifkan screenshot mode untuk hide butang X
 
       const element = screenshotRef.current;
       
@@ -315,6 +317,7 @@ export default function LanePage() {
         variant: "destructive",
       });
     } finally {
+      setIsScreenshotMode(false); // Matikan screenshot mode
       setDownloading(false);
     }
   }
@@ -362,7 +365,7 @@ export default function LanePage() {
               )}
             </div>
             
-            {isAdmin && (
+            {isAdmin && !isScreenshotMode && (
               <button
                 onClick={() => handleRemoveMember(assignment.member_id || assignment.couple_id || '')}
                 className="text-gray-400 hover:text-pink-600 p-1 shrink-0 ml-1"
