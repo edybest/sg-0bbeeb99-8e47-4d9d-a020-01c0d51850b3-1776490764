@@ -18,7 +18,7 @@ export function PageAccessGuard({
   requireAuth = true,
   renderLoading 
 }: PageAccessGuardProps) {
-  const { session, loading, isAdmin } = useAuth();
+  const { isAuthenticated, loading, isAdmin } = useAuth();
   const router = useRouter();
   const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
 
@@ -51,7 +51,7 @@ export function PageAccessGuard({
 
     // Public routes (if pagePath is not provided or explicitly public)
     if (["/", "/login", "/signup"].includes(path) && !requireAuth) {
-      if (session) {
+      if (isAuthenticated) {
         // Redirect authenticated users
         router.push(isAdmin ? "/admin" : "/member");
       }
@@ -59,23 +59,23 @@ export function PageAccessGuard({
     }
 
     // Protected routes
-    if (requireAuth && !session) {
+    if (requireAuth && !isAuthenticated) {
       router.push("/login");
       return;
     }
 
     // Admin-only routes (simple check based on path)
-    if (path.startsWith("/admin") && !isAdmin && session) {
+    if (path.startsWith("/admin") && !isAdmin && isAuthenticated) {
       router.push("/member");
       return;
     }
 
     // Member-only routes
-    if (path.startsWith("/member") && isAdmin && session) {
+    if (path.startsWith("/member") && isAdmin && isAuthenticated) {
       router.push("/admin");
       return;
     }
-  }, [session, loading, isAdmin, router, requireAuth]);
+  }, [isAuthenticated, loading, isAdmin, router, requireAuth]);
 
   if (loading) {
     if (renderLoading) {
@@ -99,7 +99,7 @@ export function PageAccessGuard({
 
   // If auth is required but no session, don't render children
   // Let the useEffect handle the redirect
-  if (requireAuth && !session) {
+  if (requireAuth && !isAuthenticated) {
     return null;
   }
 
