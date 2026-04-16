@@ -588,6 +588,22 @@ export default function BlokPage() {
                 return;
             }
 
+            // Get total number of players in this game (for prize calculation)
+            const { data: playersData, error: playersError } = await supabase
+                .from("game_players")
+                .select("id", { count: "exact" })
+                .eq("game_id", selectedGame);
+
+            if (playersError) throw playersError;
+
+            const totalPlayers = playersData?.length || 0;
+            
+            // Calculate prize pool: RM2 per player
+            const prizePool = totalPlayers * 2;
+            
+            // Calculate prize per winner (rounded down)
+            const prizePerWinner = winnerIds.length > 0 ? Math.floor(prizePool / winnerIds.length) : 0;
+
             // Fetch member details
             const { data: members, error: membersError } = await supabase
                 .from("members")
@@ -595,9 +611,6 @@ export default function BlokPage() {
                 .in("id", winnerIds);
 
             if (membersError) throw membersError;
-
-            // Calculate prize split
-            const prizePerWinner = winnerIds.length > 0 ? 5 / winnerIds.length : 0;
 
             const winners = (members || []).map(member => ({
                 member_name: member.username,
