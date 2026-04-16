@@ -198,7 +198,12 @@ export const doubleService = {
       const { data, error } = await supabase
         .from("double_records")
         .select(`
-          *,
+          id,
+          player1_id,
+          player2_id,
+          player1_score,
+          player2_score,
+          total_score,
           player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
           player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
         `)

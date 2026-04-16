@@ -5,6 +5,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { doubleService } from "@/services/doubleService";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -374,7 +375,12 @@ export default function BlokPage() {
                 const { data: doublesData, error: doublesError } = await (supabase as any)
                     .from("double_records")
                     .select(`
-                        *,
+                        id,
+                        player1_id,
+                        player2_id,
+                        player1_score,
+                        player2_score,
+                        total_score,
                         player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
                         player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
                     `)
@@ -542,7 +548,11 @@ export default function BlokPage() {
         if (!selectedGame) return;
 
         setIsDoubleDialogOpen(true);
-        await loadDoubleRecords(selectedGame);
+        
+        // Only load if not already loaded
+        if (doubleRecords.length === 0) {
+            await loadDoubleRecords(selectedGame);
+        }
     };
 
     const handleOpenCleanGameDialog = async (gameNum: number) => {
@@ -1620,6 +1630,7 @@ export default function BlokPage() {
                                                                                 height={40}
                                                                                 className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                                                                                 unoptimized
+                                                                                loading="lazy"
                                                                             />
                                                                         ) : (
                                                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
@@ -1810,6 +1821,7 @@ export default function BlokPage() {
                                                                         height={32}
                                                                         className="w-8 h-8 rounded-full object-cover border-2 border-white"
                                                                         unoptimized
+                                                                        loading="lazy"
                                                                     />
                                                                 ) : (
                                                                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
@@ -1838,6 +1850,7 @@ export default function BlokPage() {
                                                                         height={32}
                                                                         className="w-8 h-8 rounded-full object-cover border-2 border-white"
                                                                         unoptimized
+                                                                        loading="lazy"
                                                                     />
                                                                 ) : (
                                                                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
