@@ -136,11 +136,13 @@ export const doubleService = {
           total: totalScore
         });
 
+        // CRITICAL FIX: Do NOT include total_score - it's a generated column!
+        // Database will auto-calculate it from player1_score + player2_score
         updates.push({
           id: record.id,
           player1_score: player1Score,
           player2_score: player2Score,
-          total_score: totalScore,
+          // total_score removed - auto-calculated by database
         });
       }
 
