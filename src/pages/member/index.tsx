@@ -283,8 +283,8 @@ export default function MemberDashboard() {
               </p>
               
               {/* Login Button untuk pengguna yang belum log masuk */}
-              {!member && (
-                <div className="mt-6">
+              {!member &&
+              <div className="mt-6">
                   <Link href="/login">
                     <Button size="lg" className="bg-white text-sky-600 hover:bg-gray-100 font-semibold shadow-lg px-8 py-6 text-lg">
                       <Users className="h-5 w-5 mr-2" />
@@ -292,18 +292,18 @@ export default function MemberDashboard() {
                     </Button>
                   </Link>
                 </div>
-              )}
+              }
             </motion.div>
           </div>
         </div>
 
         <div className="container max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
           {/* Login Promotion Card - Only show for non-logged in users */}
-          {!member && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}>
+          {!member &&
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}>
               <Link href="/login">
                 <Card className="border-2 border-sky-400 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer overflow-hidden">
                   <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500" />
@@ -331,22 +331,22 @@ export default function MemberDashboard() {
                 </Card>
               </Link>
             </motion.div>
-          )}
+          }
           
           {/* Quick Stats - Only show for logged in members */}
-          {member && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {member &&
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               
               {quickStats.map((stat, index) =>
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 + index * 0.1 }}>
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 + index * 0.1 }}>
                 
                   <Card className="border-0 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden">
                     <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.gradient}`} />
@@ -363,9 +363,9 @@ export default function MemberDashboard() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              )}
+            )}
             </motion.div>
-          )}
+          }
 
           {/* Navigation Cards */}
           <div>
@@ -398,11 +398,11 @@ export default function MemberDashboard() {
                           <div className={`p-2.5 md:p-3 rounded-xl bg-gradient-to-br ${card.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                             <card.icon className={`h-5 w-5 md:h-6 md:w-6 ${card.iconColor}`} />
                           </div>
-                          {card.badgeText && (
-                            <Badge className={`${card.badgeColor} text-xs`}>
+                          {card.badgeText &&
+                        <Badge className={`${card.badgeColor} text-xs`}>
                               {card.badgeText}
                             </Badge>
-                          )}
+                        }
                         </div>
                         <CardTitle className="text-lg md:text-xl group-hover:bg-gradient-to-r group-hover:from-sky-500 group-hover:to-blue-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                           {card.title}
@@ -429,11 +429,11 @@ export default function MemberDashboard() {
           </div>
 
           {/* Profile Quick Link - Only show for logged in members */}
-          {member && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1 }}>
+          {member &&
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}>
               
               <Link href="/member/profile">
                 <Card className="border-2 border-sky-200 bg-gradient-to-br from-sky-50/50 to-blue-50/30 hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer">
@@ -457,7 +457,7 @@ export default function MemberDashboard() {
                 </Card>
               </Link>
             </motion.div>
-          )}
+          }
         </div>
       </div>
     </MemberLayout>);
