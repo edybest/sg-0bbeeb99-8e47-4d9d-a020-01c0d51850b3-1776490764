@@ -36,21 +36,34 @@ const getURL = () => {
   return url
 }
 
+// Helper to add timeout to promises
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+}
+
 export const authService = {
   // Refresh session (called automatically by Supabase, but exposed for manual refresh)
   async refreshSession(): Promise<{ session: Session | null; error: AuthError | null }> {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
+      const { data, error } = await withTimeout(
+        supabase.auth.refreshSession(),
+        8000 // 8 second timeout
+      );
       
       if (error) {
         return { session: null, error: { message: error.message } };
       }
 
       return { session: data.session, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
         session: null, 
-        error: { message: "An unexpected error occurred during session refresh" } 
+        error: { message: error?.message || "An unexpected error occurred during session refresh" } 
       };
     }
   },
@@ -59,12 +72,10 @@ export const authService = {
   getCurrentUser: async (): Promise<Member | null> => {
     try {
       // Get session with extended timeout for long-lived sessions
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) => {
-        setTimeout(() => resolve({ data: { session: null } }), 2000);
-      });
-
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        5000 // 5 second timeout
+      );
 
       if (!session?.user) {
         return null;
@@ -104,20 +115,31 @@ export const authService = {
 
   // Get current session
   async getCurrentSession(): Promise<Session | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
+    try {
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        5000 // 5 second timeout
+      );
+      return session;
+    } catch (error) {
+      console.error("Error getting session:", error);
+      return null;
+    }
   },
 
   // Sign up with email and password
   async signUp(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${getURL()}auth/confirm-email`
-        }
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${getURL()}auth/confirm-email`
+          }
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { user: null, error: { message: error.message, code: error.status?.toString() } };
@@ -131,10 +153,10 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
         user: null, 
-        error: { message: "An unexpected error occurred during sign up" } 
+        error: { message: error?.message || "An unexpected error occurred during sign up" } 
       };
     }
   },
@@ -142,10 +164,13 @@ export const authService = {
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { user: null, error: { message: error.message, code: error.status?.toString() } };
@@ -159,10 +184,10 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
         user: null, 
-        error: { message: "An unexpected error occurred during sign in" } 
+        error: { message: error?.message || "An unexpected error occurred during sign in" } 
       };
     }
   },
@@ -170,16 +195,19 @@ export const authService = {
   // Sign out
   async signOut(): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await withTimeout(
+        supabase.auth.signOut(),
+        5000 // 5 second timeout
+      );
       
       if (error) {
         return { error: { message: error.message } };
       }
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
-        error: { message: "An unexpected error occurred during sign out" } 
+        error: { message: error?.message || "An unexpected error occurred during sign out" } 
       };
     }
   },
@@ -187,18 +215,21 @@ export const authService = {
   // Reset password
   async resetPassword(email: string): Promise<{ error: AuthError | null }> {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getURL()}auth/reset-password`,
-      });
+      const { error } = await withTimeout(
+        supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${getURL()}auth/reset-password`,
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { error: { message: error.message } };
       }
 
       return { error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
-        error: { message: "An unexpected error occurred during password reset" } 
+        error: { message: error?.message || "An unexpected error occurred during password reset" } 
       };
     }
   },
@@ -206,10 +237,13 @@ export const authService = {
   // Confirm email (REQUIRED)
   async confirmEmail(token: string, type: 'signup' | 'recovery' | 'email_change' = 'signup'): Promise<{ user: AuthUser | null; error: AuthError | null }> {
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: type
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.verifyOtp({
+          token_hash: token,
+          type: type
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { user: null, error: { message: error.message, code: error.status?.toString() } };
@@ -223,10 +257,10 @@ export const authService = {
       } : null;
 
       return { user: authUser, error: null };
-    } catch (error) {
+    } catch (error: any) {
       return { 
         user: null, 
-        error: { message: "An unexpected error occurred during email confirmation" } 
+        error: { message: error?.message || "An unexpected error occurred during email confirmation" } 
       };
     }
   },
@@ -243,8 +277,8 @@ export const authService = {
         return { error: { message: error.message, code: error.code } };
       }
       return { error: null };
-    } catch (error) {
-      return { error: { message: "An unexpected error occurred during admin verification" } };
+    } catch (error: any) {
+      return { error: { message: error?.message || "An unexpected error occurred during admin verification" } };
     }
   },
 
@@ -257,7 +291,10 @@ export const authService = {
   async adminLoginAsMember(memberId: string): Promise<{ success: boolean; error: AuthError | null }> {
     try {
       // Get current admin session first
-      const { data: { session: adminSession } } = await supabase.auth.getSession();
+      const { data: { session: adminSession } } = await withTimeout(
+        supabase.auth.getSession(),
+        5000 // 5 second timeout
+      );
       
       if (!adminSession) {
         return { success: false, error: { message: "No admin session found" } };
@@ -290,10 +327,13 @@ export const authService = {
       await supabase.auth.signOut();
 
       // Sign in as the member using the token
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'email'
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'email'
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { success: false, error: { message: error.message } };
@@ -338,10 +378,13 @@ export const authService = {
       const { token } = await response.json();
 
       // Sign in as admin using the token
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'email'
-      });
+      const { error } = await withTimeout(
+        supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'email'
+        }),
+        10000 // 10 second timeout
+      );
 
       if (error) {
         return { success: false, error: { message: error.message } };
