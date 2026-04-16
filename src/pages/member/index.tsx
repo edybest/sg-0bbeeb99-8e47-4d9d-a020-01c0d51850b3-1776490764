@@ -281,11 +281,58 @@ export default function MemberDashboard() {
               <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto px-4">
                 Dashboard anda untuk semua aktiviti bowling di AMBC Club 🎳
               </p>
+              
+              {/* Login Button untuk pengguna yang belum log masuk */}
+              {!member && (
+                <div className="mt-6">
+                  <Link href="/login">
+                    <Button size="lg" className="bg-white text-sky-600 hover:bg-gray-100 font-semibold shadow-lg px-8 py-6 text-lg">
+                      <Users className="h-5 w-5 mr-2" />
+                      Log Masuk untuk Lihat Statistik
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>
 
         <div className="container max-w-6xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8 pb-24 md:pb-8">
+          {/* Login Promotion Card - Only show for non-logged in users */}
+          {!member && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}>
+              <Link href="/login">
+                <Card className="border-2 border-sky-400 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500" />
+                  <CardContent className="py-8 px-6 md:py-10 md:px-8">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="flex items-center gap-4 md:gap-6">
+                        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                          <Trophy className="h-8 w-8 md:h-10 md:w-10 text-white" />
+                        </div>
+                        <div className="text-center md:text-left">
+                          <h3 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                            Lihat Statistik Anda!
+                          </h3>
+                          <p className="text-sm md:text-base text-muted-foreground">
+                            Log masuk untuk melihat purata skor, kedudukan, rekod tertinggi dan banyak lagi 📊
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="lg" className="bg-gradient-to-r from-sky-500 to-blue-500 hover:from-sky-600 hover:to-blue-600 text-white shadow-lg px-8 whitespace-nowrap">
+                        <Users className="h-5 w-5 mr-2" />
+                        Log Masuk Sekarang
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
+          )}
+          
           {/* Quick Stats - Only show for logged in members */}
           {member && (
             <motion.div
