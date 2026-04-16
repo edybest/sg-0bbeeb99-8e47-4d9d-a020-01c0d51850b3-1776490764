@@ -154,6 +154,24 @@ export default function LanePage() {
     }
   }
 
+  function normalizeLaneNumber(input: string): string {
+    // Jika sudah ada "/", biarkan sahaja
+    if (input.includes("/")) {
+      return input.trim();
+    }
+
+    // Cuba parse sebagai nombor
+    const num = parseInt(input.trim());
+    if (isNaN(num) || num < 1) {
+      return input.trim();
+    }
+
+    // Auto-pair: nombor ganjil dengan nombor genap selepasnya
+    // 1→1/2, 2→1/2, 3→3/4, 4→3/4, 5→5/6, 6→5/6, dst
+    const baseLane = num % 2 === 1 ? num : num - 1;
+    return `${baseLane}/${baseLane + 1}`;
+  }
+
   async function handleSaveConfig(configId: string) {
     if (!isAdmin) return;
     const config = laneConfigs.find(c => c.id === configId);
@@ -161,14 +179,16 @@ export default function LanePage() {
 
     try {
       setSaving(true);
+      const normalizedLane = normalizeLaneNumber(editValue);
+      
       await withLoading("member:lane:save-config", async () =>
-        laneService.updateLaneConfiguration(configId, config.lane_sebenar, editValue, selectedGameId)
+        laneService.updateLaneConfiguration(configId, config.lane_sebenar, normalizedLane, selectedGameId)
       );
       
       setLaneConfigs(prev => 
         prev.map(c => 
           c.id === configId 
-            ? { ...c, lane_sebenar: editValue }
+            ? { ...c, lane_sebenar: normalizedLane }
             : c
         )
       );
