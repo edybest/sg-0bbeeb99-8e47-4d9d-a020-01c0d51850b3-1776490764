@@ -848,12 +848,34 @@ export function ScoreManagement() {
     if (!selectedGameId) return;
     try {
       setIsSyncingCouples(true);
-      await doubleService.syncDoubleScoresForGame(selectedGameId);
+      
+      // Sync Double scores first
+      const doubleResult = await doubleService.syncDoubleScoresForGame(selectedGameId);
+      
+      // Sync Couple scores
       await coupleService.syncCoupleScoresForGame(selectedGameId);
-      alert("Berjaya menyelaraskan skor double & couple dari skor individu secara automatik!");
+      
+      // Show detailed feedback
+      let message = "";
+      if (doubleResult.success) {
+        message += `✅ DOUBLE: ${doubleResult.message}\n`;
+        if (doubleResult.details && doubleResult.details.length > 0) {
+          message += "\nContoh pengiraan:\n";
+          doubleResult.details.slice(0, 3).forEach((d: any, i: number) => {
+            message += `${i + 1}. P1: ${d.player1_score} + P2: ${d.player2_score} = ${d.total}\n`;
+          });
+        }
+      } else {
+        message += `❌ DOUBLE: ${doubleResult.message}\n`;
+      }
+      
+      message += `\n✅ COUPLE: Berjaya sync skor couple!\n\n`;
+      message += `Sila semak halaman kedudukan Double/Couple untuk lihat perubahan.`;
+      
+      alert(message);
     } catch (error) {
       console.error(error);
-      alert("Ralat semasa sync skor double.");
+      alert("Ralat semasa sync skor double & couple.");
     } finally {
       setIsSyncingCouples(false);
     }
