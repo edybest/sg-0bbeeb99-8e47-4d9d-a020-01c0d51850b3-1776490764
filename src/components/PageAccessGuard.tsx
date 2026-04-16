@@ -1,124 +1,82 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Loader2 } from "lucide-react";
-import { pageAccessService } from "@/services/pageAccessService";
+import { useAuth } from "@/hooks/useAuth";
+import { BowlingBallLoader } from "./BowlingBallLoader";
 
-interface PageAccessGuardProps {
-  children: React.ReactNode;
-  pagePath: string;
-  requireAuth?: boolean;
-  renderLoading?: () => JSX.Element | null;
-}
+const LOADING_TIMEOUT = 8000; // 8 seconds max loading time
 
-export function PageAccessGuard({
-  children,
-  pagePath,
-  requireAuth = false,
-  renderLoading,
-}: PageAccessGuardProps) {
+export function PageAccessGuard({ children }: { children: React.ReactNode }) {
+  const { session, loading, isAdmin } = useAuth();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
-  const checkingRef = useRef(false);
-  const mountedRef = useRef(true);
+  const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
+
+  // Safety timeout to prevent infinite loading
+  useEffect(() => {
+    if (!loading) {
+      setShowTimeoutMessage(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setShowTimeoutMessage(true);
+      console.error("Session check timeout - forcing redirect");
+      
+      // Force redirect to login after timeout
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    }, LOADING_TIMEOUT);
+
+    return () => clearTimeout(timeoutId);
+  }, [loading, router]);
 
   useEffect(() => {
-    mountedRef.current = true;
+    if (loading) return;
 
-    if (!router.isReady) return;
-    if (checkingRef.current) return;
-    
-    checkAccess();
+    const path = router.pathname;
 
-    return () => {
-      mountedRef.current = false;
-      checkingRef.current = false;
-    };
-  }, [pagePath, router.isReady, router.query.share]);
-
-  const checkAccess = async () => {
-    if (checkingRef.current) return;
-
-    checkingRef.current = true;
-
-    // Fail-open timeout: 1.5s
-    const timeoutId = setTimeout(() => {
-      if (!mountedRef.current) return;
-      console.warn("⏱️ Page access check timeout - allowing access");
-      checkingRef.current = false;
-      setHasAccess(true);
-      setLoading(false);
-    }, 1500);
-    
-    try {
-      // Bypass for public share links
-      if (router.pathname === "/member/mini-blok" && router.query.share) {
-        clearTimeout(timeoutId);
-        setHasAccess(true);
-        setLoading(false);
-        checkingRef.current = false;
-        return;
+    // Public routes
+    if (["/", "/login", "/signup"].includes(path)) {
+      if (session) {
+        // Redirect authenticated users
+        router.push(isAdmin ? "/admin" : "/member");
       }
-
-      const userRole = await pageAccessService.getUserRole();
-      
-      if (!mountedRef.current) return;
-      
-      const accessCheck = await pageAccessService.checkPageAccess(pagePath, userRole);
-      
-      clearTimeout(timeoutId);
-
-      if (!mountedRef.current) return;
-
-      if (!accessCheck.isEnabled) {
-        router.push("/");
-        return;
-      }
-
-      if (!accessCheck.hasAccess) {
-        if (userRole === "guest") {
-          router.push("/login");
-        } else if (userRole === "member" && accessCheck.accessLevel === "admin") {
-          router.push("/member");
-        } else {
-          router.push("/");
-        }
-        return;
-      }
-
-      setHasAccess(true);
-      setLoading(false);
-    } catch (error) {
-      console.error("❌ Error checking page access:", error);
-      clearTimeout(timeoutId);
-      
-      if (mountedRef.current) {
-        setHasAccess(true);
-        setLoading(false);
-      }
-    } finally {
-      if (mountedRef.current) {
-        checkingRef.current = false;
-      }
+      return;
     }
-  };
+
+    // Protected routes
+    if (!session) {
+      router.push("/login");
+      return;
+    }
+
+    // Admin-only routes
+    if (path.startsWith("/admin") && !isAdmin) {
+      router.push("/member");
+      return;
+    }
+
+    // Member-only routes
+    if (path.startsWith("/member") && isAdmin) {
+      router.push("/admin");
+      return;
+    }
+  }, [session, loading, isAdmin, router]);
 
   if (loading) {
-    if (renderLoading) {
-      return renderLoading();
-    }
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 to-blue-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 animate-spin text-sky-600" />
-          <p className="text-sky-600 font-medium">Loading...</p>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+        <BowlingBallLoader />
+        <p className="text-white mt-8 text-lg font-semibold animate-pulse">
+          {showTimeoutMessage ? "Mengalami masalah sambungan..." : "Checking session..."}
+        </p>
+        {showTimeoutMessage && (
+          <p className="text-gray-300 mt-2 text-sm">
+            Anda akan dibawa ke halaman login sebentar lagi...
+          </p>
+        )}
       </div>
     );
-  }
-
-  if (!hasAccess) {
-    return null;
   }
 
   return <>{children}</>;
