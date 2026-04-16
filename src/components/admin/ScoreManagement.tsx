@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { gameService } from "@/services/gameService";
 import { memberService } from "@/services/memberService";
 import { coupleService } from "@/services/coupleService";
+import { doubleService } from "@/services/doubleService";
 import { CoupleScoreEntry } from "./CoupleScoreEntry";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -333,7 +334,8 @@ export function ScoreManagement() {
         handicap: updates.handicap
       });
 
-      // Auto-sync couple scores if there are any
+      // Auto-sync double & couple scores
+      await doubleService.syncDoubleScoresForGame(selectedGameId);
       await coupleService.syncCoupleScoresForGame(selectedGameId);
 
       // Melangkau panggilan "loadGamePlayers" untuk mengelakkan UI tersekat (freeze)
@@ -396,7 +398,8 @@ export function ScoreManagement() {
         await Promise.all(promises);
       }
 
-      // Auto-sync couple scores
+      // Auto-sync double & couple scores
+      await doubleService.syncDoubleScoresForGame(selectedGameId);
       await coupleService.syncCoupleScoresForGame(selectedGameId);
 
       // Melangkau panggilan "loadGamePlayers" untuk kelajuan maksimum
@@ -756,6 +759,7 @@ export function ScoreManagement() {
     });
 
     if (!skipSync) {
+      await doubleService.syncDoubleScoresForGame(targetGameId);
       await coupleService.syncCoupleScoresForGame(targetGameId);
     }
 
@@ -792,6 +796,7 @@ export function ScoreManagement() {
     }
 
     if (selectedGameId) {
+      await doubleService.syncDoubleScoresForGame(selectedGameId);
       await coupleService.syncCoupleScoresForGame(selectedGameId);
     }
 
@@ -843,8 +848,9 @@ export function ScoreManagement() {
     if (!selectedGameId) return;
     try {
       setIsSyncingCouples(true);
+      await doubleService.syncDoubleScoresForGame(selectedGameId);
       await coupleService.syncCoupleScoresForGame(selectedGameId);
-      alert("Berjaya menyelaraskan skor double dari skor individu secara automatik!");
+      alert("Berjaya menyelaraskan skor double & couple dari skor individu secara automatik!");
     } catch (error) {
       console.error(error);
       alert("Ralat semasa sync skor double.");
@@ -901,7 +907,7 @@ export function ScoreManagement() {
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isSyncingCouples ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              {isSyncingCouples ? "Syncing..." : "Sync Double"}
+              {isSyncingCouples ? "Syncing..." : "Sync Double & Couple"}
             </Button>
           )}
           <Button
