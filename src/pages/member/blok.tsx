@@ -1448,9 +1448,18 @@ export default function BlokPage() {
                                                     </div>
 
                                                     <div className="flex-1 min-w-0 pr-2">
-                                                        <div className="font-bold text-base text-slate-800 truncate">
+                                                        <Link
+                                                            href={`/member/profile?id=${player.member.id}`}
+                                                            className="font-bold text-base text-slate-800 hover:text-sky-600 truncate block transition-colors"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
                                                             {player.member.username}
-                                                        </div>
+                                                        </Link>
+                                                        {player.rank > 1 && leaderboard[0] && (
+                                                            <div className="text-xs text-red-500 font-medium mt-0.5">
+                                                                -{leaderboard[0].overall_score - player.overall_score}
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <div className="flex-shrink-0 flex items-center gap-3">
