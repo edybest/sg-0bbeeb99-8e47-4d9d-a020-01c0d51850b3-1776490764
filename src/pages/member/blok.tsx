@@ -812,34 +812,34 @@ export default function BlokPage() {
             case 1:
                 return (
                     <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 10, duration: 0.5 }}
-                        className="relative"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                        className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-lg font-bold text-white border-2 border-yellow-300 shadow-lg"
                     >
-                        <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />
+                        1
                     </motion.div>
                 );
             case 2:
                 return (
                     <motion.div
-                        initial={{ scale: 0, y: -20 }}
-                        animate={{ scale: 1, y: 0 }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
                         transition={{ delay: 0.1, type: "spring", stiffness: 180, damping: 12 }}
-                        className="relative"
+                        className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-base font-bold text-white border-2 border-gray-200 shadow-md"
                     >
-                        <Trophy className="w-9 h-9 text-gray-400 drop-shadow-md" />
+                        2
                     </motion.div>
                 );
             case 3:
                 return (
                     <motion.div
-                        initial={{ scale: 0, x: 20, opacity: 0 }}
-                        animate={{ scale: 1, x: 0, opacity: 1 }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring", stiffness: 160, damping: 14 }}
-                        className="relative"
+                        className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-sm font-bold text-white border-2 border-amber-500 shadow-md"
                     >
-                        <Trophy className="w-8 h-8 text-amber-700 drop-shadow-md" />
+                        3
                     </motion.div>
                 );
             default:
