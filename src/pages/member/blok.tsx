@@ -573,7 +573,7 @@ export default function BlokPage() {
             const cleanGameData = gameData?.clean_game_data as any;
             
             if (!cleanGameData) {
-                setCleanGameWinners([]);
+                setCleanGameDataByGame({});
                 setLoadingCleanGame(false);
                 return;
             }
@@ -622,10 +622,10 @@ export default function BlokPage() {
                 }));
             }
 
-            setCleanGameWinners(winnersByGame);
+            setCleanGameDataByGame(winnersByGame);
         } catch (error) {
             console.error("Error loading clean game winners:", error);
-            setCleanGameWinners([]);
+            setCleanGameDataByGame({});
         } finally {
             setLoadingCleanGame(false);
         }
