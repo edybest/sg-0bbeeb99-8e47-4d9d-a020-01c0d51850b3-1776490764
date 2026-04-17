@@ -7,7 +7,21 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { doubleService } from "@/services/doubleService";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { MemberLayout } from "@/components/member/MemberLayout";
@@ -30,7 +44,6 @@ import {
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -1119,6 +1132,99 @@ export default function BlokPage() {
                                                     <Users className="w-4 h-4 mr-2" />
                                                     Men vs Women
                                                 </Button>
+                                            )}
+
+                                            {/* Clean Game Button */}
+                                            {cleanGameData && (
+                                                <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 shadow-lg">
+                                                    <CardContent className="p-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="bg-emerald-500 p-3 rounded-full shadow-md">
+                                                                    <Sparkles className="w-6 h-6 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="text-lg font-bold text-emerald-800">Clean Game Winners</h3>
+                                                                    <p className="text-sm text-emerald-600">Pemenang Semua Game</p>
+                                                                </div>
+                                                            </div>
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+                                                                        <Trophy className="w-4 h-4 mr-2" />
+                                                                        Lihat Pemenang
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle className="flex items-center gap-2 text-2xl">
+                                                                            <Sparkles className="w-6 h-6 text-emerald-600" />
+                                                                            Clean Game Winners
+                                                                        </DialogTitle>
+                                                                        <DialogDescription>
+                                                                            Pemenang untuk semua game dengan clean game
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <div className="space-y-4 mt-4">
+                                                                        {[1, 2, 3, 4, 5].map((gameNum) => {
+                                                                            const winners = cleanGameData[`game${gameNum}` as keyof typeof cleanGameData] || [];
+                                                                            const prize = cleanGameData.prizes?.[`game${gameNum}` as keyof typeof cleanGameData.prizes] || 0;
+                                                                                
+                                                                            return (
+                                                                                <div key={gameNum} className="border-2 border-emerald-100 rounded-lg p-4 bg-gradient-to-br from-white to-emerald-50">
+                                                                                    <div className="flex items-center justify-between mb-3">
+                                                                                        <h4 className="font-bold text-lg text-emerald-800">Game {gameNum}</h4>
+                                                                                        <div className="bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                                                                                            RM {prize.toFixed(2)}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    {winners.length > 0 ? (
+                                                                                        <div className="space-y-2">
+                                                                                            {winners.map((winner, idx) => (
+                                                                                                <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
+                                                                                                    <div className="flex-shrink-0">
+                                                                                                        {winner.avatar_url ? (
+                                                                                                            <Image
+                                                                                                                src={winner.avatar_url}
+                                                                                                                alt={winner.username}
+                                                                                                                width={40}
+                                                                                                                height={40}
+                                                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-emerald-200"
+                                                                                                                loading="lazy"
+                                                                                                                unoptimized
+                                                                                                            />
+                                                                                                        ) : (
+                                                                                                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-600 text-lg border-2 border-emerald-200">
+                                                                                                                {winner.username[0].toUpperCase()}
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="flex-1">
+                                                                                                        <div className="font-bold text-slate-800">{winner.username}</div>
+                                                                                                        <div className="text-sm text-emerald-600">Pemenang</div>
+                                                                                                    </div>
+                                                                                                    <div className="text-right">
+                                                                                                        <div className="text-lg font-bold text-emerald-600">
+                                                                                                            RM {prize.toFixed(2)}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="text-center py-4 text-slate-500">
+                                                                                            Tiada pemenang
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
                                             )}
                                         </div>
                                     )}
