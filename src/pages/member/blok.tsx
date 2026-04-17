@@ -1400,25 +1400,25 @@ export default function BlokPage() {
                                                 <div className="flex items-center gap-3 pb-3 border-b border-white/40">
                                                     <div className="flex-shrink-0">
                                                         {player.rank <= 3 ? (
-                                                            <div className="w-12 h-12 flex items-center justify-center">
+                                                            <div className="w-10 h-10 flex items-center justify-center">
                                                                 {player.rank === 1 && (
-                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-lg font-bold text-white border-2 border-yellow-300 shadow-lg">
+                                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-base font-bold text-white border-2 border-yellow-300 shadow-md">
                                                                         1
                                                                     </div>
                                                                 )}
                                                                 {player.rank === 2 && (
-                                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-base font-bold text-white border-2 border-gray-200 shadow-md">
+                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-sm font-bold text-white border-2 border-gray-200 shadow-sm">
                                                                         2
                                                                     </div>
                                                                 )}
                                                                 {player.rank === 3 && (
-                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-sm font-bold text-white border-2 border-amber-500 shadow-md">
+                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-sm font-bold text-white border-2 border-amber-500 shadow-sm">
                                                                         3
                                                                     </div>
                                                                 )}
                                                             </div>
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
+                                                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
                                                                 {player.rank}
                                                             </div>
                                                         )}
@@ -1429,79 +1429,64 @@ export default function BlokPage() {
                                                             <Image
                                                                 src={player.member.avatar_url}
                                                                 alt={player.member.username}
-                                                                width={48}
-                                                                height={48}
-                                                                className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                                                width={40}
+                                                                height={40}
+                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
                                                                 loading="lazy"
                                                                 unoptimized
                                                             />
                                                         ) : (
-                                                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-xl border-2 border-white shadow-md">
+                                                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
                                                                 {player.member.username[0].toUpperCase()}
                                                             </div>
                                                         )}
                                                         {player.clean_game && (
-                                                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-md">
-                                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm">
+                                                                <Sparkles className="w-3 h-3 text-amber-500" />
                                                             </div>
                                                         )}
                                                     </div>
 
-                                                    <div className="flex-1 min-w-0">
+                                                    <div className="flex-1 min-w-0 pr-2">
                                                         <div className="font-bold text-base text-slate-800 truncate">
                                                             {player.member.username}
                                                         </div>
-                                                        <div className="text-2xl font-bold text-emerald-600">
-                                                            {player.total_score}
-                                                        </div>
                                                     </div>
 
-                                                    <div className="flex-shrink-0">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleLikePlayer(player.member.id);
-                                                            }}
-                                                            className={cn(
-                                                                "gap-1.5 h-9 px-3",
-                                                                likedPlayers.has(player.member.id)
-                                                                    ? "text-red-500 hover:text-red-600"
-                                                                    : "text-slate-400 hover:text-slate-600"
-                                                            )}
+                                                    <div className="flex-shrink-0 flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <div className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest">Overall</div>
+                                                            <div className="text-xl font-black text-emerald-600 leading-none mt-0.5">
+                                                                {player.overall_score}
+                                                            </div>
+                                                        </div>
+                                                        <div className="h-8 w-px bg-slate-200"></div>
+                                                        <button
+                                                            onClick={(e) => handleReaction(player.id, e)}
+                                                            disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                                            className="flex flex-col items-center justify-center text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors w-8"
                                                         >
-                                                            <ThumbsUp
-                                                                className={cn(
-                                                                    "w-4 h-4",
-                                                                    likedPlayers.has(player.member.id) && "fill-current"
-                                                                )}
-                                                            />
-                                                            <span className="font-semibold text-sm">
-                                                                {player.member.like_count || 0}
-                                                            </span>
-                                                        </Button>
+                                                            <ThumbsUp className="w-5 h-5 mb-0.5" />
+                                                            <span className="font-bold text-xs">{player.likes_count || 0}</span>
+                                                        </button>
                                                     </div>
                                                 </div>
 
                                                 {/* Game Scores */}
-                                                <div className="space-y-3">
-                                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                        <Target className="w-4 h-4" />
-                                                        <span className="font-semibold">Skor Setiap Game</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-5 gap-2">
+                                                <div className="space-y-2">
+                                                    <div className="grid grid-cols-5 gap-1.5">
                                                         {[1, 2, 3, 4, 5].map((gameNum) => {
-                                                            const score = player.game_scores?.[`game${gameNum}`];
+                                                            const scoreKey = `game${gameNum}_score` as keyof LeaderboardEntry;
+                                                            const score = player[scoreKey] as number;
                                                             return (
                                                                 <div
                                                                     key={gameNum}
-                                                                    className="bg-sky-500 text-white rounded-lg p-2.5 text-center shadow-sm"
+                                                                    className="bg-sky-500 text-white rounded p-1.5 text-center shadow-sm"
                                                                 >
-                                                                    <div className="text-xs font-medium opacity-90">
+                                                                    <div className="text-[10px] font-semibold opacity-90">
                                                                         G{gameNum}
                                                                     </div>
-                                                                    <div className="text-lg font-bold mt-0.5">
+                                                                    <div className="text-sm font-bold mt-0.5">
                                                                         {score || 0}
                                                                     </div>
                                                                 </div>
@@ -1511,28 +1496,28 @@ export default function BlokPage() {
                                                 </div>
 
                                                 {/* Stats */}
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
-                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
                                                             Total
                                                         </div>
-                                                        <div className="text-lg font-bold text-slate-800 mt-1">
+                                                        <div className="text-base font-bold text-slate-800 mt-0.5">
                                                             {player.total_score}
                                                         </div>
                                                     </div>
-                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
-                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
-                                                            Handicap
+                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                            Hcp
                                                         </div>
-                                                        <div className="text-lg font-bold text-sky-600 mt-1">
+                                                        <div className="text-base font-bold text-sky-600 mt-0.5">
                                                             {player.handicap || 0}
                                                         </div>
                                                     </div>
-                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
-                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
-                                                            Average
+                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                            Avg
                                                         </div>
-                                                        <div className="text-lg font-bold text-purple-600 mt-1">
+                                                        <div className="text-base font-bold text-purple-600 mt-0.5">
                                                             {player.average_score.toFixed(1)}
                                                         </div>
                                                     </div>
