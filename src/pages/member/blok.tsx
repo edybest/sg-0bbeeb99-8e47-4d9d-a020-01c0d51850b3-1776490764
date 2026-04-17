@@ -218,6 +218,7 @@ export default function BlokPage() {
 
     const [loadingGames, setLoadingGames] = useState(true);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
     const [leaderboardBase, setLeaderboardBase] = useState<LeaderboardEntry[]>([]);
@@ -432,9 +433,18 @@ export default function BlokPage() {
         async (gameId: string) => {
             if (!gameId) return;
 
-            try {
-                setLoadingLeaderboard(true);
+            setLoadingLeaderboard(true);
+            setLoadingProgress(0);
 
+            // Simulasi progress bar supaya nampak lebih responsif
+            const progressInterval = setInterval(() => {
+                setLoadingProgress((prev) => {
+                    if (prev >= 85) return prev; // Hold at 85% until real data finishes
+                    return prev + Math.floor(Math.random() * 15) + 5;
+                });
+            }, 300);
+
+            try {
                 const { data: rawData, error: dbError } = await supabase
                     .from("game_players")
                     .select(
@@ -443,6 +453,7 @@ export default function BlokPage() {
                     .eq("game_id", gameId);
 
                 if (dbError) throw dbError;
+                setLoadingProgress(90);
 
                 const scores = (rawData ?? []) as unknown as RawPlayerScore[];
                 const nextBase = buildLeaderboard(scores);
@@ -512,18 +523,25 @@ export default function BlokPage() {
                 previousLeaderboardRef.current = nextBase;
                 setLeaderboardBase(nextBase);
                 setLeaderboard(applyCurrentSort(nextBase, sortField, sortDirection));
-                void loadUserLikesCount(
+                
+                await loadUserLikesCount(
                     nextBase.map((p) => p.id),
                     gameId
                 );
                 
+                setLoadingProgress(100);
                 console.log("First player member data:", nextBase[0]?.member);
             } catch (err) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load leaderboard";
                 toast({ title: "Error", description: message, variant: "destructive" });
+                setLoadingProgress(100);
             } finally {
-                setLoadingLeaderboard(false);
+                clearInterval(progressInterval);
+                setTimeout(() => {
+                    setLoadingLeaderboard(false);
+                    setLoadingProgress(0);
+                }, 400); // Hold the 100% state briefly for UX before vanishing
             }
         },
         [applyCurrentSort, loadUserLikesCount, sortDirection, sortField, toast]
@@ -1201,7 +1219,7 @@ export default function BlokPage() {
                                         <p>Tiada data clean game dijumpai.</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 mt-2">
+                                    <div className="space-y-4">
                                         {[1, 2, 3, 4, 5].map((gameNum) => {
                                             const winners = cleanGameDataByGame[gameNum] || [];
                                             return (
@@ -1314,50 +1332,9 @@ export default function BlokPage() {
 
                                     {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
                                         <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
-                                            <span className="text-sm font-medium text-sky-700 mt-1">Aktif:</span>
-                                            {searchQuery && (
-                                                <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
-                                                    Carian: {searchQuery.split(",").filter((s) => s.trim()).length} nama
-                                                    <button
-                                                        onClick={() => setSearchQuery("")}
-                                                        className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </span>
-                                            )}
-                                            {genderFilter !== "ALL" && (
-                                                <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
-                                                    {genderFilter === "men" ? "Lelaki" : "Perempuan"}
-                                                    <button
-                                                        onClick={() => setGenderFilter("ALL")}
-                                                        className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </span>
-                                            )}
-                                            {techniqueFilter !== "ALL" && (
-                                                <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
-                                                    {techniqueFilter}
-                                                    <button
-                                                        onClick={() => setTechniqueFilter("ALL")}
-                                                        className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </span>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    setSearchQuery("");
-                                                    setGenderFilter("ALL");
-                                                    setTechniqueFilter("ALL");
-                                                }}
-                                                className="text-xs text-red-600 hover:text-red-800 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors"
-                                            >
+                                            <span className="text-sm text-red-600 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors">
                                                 Reset Semua
-                                            </button>
+                                            </span>
                                         </div>
                                     )}
 
@@ -1374,7 +1351,20 @@ export default function BlokPage() {
                             <>
                                 {/* ── Mobile card layout ── */}
                                 <div className="block md:hidden space-y-3 mb-6">
-                                    {filteredLeaderboard.length > 0 && (
+                                    {loadingLeaderboard ? (
+                                        <div className="py-10 bg-white rounded-xl border border-sky-200 shadow-sm text-center px-6">
+                                            <Loader2 className="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
+                                            <div className="w-full bg-sky-100 rounded-full h-2.5 mb-2 overflow-hidden">
+                                                <div 
+                                                    className="bg-sky-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
+                                                    style={{ width: `${loadingProgress}%` }}
+                                                ></div>
+                                            </div>
+                                            <p className="text-sky-700 font-bold text-sm animate-pulse">
+                                                Memuatkan Leaderboard... {loadingProgress}%
+                                            </p>
+                                        </div>
+                                    ) : filteredLeaderboard.length > 0 && (
                                         <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
                                             <div>
                                                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -1516,7 +1506,7 @@ export default function BlokPage() {
                                                 {/* Stats */}
                                                 <div className="grid grid-cols-3 gap-1.5 pt-1">
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Total
                                                         </div>
                                                         <div className="text-base font-bold text-slate-800 mt-0.5">
@@ -1524,7 +1514,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Hcp
                                                         </div>
                                                         <div className="text-base font-bold text-sky-600 mt-0.5">
@@ -1532,7 +1522,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Avg
                                                         </div>
                                                         <div className="text-base font-bold text-purple-600 mt-0.5">
@@ -1613,10 +1603,18 @@ export default function BlokPage() {
                                                 {loadingLeaderboard ? (
                                                     <tr>
                                                         <td colSpan={13} className="py-20 text-center">
-                                                            <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
-                                                            <span className="text-sky-600 mt-2 block">
-                                                                Memuatkan skor...
-                                                            </span>
+                                                            <div className="max-w-sm mx-auto px-4">
+                                                                <Loader2 className="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
+                                                                <div className="w-full bg-sky-100 rounded-full h-2.5 mb-3 overflow-hidden">
+                                                                    <div 
+                                                                        className="bg-sky-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
+                                                                        style={{ width: `${loadingProgress}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                                <span className="text-sky-700 font-bold animate-pulse text-sm block">
+                                                                    Memuatkan skor... {loadingProgress}%
+                                                                </span>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ) : filteredLeaderboard.length === 0 ? (
