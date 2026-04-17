@@ -1401,13 +1401,19 @@ export default function BlokPage() {
                                                         {player.rank <= 3 ? (
                                                             <div className="w-12 h-12 flex items-center justify-center">
                                                                 {player.rank === 1 && (
-                                                                    <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />
+                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-lg font-bold text-white border-2 border-yellow-300 shadow-lg">
+                                                                        1
+                                                                    </div>
                                                                 )}
                                                                 {player.rank === 2 && (
-                                                                    <Trophy className="w-9 h-9 text-slate-400 drop-shadow-lg" />
+                                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-base font-bold text-white border-2 border-gray-200 shadow-md">
+                                                                        2
+                                                                    </div>
                                                                 )}
                                                                 {player.rank === 3 && (
-                                                                    <Trophy className="w-8 h-8 text-amber-700 drop-shadow-lg" />
+                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-sm font-bold text-white border-2 border-amber-500 shadow-md">
+                                                                        3
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         ) : (
