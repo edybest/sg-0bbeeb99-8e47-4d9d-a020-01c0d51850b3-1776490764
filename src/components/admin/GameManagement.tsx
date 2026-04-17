@@ -21,8 +21,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
@@ -31,6 +31,7 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   players?: any[];
   men_vs_women_enabled?: boolean;
   women_handicap?: number;
+  trio_enabled?: boolean;
 };
 
 interface DoubleRecord {
@@ -53,21 +54,45 @@ interface DoubleRecord {
   };
 }
 
+interface TrioRecord {
+  id: string;
+  game_id: string;
+  player1_id: string;
+  player2_id: string;
+  player3_id: string;
+  player1_score: number;
+  player2_score: number;
+  player3_score: number;
+  total_score: number;
+  player1?: {
+    id: string;
+    username: string;
+  };
+  player2?: {
+    id: string;
+    username: string;
+  };
+  player3?: {
+    id: string;
+    username: string;
+  };
+}
+
 const ITEMS_PER_PAGE = 5;
 
 const OPENING_MESSAGES = [
-"Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
-"Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
-"Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
-"Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!"];
-
+  "Tahniah [WINNER] menjadi champion blok mingguan AMBC.\nTerima kasih juga kepada semua yang sertai blok minggu ini. Anda semua terbaik!!",
+  "Syabas [WINNER] kerana menjuarai blok minggu ini!\nKepada semua peserta, terima kasih atas penyertaan yang hebat!",
+  "Alhamdulillah! Selamat kepada [WINNER] yang menjadi juara blok kali ini.\nAppreciate semua yang join. Keep up the good work!",
+  "Gempak! [WINNER] berjaya mencipta sejarah sebagai juara blok minggu ini!\nKudos kepada semua pemain. Anda semua rockstar!",
+];
 
 const CLOSING_MESSAGES = [
-"Jumpa lagi di blok akan datang.",
-"See you next blok! Semoga lebih ramai join!",
-"Blok seterusnya tunggu anda semua ya!",
-"Sampai jumpa lagi dalam blok akan datang. Good luck!"];
-
+  "Jumpa lagi di blok akan datang.",
+  "See you next blok! Semoga lebih ramai join!",
+  "Blok seterusnya tunggu anda semua ya!",
+  "Sampai jumpa lagi dalam blok akan datang. Good luck!",
+];
 
 export function GameManagement() {
   const { toast } = useToast();
@@ -81,7 +106,7 @@ export function GameManagement() {
   const [gameForm, setGameForm] = useState({
     game_name: "",
     game_date: "",
-    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE"
+    game_type: "BLOK" as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE",
   });
 
   // Double Game States
@@ -90,33 +115,26 @@ export function GameManagement() {
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
   const [doubleRecords, setDoubleRecords] = useState<Record<string, DoubleRecord[]>>({});
   const [loadingDoubles, setLoadingDoubles] = useState<Record<string, boolean>>({});
-  const [availableMembers, setAvailableMembers] = useState<Array<{id: string;username: string;full_name: string;}>>([]);
+  const [availableMembers, setAvailableMembers] = useState<
+    Array<{ id: string; username: string; full_name: string }>
+  >([]);
   const [doubleForm, setDoubleForm] = useState({
     player1_id: "",
     player2_id: "",
     player1_score: "",
-    player2_score: ""
+    player2_score: "",
   });
 
   // Trio Game States
   const [isTrioDialogOpen, setIsTrioDialogOpen] = useState(false);
   const [selectedGameForTrio, setSelectedGameForTrio] = useState<Game | null>(null);
   const [expandedTrioGame, setExpandedTrioGame] = useState<string | null>(null);
-  const [trioRecords, setTrioRecords] = useState<Record<string, Array<{
-    id: string;
-    player1: { id: string; username: string; };
-    player2: { id: string; username: string; };
-    player3: { id: string; username: string; };
-    player1_score: number;
-    player2_score: number;
-    player3_score: number;
-    total_score: number;
-  }>>>({});
+  const [trioRecords, setTrioRecords] = useState<Record<string, TrioRecord[]>>({});
   const [loadingTrios, setLoadingTrios] = useState<Record<string, boolean>>({});
   const [trioForm, setTrioForm] = useState({
     player1_id: "",
     player2_id: "",
-    player3_id: ""
+    player3_id: "",
   });
 
   // Men vs Women Exclusion states
@@ -126,9 +144,12 @@ export function GameManagement() {
   const [selectedGameForMenVsWomen, setSelectedGameForMenVsWomen] = useState<string | null>(null);
 
   // Delete Game Dialog
-  const [deleteGameDialog, setDeleteGameDialog] = useState<{open: boolean;game: Game | null;}>({
+  const [deleteGameDialog, setDeleteGameDialog] = useState<{
+    open: boolean;
+    game: Game | null;
+  }>({
     open: false,
-    game: null
+    game: null,
   });
 
   // Delete Player Dialog
@@ -141,7 +162,7 @@ export function GameManagement() {
     open: false,
     playerId: null,
     playerName: "",
-    gameId: null
+    gameId: null,
   });
 
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -153,7 +174,9 @@ export function GameManagement() {
   const [selectedClosingMessage, setSelectedClosingMessage] = useState(0);
   const [sharePreview, setSharePreview] = useState("");
   const [loadingTopPlayers, setLoadingTopPlayers] = useState(false);
-  const [topPlayers, setTopPlayers] = useState<Array<{rank: number;username: string;overall_score: number;}>>([]);
+  const [topPlayers, setTopPlayers] = useState<
+    Array<{ rank: number; username: string; overall_score: number }>
+  >([]);
 
   // Add Player states
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -173,11 +196,12 @@ export function GameManagement() {
       // Sort players alphabetically A-Z for each game
       const formattedGames = (data as any[]).map((game) => ({
         ...game,
-        players: game.players?.sort((a: any, b: any) => {
-          const nameA = (a.username || a.full_name || "").toLowerCase();
-          const nameB = (b.username || b.full_name || "").toLowerCase();
-          return nameA.localeCompare(nameB, 'ms-MY');
-        }) || []
+        players:
+          game.players?.sort((a: any, b: any) => {
+            const nameA = (a.username || a.full_name || "").toLowerCase();
+            const nameB = (b.username || b.full_name || "").toLowerCase();
+            return nameA.localeCompare(nameB, "ms-MY");
+          }) || [],
       }));
 
       setGames(formattedGames);
@@ -186,7 +210,7 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: "Gagal memuatkan senarai permainan",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -202,7 +226,7 @@ export function GameManagement() {
       const sortedMembers = (data || []).sort((a: any, b: any) => {
         const nameA = (a.username || a.full_name || "").toLowerCase();
         const nameB = (b.username || b.full_name || "").toLowerCase();
-        return nameA.localeCompare(nameB, 'ms-MY');
+        return nameA.localeCompare(nameB, "ms-MY");
       });
 
       setAvailableMembers(sortedMembers);
@@ -211,7 +235,7 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: "Gagal memuatkan senarai ahli",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoadingMembers(false);
@@ -223,7 +247,7 @@ export function GameManagement() {
     setGameForm({
       game_name: "",
       game_date: new Date().toISOString().split("T")[0],
-      game_type: "BLOK"
+      game_type: "BLOK",
     });
     setIsGameDialogOpen(true);
   };
@@ -233,7 +257,7 @@ export function GameManagement() {
     setGameForm({
       game_name: game.game_name,
       game_date: game.game_date,
-      game_type: game.game_type as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE" || "BLOK"
+      game_type: (game.game_type as "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") || "BLOK",
     });
     setIsGameDialogOpen(true);
   };
@@ -244,7 +268,7 @@ export function GameManagement() {
         toast({
           title: "Ralat",
           description: "Sila masukkan nama permainan",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -253,13 +277,13 @@ export function GameManagement() {
         await gameService.updateGame(editingGame.id, gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan telah dikemaskini"
+          description: "Permainan telah dikemaskini",
         });
       } else {
         await gameService.createGame(gameForm);
         toast({
           title: "Berjaya",
-          description: "Permainan baharu telah dicipta"
+          description: "Permainan baharu telah dicipta",
         });
       }
 
@@ -270,7 +294,7 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: editingGame ? "Gagal mengemaskini permainan" : "Gagal mencipta permainan",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -281,9 +305,10 @@ export function GameManagement() {
     setLoadingTopPlayers(true);
 
     try {
-      const { data: players, error } = await supabase.
-      from("game_players").
-      select(`
+      const { data: players, error } = await supabase
+        .from("game_players")
+        .select(
+          `
           id,
           member:members(id, username, full_name),
           game1_score,
@@ -293,22 +318,24 @@ export function GameManagement() {
           game5_score,
           total_score,
           handicap
-        `).
-      eq("game_id", game.id);
+        `
+        )
+        .eq("game_id", game.id);
 
       if (error) throw error;
 
-      const leaderboard = (players || []).map((p: any) => ({
-        username: p.member.username || p.member.full_name || "Unknown",
-        overall_score: (p.total_score || 0) + (p.handicap || 0)
-      })).
-      sort((a, b) => b.overall_score - a.overall_score).
-      slice(0, 3).
-      map((p, idx) => ({
-        rank: idx + 1,
-        username: p.username,
-        overall_score: p.overall_score
-      }));
+      const leaderboard = (players || [])
+        .map((p: any) => ({
+          username: p.member.username || p.member.full_name || "Unknown",
+          overall_score: (p.total_score || 0) + (p.handicap || 0),
+        }))
+        .sort((a, b) => b.overall_score - a.overall_score)
+        .slice(0, 3)
+        .map((p, idx) => ({
+          rank: idx + 1,
+          username: p.username,
+          overall_score: p.overall_score,
+        }));
 
       setTopPlayers(leaderboard);
       generatePreview(leaderboard, selectedOpeningMessage, selectedClosingMessage);
@@ -317,14 +344,18 @@ export function GameManagement() {
       toast({
         title: "Ralat",
         description: "Gagal memuatkan senarai pemain teratas",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoadingTopPlayers(false);
     }
   };
 
-  const generatePreview = (players: typeof topPlayers, openingIdx: number, closingIdx: number) => {
+  const generatePreview = (
+    players: typeof topPlayers,
+    openingIdx: number,
+    closingIdx: number
+  ) => {
     if (players.length === 0) {
       setSharePreview("Tiada pemain dijumpai untuk permainan ini.");
       return;
@@ -361,7 +392,7 @@ ${closingMsg}`;
     setShowWhatsAppShare(false);
     toast({
       title: "WhatsApp dibuka",
-      description: "Sila pilih penerima dan hantar mesej"
+      description: "Sila pilih penerima dan hantar mesej",
     });
   };
 
@@ -372,7 +403,7 @@ ${closingMsg}`;
       await gameService.deleteGame(deleteGameDialog.game.id);
       toast({
         title: "Berjaya Dipadam",
-        description: `Permainan "${deleteGameDialog.game.game_name}" telah dipadam.`
+        description: `Permainan "${deleteGameDialog.game.game_name}" telah dipadam.`,
       });
       setDeleteGameDialog({ open: false, game: null });
       loadGames();
@@ -381,7 +412,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: error.message || "Gagal memadam permainan.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -391,7 +422,7 @@ ${closingMsg}`;
       await gameService.updatePlayerFiveFiveStatus(playerId, !currentStatus);
       toast({
         title: "Berjaya",
-        description: `Status Five-Five telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`
+        description: `Status Five-Five telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
       });
       loadGames();
     } catch (error) {
@@ -399,23 +430,23 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal mengemaskini status Five-Five",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleToggleCleanGame = async (playerId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase.
-      from("game_players").
-      update({ clean_game: !currentStatus }).
-      eq("id", playerId);
+      const { error } = await supabase
+        .from("game_players")
+        .update({ clean_game: !currentStatus })
+        .eq("id", playerId);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: `Status Clean Game telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`
+        description: `Status Clean Game telah ${!currentStatus ? "diaktifkan" : "dinyahaktifkan"}`,
       });
       loadGames();
     } catch (error) {
@@ -423,7 +454,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal mengemaskini status Clean Game",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -435,13 +466,13 @@ ${closingMsg}`;
       await gameService.deletePlayerFromGameById(deletePlayerDialog.playerId);
       toast({
         title: "Berjaya",
-        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`
+        description: `${deletePlayerDialog.playerName} telah dibuang dari permainan`,
       });
       setDeletePlayerDialog({
         open: false,
         playerId: null,
         playerName: "",
-        gameId: null
+        gameId: null,
       });
       loadGames();
     } catch (error) {
@@ -449,7 +480,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal membuang pemain",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -467,7 +498,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih sekurang-kurangnya seorang ahli",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -475,17 +506,14 @@ ${closingMsg}`;
     try {
       const players = selectedMemberIds.map((memberId) => ({
         member_id: memberId,
-        is_fivefive: newPlayerFiveFive
+        is_fivefive: newPlayerFiveFive,
       }));
 
-      const result = await gameService.addPlayersToGameWithFiveFive(
-        selectedGameForPlayer,
-        players
-      );
+      const result = await gameService.addPlayersToGameWithFiveFive(selectedGameForPlayer, players);
 
       toast({
         title: "Berjaya",
-        description: result?.message || "Pemain telah ditambah ke permainan"
+        description: result?.message || "Pemain telah ditambah ke permainan",
       });
 
       setShowAddPlayer(false);
@@ -498,7 +526,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal menambah pemain",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -509,7 +537,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila benarkan 'pop-ups' untuk mencetak",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -520,15 +548,19 @@ ${closingMsg}`;
     const rightPlayers = players.slice(half);
 
     const generateTableRows = (playerList: any[], startIndex: number) => {
-      return playerList.map((p, i) => `
+      return playerList
+        .map(
+          (p, i) => `
         <tr>
           <td style="text-align: center;">${startIndex + i + 1}</td>
-          <td>${p.username || p.full_name || 'Unknown'}</td>
+          <td>${p.username || p.full_name || "Unknown"}</td>
           <td></td>
           <td></td>
           <td></td>
         </tr>
-      `).join('');
+      `
+        )
+        .join("");
     };
 
     const html = `
@@ -555,7 +587,7 @@ ${closingMsg}`;
         </style>
       </head>
       <body>
-        <h1>AMBC ${game.game_type === 'COUPLE' ? 'COUPLE' : game.game_type.replace('_', ' ')}</h1>
+        <h1>AMBC ${game.game_type === "COUPLE" ? "COUPLE" : game.game_type.replace("_", " ")}</h1>
         <div class="date">Date: ${game.game_date}</div>
         <div class="container">
           <div style="flex: 1;">
@@ -570,11 +602,17 @@ ${closingMsg}`;
                 </tr>
               </thead>
               <tbody>
-                ${players.length > 0 ? generateTableRows(leftPlayers, 0) : '<tr><td colspan="5" style="text-align: center;">Tiada pemain didaftarkan</td></tr>'}
+                ${
+                  players.length > 0
+                    ? generateTableRows(leftPlayers, 0)
+                    : '<tr><td colspan="5" style="text-align: center;">Tiada pemain didaftarkan</td></tr>'
+                }
               </tbody>
             </table>
           </div>
-          ${rightPlayers.length > 0 ? `
+          ${
+            rightPlayers.length > 0
+              ? `
           <div style="flex: 1;">
             <table>
               <thead>
@@ -591,9 +629,11 @@ ${closingMsg}`;
               </tbody>
             </table>
           </div>
-          ` : `
+          `
+              : `
           <div style="flex: 1;"></div>
-          `}
+          `
+          }
         </div>
         <script>
           window.onload = () => {
@@ -614,32 +654,34 @@ ${closingMsg}`;
   const loadAvailableMembersForDouble = async (gameId: string) => {
     try {
       // Fetch players who are playing in this specific game
-      const { data: gamePlayers, error } = await supabase.
-      from("game_players").
-      select(`
+      const { data: gamePlayers, error } = await supabase
+        .from("game_players")
+        .select(
+          `
           member_id,
           members (
             id,
             username,
             full_name
           )
-        `).
-      eq("game_id", gameId);
+        `
+        )
+        .eq("game_id", gameId);
 
       if (error) throw error;
 
       // Extract and sort members
-      const players = (gamePlayers || []).
-      map((gp: any) => ({
-        id: gp.members.id,
-        username: gp.members.username,
-        full_name: gp.members.full_name
-      })).
-      sort((a: any, b: any) => {
-        const nameA = (a.username || a.full_name || "").toLowerCase();
-        const nameB = (b.username || b.full_name || "").toLowerCase();
-        return nameA.localeCompare(nameB, 'ms-MY');
-      });
+      const players = (gamePlayers || [])
+        .map((gp: any) => ({
+          id: gp.members.id,
+          username: gp.members.username,
+          full_name: gp.members.full_name,
+        }))
+        .sort((a: any, b: any) => {
+          const nameA = (a.username || a.full_name || "").toLowerCase();
+          const nameB = (b.username || b.full_name || "").toLowerCase();
+          return nameA.localeCompare(nameB, "ms-MY");
+        });
 
       setAvailableMembers(players);
     } catch (error) {
@@ -652,21 +694,23 @@ ${closingMsg}`;
     try {
       setLoadingDoubles((prev) => ({ ...prev, [gameId]: true }));
 
-      const { data, error } = await (supabase as any).
-      from("double_records").
-      select(`
+      const { data, error } = await (supabase as any)
+        .from("double_records")
+        .select(
+          `
           *,
           player1:members!double_records_player1_id_fkey(id, username, full_name),
           player2:members!double_records_player2_id_fkey(id, username, full_name)
-        `).
-      eq("game_id", gameId).
-      order("total_score", { ascending: false });
+        `
+        )
+        .eq("game_id", gameId)
+        .order("total_score", { ascending: false });
 
       if (error) throw error;
 
       setDoubleRecords((prev) => ({
         ...prev,
-        [gameId]: data || []
+        [gameId]: data || [],
       }));
     } catch (error) {
       console.error("Error fetching double records:", error);
@@ -680,14 +724,16 @@ ${closingMsg}`;
 
     try {
       // Check if user is admin first
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       console.log("👤 Current user:", user?.id);
 
-      const { data: member } = await supabase.
-      from("members").
-      select("id, username, is_admin").
-      eq("user_id", user?.id).
-      single();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id, username, is_admin")
+        .eq("user_id", user?.id)
+        .single();
 
       console.log("👤 Member data:", member);
 
@@ -695,17 +741,17 @@ ${closingMsg}`;
         toast({
           title: "Akses Ditolak",
           description: "Hanya admin boleh mengubah tetapan ini",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       console.log("⚙️ Updating game double_enabled...");
-      const { data, error } = await supabase.
-      from("games").
-      update({ double_enabled: !currentValue }).
-      eq("id", gameId).
-      select();
+      const { data, error } = await supabase
+        .from("games")
+        .update({ double_enabled: !currentValue })
+        .eq("id", gameId)
+        .select();
 
       console.log("✅ Update result:", { data, error });
 
@@ -716,7 +762,7 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`
+        description: `Double game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
       });
 
       console.log("🔄 Reloading games...");
@@ -727,7 +773,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -736,7 +782,9 @@ ${closingMsg}`;
     console.log("🔄 Toggling trio game:", { gameId, currentValue, newValue: !currentValue });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data: member } = await supabase
         .from("members")
         .select("id, username, is_admin")
@@ -747,7 +795,7 @@ ${closingMsg}`;
         toast({
           title: "Akses Ditolak",
           description: "Hanya admin boleh mengubah tetapan ini",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -762,7 +810,7 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: `Trio game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`
+        description: `Trio game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
       });
 
       await loadGames();
@@ -771,32 +819,41 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: `Gagal mengemaskini: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const toggleMenVsWomen = async (gameId: string, currentValue: boolean) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase.
-      from("members").
-      select("is_admin").
-      eq("user_id", user?.id).
-      single();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("is_admin")
+        .eq("user_id", user?.id)
+        .single();
+
       if (!member?.is_admin) {
-        toast({ title: "Akses Ditolak", description: "Hanya admin boleh mengubah", variant: "destructive" });
+        toast({
+          title: "Akses Ditolak",
+          description: "Hanya admin boleh mengubah",
+          variant: "destructive",
+        });
         return;
       }
 
-      const { error } = await supabase.
-      from("games").
-      update({ men_vs_women_enabled: !currentValue }).
-      eq("id", gameId);
+      const { error } = await supabase
+        .from("games")
+        .update({ men_vs_women_enabled: !currentValue })
+        .eq("id", gameId);
 
       if (error) throw error;
-      toast({ title: "Berjaya", description: `Men vs Women ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}` });
+      toast({
+        title: "Berjaya",
+        description: `Men vs Women ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`,
+      });
       await loadGames();
     } catch (error) {
       toast({ title: "Ralat", description: "Gagal mengemaskini", variant: "destructive" });
@@ -805,13 +862,15 @@ ${closingMsg}`;
 
   const updateWomenHandicap = async (gameId: string, handicap: number) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data: member } = await supabase
         .from("members")
         .select("is_admin")
         .eq("user_id", user?.id)
         .single();
-      
+
       if (!member?.is_admin) return;
 
       const { error } = await supabase
@@ -820,7 +879,9 @@ ${closingMsg}`;
         .eq("id", gameId);
 
       if (error) throw error;
-      setGames(prev => prev.map(g => g.id === gameId ? { ...g, women_handicap: handicap } : g));
+      setGames((prev) =>
+        prev.map((g) => (g.id === gameId ? { ...g, women_handicap: handicap } : g))
+      );
     } catch (error) {
       console.error("Error updating women handicap:", error);
     }
@@ -834,7 +895,8 @@ ${closingMsg}`;
     try {
       const { data: gamePlayers, error } = await supabase
         .from("game_players")
-        .select(`
+        .select(
+          `
           id,
           member_id,
           exclude_from_men_vs_women,
@@ -844,7 +906,8 @@ ${closingMsg}`;
             full_name,
             sex
           )
-        `)
+        `
+        )
         .eq("game_id", gameId);
 
       if (error) throw error;
@@ -877,11 +940,11 @@ ${closingMsg}`;
 
       if (error) throw error;
 
-      setMenVsWomenPlayers(prev => prev.map(p => 
-        p.id === gamePlayerId 
-          ? { ...p, exclude_from_men_vs_women: !currentValue }
-          : p
-      ));
+      setMenVsWomenPlayers((prev) =>
+        prev.map((p) =>
+          p.id === gamePlayerId ? { ...p, exclude_from_men_vs_women: !currentValue } : p
+        )
+      );
 
       toast({
         title: "Berjaya",
@@ -902,7 +965,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih kedua-dua pemain",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -911,18 +974,18 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Sila pilih pemain yang berbeza",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
       // Fetch player scores from game_players table (if exists)
-      const { data: gamePlayers, error: fetchError } = await supabase.
-      from("game_players").
-      select("member_id, total_score, handicap").
-      eq("game_id", selectedGameForDouble.id).
-      in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
+      const { data: gamePlayers, error: fetchError } = await supabase
+        .from("game_players")
+        .select("member_id, total_score, handicap")
+        .eq("game_id", selectedGameForDouble.id)
+        .in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
 
       if (fetchError) throw fetchError;
 
@@ -933,27 +996,31 @@ ${closingMsg}`;
       const player1Score = (player1?.total_score || 0) + (player1?.handicap || 0);
       const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase.
-      from("members").
-      select("id").
-      eq("user_id", user?.id).
-      single();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
 
-      const { error } = await supabase.from("double_records").insert([{
-        game_id: selectedGameForDouble.id,
-        player1_id: doubleForm.player1_id,
-        player2_id: doubleForm.player2_id,
-        player1_score: player1Score,
-        player2_score: player2Score,
-        created_by: member?.id
-      }]);
+      const { error } = await supabase.from("double_records").insert([
+        {
+          game_id: selectedGameForDouble.id,
+          player1_id: doubleForm.player1_id,
+          player2_id: doubleForm.player2_id,
+          player1_score: player1Score,
+          player2_score: player2Score,
+          created_by: member?.id,
+        },
+      ]);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`
+        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`,
       });
 
       setIsDoubleDialogOpen(false);
@@ -964,7 +1031,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal menambah rekod double",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -973,16 +1040,13 @@ ${closingMsg}`;
     if (!confirm("Adakah anda pasti mahu memadam rekod double ini?")) return;
 
     try {
-      const { error } = await supabase
-        .from("double_records")
-        .delete()
-        .eq("id", doubleId);
+      const { error } = await supabase.from("double_records").delete().eq("id", doubleId);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: "Rekod double telah dipadam"
+        description: "Rekod double telah dipadam",
       });
 
       fetchDoubleRecords(gameId);
@@ -991,7 +1055,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal memadam rekod double",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -1003,12 +1067,14 @@ ${closingMsg}`;
 
       const { data, error } = await supabase
         .from("trio_records")
-        .select(`
+        .select(
+          `
           *,
           player1:members!trio_records_player1_id_fkey(id, username),
           player2:members!trio_records_player2_id_fkey(id, username),
           player3:members!trio_records_player3_id_fkey(id, username)
-        `)
+        `
+        )
         .eq("game_id", gameId)
         .order("total_score", { ascending: false });
 
@@ -1016,7 +1082,7 @@ ${closingMsg}`;
 
       setTrioRecords((prev) => ({
         ...prev,
-        [gameId]: data || []
+        [gameId]: data || [],
       }));
     } catch (error) {
       console.error("Error fetching trio records:", error);
@@ -1026,22 +1092,29 @@ ${closingMsg}`;
   };
 
   const handleAddTrio = async () => {
-    if (!selectedGameForTrio || !trioForm.player1_id || !trioForm.player2_id || !trioForm.player3_id) {
+    if (
+      !selectedGameForTrio ||
+      !trioForm.player1_id ||
+      !trioForm.player2_id ||
+      !trioForm.player3_id
+    ) {
       toast({
         title: "Ralat",
         description: "Sila pilih ketiga-tiga pemain",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
-    if (trioForm.player1_id === trioForm.player2_id || 
-        trioForm.player1_id === trioForm.player3_id || 
-        trioForm.player2_id === trioForm.player3_id) {
+    if (
+      trioForm.player1_id === trioForm.player2_id ||
+      trioForm.player1_id === trioForm.player3_id ||
+      trioForm.player2_id === trioForm.player3_id
+    ) {
       toast({
         title: "Ralat",
         description: "Sila pilih pemain yang berbeza",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -1063,32 +1136,36 @@ ${closingMsg}`;
       const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
       const player3Score = (player3?.total_score || 0) + (player3?.handicap || 0);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { data: member } = await supabase
         .from("members")
         .select("id")
         .eq("user_id", user?.id)
         .single();
 
-      const { error } = await supabase.from("trio_records").insert([{
-        game_id: selectedGameForTrio.id,
-        player1_id: trioForm.player1_id,
-        player2_id: trioForm.player2_id,
-        player3_id: trioForm.player3_id,
-        player1_score: player1Score,
-        player2_score: player2Score,
-        player3_score: player3Score,
-        player1_handicap: player1?.handicap || 0,
-        player2_handicap: player2?.handicap || 0,
-        player3_handicap: player3?.handicap || 0,
-        created_by: member?.id
-      }]);
+      const { error } = await supabase.from("trio_records").insert([
+        {
+          game_id: selectedGameForTrio.id,
+          player1_id: trioForm.player1_id,
+          player2_id: trioForm.player2_id,
+          player3_id: trioForm.player3_id,
+          player1_score: player1Score,
+          player2_score: player2Score,
+          player3_score: player3Score,
+          player1_handicap: player1?.handicap || 0,
+          player2_handicap: player2?.handicap || 0,
+          player3_handicap: player3?.handicap || 0,
+          created_by: member?.id,
+        },
+      ]);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: `Rekod trio telah ditambah (${player1Score} + ${player2Score} + ${player3Score} = ${player1Score + player2Score + player3Score})`
+        description: `Rekod trio telah ditambah (${player1Score} + ${player2Score} + ${player3Score} = ${player1Score + player2Score + player3Score})`,
       });
 
       setIsTrioDialogOpen(false);
@@ -1099,7 +1176,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal menambah rekod trio",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -1108,16 +1185,13 @@ ${closingMsg}`;
     if (!confirm("Adakah anda pasti mahu memadam rekod trio ini?")) return;
 
     try {
-      const { error } = await supabase
-        .from("trio_records")
-        .delete()
-        .eq("id", trioId);
+      const { error } = await supabase.from("trio_records").delete().eq("id", trioId);
 
       if (error) throw error;
 
       toast({
         title: "Berjaya",
-        description: "Rekod trio telah dipadam"
+        description: "Rekod trio telah dipadam",
       });
 
       fetchTrioRecords(gameId);
@@ -1126,7 +1200,7 @@ ${closingMsg}`;
       toast({
         title: "Ralat",
         description: "Gagal memadam rekod trio",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -1159,20 +1233,20 @@ ${closingMsg}`;
       weekday: "long",
       year: "numeric",
       month: "long",
-      day: "numeric"
+      day: "numeric",
     });
   };
 
   const gameTypeLabels = {
     BLOK: "Blok",
     BLOK_SUKA_SUKI: "Blok Suka Suki",
-    COUPLE: "Couple"
+    COUPLE: "Couple",
   };
 
   const gameTypeColors = {
     BLOK: "bg-blue-500",
     BLOK_SUKA_SUKI: "bg-green-500",
-    COUPLE: "bg-pink-500"
+    COUPLE: "bg-pink-500",
   };
 
   // Pagination
@@ -1189,8 +1263,8 @@ ${closingMsg}`;
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
-      </div>);
-
+      </div>
+    );
   }
 
   return (
@@ -1207,8 +1281,8 @@ ${closingMsg}`;
           </Button>
         </div>
 
-        {games.length === 0 ?
-        <Card>
+        {games.length === 0 ? (
+          <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-center">
@@ -1217,17 +1291,17 @@ ${closingMsg}`;
                 Klik butang di atas untuk tambah permainan baharu.
               </p>
             </CardContent>
-          </Card> :
-
-        <>
+          </Card>
+        ) : (
+          <>
             <div className="grid gap-4">
-              {currentGames.map((game) =>
-            <motion.div
-              key={game.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}>
-              
+              {currentGames.map((game) => (
+                <motion.div
+                  key={game.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="space-y-1">
@@ -1242,15 +1316,15 @@ ${closingMsg}`;
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="text-xs">
-                          {game.game_type === "BLOK" ? "BLOK" : game.game_type === "BLOK_SUKA_SUKI" ? "BLOK SUKA SUKI" : "COUPLE"}
+                          {game.game_type === "BLOK"
+                            ? "BLOK"
+                            : game.game_type === "BLOK_SUKA_SUKI"
+                              ? "BLOK SUKA SUKI"
+                              : "COUPLE"}
                         </Badge>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePrintScoresheet(game)}>
-                          
+                            <Button variant="ghost" size="sm" onClick={() => handlePrintScoresheet(game)}>
                               <Printer className="h-4 w-4 text-slate-600 hover:text-slate-900" />
                             </Button>
                           </TooltipTrigger>
@@ -1259,11 +1333,11 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenWhatsAppShare(game)}
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50">
-                          
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenWhatsAppShare(game)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
                               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                               </svg>
@@ -1273,11 +1347,7 @@ ${closingMsg}`;
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenAddPlayer(game.id)}>
-                          
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenAddPlayer(game.id)}>
                               <Plus className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1285,11 +1355,7 @@ ${closingMsg}`;
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditGame(game)}>
-                          
+                            <Button variant="ghost" size="sm" onClick={() => handleEditGame(game)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1298,11 +1364,11 @@ ${closingMsg}`;
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteGameDialog({ open: true, game })}>
-                          
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteGameDialog({ open: true, game })}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
@@ -1334,39 +1400,31 @@ ${closingMsg}`;
                             <Label>Double Game</Label>
                             <p className="text-sm text-muted-foreground">Pemain main berpasangan</p>
                           </div>
-                          
-
-
-                      
                         </div>
 
-                        {game.double_enabled &&
-                    <div className="flex gap-2">
-                            <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleExpandedGame(game.id)}>
-                        
+                        {game.double_enabled && (
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => toggleExpandedGame(game.id)}>
                               {expandedGame === game.id ? "Tutup" : "Lihat"} Rekod Double
-                              {doubleRecords[game.id] && doubleRecords[game.id].length > 0 &&
-                        <Badge variant="secondary" className="ml-2">
+                              {doubleRecords[game.id] && doubleRecords[game.id].length > 0 && (
+                                <Badge variant="secondary" className="ml-2">
                                   {doubleRecords[game.id].length}
                                 </Badge>
-                        }
+                              )}
                             </Button>
                             <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedGameForDouble(game);
-                          setIsDoubleDialogOpen(true);
-                          loadAvailableMembersForDouble(game.id);
-                        }}>
-                        
+                              size="sm"
+                              onClick={() => {
+                                setSelectedGameForDouble(game);
+                                setIsDoubleDialogOpen(true);
+                                loadAvailableMembersForDouble(game.id);
+                              }}
+                            >
                               <Plus className="h-4 w-4 mr-2" />
                               Tambah Double
                             </Button>
                           </div>
-                    }
+                        )}
                       </div>
 
                       {/* Trio Game Section */}
@@ -1378,7 +1436,7 @@ ${closingMsg}`;
                           </div>
                         </div>
 
-                        {(game as any).trio_enabled && (
+                        {game.trio_enabled && (
                           <div className="flex gap-2">
                             <Button
                               variant="outline"
@@ -1416,7 +1474,9 @@ ${closingMsg}`;
                           <Switch
                             id={`double-${game.id}`}
                             checked={game.double_enabled || false}
-                            onCheckedChange={(checked) => toggleGameDouble(game.id, game.double_enabled || false)}
+                            onCheckedChange={(checked) =>
+                              toggleGameDouble(game.id, game.double_enabled || false)
+                            }
                           />
                         </div>
 
@@ -1426,8 +1486,10 @@ ${closingMsg}`;
                           </Label>
                           <Switch
                             id={`trio-${game.id}`}
-                            checked={(game as any).trio_enabled || false}
-                            onCheckedChange={(checked) => toggleGameTrio(game.id, (game as any).trio_enabled || false)}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={(checked) =>
+                              toggleGameTrio(game.id, game.trio_enabled || false)
+                            }
                           />
                         </div>
 
@@ -1438,7 +1500,10 @@ ${closingMsg}`;
                           <Switch
                             id={`mvw-${game.id}`}
                             checked={game.men_vs_women_enabled || false}
-                            onCheckedChange={(checked) => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)} />
+                            onCheckedChange={(checked) =>
+                              toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)
+                            }
+                          />
                         </div>
 
                         {game.men_vs_women_enabled && (
@@ -1451,7 +1516,9 @@ ${closingMsg}`;
                               type="number"
                               min="0"
                               value={game.women_handicap || 0}
-                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateWomenHandicap(game.id, parseInt(e.target.value) || 0)
+                              }
                               className="w-20"
                             />
                             <Button
@@ -1467,23 +1534,23 @@ ${closingMsg}`;
                       </div>
 
                       {/* Players List */}
-                      {game.players && game.players.length > 0 ?
-                  <div className="flex flex-wrap gap-2 mt-4">
-                          {game.players.map((player) =>
-                    <DropdownMenu key={player.id}>
+                      {game.players && game.players.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) => (
+                            <DropdownMenu key={player.id}>
                               <DropdownMenuTrigger asChild>
                                 <Badge
-                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
-                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
-                          player.is_fivefive && player.clean_game ?
-                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
-                          player.is_fivefive ?
-                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
-                          player.clean_game ?
-                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
-                          ""}`
-                          }>
-                          
+                                  variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                                  className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                                    player.is_fivefive && player.clean_game
+                                      ? "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
+                                      : player.is_fivefive
+                                        ? "bg-pink-500 hover:bg-pink-600 text-white border-0"
+                                        : player.clean_game
+                                          ? "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm"
+                                          : ""
+                                  }`}
+                                >
                                   {player.username || "Unknown"}
                                   {player.is_fivefive && " ⭐"}
                                   {player.clean_game && " ✨"}
@@ -1495,65 +1562,63 @@ ${closingMsg}`;
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                          onClick={() =>
-                          handleToggleFiveFive(player.id, !!player.is_fivefive)
-                          }>
-                          
-                                  {player.is_fivefive ?
-                          "Nyahaktifkan Five-Five" :
-                          "Tandakan sebagai Five-Five"}
+                                  onClick={() => handleToggleFiveFive(player.id, !!player.is_fivefive)}
+                                >
+                                  {player.is_fivefive
+                                    ? "Nyahaktifkan Five-Five"
+                                    : "Tandakan sebagai Five-Five"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                          onClick={() =>
-                          handleToggleCleanGame(player.id, !!player.clean_game)
-                          }>
-                          
-                                  {player.clean_game ?
-                          "Nyahaktifkan Clean Game" :
-                          "Tandakan sebagai Clean Game"}
+                                  onClick={() => handleToggleCleanGame(player.id, !!player.clean_game)}
+                                >
+                                  {player.clean_game
+                                    ? "Nyahaktifkan Clean Game"
+                                    : "Tandakan sebagai Clean Game"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() =>
-                          setDeletePlayerDialog({
-                            open: true,
-                            playerId: player.id,
-                            playerName: player.username || player.full_name || "Pemain",
-                            gameId: game.id
-                          })
-                          }>
-                          
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() =>
+                                    setDeletePlayerDialog({
+                                      open: true,
+                                      playerId: player.id,
+                                      playerName: player.username || player.full_name || "Pemain",
+                                      gameId: game.id,
+                                    })
+                                  }
+                                >
                                   Buang dari permainan
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                    )}
-                        </div> :
-
-                  <p className="text-sm text-muted-foreground italic">
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
                           Belum ada pemain didaftarkan untuk permainan ini.
                         </p>
-                  }
+                      )}
 
                       {/* Double Records List */}
-                      {expandedGame === game.id && game.double_enabled &&
-                  <CardContent className="border-t bg-muted/20 pt-4">
-                          {loadingDoubles[game.id] ?
-                    <div className="text-center py-4">
+                      {expandedGame === game.id && game.double_enabled && (
+                        <CardContent className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ? (
+                            <div className="text-center py-4">
                               <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
-                            </div> :
-                    !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
-                    <div className="text-center py-6 text-muted-foreground">
+                            </div>
+                          ) : !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
                               <p>Tiada rekod double lagi</p>
-                            </div> :
-
-                    <div className="space-y-2">
-                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
-                              {doubleRecords[game.id].map((record, index) =>
-                      <div
-                        key={record.id}
-                        className="flex items-center justify-between p-3 bg-background rounded-lg border">
-                        
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">
+                                Rekod Double ({doubleRecords[game.id].length})
+                              </h4>
+                              {doubleRecords[game.id].map((record, index) => (
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                                >
                                   <div className="flex items-center gap-3">
                                     <Badge variant="outline" className="w-8 justify-center">
                                       #{index + 1}
@@ -1567,71 +1632,129 @@ ${closingMsg}`;
                                         <Badge variant="secondary">{record.player2_score}</Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground mt-1">
-                                        Jumlah: <span className="font-bold text-primary">{record.total_score}</span>
+                                        Jumlah:{" "}
+                                        <span className="font-bold text-primary">{record.total_score}</span>
                                       </p>
                                     </div>
                                   </div>
                                   <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteDouble(record.id, game.id)}>
-                          
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}
+                                  >
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
-                      )}
+                              ))}
                             </div>
-                    }
+                          )}
                         </CardContent>
-                  }
+                      )}
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled && (
+                        <CardContent className="border-t bg-purple-50/30 pt-4">
+                          {loadingTrios[game.id] ? (
+                            <div className="text-center py-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                            </div>
+                          ) : !trioRecords[game.id] || trioRecords[game.id].length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">
+                                Rekod Trio ({trioRecords[game.id].length})
+                              </h4>
+                              {trioRecords[game.id].map((record, index) => (
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">{record.player1_score}</Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">{record.player2_score}</Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">{record.player3_score}</Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        Jumlah:{" "}
+                                        <span className="font-bold text-primary">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
-            )}
+              ))}
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 &&
-          <div className="flex items-center justify-center gap-2 mt-6">
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
                 <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}>
-              
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                
+
                 <div className="flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) =>
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(page)}
-                className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}>
-                
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => goToPage(page)}
+                      className={currentPage === page ? "bg-pink-600 hover:bg-pink-700" : ""}
+                    >
                       {page}
                     </Button>
-              )}
+                  ))}
                 </div>
 
                 <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}>
-              
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-          }
+            )}
 
             <p className="text-sm text-center text-muted-foreground">
-              Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada {games.length} permainan
+              Menunjukkan {startIndex + 1} - {Math.min(endIndex, games.length)} daripada{" "}
+              {games.length} permainan
             </p>
           </>
-        }
+        )}
 
         {/* Create/Edit Game Dialog */}
         <Dialog open={isGameDialogOpen} onOpenChange={setIsGameDialogOpen}>
@@ -1639,9 +1762,9 @@ ${closingMsg}`;
             <DialogHeader>
               <DialogTitle>{editingGame ? "Edit Permainan" : "Tambah Permainan Baharu"}</DialogTitle>
               <DialogDescription>
-                {editingGame ?
-                "Kemaskini maklumat permainan" :
-                "Isikan maklumat untuk permainan baharu"}
+                {editingGame
+                  ? "Kemaskini maklumat permainan"
+                  : "Isikan maklumat untuk permainan baharu"}
               </DialogDescription>
             </DialogHeader>
 
@@ -1652,8 +1775,8 @@ ${closingMsg}`;
                   id="game_name"
                   placeholder="Contoh: Blok 1"
                   value={gameForm.game_name}
-                  onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })} />
-                
+                  onChange={(e) => setGameForm({ ...gameForm, game_name: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
@@ -1662,8 +1785,8 @@ ${closingMsg}`;
                   id="game_date"
                   type="date"
                   value={gameForm.game_date}
-                  onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })} />
-                
+                  onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
@@ -1671,9 +1794,9 @@ ${closingMsg}`;
                 <Select
                   value={gameForm.game_type}
                   onValueChange={(value: "BLOK" | "BLOK_SUKA_SUKI" | "COUPLE") =>
-                  setGameForm({ ...gameForm, game_type: value })
-                  }>
-                  
+                    setGameForm({ ...gameForm, game_type: value })
+                  }
+                >
                   <SelectTrigger id="game_type">
                     <SelectValue />
                   </SelectTrigger>
@@ -1697,6 +1820,162 @@ ${closingMsg}`;
           </DialogContent>
         </Dialog>
 
+        {/* Add Double Dialog */}
+        <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Rekod Double</DialogTitle>
+              <DialogDescription>
+                Pilih 2 pemain yang main game ini. Score akan diambil automatik dari rekod game (atau 0
+                jika belum isi).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Pemain 1</Label>
+                  <Select
+                    value={doubleForm.player1_id}
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player1_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`p1-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pemain 2</Label>
+                  <Select
+                    value={doubleForm.player2_id}
+                    onValueChange={(value) => setDoubleForm({ ...doubleForm, player2_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`p2-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm font-medium text-blue-900 mb-2">💡 Nota:</p>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Hanya pemain yang main game ini akan dipaparkan</li>
+                  <li>Score akan diambil automatik: Total Score + Handicap</li>
+                  <li>Jika score belum diisi, akan guna 0 sebagai default</li>
+                </ul>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDoubleDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handleAddDouble}>Tambah Rekod Double</Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Trio Dialog */}
+        <Dialog open={isTrioDialogOpen} onOpenChange={setIsTrioDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Rekod Trio</DialogTitle>
+              <DialogDescription>
+                Pilih 3 pemain yang main game ini. Score akan diambil automatik dari rekod game (atau 0
+                jika belum isi).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label>Pemain 1</Label>
+                  <Select
+                    value={trioForm.player1_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player1_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="P1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t1-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pemain 2</Label>
+                  <Select
+                    value={trioForm.player2_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player2_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="P2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t2-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pemain 3</Label>
+                  <Select
+                    value={trioForm.player3_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player3_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="P3" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t3-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm font-medium text-purple-900 mb-2">💡 Nota:</p>
+                <ul className="text-sm text-purple-800 space-y-1 list-disc list-inside">
+                  <li>Hanya pemain yang main game ini akan dipaparkan</li>
+                  <li>Score = P1 + P2 + P3 + Handicap (ketiga-tiga)</li>
+                  <li>Jika score belum diisi, akan guna 0 sebagai default</li>
+                </ul>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsTrioDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handleAddTrio}>Tambah Rekod Trio</Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* WhatsApp Share Dialog */}
         <Dialog open={showWhatsAppShare} onOpenChange={setShowWhatsAppShare}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1707,55 +1986,55 @@ ${closingMsg}`;
               </DialogDescription>
             </DialogHeader>
 
-            {loadingTopPlayers ?
-            <div className="flex justify-center py-8">
+            {loadingTopPlayers ? (
+              <div className="flex justify-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
-              </div> :
-
-            <div className="space-y-6">
+              </div>
+            ) : (
+              <div className="space-y-6">
                 <div className="space-y-2">
                   <Label>Pilih Ayat Pembuka</Label>
                   <div className="grid gap-2">
-                    {OPENING_MESSAGES.map((msg, idx) =>
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setSelectedOpeningMessage(idx);
-                      generatePreview(topPlayers, idx, selectedClosingMessage);
-                    }}
-                    className={`text-left p-3 rounded-lg border-2 transition-all ${
-                    selectedOpeningMessage === idx ?
-                    "border-pink-600 bg-pink-50" :
-                    "border-gray-200 hover:border-pink-300"}`
-                    }>
-                    
+                    {OPENING_MESSAGES.map((msg, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedOpeningMessage(idx);
+                          generatePreview(topPlayers, idx, selectedClosingMessage);
+                        }}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedOpeningMessage === idx
+                            ? "border-pink-600 bg-pink-50"
+                            : "border-gray-200 hover:border-pink-300"
+                        }`}
+                      >
                         <p className="text-sm text-gray-700">
                           {msg.replace("[WINNER]", topPlayers[0]?.username || "N/A")}
                         </p>
                       </button>
-                  )}
+                    ))}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Pilih Ayat Penutup</Label>
                   <div className="grid gap-2">
-                    {CLOSING_MESSAGES.map((msg, idx) =>
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setSelectedClosingMessage(idx);
-                      generatePreview(topPlayers, selectedOpeningMessage, idx);
-                    }}
-                    className={`text-left p-3 rounded-lg border-2 transition-all ${
-                    selectedClosingMessage === idx ?
-                    "border-pink-600 bg-pink-50" :
-                    "border-gray-200 hover:border-pink-300"}`
-                    }>
-                    
+                    {CLOSING_MESSAGES.map((msg, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setSelectedClosingMessage(idx);
+                          generatePreview(topPlayers, selectedOpeningMessage, idx);
+                        }}
+                        className={`text-left p-3 rounded-lg border-2 transition-all ${
+                          selectedClosingMessage === idx
+                            ? "border-pink-600 bg-pink-50"
+                            : "border-gray-200 hover:border-pink-300"
+                        }`}
+                      >
                         <p className="text-sm text-gray-700">{msg}</p>
                       </button>
-                  )}
+                    ))}
                   </div>
                 </div>
 
@@ -1768,7 +2047,7 @@ ${closingMsg}`;
                   </div>
                 </div>
               </div>
-            }
+            )}
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowWhatsAppShare(false)}>
@@ -1777,7 +2056,197 @@ ${closingMsg}`;
               <Button
                 onClick={handleShareToWhatsApp}
                 disabled={loadingTopPlayers}
-                className="bg-green-600 hover:bg-green-700">
-                
+                className="bg-green-600 hover:bg-green-700"
+              >
                 <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.916 1.164-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.297 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                </svg>
+                Share ke WhatsApp
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Game AlertDialog */}
+        <AlertDialog open={deleteGameDialog.open} onOpenChange={(open) => setDeleteGameDialog({ ...deleteGameDialog, open })}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Adakah anda pasti?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tindakan ini tidak boleh dibatalkan. Permainan "{deleteGameDialog.game?.game_name}" dan
+                semua data pemain akan dipadam kekal.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteGame}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Padam
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Player AlertDialog */}
+        <AlertDialog
+          open={deletePlayerDialog.open}
+          onOpenChange={(open) => setDeletePlayerDialog({ ...deletePlayerDialog, open })}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Buang Pemain?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Adakah anda pasti mahu membuang {deletePlayerDialog.playerName} dari permainan ini? Semua
+                skor pemain ini akan hilang.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeletePlayer}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Buang
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Add Player Dialog */}
+        <Dialog open={showAddPlayer} onOpenChange={setShowAddPlayer}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Tambah Pemain ke Permainan</DialogTitle>
+              <DialogDescription>Pilih ahli untuk ditambah ke permainan ini</DialogDescription>
+            </DialogHeader>
+
+            {loadingMembers ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="fivefive-checkbox"
+                    checked={newPlayerFiveFive}
+                    onChange={(e) => setNewPlayerFiveFive(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="fivefive-checkbox">Tandakan sebagai Five-Five</Label>
+                </div>
+
+                <div className="max-h-[400px] overflow-y-auto border rounded-lg">
+                  {availableMembers.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">
+                      Tiada ahli tersedia. Semua ahli sudah ditambah ke permainan ini.
+                    </p>
+                  ) : (
+                    <div className="space-y-2 p-4">
+                      {availableMembers.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center space-x-2 p-2 hover:bg-muted rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            id={`member-${member.id}`}
+                            checked={selectedMemberIds.includes(member.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedMemberIds([...selectedMemberIds, member.id]);
+                              } else {
+                                setSelectedMemberIds(
+                                  selectedMemberIds.filter((id) => id !== member.id)
+                                );
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <Label htmlFor={`member-${member.id}`} className="flex-1 cursor-pointer">
+                            @{member.username} {member.full_name && `(${member.full_name})`}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddPlayer(false)}>
+                Batal
+              </Button>
+              <Button
+                onClick={handleAddPlayer}
+                disabled={selectedMemberIds.length === 0 || loadingMembers}
+              >
+                Tambah Pemain ({selectedMemberIds.length})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Men vs Women Exclusion Dialog */}
+        <Dialog
+          open={isMenVsWomenExclusionDialogOpen}
+          onOpenChange={setIsMenVsWomenExclusionDialogOpen}
+        >
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Urus Pemain Men vs Women</DialogTitle>
+              <DialogDescription>
+                Pilih pemain yang ingin dikecualikan dari pertandingan Men vs Women
+              </DialogDescription>
+            </DialogHeader>
+
+            {loadingMenVsWomenPlayers ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+              </div>
+            ) : menVsWomenPlayers.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">Tiada pemain dalam game ini</p>
+            ) : (
+              <div className="space-y-2">
+                {menVsWomenPlayers.map((player: any) => (
+                  <div
+                    key={player.id}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col">
+                        <span className="font-medium">@{player.members?.username}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {player.members?.sex === "L" ? "👨 Lelaki" : "👩 Perempuan"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        {player.exclude_from_men_vs_women ? "Dikecualikan" : "Aktif"}
+                      </span>
+                      <Switch
+                        checked={!player.exclude_from_men_vs_women}
+                        onCheckedChange={() =>
+                          togglePlayerExclusion(player.id, player.exclude_from_men_vs_women)
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setIsMenVsWomenExclusionDialogOpen(false)}>Tutup</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
+  );
+}
