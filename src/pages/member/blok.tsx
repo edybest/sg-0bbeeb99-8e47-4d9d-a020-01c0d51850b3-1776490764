@@ -579,7 +579,7 @@ export default function BlokPage() {
                 return;
             }
 
-            // Get member IDs from clean game data for this specific game
+            // Get winner IDs for this specific game
             const winnerIds = cleanGameData[`game${gameNum}`] || [];
             
             if (winnerIds.length === 0) {
@@ -588,14 +588,22 @@ export default function BlokPage() {
                 return;
             }
 
-            // Count participants in THIS specific game only (not all games combined)
-            const participantsInThisGame = winnerIds.length;
+            // Count total players who joined clean game (have clean_game flag = true)
+            const { data: playersData, error: playersError } = await supabase
+                .from("game_players")
+                .select("id")
+                .eq("game_id", selectedGame)
+                .eq("clean_game", true);
+
+            if (playersError) throw playersError;
+
+            const cleanGamePlayersCount = playersData?.length || 0;
             
-            // Calculate prize pool for this game: RM2 per participant in this game
-            const prizePool = participantsInThisGame * 2;
+            // Total prize pool for this game (same calculation as Score Management)
+            const totalPrize = cleanGamePlayersCount * 2;
             
-            // Calculate prize per winner for this game (rounded down)
-            const prizePerWinner = participantsInThisGame > 0 ? Math.floor(prizePool / participantsInThisGame) : 0;
+            // Prize per winner for this game (rounded down)
+            const prizePerWinner = winnerIds.length > 0 ? Math.floor(totalPrize / winnerIds.length) : 0;
 
             // Fetch member details
             const { data: members, error: membersError } = await supabase
@@ -1223,7 +1231,7 @@ export default function BlokPage() {
                                                 onClick={() => handleOpenCleanGameDialog(gameNum)}
                                                 className="bg-amber-50 rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow-md transition-all hover:bg-amber-100 text-center"
                                             >
-                                                <div className="text-amber-900 font-bold text-lg mb-1">
+                                                <div className="text-amber-900 font-bold text-lg mb-2">
                                                     Game {gameNum}
                                                 </div>
                                                 <Sparkles className="w-6 h-6 text-amber-500 mx-auto" />
