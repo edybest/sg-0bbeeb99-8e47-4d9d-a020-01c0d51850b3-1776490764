@@ -116,13 +116,11 @@ interface LeaderboardEntry {
     loves_count: number;
 }
 
-// FIX: store a fixed direction index per particle so keyframes stay stable
-// across re-renders even as the particles array shrinks/grows.
 interface ParticleEntry {
     id: string;
     x: number;
     y: number;
-    dir: number; // 0-7, maps to particle-0 … particle-7 keyframes
+    dir: number;
 }
 
 type SortField =
@@ -140,9 +138,6 @@ type SortField =
     | "difference";
 
 type SortDirection = "asc" | "desc";
-
-// FIX: proper type instead of `as any`
-type CleanGameData = Record<string, string[]>;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -247,10 +242,6 @@ export default function BlokPage() {
     } | null>(null);
     const [loadingMenVsWomen, setLoadingMenVsWomen] = useState(false);
 
-    const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
-    const [cleanGameDataByGame, setCleanGameDataByGame] = useState<Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>>>({});
-    const [loadingCleanGame, setLoadingCleanGame] = useState(false);
-
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
     const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
@@ -260,7 +251,6 @@ export default function BlokPage() {
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
     const [reactions, setReactions] = useState<{ id: string; playerId: string; x: number; y: number }[]>([]);
-    // FIX #3: particles carry their own stable direction index
     const [particles, setParticles] = useState<ParticleEntry[]>([]);
     const [userLikesCount, setUserLikesCount] = useState<number>(0);
 
@@ -312,7 +302,6 @@ export default function BlokPage() {
         [filteredLeaderboard]
     );
 
-    // Stable helper — no deps needed
     const applyCurrentSort = useCallback(
         (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
             if (field === "rank") {
@@ -325,7 +314,6 @@ export default function BlokPage() {
 
     // ─── Data loaders ─────────────────────────────────────────────────────────
 
-    // FIX #5: stable with useCallback so the effect dep array is correct
     const loadGames = useCallback(
         async (showToast = false) => {
             try {
@@ -343,7 +331,6 @@ export default function BlokPage() {
                 const gameList = data ?? [];
                 setGames(gameList);
 
-                // FIX #6: read query values at call-time, not from a stale closure
                 const query = router.query as Record<string, string | string[] | undefined>;
                 const urlGameId =
                     typeof query.gameId === "string" ? query.gameId : undefined;
@@ -378,8 +365,6 @@ export default function BlokPage() {
                 setLoadingGames(false);
             }
         },
-        // router.query primitives are stable references; we depend on them explicitly
-         
         [router.query, toast]
     );
 
@@ -444,8 +429,6 @@ export default function BlokPage() {
         [currentUser?.user_id]
     );
 
-    // FIX #1: useCallback with full deps — sortField/sortDirection changes now
-    // automatically trigger a re-sort without needing a manual refresh.
     const loadLeaderboard = useCallback(
         async (gameId: string) => {
             if (!gameId) return;
@@ -535,7 +518,6 @@ export default function BlokPage() {
                     gameId
                 );
                 
-                // Debug: Log first player's member data to verify ID
                 console.log("First player member data:", nextBase[0]?.member);
             } catch (err) {
                 const message =
@@ -570,7 +552,6 @@ export default function BlokPage() {
 
         setIsDoubleDialogOpen(true);
         
-        // Only load if not already loaded
         if (doubleRecords.length === 0) {
             await loadDoubleRecords(selectedGame);
         }
@@ -593,7 +574,7 @@ export default function BlokPage() {
             const cleanGameData = gameData?.clean_game_data as any;
             
             if (!cleanGameData) {
-                setCleanGameDataByGame({});
+                setCleanGameWinners([]);
                 setLoadingCleanGame(false);
                 return;
             }
@@ -630,7 +611,7 @@ export default function BlokPage() {
                 });
             }
 
-            const winnersByGame: Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>> = {};
+            const winnersByGame: Record<number, Array<{ member_name: string; prize: number }>> = {};
 
             for (let i = 1; i <= 5; i++) {
                 const wIds = cleanGameData[`game${i}`] || [];
@@ -638,15 +619,14 @@ export default function BlokPage() {
                 
                 winnersByGame[i] = wIds.map((id: string) => ({
                     member_name: membersMap[id]?.username || "Unknown",
-                    avatar_url: membersMap[id]?.avatar_url || null,
                     prize: prizePerWinner
                 }));
             }
 
-            setCleanGameDataByGame(winnersByGame);
+            setCleanGameWinners(winnersByGame);
         } catch (error) {
             console.error("Error loading clean game winners:", error);
-            setCleanGameDataByGame({});
+            setCleanGameWinners([]);
         } finally {
             setLoadingCleanGame(false);
         }
@@ -662,7 +642,6 @@ export default function BlokPage() {
             const currentGame = games.find(g => g.id === selectedGame);
             const womenHandicap = currentGame?.women_handicap || 0;
 
-            // Get all players in this game with their sex from members table
             const { data: gamePlayers, error } = await supabase
                 .from("game_players")
                 .select(`
@@ -676,14 +655,13 @@ export default function BlokPage() {
 
             if (error) throw error;
 
-            // Calculate totals
             let menTotal = 0;
             let womenTotal = 0;
             let menCount = 0;
             let womenCount = 0;
 
             (gamePlayers || []).forEach((gp: any) => {
-                if (gp.exclude_from_men_vs_women) return; // Skip excluded players
+                if (gp.exclude_from_men_vs_women) return;
                 
                 const score = gp.total_score || 0;
                 const sex = gp.member?.sex;
@@ -697,7 +675,6 @@ export default function BlokPage() {
                 }
             });
 
-            // Add handicap for women: total + (handicap × count)
             const womenFinalTotal = womenTotal + (womenHandicap * womenCount);
 
             setMenVsWomenData({
@@ -767,11 +744,9 @@ export default function BlokPage() {
         const x = rect.left + rect.width / 2;
         const y = rect.top;
 
-        // Reaction floating emoji
         const reactionId = `reaction-${Date.now()}-${Math.random()}`;
         setReactions((prev) => [...prev, { id: reactionId, playerId, x, y }]);
 
-        // FIX #3: assign stable dir indexes 0-7 at creation time
         const particleEntries: ParticleEntry[] = Array.from({ length: 8 }, (_, i) => ({
             id: `particle-${Date.now()}-${i}`,
             x,
@@ -788,11 +763,9 @@ export default function BlokPage() {
         }, 2000);
 
         try {
-            // Capture current count BEFORE optimistic update
             const playerEntry = leaderboard.find((p) => p.id === playerId);
             const currentLikesCount = playerEntry?.likes_count ?? 0;
 
-            // Optimistic update
             setLeaderboard((prev) =>
                 prev.map((p) =>
                     p.id === playerId ? { ...p, likes_count: p.likes_count + 1 } : p
@@ -811,7 +784,6 @@ export default function BlokPage() {
                     .update({ likes_count: currentLikesCount + 1 })
                     .eq("id", playerId);
 
-                // FIX #4: use functional updater so toast sees the correct next value
                 setUserLikesCount((prev) => {
                     const next = prev + 1;
                     const remaining = MAX_LIKES_PER_GAME - next;
@@ -1094,7 +1066,6 @@ export default function BlokPage() {
                                             <label className="text-sm font-medium text-sky-700">
                                                 Sila pilih game untuk lihat leaderboard:
                                             </label>
-                                            {/* FIX #6: wrapper is relative so ChevronRight positions correctly */}
                                             <div className="relative">
                                                 <select
                                                     value={selectedGame || ""}
@@ -1433,7 +1404,7 @@ export default function BlokPage() {
                                                 transition={{ delay: index * 0.05 }}
                                                 className={`${cardBg} rounded-xl border shadow-md p-4 space-y-3`}
                                             >
-                                                <div className="flex items-center gap-3 pb-3 border-b border-white/40">
+                                                <div className="flex items-center gap-2 pb-3 border-b border-white/40">
                                                     <div className="flex-shrink-0">
                                                         {player.rank <= 3 ? (
                                                             <div className="w-10 h-10 flex items-center justify-center">
@@ -1546,7 +1517,7 @@ export default function BlokPage() {
                                                 {/* Stats */}
                                                 <div className="grid grid-cols-3 gap-1.5 pt-1">
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
                                                             Total
                                                         </div>
                                                         <div className="text-base font-bold text-slate-800 mt-0.5">
@@ -1554,7 +1525,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
                                                             Hcp
                                                         </div>
                                                         <div className="text-base font-bold text-sky-600 mt-0.5">
@@ -1562,7 +1533,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
                                                             Avg
                                                         </div>
                                                         <div className="text-base font-bold text-purple-600 mt-0.5">
@@ -1807,7 +1778,6 @@ export default function BlokPage() {
                     </div>
                 ))}
 
-                {/* FIX #3: use particle.dir (stable, set at creation time) instead of array index i */}
                 {particles.map((particle) => (
                     <div
                         key={particle.id}
@@ -1979,9 +1949,7 @@ export default function BlokPage() {
                             </div>
                         ) : (
                             <div className="space-y-4 sm:space-y-6">
-                                {/* Score Comparison */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                    {/* Men Team */}
                                     <motion.div
                                         initial={{ opacity: 0, y: -20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -2020,7 +1988,6 @@ export default function BlokPage() {
                                         </div>
                                     </motion.div>
 
-                                    {/* Women Team */}
                                     <motion.div
                                         initial={{ opacity: 0, y: -20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -2061,7 +2028,6 @@ export default function BlokPage() {
                                     </motion.div>
                                 </div>
 
-                                {/* Calculation Breakdown */}
                                 <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
                                     <h4 className="font-bold text-purple-900 mb-2 sm:mb-3 text-sm sm:text-base flex items-center gap-2">
                                         <span className="text-base sm:text-lg">📊</span>
@@ -2091,7 +2057,6 @@ export default function BlokPage() {
                                     </div>
                                 </div>
 
-                                {/* Winner Announcement */}
                                 <motion.div
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
