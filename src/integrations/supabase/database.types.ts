@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -980,6 +980,7 @@ export type Database = {
           is_official: boolean | null
           location: string | null
           men_vs_women_enabled: boolean | null
+          trio_enabled: boolean | null
           updated_at: string | null
           women_handicap: number | null
           year: number
@@ -996,6 +997,7 @@ export type Database = {
           is_official?: boolean | null
           location?: string | null
           men_vs_women_enabled?: boolean | null
+          trio_enabled?: boolean | null
           updated_at?: string | null
           women_handicap?: number | null
           year: number
@@ -1012,6 +1014,7 @@ export type Database = {
           is_official?: boolean | null
           location?: string | null
           men_vs_women_enabled?: boolean | null
+          trio_enabled?: boolean | null
           updated_at?: string | null
           women_handicap?: number | null
           year?: number
@@ -1815,6 +1818,96 @@ export type Database = {
           {
             foreignKeyName: "training_scores_member_id_fkey"
             columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trio_records: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          game_id: string
+          id: string
+          player1_handicap: number
+          player1_id: string
+          player1_score: number
+          player2_handicap: number
+          player2_id: string
+          player2_score: number
+          player3_handicap: number
+          player3_id: string
+          player3_score: number
+          total_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          game_id: string
+          id?: string
+          player1_handicap?: number
+          player1_id: string
+          player1_score?: number
+          player2_handicap?: number
+          player2_id: string
+          player2_score?: number
+          player3_handicap?: number
+          player3_id: string
+          player3_score?: number
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          game_id?: string
+          id?: string
+          player1_handicap?: number
+          player1_id?: string
+          player1_score?: number
+          player2_handicap?: number
+          player2_id?: string
+          player2_score?: number
+          player3_handicap?: number
+          player3_id?: string
+          player3_score?: number
+          total_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trio_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trio_records_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trio_records_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trio_records_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trio_records_player3_id_fkey"
+            columns: ["player3_id"]
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
