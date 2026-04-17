@@ -1250,7 +1250,7 @@ export default function BlokPage() {
                                                                                 alt={winner.member_name}
                                                                                 width={32}
                                                                                 height={32}
-                                                                                className="w-8 h-8 rounded-full object-cover border border-amber-200"
+                                                                                className="w-8 h-8 rounded-full object-cover border-2 border-white"
                                                                                 loading="lazy"
                                                                                 unoptimized
                                                                             />
