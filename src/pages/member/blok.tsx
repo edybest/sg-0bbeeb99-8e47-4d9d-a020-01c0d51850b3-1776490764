@@ -1210,36 +1210,7 @@ export default function BlokPage() {
                             )}
                         </div>
 
-                        {/* ── Clean Game Section ── */}
-                        {selectedGame && leaderboard.some((p) => p.clean_game) && (
-                            <Card className="bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-200 shadow-md mb-6">
-                                <CardHeader className="border-b border-amber-200 pb-3 md:pb-4">
-                                    <CardTitle className="text-amber-900 flex items-center gap-2 text-lg md:text-xl">
-                                        <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-amber-500" />
-                                        Clean Game Winners 🎯
-                                    </CardTitle>
-                                    <CardDescription className="text-amber-700 text-xs md:text-sm">
-                                        Klik pada game untuk lihat pemenang clean game
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="pt-4 md:pt-6">
-                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                                        {[1, 2, 3, 4, 5].map((gameNum) => (
-                                            <button
-                                                key={`game-${gameNum}`}
-                                                onClick={() => handleOpenCleanGameDialog(gameNum)}
-                                                className="bg-amber-50 rounded-lg p-4 border border-amber-200 shadow-sm hover:shadow-md transition-all hover:bg-amber-100 text-center"
-                                            >
-                                                <div className="text-amber-900 font-bold text-lg mb-2">
-                                                    Game {gameNum}
-                                                </div>
-                                                <Sparkles className="w-6 h-6 text-amber-500 mx-auto" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                        {/* Clean Game Section has been removed and replaced by the single button above */}
 
                         {/* ── Clean Game Dialog ── */}
                         <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
@@ -1284,7 +1255,7 @@ export default function BlokPage() {
                                                                                 unoptimized
                                                                             />
                                                                         ) : (
-                                                                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center font-bold text-amber-700 border border-amber-200">
+                                                                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center font-bold text-amber-700 text-sm border-2 border-white">
                                                                                 {winner.member_name[0].toUpperCase()}
                                                                             </div>
                                                                         )}
@@ -1575,7 +1546,7 @@ export default function BlokPage() {
                                                 {/* Stats */}
                                                 <div className="grid grid-cols-3 gap-1.5 pt-1">
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Total
                                                         </div>
                                                         <div className="text-base font-bold text-slate-800 mt-0.5">
@@ -1583,7 +1554,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Hcp
                                                         </div>
                                                         <div className="text-base font-bold text-sky-600 mt-0.5">
@@ -1591,7 +1562,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Avg
                                                         </div>
                                                         <div className="text-base font-bold text-purple-600 mt-0.5">
@@ -1885,7 +1856,7 @@ export default function BlokPage() {
                                     return (
                                         <motion.div
                                             key={record.id}
-                                            initial={{ opacity: 0, y: 10 }}
+                                            initial={{ opacity: 0, y: -20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
                                             className={`border-2 rounded-lg p-4 ${rankBg}`}
