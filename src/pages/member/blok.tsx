@@ -1454,7 +1454,10 @@ export default function BlokPage() {
                                                         <Link
                                                             href={`/member/profile?id=${player.member.id}`}
                                                             className="font-bold text-base text-slate-800 hover:text-sky-600 truncate block transition-colors"
-                                                            onClick={(e) => e.stopPropagation()}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                console.log("Clicked player:", player.member.username, "ID:", player.member.id);
+                                                            }}
                                                         >
                                                             {player.member.username}
                                                         </Link>
