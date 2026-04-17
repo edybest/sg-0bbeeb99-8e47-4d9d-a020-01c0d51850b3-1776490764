@@ -147,7 +147,7 @@ export async function calculateTrioScores(
 }> {
   const { data: players, error } = await supabase
     .from("game_players")
-    .select("member_id, overall_score, overall_handicap")
+    .select("member_id, total_score, handicap")
     .eq("game_id", gameId)
     .in("member_id", [player1Id, player2Id, player3Id]);
 
@@ -158,11 +158,11 @@ export async function calculateTrioScores(
   const player3 = players?.find((p) => p.member_id === player3Id);
 
   return {
-    player1Score: player1?.overall_score || 0,
-    player2Score: player2?.overall_score || 0,
-    player3Score: player3?.overall_score || 0,
-    player1Handicap: player1?.overall_handicap || 0,
-    player2Handicap: player2?.overall_handicap || 0,
-    player3Handicap: player3?.overall_handicap || 0,
+    player1Score: player1?.total_score || 0,
+    player2Score: player2?.total_score || 0,
+    player3Score: player3?.total_score || 0,
+    player1Handicap: player1?.handicap || 0,
+    player2Handicap: player2?.handicap || 0,
+    player3Handicap: player3?.handicap || 0,
   };
 }

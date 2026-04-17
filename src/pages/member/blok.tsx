@@ -79,13 +79,13 @@ interface DoubleRecord {
     player1?: {
         id: string;
         username: string;
-        full_name: string;
+        full_name?: string;
         avatar_url: string | null;
     };
     player2?: {
         id: string;
         username: string;
-        full_name: string;
+        full_name?: string;
         avatar_url: string | null;
     };
 }
