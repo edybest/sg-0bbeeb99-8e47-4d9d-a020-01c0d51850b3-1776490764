@@ -32,6 +32,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1447,89 +1448,94 @@ export default function BlokPage() {
                                                     </div>
 
                                                     <div className="flex-1 min-w-0">
-                                                        <Link
-                                                            href={`/member/profile?id=${player.member.id}`}
-                                                            className="font-bold text-base text-slate-800 hover:text-sky-700 truncate block"
-                                                        >
+                                                        <div className="font-bold text-base text-slate-800 truncate">
                                                             {player.member.username}
-                                                        </Link>
-                                                        <div className="flex items-center gap-1 mt-1">
-                                                            <button
-                                                                onClick={(e) => handleReaction(player.id, e)}
-                                                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                                className="flex items-center gap-1 bg-white/70 hover:bg-white px-2 py-0.5 rounded text-xs transition-colors disabled:opacity-50 shadow-sm"
-                                                            >
-                                                                👍{" "}
-                                                                <span className="font-bold text-slate-700">
-                                                                    {player.likes_count || 0}
-                                                                </span>
-                                                            </button>
                                                         </div>
+                                                        <div className="text-2xl font-bold text-emerald-600">
+                                                            {player.total_score}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex-shrink-0">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleLikePlayer(player.member.id);
+                                                            }}
+                                                            className={cn(
+                                                                "gap-1.5 h-9 px-3",
+                                                                likedPlayers.has(player.member.id)
+                                                                    ? "text-red-500 hover:text-red-600"
+                                                                    : "text-slate-400 hover:text-slate-600"
+                                                            )}
+                                                        >
+                                                            <ThumbsUp
+                                                                className={cn(
+                                                                    "w-4 h-4",
+                                                                    likedPlayers.has(player.member.id) && "fill-current"
+                                                                )}
+                                                            />
+                                                            <span className="font-semibold text-sm">
+                                                                {player.member.like_count || 0}
+                                                            </span>
+                                                        </Button>
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="text-sm font-semibold text-slate-500">
-                                                            Overall Score
-                                                        </div>
-                                                        <div className="text-3xl font-black text-emerald-600">
-                                                            {player.overall_score}
-                                                        </div>
-                                                    </div>
-                                                    {player.difference > 0 && (
-                                                        <div className="text-xs text-orange-600 font-semibold text-right mt-1">
-                                                            +{player.difference} dari #1
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-                                                    <div className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1">
-                                                        <Target className="w-3.5 h-3.5" />
-                                                        Skor Setiap Game
+                                                {/* Game Scores */}
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                        <Target className="w-4 h-4" />
+                                                        <span className="font-semibold">Skor Setiap Game</span>
                                                     </div>
                                                     <div className="grid grid-cols-5 gap-2">
-                                                        {(
-                                                            [
-                                                                player.game1_score,
-                                                                player.game2_score,
-                                                                player.game3_score,
-                                                                player.game4_score,
-                                                                player.game5_score,
-                                                            ] as number[]
-                                                        ).map((score, i) => (
-                                                            <div
-                                                                key={i}
-                                                                className="bg-sky-600 text-white rounded-md p-2 text-center shadow-sm"
-                                                            >
-                                                                <div className="text-[10px] font-semibold opacity-90">
-                                                                    G{i + 1}
+                                                        {[1, 2, 3, 4, 5].map((gameNum) => {
+                                                            const score = player.game_scores?.[`game${gameNum}`];
+                                                            return (
+                                                                <div
+                                                                    key={gameNum}
+                                                                    className="bg-sky-500 text-white rounded-lg p-2.5 text-center shadow-sm"
+                                                                >
+                                                                    <div className="text-xs font-medium opacity-90">
+                                                                        G{gameNum}
+                                                                    </div>
+                                                                    <div className="text-lg font-bold mt-0.5">
+                                                                        {score || 0}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-base font-bold mt-0.5">
-                                                                    {score || "-"}
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
 
+                                                {/* Stats */}
                                                 <div className="grid grid-cols-3 gap-2">
-                                                    {[
-                                                        { label: "Total", value: player.total_score, color: "text-slate-800" },
-                                                        { label: "Handicap", value: player.handicap, color: "text-blue-600" },
-                                                        { label: "Average", value: player.average_score, color: "text-purple-600" },
-                                                    ].map(({ label, value, color }) => (
-                                                        <div
-                                                            key={label}
-                                                            className="bg-white/70 backdrop-blur-sm rounded-lg p-2.5 text-center shadow-sm"
-                                                        >
-                                                            <div className="text-[10px] font-semibold text-slate-500 uppercase">
-                                                                {label}
-                                                            </div>
-                                                            <div className={`text-lg font-black mt-0.5 ${color}`}>{value}</div>
+                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
+                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                                            Total
                                                         </div>
-                                                    ))}
+                                                        <div className="text-lg font-bold text-slate-800 mt-1">
+                                                            {player.total_score}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
+                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                                            Handicap
+                                                        </div>
+                                                        <div className="text-lg font-bold text-sky-600 mt-1">
+                                                            {player.handicap || 0}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-slate-50/80 rounded-lg p-2.5 text-center">
+                                                        <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">
+                                                            Average
+                                                        </div>
+                                                        <div className="text-lg font-bold text-purple-600 mt-1">
+                                                            {player.average_score.toFixed(1)}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </motion.div>
                                         );
