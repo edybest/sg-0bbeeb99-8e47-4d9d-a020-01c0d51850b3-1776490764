@@ -224,8 +224,7 @@ export default function BlokPage() {
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
     const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
-    const [selectedGameForCleanGame, setSelectedGameForCleanGame] = useState<number | null>(null);
-    const [cleanGameWinners, setCleanGameWinners] = useState<Array<{ member_name: string; prize: number }>>([]);
+    const [cleanGameDataByGame, setCleanGameDataByGame] = useState<Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>>>({});
     const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
