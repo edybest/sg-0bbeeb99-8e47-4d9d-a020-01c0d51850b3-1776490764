@@ -515,8 +515,11 @@ export default function BlokPage() {
                 setLeaderboard(applyCurrentSort(nextBase, sortField, sortDirection));
                 void loadUserLikesCount(
                     nextBase.map((p) => p.id),
-                    gameId // FIX #2: pass current gameId explicitly
+                    gameId
                 );
+                
+                // Debug: Log first player's member data to verify ID
+                console.log("First player member data:", nextBase[0]?.member);
             } catch (err) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load leaderboard";
