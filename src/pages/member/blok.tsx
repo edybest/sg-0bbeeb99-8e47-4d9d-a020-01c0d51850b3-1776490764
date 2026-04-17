@@ -247,6 +247,10 @@ export default function BlokPage() {
     } | null>(null);
     const [loadingMenVsWomen, setLoadingMenVsWomen] = useState(false);
 
+    const [cleanGameDialogOpen, setCleanGameDialogOpen] = useState(false);
+    const [cleanGameDataByGame, setCleanGameDataByGame] = useState<Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>>>({});
+    const [loadingCleanGame, setLoadingCleanGame] = useState(false);
+
     const previousLeaderboardRef = useRef<LeaderboardEntry[]>([]);
 
     const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
@@ -572,14 +576,12 @@ export default function BlokPage() {
         }
     };
 
-    const handleOpenCleanGameDialog = async (gameNum: number) => {
+    const handleOpenCleanGameDialog = async () => {
         if (!selectedGame) return;
-        setSelectedGameForCleanGame(gameNum);
         setCleanGameDialogOpen(true);
         setLoadingCleanGame(true);
 
         try {
-            // Fetch clean game data from the games table
             const { data: gameData, error } = await supabase
                 .from("games")
                 .select("clean_game_data")
@@ -590,22 +592,12 @@ export default function BlokPage() {
 
             const cleanGameData = gameData?.clean_game_data as any;
             
-            if (!cleanGameData || !cleanGameData[`game${gameNum}`]) {
-                setCleanGameWinners([]);
+            if (!cleanGameData) {
+                setCleanGameDataByGame({});
                 setLoadingCleanGame(false);
                 return;
             }
 
-            // Get winner IDs for this specific game
-            const winnerIds = cleanGameData[`game${gameNum}`] || [];
-            
-            if (winnerIds.length === 0) {
-                setCleanGameWinners([]);
-                setLoadingCleanGame(false);
-                return;
-            }
-
-            // Count total players who joined clean game (have clean_game flag = true)
             const { data: playersData, error: playersError } = await supabase
                 .from("game_players")
                 .select("id")
@@ -615,30 +607,46 @@ export default function BlokPage() {
             if (playersError) throw playersError;
 
             const cleanGamePlayersCount = playersData?.length || 0;
-            
-            // Total prize pool for this game (same calculation as Score Management)
             const totalPrize = cleanGamePlayersCount * 2;
+
+            const allWinnerIds = new Set<string>();
+            for (let i = 1; i <= 5; i++) {
+                const wIds = cleanGameData[`game${i}`] || [];
+                wIds.forEach((id: string) => allWinnerIds.add(id));
+            }
+
+            const membersMap: Record<string, { username: string, avatar_url: string | null }> = {};
             
-            // Prize per winner for this game (rounded down)
-            const prizePerWinner = winnerIds.length > 0 ? Math.floor(totalPrize / winnerIds.length) : 0;
+            if (allWinnerIds.size > 0) {
+                const { data: members, error: membersError } = await supabase
+                    .from("members")
+                    .select("id, username, avatar_url")
+                    .in("id", Array.from(allWinnerIds));
 
-            // Fetch member details
-            const { data: members, error: membersError } = await supabase
-                .from("members")
-                .select("id, username")
-                .in("id", winnerIds);
+                if (membersError) throw membersError;
+                
+                members?.forEach(m => {
+                    membersMap[m.id] = { username: m.username, avatar_url: m.avatar_url };
+                });
+            }
 
-            if (membersError) throw membersError;
+            const winnersByGame: Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>> = {};
 
-            const winners = (members || []).map(member => ({
-                member_name: member.username,
-                prize: prizePerWinner
-            }));
+            for (let i = 1; i <= 5; i++) {
+                const wIds = cleanGameData[`game${i}`] || [];
+                const prizePerWinner = wIds.length > 0 ? Math.floor(totalPrize / wIds.length) : 0;
+                
+                winnersByGame[i] = wIds.map((id: string) => ({
+                    member_name: membersMap[id]?.username || "Unknown",
+                    avatar_url: membersMap[id]?.avatar_url || null,
+                    prize: prizePerWinner
+                }));
+            }
 
-            setCleanGameWinners(winners);
+            setCleanGameDataByGame(winnersByGame);
         } catch (error) {
             console.error("Error loading clean game winners:", error);
-            setCleanGameWinners([]);
+            setCleanGameDataByGame({});
         } finally {
             setLoadingCleanGame(false);
         }
@@ -1135,96 +1143,15 @@ export default function BlokPage() {
                                             )}
 
                                             {/* Clean Game Button */}
-                                            {cleanGameData && (
-                                                <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 shadow-lg">
-                                                    <CardContent className="p-4">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="bg-emerald-500 p-3 rounded-full shadow-md">
-                                                                    <Sparkles className="w-6 h-6 text-white" />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="text-lg font-bold text-emerald-800">Clean Game Winners</h3>
-                                                                    <p className="text-sm text-emerald-600">Pemenang Semua Game</p>
-                                                                </div>
-                                                            </div>
-                                                            <Dialog>
-                                                                <DialogTrigger asChild>
-                                                                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
-                                                                        <Trophy className="w-4 h-4 mr-2" />
-                                                                        Lihat Pemenang
-                                                                    </Button>
-                                                                </DialogTrigger>
-                                                                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                                                    <DialogHeader>
-                                                                        <DialogTitle className="flex items-center gap-2 text-2xl">
-                                                                            <Sparkles className="w-6 h-6 text-emerald-600" />
-                                                                            Clean Game Winners
-                                                                        </DialogTitle>
-                                                                        <DialogDescription>
-                                                                            Pemenang untuk semua game dengan clean game
-                                                                        </DialogDescription>
-                                                                    </DialogHeader>
-                                                                    <div className="space-y-4 mt-4">
-                                                                        {[1, 2, 3, 4, 5].map((gameNum) => {
-                                                                            const winners = cleanGameData[`game${gameNum}` as keyof typeof cleanGameData] || [];
-                                                                            const prize = cleanGameData.prizes?.[`game${gameNum}` as keyof typeof cleanGameData.prizes] || 0;
-                                                                                
-                                                                            return (
-                                                                                <div key={gameNum} className="border-2 border-emerald-100 rounded-lg p-4 bg-gradient-to-br from-white to-emerald-50">
-                                                                                    <div className="flex items-center justify-between mb-3">
-                                                                                        <h4 className="font-bold text-lg text-emerald-800">Game {gameNum}</h4>
-                                                                                        <div className="bg-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                                                                                            RM {prize.toFixed(2)}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {winners.length > 0 ? (
-                                                                                        <div className="space-y-2">
-                                                                                            {winners.map((winner, idx) => (
-                                                                                                <div key={idx} className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm">
-                                                                                                    <div className="flex-shrink-0">
-                                                                                                        {winner.avatar_url ? (
-                                                                                                            <Image
-                                                                                                                src={winner.avatar_url}
-                                                                                                                alt={winner.username}
-                                                                                                                width={40}
-                                                                                                                height={40}
-                                                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-emerald-200"
-                                                                                                                loading="lazy"
-                                                                                                                unoptimized
-                                                                                                            />
-                                                                                                        ) : (
-                                                                                                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-600 text-lg border-2 border-emerald-200">
-                                                                                                                {winner.username[0].toUpperCase()}
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                    <div className="flex-1">
-                                                                                                        <div className="font-bold text-slate-800">{winner.username}</div>
-                                                                                                        <div className="text-sm text-emerald-600">Pemenang</div>
-                                                                                                    </div>
-                                                                                                    <div className="text-right">
-                                                                                                        <div className="text-lg font-bold text-emerald-600">
-                                                                                                            RM {prize.toFixed(2)}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    ) : (
-                                                                                        <div className="text-center py-4 text-slate-500">
-                                                                                            Tiada pemenang
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </DialogContent>
-                                                            </Dialog>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
+                                            {selectedGame && leaderboard.some((p) => p.clean_game) && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full mt-2 border-2 border-amber-500 text-amber-700 hover:bg-amber-50"
+                                                    onClick={handleOpenCleanGameDialog}
+                                                >
+                                                    <Sparkles className="w-4 h-4 mr-2" />
+                                                    Clean Game Winners
+                                                </Button>
                                             )}
                                         </div>
                                     )}
@@ -1316,39 +1243,68 @@ export default function BlokPage() {
 
                         {/* ── Clean Game Dialog ── */}
                         <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
-                            <DialogContent className="max-w-md">
+                            <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle className="flex items-center gap-2">
                                         <Sparkles className="w-5 h-5 text-amber-500" />
-                                        Clean Game Winners - Game {selectedGameForCleanGame}
+                                        Clean Game Winners
                                     </DialogTitle>
                                 </DialogHeader>
                                 {loadingCleanGame ? (
                                     <div className="flex justify-center py-8">
                                         <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
                                     </div>
-                                ) : cleanGameWinners.length === 0 ? (
+                                ) : Object.keys(cleanGameDataByGame).length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">
                                         <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                        <p>Tiada pemenang clean game untuk Game {selectedGameForCleanGame}</p>
+                                        <p>Tiada data clean game dijumpai.</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-3">
-                                        {cleanGameWinners.map((winner, index) => (
-                                            <div
-                                                key={index}
-                                                className="bg-amber-50 rounded-lg p-3 border border-amber-200"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="font-semibold text-amber-900">
-                                                        {winner.member_name}
+                                    <div className="space-y-4 mt-2">
+                                        {[1, 2, 3, 4, 5].map((gameNum) => {
+                                            const winners = cleanGameDataByGame[gameNum] || [];
+                                            return (
+                                                <div key={`game-${gameNum}`} className="bg-amber-50/50 rounded-lg p-3 border border-amber-100">
+                                                    <div className="font-bold text-amber-900 border-b border-amber-200 pb-2 mb-2">
+                                                        Game {gameNum}
                                                     </div>
-                                                    <div className="text-amber-700 font-bold">
-                                                        RM {winner.prize.toFixed(2)}
-                                                    </div>
+                                                    {winners.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {winners.map((winner, index) => (
+                                                                <div key={index} className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        {winner.avatar_url ? (
+                                                                            <Image
+                                                                                src={winner.avatar_url}
+                                                                                alt={winner.member_name}
+                                                                                width={32}
+                                                                                height={32}
+                                                                                className="w-8 h-8 rounded-full object-cover border border-amber-200"
+                                                                                loading="lazy"
+                                                                                unoptimized
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center font-bold text-amber-700 border border-amber-200">
+                                                                                {winner.member_name[0].toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                        <div>
+                                                                            <div className="font-bold text-sm text-slate-800">{winner.member_name}</div>
+                                                                            <div className="text-xs text-amber-600">Pemenang</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="font-bold text-emerald-600">
+                                                                        RM {winner.prize.toFixed(2)}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-sm text-slate-500 italic">Tiada pemenang</div>
+                                                    )}
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </DialogContent>
