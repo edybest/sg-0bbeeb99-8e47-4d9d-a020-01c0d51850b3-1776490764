@@ -610,7 +610,7 @@ export default function BlokPage() {
                 });
             }
 
-            const winnersByGame: Record<number, Array<{ member_name: string; prize: number }>> = {};
+            const winnersByGame: Record<number, Array<{ member_name: string; avatar_url: string | null; prize: number }>> = {};
 
             for (let i = 1; i <= 5; i++) {
                 const wIds = cleanGameData[`game${i}`] || [];
