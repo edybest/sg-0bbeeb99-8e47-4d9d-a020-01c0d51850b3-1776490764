@@ -813,71 +813,33 @@ export default function BlokPage() {
                 return (
                     <motion.div
                         initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: [0, 1.2, 1], rotate: [180, 360, 0], y: [0, -3, 0] }}
-                        transition={{ type: "spring", stiffness: 200, damping: 10, duration: 0.8 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 10, duration: 0.5 }}
                         className="relative"
                     >
-                        <motion.div
-                            animate={{
-                                rotate: [0, -10, 10, -10, 0],
-                                boxShadow: [
-                                    "0 0 20px rgba(234,179,8,0.3)",
-                                    "0 0 40px rgba(234,179,8,0.6)",
-                                    "0 0 20px rgba(234,179,8,0.3)",
-                                ],
-                            }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                            className="rounded-full"
-                        >
-                            <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.8)]" />
-                        </motion.div>
-                        <motion.div
-                            animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute inset-0 rounded-full bg-yellow-400 blur-xl -z-10"
-                        />
+                        <Trophy className="w-10 h-10 text-yellow-500 drop-shadow-lg" />
                     </motion.div>
                 );
             case 2:
                 return (
                     <motion.div
-                        initial={{ scale: 0, y: -50 }}
-                        animate={{ scale: [0, 1.1, 1], y: [-50, 0, 0] }}
-                        transition={{ delay: 0.15, type: "spring", stiffness: 180, damping: 12 }}
+                        initial={{ scale: 0, y: -20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        transition={{ delay: 0.1, type: "spring", stiffness: 180, damping: 12 }}
                         className="relative"
                     >
-                        <motion.div
-                            animate={{ rotate: [0, -10, 10, -10, 0] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                            <Trophy className="w-9 h-9 text-gray-400 drop-shadow-[0_0_12px_rgba(156,163,175,0.7)]" />
-                        </motion.div>
-                        <motion.div
-                            animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
-                            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute inset-0 rounded-full bg-gray-300 blur-lg -z-10"
-                        />
+                        <Trophy className="w-9 h-9 text-gray-400 drop-shadow-md" />
                     </motion.div>
                 );
             case 3:
                 return (
                     <motion.div
-                        initial={{ scale: 0, x: 50, opacity: 0 }}
-                        animate={{ scale: [0, 1.15, 1], x: [50, 0, 0], opacity: [0, 1, 1] }}
-                        transition={{ delay: 0.3, type: "spring", stiffness: 160, damping: 14 }}
+                        initial={{ scale: 0, x: 20, opacity: 0 }}
+                        animate={{ scale: 1, x: 0, opacity: 1 }}
+                        transition={{ delay: 0.2, type: "spring", stiffness: 160, damping: 14 }}
                         className="relative"
                     >
-                        <motion.div
-                            animate={{ y: [0, -3, 0] }}
-                            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                            <Trophy className="w-8 h-8 text-amber-700 drop-shadow-[0_0_10px_rgba(180,83,9,0.6)]" />
-                        </motion.div>
-                        <motion.div
-                            animate={{ scale: [1, 1.08, 1], opacity: [0.2, 0.5, 0.2] }}
-                            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute inset-0 rounded-full bg-amber-600 blur-lg -z-10"
-                        />
+                        <Trophy className="w-8 h-8 text-amber-700 drop-shadow-md" />
                     </motion.div>
                 );
             default:
@@ -885,7 +847,7 @@ export default function BlokPage() {
                     <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.4 + rank * 0.05, type: "spring" }}
+                        transition={{ delay: 0.3 + rank * 0.02, type: "spring" }}
                         className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-bold text-sky-600 border-2 border-sky-300 shadow-sm"
                     >
                         {rank}
@@ -1472,8 +1434,8 @@ export default function BlokPage() {
                                                             </div>
                                                         )}
                                                         {player.clean_game && (
-                                                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
-                                                                <Sparkles className="w-4 h-4 text-amber-500" />
+                                                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-md">
+                                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                                                             </div>
                                                         )}
                                                     </div>
