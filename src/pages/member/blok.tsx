@@ -229,10 +229,23 @@ export default function BlokPage() {
     const [loadingCleanGame, setLoadingCleanGame] = useState(false);
 
     const [doubleRecords, setDoubleRecords] = useState<DoubleRecord[]>([]);
-    const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
     const [loadingDoubles, setLoadingDoubles] = useState(false);
+    const [doubleDialogOpen, setDoubleDialogOpen] = useState(false);
 
-    const [isMenVsWomenDialogOpen, setIsMenVsWomenDialogOpen] = useState(false);
+    const [trioRecords, setTrioRecords] = useState<Array<{
+        id: string;
+        player1: { id: string; username: string; avatar_url: string | null; };
+        player2: { id: string; username: string; avatar_url: string | null; };
+        player3: { id: string; username: string; avatar_url: string | null; };
+        player1_score: number;
+        player2_score: number;
+        player3_score: number;
+        total_score: number;
+    }>>([]);
+    const [loadingTrios, setLoadingTrios] = useState(false);
+    const [trioDialogOpen, setTrioDialogOpen] = useState(false);
+
+    const [menVsWomenDialogOpen, setMenVsWomenDialogOpen] = useState(false);
     const [menVsWomenData, setMenVsWomenData] = useState<{
         menTotal: number;
         womenTotal: number;
@@ -368,44 +381,129 @@ export default function BlokPage() {
         [router.query, toast]
     );
 
-    const loadDoubleRecords = useCallback(
-        async (gameId: string) => {
-            if (!gameId) return;
+    const loadDoubleRecords = useCallback(async (gameId: string) => {
+        if (!gameId) return;
 
-            try {
-                setLoadingDoubles(true);
+        try {
+            setLoadingDoubles(true);
+            const { data, error } = await supabase
+                .from("double_records")
+                .select(`
+                    *,
+                    player1:members!double_records_player1_id_fkey(id, username, avatar_url),
+                    player2:members!double_records_player2_id_fkey(id, username, avatar_url)
+                `)
+                .eq("game_id", gameId)
+                .order("total_score", { ascending: false });
 
-                const { data: doublesData, error: doublesError } = await (supabase as any)
-                    .from("double_records")
-                    .select(`
-                        id,
-                        player1_id,
-                        player2_id,
-                        player1_score,
-                        player2_score,
-                        total_score,
-                        player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
-                        player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
-                    `)
-                    .eq("game_id", gameId)
-                    .order("total_score", { ascending: false });
+            if (error) throw error;
 
-                if (doublesError) throw doublesError;
+            setDoubleRecords(data || []);
+        } catch (err) {
+            console.error("Error loading double records:", err);
+            toast({
+                title: "Ralat",
+                description: "Gagal memuatkan rekod double",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingDoubles(false);
+        }
+    }, [toast]);
 
-                setDoubleRecords((doublesData as any) || []);
-            } catch (err) {
-                console.error("Error loading double records:", err);
-                toast({
-                    title: "Error",
-                    description: "Failed to load double records",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoadingDoubles(false);
-            }
-        },
-        [toast]
-    );
+    const loadTrioRecords = useCallback(async (gameId: string) => {
+        if (!gameId) return;
+
+        try {
+            setLoadingTrios(true);
+            const { data, error } = await supabase
+                .from("trio_records")
+                .select(`
+                    *,
+                    player1:members!trio_records_player1_id_fkey(id, username, avatar_url),
+                    player2:members!trio_records_player2_id_fkey(id, username, avatar_url),
+                    player3:members!trio_records_player3_id_fkey(id, username, avatar_url)
+                `)
+                .eq("game_id", gameId)
+                .order("total_score", { ascending: false });
+
+            if (error) throw error;
+
+            setTrioRecords(data || []);
+        } catch (err) {
+            console.error("Error loading trio records:", err);
+            toast({
+                title: "Ralat",
+                description: "Gagal memuatkan rekod trio",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingTrios(false);
+        }
+    }, [toast]);
+
+    const loadMenVsWomenData = useCallback(async (gameId: string) => {
+        if (!gameId) return;
+
+        try {
+            setLoadingMenVsWomen(true);
+
+            const currentGame = games.find(g => g.id === selectedGame);
+            const womenHandicap = currentGame?.women_handicap || 0;
+
+            const { data: gamePlayers, error } = await supabase
+                .from("game_players")
+                .select(`
+                    total_score,
+                    exclude_from_men_vs_women,
+                    member:members!game_players_member_id_fkey (
+                        sex
+                    )
+                `)
+                .eq("game_id", selectedGame);
+
+            if (error) throw error;
+
+            let menTotal = 0;
+            let womenTotal = 0;
+            let menCount = 0;
+            let womenCount = 0;
+
+            (gamePlayers || []).forEach((gp: any) => {
+                if (gp.exclude_from_men_vs_women) return;
+                
+                const score = gp.total_score || 0;
+                const sex = gp.member?.sex;
+
+                if (sex === "men") {
+                    menTotal += score;
+                    menCount++;
+                } else if (sex === "women") {
+                    womenTotal += score;
+                    womenCount++;
+                }
+            });
+
+            const womenFinalTotal = womenTotal + (womenHandicap * womenCount);
+
+            setMenVsWomenData({
+                menTotal,
+                womenTotal: womenFinalTotal,
+                menCount,
+                womenCount,
+                womenHandicap,
+            });
+        } catch (err) {
+            console.error("Error loading Men vs Women data:", err);
+            toast({
+                title: "Error",
+                description: "Failed to load Men vs Women data",
+                variant: "destructive",
+            });
+        } finally {
+            setLoadingMenVsWomen(false);
+        }
+    }, [toast]);
 
     const loadUserLikesCount = useCallback(
         async (playerIds: string[], gameId: string) => {
@@ -567,7 +665,7 @@ export default function BlokPage() {
     const handleOpenDoubleDialog = async () => {
         if (!selectedGame) return;
 
-        setIsDoubleDialogOpen(true);
+        setDoubleDialogOpen(true);
         
         if (doubleRecords.length === 0) {
             await loadDoubleRecords(selectedGame);
@@ -652,7 +750,7 @@ export default function BlokPage() {
     const handleOpenMenVsWomenDialog = async () => {
         if (!selectedGame) return;
 
-        setIsMenVsWomenDialogOpen(true);
+        setMenVsWomenDialogOpen(true);
         setLoadingMenVsWomen(true);
 
         try {
@@ -1269,498 +1367,374 @@ export default function BlokPage() {
                             </DialogContent>
                         </Dialog>
 
-                        {/* ── Search & Filter ── */}
-                        {selectedGame && (
-                            <Card className="bg-white border-sky-200 shadow-md mb-6">
-                                <CardHeader className="border-b border-sky-200 pb-3 md:pb-4">
-                                    <CardTitle className="text-sky-900 flex items-center gap-2 text-lg">
-                                        <Search className="w-5 h-5 text-sky-600" />
-                                        Carian & Penapisan
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="p-4 md:p-6 space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-sky-700 mb-2">
-                                            Cari Nama (pisahkan dengan koma)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Contoh: zali, samdol, lan"
-                                            className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900"
-                                        />
-                                        {searchQuery && (
-                                            <p className="text-xs text-sky-600 mt-1">
-                                                Mencari: {searchQuery.split(",").filter((s) => s.trim()).length} nama
-                                            </p>
-                                        )}
+                        {/* Double Dialog */}
+                        <Dialog open={doubleDialogOpen} onOpenChange={setDoubleDialogOpen}>
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-blue-600" />
+                                        Score Double
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Top ranking untuk pemain yang main berpasangan (2 pemain)
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                {loadingDoubles ? (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+                                        <p className="text-sm text-muted-foreground">Memuatkan rekod double...</p>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-sky-700 mb-2">
-                                                Jantina
-                                            </label>
-                                            <select
-                                                value={genderFilter}
-                                                onChange={(e) => setGenderFilter(e.target.value)}
-                                                className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
-                                            >
-                                                <option value="ALL">Semua Jantina</option>
-                                                <option value="men">Lelaki</option>
-                                                <option value="women">Perempuan</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-sky-700 mb-2">
-                                                Teknik Balingan
-                                            </label>
-                                            <select
-                                                value={techniqueFilter}
-                                                onChange={(e) => setTechniqueFilter(e.target.value)}
-                                                className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
-                                            >
-                                                <option value="ALL">Semua Teknik</option>
-                                                <option value="Straight">Straight</option>
-                                                <option value="Hook">Hook</option>
-                                                <option value="Spinner">Spinner</option>
-                                                <option value="Backup">Backup</option>
-                                            </select>
-                                        </div>
+                                ) : doubleRecords.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <Users className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                                        <p className="text-muted-foreground">Tiada rekod double lagi untuk game ini</p>
                                     </div>
-
-                                    {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
-                                        <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
-                                            <span className="text-sm text-red-600 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors">
-                                                Reset Semua
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    <div className="text-sm text-sky-700 bg-sky-50 px-3 py-2 rounded-lg border border-sky-100">
-                                        Menunjukkan{" "}
-                                        <span className="font-bold">{filteredLeaderboard.length}</span> daripada{" "}
-                                        <span className="font-bold">{leaderboard.length}</span> pemain
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {selectedGame && (
-                            <>
-                                {/* ── Mobile card layout ── */}
-                                <div className="block md:hidden space-y-3 mb-6">
-                                    {loadingLeaderboard ? (
-                                        <div className="py-10 bg-white rounded-xl border border-sky-200 shadow-sm text-center px-6">
-                                            <Loader2 className="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
-                                            <div className="w-full bg-sky-100 rounded-full h-2.5 mb-2 overflow-hidden">
-                                                <div 
-                                                    className="bg-sky-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
-                                                    style={{ width: `${loadingProgress}%` }}
-                                                ></div>
-                                            </div>
-                                            <p className="text-sky-700 font-bold text-sm animate-pulse">
-                                                Memuatkan Leaderboard... {loadingProgress}%
-                                            </p>
-                                        </div>
-                                    ) : filteredLeaderboard.length > 0 && (
-                                        <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-4 shadow-md mb-4 flex items-center justify-between">
-                                            <div>
-                                                <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                                    <Trophy className="w-5 h-5 text-yellow-300" />
-                                                    Senarai Pemain
-                                                </h3>
-                                                <p className="text-sky-100 text-sm">Kedudukan keseluruhan</p>
-                                            </div>
-                                            <div className="bg-white/20 text-white text-xs px-3 py-1.5 rounded-full font-semibold border border-white/30">
-                                                {filteredLeaderboard.length} Pemain
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {filteredLeaderboard.map((player, index) => {
-                                        const isTop3 = player.rank <= 3;
-                                        const cardBg = isTop3
-                                            ? "bg-gradient-to-br from-amber-500 to-yellow-100 border-amber-200"
-                                            : "bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200";
-
-                                        return (
+                                ) : (
+                                    <div className="space-y-3">
+                                        {doubleRecords.map((record, index) => (
                                             <motion.div
-                                                key={player.id}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
+                                                key={record.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: index * 0.05 }}
-                                                className={`${cardBg} rounded-xl border shadow-md p-4 space-y-3`}
+                                                className="flex items-center gap-4 p-4 rounded-lg border bg-gradient-to-r from-blue-50 to-sky-50 hover:shadow-md transition-all"
                                             >
-                                                <div className="flex items-center gap-2 pb-3 border-b border-white/40">
-                                                    <div className="flex-shrink-0">
-                                                        {player.rank <= 3 ? (
-                                                            <div className="w-10 h-10 flex items-center justify-center">
-                                                                {player.rank === 1 && (
-                                                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-base font-bold text-white border-2 border-yellow-300 shadow-md">
-                                                                        1
-                                                                    </div>
-                                                                )}
-                                                                {player.rank === 2 && (
-                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-sm font-bold text-white border-2 border-gray-200 shadow-sm">
-                                                                        2
-                                                                    </div>
-                                                                )}
-                                                                {player.rank === 3 && (
-                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 flex items-center justify-center text-sm font-bold text-white border-2 border-amber-500 shadow-sm">
-                                                                        3
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
-                                                                {player.rank}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex-shrink-0 relative">
-                                                        {player.member.avatar_url ? (
-                                                            <Image
-                                                                src={player.member.avatar_url}
-                                                                alt={player.member.username}
-                                                                width={40}
-                                                                height={40}
-                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                                                                loading="lazy"
-                                                                unoptimized
-                                                            />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center font-bold text-slate-600 text-lg border-2 border-white shadow-sm">
-                                                                {player.member.username[0].toUpperCase()}
-                                                            </div>
-                                                        )}
-                                                        {player.clean_game && (
-                                                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5 shadow-sm">
-                                                                <Sparkles className="w-3 h-3 text-amber-500" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0 pr-2">
-                                                        <Link
-                                                            href={`/member/profile?id=${player.member.id}`}
-                                                            className="font-bold text-base text-slate-800 hover:text-sky-600 truncate block transition-colors"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                console.log("Clicked player:", player.member.username, "ID:", player.member.id);
-                                                            }}
-                                                        >
-                                                            {player.member.username}
-                                                        </Link>
-                                                        {player.rank > 1 && leaderboard[0] && (
-                                                            <div className="text-xs text-red-500 font-medium mt-0.5">
-                                                                -{leaderboard[0].overall_score - player.overall_score}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex-shrink-0 flex items-center gap-3">
-                                                        <div className="text-right">
-                                                            <div className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-widest">Overall</div>
-                                                            <div className="text-xl font-black text-emerald-600 leading-none mt-0.5">
-                                                                {player.overall_score}
-                                                            </div>
-                                                        </div>
-                                                        <div className="h-8 w-px bg-slate-200"></div>
-                                                        <button
-                                                            onClick={(e) => handleReaction(player.id, e)}
-                                                            disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                            className="flex flex-col items-center justify-center text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors w-8"
-                                                        >
-                                                            <ThumbsUp className="w-5 h-5 mb-0.5" />
-                                                            <span className="font-bold text-xs">{player.likes_count || 0}</span>
-                                                        </button>
-                                                    </div>
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-lg shrink-0">
+                                                    {index + 1}
                                                 </div>
 
-                                                {/* Game Scores */}
-                                                <div className="space-y-2">
-                                                    <div className="grid grid-cols-5 gap-1.5">
-                                                        {[1, 2, 3, 4, 5].map((gameNum) => {
-                                                            const scoreKey = `game${gameNum}_score` as keyof LeaderboardEntry;
-                                                            const score = player[scoreKey] as number;
-                                                            return (
-                                                                <div
-                                                                    key={gameNum}
-                                                                    className="bg-sky-500 text-white rounded p-1.5 text-center shadow-sm"
-                                                                >
-                                                                    <div className="text-[10px] font-semibold opacity-90">
-                                                                        G{gameNum}
-                                                                    </div>
-                                                                    <div className="text-sm font-bold mt-0.5">
-                                                                        {score || 0}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {record.player1?.avatar_url && (
+                                                                <img
+                                                                    src={record.player1.avatar_url}
+                                                                    alt={record.player1.username}
+                                                                    className="w-6 h-6 rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                            <span className="font-semibold text-blue-900">
+                                                                @{record.player1?.username}
+                                                            </span>
+                                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                                                {record.player1_score}
+                                                            </Badge>
+                                                        </div>
 
-                                                {/* Stats */}
-                                                <div className="grid grid-cols-3 gap-1.5 pt-1">
-                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                            Total
-                                                        </div>
-                                                        <div className="text-base font-bold text-slate-800 mt-0.5">
-                                                            {player.total_score}
+                                                        <span className="text-muted-foreground font-bold">+</span>
+
+                                                        <div className="flex items-center gap-2">
+                                                            {record.player2?.avatar_url && (
+                                                                <img
+                                                                    src={record.player2.avatar_url}
+                                                                    alt={record.player2.username}
+                                                                    className="w-6 h-6 rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                            <span className="font-semibold text-blue-900">
+                                                                @{record.player2?.username}
+                                                            </span>
+                                                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                                                {record.player2_score}
+                                                            </Badge>
                                                         </div>
                                                     </div>
-                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                            Hcp
-                                                        </div>
-                                                        <div className="text-base font-bold text-sky-600 mt-0.5">
-                                                            {player.handicap || 0}
-                                                        </div>
-                                                    </div>
-                                                    <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                                            Avg
-                                                        </div>
-                                                        <div className="text-base font-bold text-purple-600 mt-0.5">
-                                                            {player.average_score.toFixed(1)}
-                                                        </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-muted-foreground">Jumlah:</span>
+                                                        <span className="text-lg font-bold text-blue-600">
+                                                            {record.total_score}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </motion.div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* ── Desktop table ── */}
-                                <div className="hidden md:block">
-                                    <div className="overflow-x-auto rounded-xl border border-sky-200 shadow-md">
-                                        <table className="w-full min-w-[1200px] bg-white">
-                                            <thead>
-                                                <tr className="border-b border-sky-200">
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.rank} z-20 bg-sky-50 px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
-                                                        onClick={() => handleSort("rank")}
-                                                    >
-                                                        <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
-                                                            # {getSortIcon("rank")}
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.avatar} z-20 bg-sky-50 w-14 px-2 py-3 text-center border-r border-sky-200`}
-                                                    >
-                                                        <span className="text-xs font-semibold text-sky-800 uppercase tracking-wider">
-                                                            Avatar
-                                                        </span>
-                                                    </th>
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
-                                                        onClick={() => handleSort("username")}
-                                                    >
-                                                        <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
-                                                            Player {getSortIcon("username")}
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r border-sky-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
-                                                        onClick={() => handleSort("overall_score")}
-                                                    >
-                                                        <div className="flex items-center justify-center text-xs font-extrabold text-sky-900 uppercase tracking-wider">
-                                                            Overall {getSortIcon("overall_score")}
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.diff} z-20 bg-sky-50 px-4 py-3 text-center cursor-pointer hover:bg-sky-100 transition-colors border-r-2 border-sky-200`}
-                                                        onClick={() => handleSort("difference")}
-                                                    >
-                                                        <div className="flex items-center justify-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
-                                                            Diff {getSortIcon("difference")}
-                                                        </div>
-                                                    </th>
-                                                    {["Game 1", "Game 2", "Game 3", "Game 4", "Game 5"].map((g) => (
-                                                        <th
-                                                            key={g}
-                                                            className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20"
-                                                        >
-                                                            {g}
-                                                        </th>
-                                                    ))}
-                                                    <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-500 to-indigo-600 text-white z-10 border-l-2 border-white/20">
-                                                        Total
-                                                    </th>
-                                                    <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-indigo-700 text-white z-10 border-l-2 border-white/20">
-                                                        Handicap
-                                                    </th>
-                                                    <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10 border-l-2 border-white/20">
-                                                        <Heart className="w-4 h-4 mx-auto" />
-                                                    </th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {loadingLeaderboard ? (
-                                                    <tr>
-                                                        <td colSpan={13} className="py-20 text-center">
-                                                            <div className="max-w-sm mx-auto px-4">
-                                                                <Loader2 className="w-10 h-10 animate-spin text-sky-600 mx-auto mb-4" />
-                                                                <div className="w-full bg-sky-100 rounded-full h-2.5 mb-3 overflow-hidden">
-                                                                    <div 
-                                                                        className="bg-sky-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
-                                                                        style={{ width: `${loadingProgress}%` }}
-                                                                    ></div>
-                                                                </div>
-                                                                <span className="text-sky-700 font-bold animate-pulse text-sm block">
-                                                                    Memuatkan skor... {loadingProgress}%
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ) : filteredLeaderboard.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={13} className="py-20 text-center bg-slate-50">
-                                                            <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                                                            <p className="text-sky-500">
-                                                                Tiada skor dijumpai untuk kriteria carian
-                                                            </p>
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    filteredLeaderboard.map((player, index) => {
-                                                        const isTop3 = player.rank <= 3;
-                                                        const rowBg = isTop3
-                                                            ? index % 2 === 0
-                                                                ? "bg-amber-50/30 hover:bg-amber-100/50"
-                                                                : "bg-amber-50/60 hover:bg-amber-100/50"
-                                                            : index % 2 === 0
-                                                                ? "bg-white hover:bg-sky-50/50"
-                                                                : "bg-slate-50/50 hover:bg-sky-50/50";
-
-                                                        const stickyBg = isTop3 ? "bg-amber-50/80" : "bg-white";
-
-                                                        return (
-                                                            <tr
-                                                                key={player.id}
-                                                                className={`border-b border-sky-100 transition-colors group ${rowBg}`}
-                                                            >
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}
-                                                                >
-                                                                    {getRankDisplay(player.rank)}
-                                                                </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}
-                                                                >
-                                                                    <div className="relative inline-block">
-                                                                        {player.member.avatar_url ? (
-                                                                            <Image
-                                                                                src={player.member.avatar_url}
-                                                                                alt={player.member.username}
-                                                                                width={40}
-                                                                                height={40}
-                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                                                                                unoptimized
-                                                                                loading="lazy"
-                                                                            />
-                                                                        ) : (
-                                                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
-                                                                                {player.member.username[0].toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                        {player.clean_game && (
-                                                                            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-md">
-                                                                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}
-                                                                >
-                                                                    <Link
-                                                                        href={`/member/profile?id=${player.member.id}`}
-                                                                        className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]"
-                                                                    >
-                                                                        {player.member.username}
-                                                                    </Link>
-                                                                    <div className="flex items-center gap-1 mt-1">
-                                                                        <span className="text-xs font-bold text-slate-500">
-                                                                            {player.member.sex === "men" ? "♂️ L" : "♀️ P"}
-                                                                        </span>
-                                                                        {player.member.bowling_technique && (
-                                                                            <>
-                                                                                <span>•</span>
-                                                                                <span className="text-xs font-bold text-slate-500">
-                                                                                    {player.member.bowling_technique}
-                                                                                </span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.overall} z-10 ${isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
-                                                                        } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
-                                                                >
-                                                                    <span className="font-black text-lg text-emerald-700">
-                                                                        {player.overall_score}
-                                                                    </span>
-                                                                </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}
-                                                                >
-                                                                    <span className="font-bold text-sm text-orange-600">
-                                                                        {player.difference > 0 ? `+${player.difference}` : "-"}
-                                                                    </span>
-                                                                </td>
-                                                                {[
-                                                                    player.game1_score,
-                                                                    player.game2_score,
-                                                                    player.game3_score,
-                                                                    player.game4_score,
-                                                                    player.game5_score,
-                                                                ].map((score, i) => (
-                                                                    <td
-                                                                        key={i}
-                                                                        className="px-3 py-3 text-center border-r border-sky-200"
-                                                                    >
-                                                                        <span className="font-semibold text-sky-900">
-                                                                            {formatScore(score, player.id)}
-                                                                        </span>
-                                                                    </td>
-                                                                ))}
-                                                                <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-slate-800">
-                                                                        {player.total_score}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-blue-600">
-                                                                        {player.handicap}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-3 py-3 text-center">
-                                                                    <button
-                                                                        onClick={(e) => handleReaction(player.id, e)}
-                                                                        disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
-                                                                    >
-                                                                        <ThumbsUp className="w-4 h-4" />
-                                                                        <span className="font-bold text-sm">
-                                                                            {player.likes_count || 0}
-                                                                        </span>
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })
-                                                )}
-                                            </tbody>
-                                        </table>
+                                        ))}
                                     </div>
-                                </div>
-                            </>
-                        )}
+                                )}
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Trio Dialog */}
+                        <Dialog open={trioDialogOpen} onOpenChange={setTrioDialogOpen}>
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <Users className="w-5 h-5 text-purple-600" />
+                                        Score Trio
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Top ranking untuk pemain yang main bertiga (3 pemain)
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                {loadingTrios ? (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                        <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-3" />
+                                        <p className="text-sm text-muted-foreground">Memuatkan rekod trio...</p>
+                                    </div>
+                                ) : trioRecords.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <Users className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                                        <p className="text-muted-foreground">Tiada rekod trio lagi untuk game ini</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {trioRecords.map((record, index) => (
+                                            <motion.div
+                                                key={record.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: index * 0.05 }}
+                                                className="flex items-center gap-4 p-4 rounded-lg border bg-gradient-to-r from-purple-50 to-pink-50 hover:shadow-md transition-all"
+                                            >
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-600 text-white font-bold text-lg shrink-0">
+                                                    {index + 1}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {record.player1?.avatar_url && (
+                                                                <img
+                                                                    src={record.player1.avatar_url}
+                                                                    alt={record.player1.username}
+                                                                    className="w-6 h-6 rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                            <span className="font-semibold text-purple-900">
+                                                                @{record.player1?.username}
+                                                            </span>
+                                                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                                {record.player1_score}
+                                                            </Badge>
+                                                        </div>
+
+                                                        <span className="text-muted-foreground font-bold">+</span>
+
+                                                        <div className="flex items-center gap-2">
+                                                            {record.player2?.avatar_url && (
+                                                                <img
+                                                                    src={record.player2.avatar_url}
+                                                                    alt={record.player2.username}
+                                                                    className="w-6 h-6 rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                            <span className="font-semibold text-purple-900">
+                                                                @{record.player2?.username}
+                                                            </span>
+                                                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                                {record.player2_score}
+                                                            </Badge>
+                                                        </div>
+
+                                                        <span className="text-muted-foreground font-bold">+</span>
+
+                                                        <div className="flex items-center gap-2">
+                                                            {record.player3?.avatar_url && (
+                                                                <img
+                                                                    src={record.player3.avatar_url}
+                                                                    alt={record.player3.username}
+                                                                    className="w-6 h-6 rounded-full object-cover"
+                                                                />
+                                                            )}
+                                                            <span className="font-semibold text-purple-900">
+                                                                @{record.player3?.username}
+                                                            </span>
+                                                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                                {record.player3_score}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-muted-foreground">Jumlah:</span>
+                                                        <span className="text-lg font-bold text-purple-600">
+                                                            {record.total_score}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Men vs Women Dialog */}
+                        <Dialog open={menVsWomenDialogOpen} onOpenChange={setMenVsWomenDialogOpen}>
+                            <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                        <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                                        <span className="line-clamp-1">Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}</span>
+                                    </DialogTitle>
+                                </DialogHeader>
+                                {loadingMenVsWomen ? (
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                                    </div>
+                                ) : !menVsWomenData ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                        <p className="text-sm">Tiada data Men vs Women</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 sm:space-y-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
+                                                    menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                        ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
+                                                        : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                            ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
+                                                            : "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
+                                                }`}
+                                            >
+                                                <div className="text-center">
+                                                    <div className="text-3xl sm:text-4xl mb-2">👨</div>
+                                                    <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                            ? "text-white"
+                                                            : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                                ? "text-pink-900"
+                                                                : "text-gray-900"
+                                                    }`}>
+                                                        <span>MEN TEAM</span>
+                                                        {menVsWomenData.menTotal > menVsWomenData.womenTotal && (
+                                                            <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
+                                                        )}
+                                                    </h3>
+                                                    <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                            ? "text-white"
+                                                            : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                                ? "text-pink-700"
+                                                                : "text-gray-700"
+                                                    }`}>
+                                                        {menVsWomenData.menTotal}
+                                                    </div>
+                                                    <div className={`text-xs sm:text-sm ${
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                            ? "text-blue-100"
+                                                            : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                                ? "text-pink-100"
+                                                                : "text-gray-500"
+                                                    }`}>
+                                                        {menVsWomenData.menCount} pemain
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.1 }}
+                                                className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
+                                                    menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
+                                                        : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                            ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
+                                                            : "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
+                                                }`}
+                                            >
+                                                <div className="text-center">
+                                                    <div className="text-3xl sm:text-4xl mb-2">👩</div>
+                                                    <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
+                                                        menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                            ? "text-white"
+                                                            : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                                ? "text-blue-900"
+                                                                : "text-gray-900"
+                                                    }`}>
+                                                        <span>WOMEN TEAM</span>
+                                                        {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
+                                                            <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
+                                                        )}
+                                                    </h3>
+                                                    <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
+                                                        menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                            ? "text-white"
+                                                            : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                                ? "text-blue-700"
+                                                                : "text-gray-700"
+                                                    }`}>
+                                                        {menVsWomenData.womenTotal}
+                                                    </div>
+                                                    <div className={`text-xs sm:text-sm ${
+                                                        menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                            ? "text-pink-100"
+                                                            : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                                ? "text-blue-100"
+                                                                : "text-gray-500"
+                                                    }`}>
+                                                        {menVsWomenData.womenCount} pemain
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        </div>
+
+                                        <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
+                                            <h4 className="font-bold text-purple-900 mb-2 sm:mb-3 text-sm sm:text-base flex items-center gap-2">
+                                                <span className="text-base sm:text-lg">📊</span>
+                                                Breakdown Kiraan:
+                                            </h4>
+                                            <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                                                <div className="flex justify-between items-center gap-2">
+                                                    <span className="text-gray-700">👨 Men Total Score:</span>
+                                                    <span className="font-bold text-blue-700">{menVsWomenData.menTotal}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center gap-2">
+                                                    <span className="text-gray-700">👩 Women Total Score:</span>
+                                                    <span className="font-bold text-pink-700">
+                                                        {menVsWomenData.womenTotal - (menVsWomenData.womenHandicap * menVsWomenData.womenCount)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center gap-2">
+                                                    <span className="text-gray-700 flex-shrink-0">➕ Women Handicap:</span>
+                                                    <span className="font-bold text-pink-700 text-right">
+                                                        {menVsWomenData.womenHandicap} × {menVsWomenData.womenCount} = {menVsWomenData.womenHandicap * menVsWomenData.womenCount}
+                                                    </span>
+                                                </div>
+                                                <div className="border-t border-purple-300 pt-2 mt-2 flex justify-between items-center gap-2">
+                                                    <span className="text-gray-700 font-bold flex-shrink-0">👩 Women Final Total:</span>
+                                                    <span className="font-black text-pink-700">{menVsWomenData.womenTotal}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ delay: 0.3, type: "spring" }}
+                                            className={`p-4 sm:p-6 rounded-xl text-center ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "bg-gradient-to-r from-pink-500 to-pink-600"
+                                                        : "bg-gradient-to-r from-gray-500 to-gray-600"
+                                            }`}
+                                        >
+                                            <div className="text-4xl sm:text-6xl mb-2 sm:mb-3">
+                                                {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "👨🏆" :
+                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal ? "👩🏆" :
+                                                 "🤝"}
+                                            </div>
+                                            <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">
+                                                {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "MEN TEAM MENANG!" :
+                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal ? "WOMEN TEAM MENANG!" :
+                                                 "SERI!"}
+                                            </h3>
+                                            <p className="text-white text-sm sm:text-lg">
+                                                Perbezaan: {Math.abs(menVsWomenData.menTotal - menVsWomenData.womenTotal)} pin
+                                            </p>
+                                        </motion.div>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
                     </main>
                 </div>
 
@@ -1790,144 +1764,201 @@ export default function BlokPage() {
                 ))}
 
                 {/* ── Double Game Dialog ── */}
-                <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
+                <Dialog open={doubleDialogOpen} onOpenChange={setDoubleDialogOpen}>
                     <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <Users className="w-5 h-5 text-blue-500" />
-                                Score Double - {games.find(g => g.id === selectedGame)?.game_name}
+                                <Users className="w-5 h-5 text-blue-600" />
+                                Score Double
                             </DialogTitle>
+                            <DialogDescription>
+                                Top ranking untuk pemain yang main berpasangan (2 pemain)
+                            </DialogDescription>
                         </DialogHeader>
+
                         {loadingDoubles ? (
-                            <div className="flex justify-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+                                <p className="text-sm text-muted-foreground">Memuatkan rekod double...</p>
                             </div>
                         ) : doubleRecords.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>Tiada rekod double untuk game ini</p>
+                            <div className="text-center py-12">
+                                <Users className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                                <p className="text-muted-foreground">Tiada rekod double lagi untuk game ini</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <div className="text-sm text-gray-600 mb-4">
-                                    Jumlah Pasukan: <span className="font-bold">{doubleRecords.length}</span>
-                                </div>
-                                {doubleRecords.map((record, index) => {
-                                    const isTop3 = index < 3;
-                                    const rankBg = 
-                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
-                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
-                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
-                                        "bg-white border-gray-200";
+                                {doubleRecords.map((record, index) => (
+                                    <motion.div
+                                        key={record.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="flex items-center gap-4 p-4 rounded-lg border bg-gradient-to-r from-blue-50 to-sky-50 hover:shadow-md transition-all"
+                                    >
+                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white font-bold text-lg shrink-0">
+                                            {index + 1}
+                                        </div>
 
-                                    return (
-                                        <motion.div
-                                            key={record.id}
-                                            initial={{ opacity: 0, y: -20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className={`border-2 rounded-lg p-4 ${rankBg}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4 flex-1">
-                                                    <div className={`
-                                                        flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg
-                                                        ${index === 0 ? "bg-yellow-500 text-white" : 
-                                                          index === 1 ? "bg-gray-400 text-white" :
-                                                          index === 2 ? "bg-orange-600 text-white" :
-                                                          "bg-blue-100 text-blue-700"}
-                                                    `}>
-                                                        #{index + 1}
-                                                    </div>
-
-                                                    <div className="flex-1">
-                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                            <div className="flex items-center gap-2">
-                                                                {record.player1?.avatar_url ? (
-                                                                    <Image
-                                                                        src={record.player1.avatar_url}
-                                                                        alt={record.player1.username}
-                                                                        width={32}
-                                                                        height={32}
-                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                                                        unoptimized
-                                                                        loading="lazy"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
-                                                                        {record.player1?.username[0].toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <Link
-                                                                    href={`/member/profile?id=${record.player1_id}`}
-                                                                    className="font-semibold text-blue-900 hover:text-blue-700"
-                                                                >
-                                                                    @{record.player1?.username}
-                                                                </Link>
-                                                                <Badge variant="secondary" className="font-bold">
-                                                                    {record.player1_score}
-                                                                </Badge>
-                                                            </div>
-
-                                                            <span className="text-gray-400 font-bold">+</span>
-
-                                                            <div className="flex items-center gap-2">
-                                                                {record.player2?.avatar_url ? (
-                                                                    <Image
-                                                                        src={record.player2.avatar_url}
-                                                                        alt={record.player2.username}
-                                                                        width={32}
-                                                                        height={32}
-                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                                                        unoptimized
-                                                                        loading="lazy"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm border-2 border-white">
-                                                                        {record.player2?.username[0].toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <Link
-                                                                    href={`/member/profile?id=${record.player2_id}`}
-                                                                    className="font-semibold text-blue-900 hover:text-blue-700"
-                                                                >
-                                                                    @{record.player2?.username}
-                                                                </Link>
-                                                                <Badge variant="secondary" className="font-bold">
-                                                                    {record.player2_score}
-                                                                </Badge>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-gray-600">Jumlah:</span>
-                                                            <span className={`text-2xl font-black ${
-                                                                isTop3 ? "text-blue-600" : "text-gray-700"
-                                                            }`}>
-                                                                {record.total_score}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    {record.player1?.avatar_url && (
+                                                        <img
+                                                            src={record.player1.avatar_url}
+                                                            alt={record.player1.username}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-blue-900">
+                                                        @{record.player1?.username}
+                                                    </span>
+                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                                        {record.player1_score}
+                                                    </Badge>
                                                 </div>
 
-                                                {isTop3 && (
-                                                    <Trophy className={`w-8 h-8 ${
-                                                        index === 0 ? "text-yellow-500" :
-                                                        index === 1 ? "text-gray-400" :
-                                                        "text-orange-600"
-                                                    }`} />
-                                                )}
+                                                <span className="text-muted-foreground font-bold">+</span>
+
+                                                <div className="flex items-center gap-2">
+                                                    {record.player2?.avatar_url && (
+                                                        <img
+                                                            src={record.player2.avatar_url}
+                                                            alt={record.player2.username}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-blue-900">
+                                                        @{record.player2?.username}
+                                                    </span>
+                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                                                        {record.player2_score}
+                                                    </Badge>
+                                                </div>
                                             </div>
-                                        </motion.div>
-                                    );
-                                })}
+
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-muted-foreground">Jumlah:</span>
+                                                <span className="text-lg font-bold text-blue-600">
+                                                    {record.total_score}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
                             </div>
                         )}
                     </DialogContent>
                 </Dialog>
 
-                {/* ── Men vs Women Dialog ── */}
-                <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
+                {/* Trio Dialog */}
+                <Dialog open={trioDialogOpen} onOpenChange={setTrioDialogOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-purple-600" />
+                                Score Trio
+                            </DialogTitle>
+                            <DialogDescription>
+                                Top ranking untuk pemain yang main bertiga (3 pemain)
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {loadingTrios ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-3" />
+                                <p className="text-sm text-muted-foreground">Memuatkan rekod trio...</p>
+                            </div>
+                        ) : trioRecords.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Users className="w-12 h-12 mx-auto text-muted-foreground/30 mb-3" />
+                                <p className="text-muted-foreground">Tiada rekod trio lagi untuk game ini</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {trioRecords.map((record, index) => (
+                                    <motion.div
+                                        key={record.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="flex items-center gap-4 p-4 rounded-lg border bg-gradient-to-r from-purple-50 to-pink-50 hover:shadow-md transition-all"
+                                    >
+                                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-600 text-white font-bold text-lg shrink-0">
+                                            {index + 1}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    {record.player1?.avatar_url && (
+                                                        <img
+                                                            src={record.player1.avatar_url}
+                                                            alt={record.player1.username}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-purple-900">
+                                                        @{record.player1?.username}
+                                                    </span>
+                                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                        {record.player1_score}
+                                                    </Badge>
+                                                </div>
+
+                                                <span className="text-muted-foreground font-bold">+</span>
+
+                                                <div className="flex items-center gap-2">
+                                                    {record.player2?.avatar_url && (
+                                                        <img
+                                                            src={record.player2.avatar_url}
+                                                            alt={record.player2.username}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-purple-900">
+                                                        @{record.player2?.username}
+                                                    </span>
+                                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                        {record.player2_score}
+                                                    </Badge>
+                                                </div>
+
+                                                <span className="text-muted-foreground font-bold">+</span>
+
+                                                <div className="flex items-center gap-2">
+                                                    {record.player3?.avatar_url && (
+                                                        <img
+                                                            src={record.player3.avatar_url}
+                                                            alt={record.player3.username}
+                                                            className="w-6 h-6 rounded-full object-cover"
+                                                        />
+                                                    )}
+                                                    <span className="font-semibold text-purple-900">
+                                                        @{record.player3?.username}
+                                                    </span>
+                                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                        {record.player3_score}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm text-muted-foreground">Jumlah:</span>
+                                                <span className="text-lg font-bold text-purple-600">
+                                                    {record.total_score}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* Men vs Women Dialog */}
+                <Dialog open={menVsWomenDialogOpen} onOpenChange={setMenVsWomenDialogOpen}>
                     <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -1953,7 +1984,9 @@ export default function BlokPage() {
                                         className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
                                             menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                 ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
-                                                : "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300"
+                                                : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
+                                                    : "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
                                         }`}
                                     >
                                         <div className="text-center">
@@ -1961,7 +1994,9 @@ export default function BlokPage() {
                                             <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-white"
-                                                    : "text-blue-900"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-900"
+                                                        : "text-gray-900"
                                             }`}>
                                                 <span>MEN TEAM</span>
                                                 {menVsWomenData.menTotal > menVsWomenData.womenTotal && (
@@ -1971,14 +2006,18 @@ export default function BlokPage() {
                                             <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-white"
-                                                    : "text-blue-700"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-700"
+                                                        : "text-gray-700"
                                             }`}>
                                                 {menVsWomenData.menTotal}
                                             </div>
                                             <div className={`text-xs sm:text-sm ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-blue-100"
-                                                    : "text-blue-600"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-100"
+                                                        : "text-gray-500"
                                             }`}>
                                                 {menVsWomenData.menCount} pemain
                                             </div>
@@ -1992,7 +2031,9 @@ export default function BlokPage() {
                                         className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
                                             menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                 ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
-                                                : "bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300"
+                                                : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
+                                                    : "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
                                         }`}
                                     >
                                         <div className="text-center">
@@ -2000,7 +2041,9 @@ export default function BlokPage() {
                                             <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
-                                                    : "text-pink-900"
+                                                    : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                        ? "text-blue-900"
+                                                        : "text-gray-900"
                                             }`}>
                                                 <span>WOMEN TEAM</span>
                                                 {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
@@ -2010,14 +2053,18 @@ export default function BlokPage() {
                                             <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
-                                                    : "text-pink-700"
+                                                    : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                        ? "text-blue-700"
+                                                        : "text-gray-700"
                                             }`}>
                                                 {menVsWomenData.womenTotal}
                                             </div>
                                             <div className={`text-xs sm:text-sm ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-pink-100"
-                                                    : "text-pink-600"
+                                                    : menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                        ? "text-blue-100"
+                                                        : "text-gray-500"
                                             }`}>
                                                 {menVsWomenData.womenCount} pemain
                                             </div>
