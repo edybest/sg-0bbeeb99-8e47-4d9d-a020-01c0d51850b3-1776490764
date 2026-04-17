@@ -579,7 +579,7 @@ export default function BlokPage() {
                 return;
             }
 
-            // Get member IDs from clean game data
+            // Get member IDs from clean game data for this specific game
             const winnerIds = cleanGameData[`game${gameNum}`] || [];
             
             if (winnerIds.length === 0) {
@@ -588,20 +588,14 @@ export default function BlokPage() {
                 return;
             }
 
-            // Count total players who were marked as clean game participants by admin
-            // This is the count of ALL players across all games (game1-game5) who participated in clean game
-            let totalCleanGamePlayers = 0;
-            for (const key of Object.keys(cleanGameData)) {
-                if (key.startsWith('game') && Array.isArray(cleanGameData[key])) {
-                    totalCleanGamePlayers += cleanGameData[key].length;
-                }
-            }
+            // Count participants in THIS specific game only (not all games combined)
+            const participantsInThisGame = winnerIds.length;
             
-            // Calculate prize pool: RM2 per clean game participant
-            const prizePool = totalCleanGamePlayers * 2;
+            // Calculate prize pool for this game: RM2 per participant in this game
+            const prizePool = participantsInThisGame * 2;
             
-            // Calculate prize per winner for this specific game (rounded down)
-            const prizePerWinner = winnerIds.length > 0 ? Math.floor(prizePool / winnerIds.length) : 0;
+            // Calculate prize per winner for this game (rounded down)
+            const prizePerWinner = participantsInThisGame > 0 ? Math.floor(prizePool / participantsInThisGame) : 0;
 
             // Fetch member details
             const { data: members, error: membersError } = await supabase
