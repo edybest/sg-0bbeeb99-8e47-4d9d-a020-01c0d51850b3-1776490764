@@ -298,6 +298,10 @@ export default function BlokPage() {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [genderFilter, setGenderFilter] = useState<string>("ALL");
     const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
+    
+    // For mobile expandable rows and performance optimization
+    const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+    const [visibleLimit, setVisibleLimit] = useState<number>(15);
 
     const isInitialLoading = loadingGames && games.length === 0;
     const isPageLoading = authLoading || isInitialLoading;
@@ -342,6 +346,10 @@ export default function BlokPage() {
                 .slice(0, 3),
         [filteredLeaderboard]
     );
+
+    const visibleLeaderboard = useMemo(() => {
+        return filteredLeaderboard.slice(0, visibleLimit);
+    }, [filteredLeaderboard, visibleLimit]);
 
     const applyCurrentSort = useCallback(
         (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
@@ -1386,9 +1394,15 @@ export default function BlokPage() {
                                             className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900"
                                         />
                                         {searchQuery && (
-                                            <p className="text-xs text-sky-600 mt-1">
-                                                Mencari: {searchQuery.split(",").filter((s) => s.trim()).length} nama
-                                            </p>
+                                            <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
+                                                Carian: {searchQuery.split(",").filter((s) => s.trim()).length} nama
+                                                <button
+                                                    onClick={() => setSearchQuery("")}
+                                                    className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </span>
                                         )}
                                     </div>
 
