@@ -1955,163 +1955,168 @@ export default function BlokPage() {
 
                 {/* ── Trio Game Dialog ── */}
                 <Dialog open={isTrioDialogOpen} onOpenChange={setIsTrioDialogOpen}>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
+                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
                                 <Users className="w-5 h-5 text-purple-500" />
-                                Score Trio - {games.find(g => g.id === selectedGame)?.game_name}
+                                <span className="line-clamp-1">Score Trio - {games.find(g => g.id === selectedGame)?.game_name}</span>
                             </DialogTitle>
                         </DialogHeader>
                         {loadingTrios ? (
                             <div className="flex justify-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+                                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
                             </div>
                         ) : trioRecords.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p>Tiada rekod trio untuk game ini</p>
+                                <p className="text-sm">Tiada rekod trio untuk game ini</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                <div className="text-sm text-gray-600 mb-4">
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-purple-100 bg-purple-50 px-4 py-3 text-sm text-purple-900">
                                     Jumlah Pasukan: <span className="font-bold">{trioRecords.length}</span>
                                 </div>
                                 {trioRecords.map((record, index) => {
-                                    const isTop3 = index < 3;
-                                    const rankBg = 
-                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
-                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
-                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
-                                        "bg-white border-gray-200";
+                                    const players = [
+                                        {
+                                            id: record.player1_id,
+                                            player: record.player1,
+                                            score: record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0),
+                                            handicap: record.player1_handicap || 0,
+                                        },
+                                        {
+                                            id: record.player2_id,
+                                            player: record.player2,
+                                            score: record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0),
+                                            handicap: record.player2_handicap || 0,
+                                        },
+                                        {
+                                            id: record.player3_id,
+                                            player: record.player3,
+                                            score: record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0),
+                                            handicap: record.player3_handicap || 0,
+                                        },
+                                    ];
+
+                                    const accent = index === 0
+                                        ? {
+                                            card: "border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-100",
+                                            badge: "bg-amber-500 text-white",
+                                            total: "text-amber-600",
+                                            pill: "bg-amber-100 text-amber-800",
+                                        }
+                                        : index === 1
+                                            ? {
+                                                card: "border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100",
+                                                badge: "bg-slate-500 text-white",
+                                                total: "text-slate-700",
+                                                pill: "bg-slate-200 text-slate-800",
+                                            }
+                                            : index === 2
+                                                ? {
+                                                    card: "border-orange-300 bg-gradient-to-br from-orange-50 to-amber-100",
+                                                    badge: "bg-orange-500 text-white",
+                                                    total: "text-orange-700",
+                                                    pill: "bg-orange-100 text-orange-800",
+                                                }
+                                                : {
+                                                    card: "border-purple-100 bg-white",
+                                                    badge: "bg-purple-100 text-purple-700",
+                                                    total: "text-purple-700",
+                                                    pill: "bg-purple-100 text-purple-800",
+                                                };
 
                                     return (
                                         <motion.div
                                             key={record.id}
-                                            initial={{ opacity: 0, y: -20 }}
+                                            initial={{ opacity: 0, y: 16 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            className={`border-2 rounded-lg p-4 ${rankBg}`}
+                                            className={cn("rounded-3xl border p-3 sm:p-4 shadow-sm", accent.card)}
                                         >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4 flex-1">
-                                                    <div className={`
-                                                        flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg
-                                                        ${index === 0 ? "bg-yellow-500 text-white" : 
-                                                          index === 1 ? "bg-gray-400 text-white" :
-                                                          index === 2 ? "bg-orange-600 text-white" :
-                                                          "bg-purple-100 text-purple-700"}
-                                                    `}>
-                                                        #{index + 1}
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className={cn("inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold", accent.badge)}>
+                                                        <span>#{index + 1}</span>
+                                                        {index === 0 ? (
+                                                            <Crown className="h-3.5 w-3.5" />
+                                                        ) : (
+                                                            <Star className="h-3.5 w-3.5 fill-current" />
+                                                        )}
                                                     </div>
-
-                                                    <div className="flex-1">
-                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                            <div className="flex items-center gap-2">
-                                                                {record.player1?.avatar_url ? (
-                                                                    <Image
-                                                                        src={record.player1.avatar_url}
-                                                                        alt={record.player1.username}
-                                                                        width={32}
-                                                                        height={32}
-                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                                                        unoptimized
-                                                                        loading="lazy"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
-                                                                        {record.player1?.username[0].toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <Link
-                                                                    href={`/member/profile?id=${record.player1_id}`}
-                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
-                                                                >
-                                                                    @{record.player1?.username}
-                                                                </Link>
-                                                                <Badge variant="secondary" className="font-bold">
-                                                                    {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
-                                                                </Badge>
-                                                            </div>
-
-                                                            <span className="text-gray-400 font-bold">+</span>
-
-                                                            <div className="flex items-center gap-2">
-                                                                {record.player2?.avatar_url ? (
-                                                                    <Image
-                                                                        src={record.player2.avatar_url}
-                                                                        alt={record.player2.username}
-                                                                        width={32}
-                                                                        height={32}
-                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                                                        unoptimized
-                                                                        loading="lazy"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
-                                                                        {record.player2?.username[0].toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <Link
-                                                                    href={`/member/profile?id=${record.player2_id}`}
-                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
-                                                                >
-                                                                    @{record.player2?.username}
-                                                                </Link>
-                                                                <Badge variant="secondary" className="font-bold">
-                                                                    {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
-                                                                </Badge>
-                                                            </div>
-
-                                                            <span className="text-gray-400 font-bold">+</span>
-
-                                                            <div className="flex items-center gap-2">
-                                                                {record.player3?.avatar_url ? (
-                                                                    <Image
-                                                                        src={record.player3.avatar_url}
-                                                                        alt={record.player3.username}
-                                                                        width={32}
-                                                                        height={32}
-                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
-                                                                        unoptimized
-                                                                        loading="lazy"
-                                                                    />
-                                                                ) : (
-                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
-                                                                        {record.player3?.username[0].toUpperCase()}
-                                                                    </div>
-                                                                )}
-                                                                <Link
-                                                                    href={`/member/profile?id=${record.player3_id}`}
-                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
-                                                                >
-                                                                    @{record.player3?.username}
-                                                                </Link>
-                                                                <Badge variant="secondary" className="font-bold">
-                                                                    {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
-                                                                </Badge>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-gray-600">
-                                                                {record.include_handicap ? "Jumlah (+ handicap):" : "Jumlah (tanpa handicap):"}
-                                                            </span>
-                                                            <span className={`text-2xl font-black ${
-                                                                isTop3 ? "text-purple-600" : "text-gray-700"
-                                                            }`}>
-                                                                {record.total_score}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                                    <p className="mt-2 text-xs font-medium text-slate-500">
+                                                        {record.include_handicap ? "Skor ahli termasuk handicap" : "Skor ahli tanpa handicap"}
+                                                    </p>
                                                 </div>
 
-                                                {isTop3 && (
-                                                    <Trophy className={`w-8 h-8 ${
-                                                        index === 0 ? "text-yellow-500" :
-                                                        index === 1 ? "text-gray-400" :
-                                                        "text-orange-600"
-                                                    }`} />
+                                                {index < 3 && (
+                                                    <Trophy
+                                                        className={cn(
+                                                            "h-7 w-7 flex-shrink-0",
+                                                            index === 0 ? "text-amber-500" : index === 1 ? "text-slate-400" : "text-orange-500"
+                                                        )}
+                                                    />
                                                 )}
+                                            </div>
+
+                                            <div className="mt-4 space-y-2.5">
+                                                {players.map((item, playerIndex) => (
+                                                    <div
+                                                        key={item.id}
+                                                        className="flex items-center gap-3 rounded-2xl border border-white/70 bg-white/80 px-3 py-2.5 shadow-sm"
+                                                    >
+                                                        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                                                            {playerIndex + 1}
+                                                        </div>
+
+                                                        {item.player?.avatar_url ? (
+                                                            <Image
+                                                                src={item.player.avatar_url}
+                                                                alt={item.player.username}
+                                                                width={40}
+                                                                height={40}
+                                                                className="h-10 w-10 flex-shrink-0 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                unoptimized
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-purple-100 font-bold text-purple-700 shadow-sm">
+                                                                {item.player?.username?.[0]?.toUpperCase() || "?"}
+                                                            </div>
+                                                        )}
+
+                                                        <div className="min-w-0 flex-1">
+                                                            <Link
+                                                                href={`/member/profile?id=${item.id}`}
+                                                                className="block truncate text-sm font-bold text-purple-900 hover:text-purple-700"
+                                                            >
+                                                                @{item.player?.username}
+                                                            </Link>
+                                                            <p className="text-[11px] text-slate-500">
+                                                                {record.include_handicap ? `Handicap +${item.handicap}` : "Tanpa handicap"}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className={cn("min-w-[76px] rounded-full px-3 py-1.5 text-center text-lg font-black", accent.pill)}>
+                                                            {item.score}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/70 bg-white/85 px-3 py-3">
+                                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                                                    <Target className="h-4 w-4 text-purple-500" />
+                                                    <span>Jumlah Pasukan</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[11px] text-slate-500">
+                                                        {record.include_handicap ? "Termasuk handicap" : "Tanpa handicap"}
+                                                    </p>
+                                                    <p className={cn("text-3xl font-black leading-none", accent.total)}>
+                                                        {record.total_score}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     );
@@ -2126,7 +2131,7 @@ export default function BlokPage() {
                     <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                                <Users className="w-5 h-5 text-purple-500" />
                                 <span className="line-clamp-1">Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}</span>
                             </DialogTitle>
                         </DialogHeader>
