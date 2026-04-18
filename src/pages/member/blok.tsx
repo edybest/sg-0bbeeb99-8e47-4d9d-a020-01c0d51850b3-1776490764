@@ -310,20 +310,58 @@ export default function BlokPage() {
               <Card><CardContent className="py-10 text-center text-slate-500">No leaderboard data yet for this game.</CardContent></Card>
             ) : (
               <>
-                <div className="space-y-3 md:hidden">
-                  {leaderboard.map((player) => (
-                    <Card key={player.id}><CardContent className="flex items-center justify-between gap-3 p-4">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline">#{player.rank}</Badge>
-                        {player.avatarUrl ? <Image src={player.avatarUrl} alt={player.username} width={40} height={40} className="h-10 w-10 rounded-full object-cover" unoptimized /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 font-bold text-sky-700">{player.username[0]?.toUpperCase()}</div>}
-                        <div>
-                          <Link href={`/member/profile?id=${player.memberId}`} className="font-semibold text-slate-900 hover:text-sky-700">@{player.username}</Link>
-                          <p className="text-xs text-slate-500">Overall {player.overall} · Avg {player.average}</p>
+                <div className="md:hidden">
+                  <div className="mb-2 grid grid-cols-[1fr_88px] gap-3 px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    <span>Pemain</span>
+                    <span className="text-right">Score</span>
+                  </div>
+
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    {leaderboard.map((player, index) => (
+                      <div
+                        key={player.id}
+                        className={`grid grid-cols-[1fr_88px] gap-3 px-3 py-3 ${index === 0 ? "" : "border-t border-slate-100"}`}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700">
+                            {player.rank}
+                          </div>
+
+                          {player.avatarUrl ? (
+                            <Image
+                              src={player.avatarUrl}
+                              alt={player.username}
+                              width={36}
+                              height={36}
+                              className="h-9 w-9 shrink-0 rounded-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 font-bold text-sky-700">
+                              {player.username[0]?.toUpperCase()}
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <Link
+                              href={`/member/profile?id=${player.memberId}`}
+                              className="block truncate text-sm font-semibold text-slate-900 hover:text-sky-700"
+                            >
+                              @{player.username}
+                            </Link>
+                            <p className="truncate text-xs text-slate-500">
+                              Avg {player.average} · HDCP {player.handicap}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-lg font-bold leading-none text-sky-700">{player.overall}</p>
+                          <p className="mt-1 text-xs text-slate-500">Total {player.total}</p>
                         </div>
                       </div>
-                      <div className="text-right text-sm"><p className="font-bold text-sky-700">{player.total}</p><p className="text-slate-500">HDCP {player.handicap}</p></div>
-                    </CardContent></Card>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
                 <Card className="hidden md:block">

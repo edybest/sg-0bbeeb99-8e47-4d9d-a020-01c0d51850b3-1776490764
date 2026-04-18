@@ -1,6 +1,6 @@
 ---
 title: Fix Blok leaderboard loading and Trio integration
-status: done
+status: in_progress
 priority: urgent
 type: bug
 tags:
@@ -14,7 +14,7 @@ position: 1
 ---
 
 ## Notes
-Pulihkan semula paparan leaderboard pada halaman Blok selepas perubahan berkaitan Trio menyebabkan senarai tidak dirender dengan betul. Pastikan pemilihan game, muatan leaderboard, butang Double/Trio/Men vs Women, dan dialog masing-masing berfungsi semula tanpa menyebabkan halaman tersekat.
+Pulihkan semula paparan leaderboard pada halaman Blok selepas perubahan berkaitan Trio menyebabkan senarai tidak dirender dengan betul. Pastikan pemilihan game, muatan leaderboard, butang Double/Trio/Men vs Women, dan dialog masing-masing berfungsi semula tanpa menyebabkan halaman tersekat. Maklum balas terbaru pengguna meminta susun atur leaderboard mobile untuk kolum pemain dan score dikembalikan seperti versi sebelumnya.
 
 ## Checklist
 - [x] Semak aliran data untuk game, selected game, dan trigger pemuatan leaderboard
