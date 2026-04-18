@@ -636,10 +636,8 @@ export default function BlokPage() {
                 setLoadingProgress(100);
             } finally {
                 clearInterval(progressInterval);
-                setTimeout(() => {
-                    setLoadingLeaderboard(false);
-                    setLoadingProgress(0);
-                }, 400); // Hold the 100% state briefly for UX before vanishing
+                setLoadingLeaderboard(false);
+                setLoadingProgress(0);
             }
         },
         [applyCurrentSort, loadUserLikesCount, sortDirection, sortField, toast]
