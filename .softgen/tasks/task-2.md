@@ -19,7 +19,7 @@ Pengguna mahu aliran admin diubah supaya rekod berpasukan tidak lagi terhad kepa
 
 ## Checklist
 - [x] Semak struktur data dan UI sedia ada untuk double, trio, dan game management
-- [ ] Ubah aliran admin supaya rekod boleh dicipta sebagai Double atau Trio dari pengurusan game
-- [ ] Tambah pilihan kiraan score termasuk handicap atau tanpa handicap untuk Double dan Trio
+- [x] Ubah aliran admin supaya rekod boleh dicipta sebagai Double atau Trio dari pengurusan game
+- [x] Tambah pilihan kiraan score termasuk handicap atau tanpa handicap untuk Double dan Trio
 - [ ] Kemas kini paparan halaman Blok supaya dialog dan label ikut data Double atau Trio yang baru
 - [ ] Jalankan semakan ralat dan tandakan tugasan selesai jika lulus
