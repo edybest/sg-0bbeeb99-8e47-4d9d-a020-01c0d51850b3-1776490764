@@ -69,24 +69,36 @@ export function GalleryPermissionsPanel() {
       // Fetch all gallery permissions
       const { data: permissionsData, error: permissionsError } = await supabase
         .from("gallery_permissions")
-        .select("id, member_id");
+        .select("id, member_id, can_add_albums, can_edit_albums, can_delete_albums, can_add_images, can_edit_images, can_delete_images");
 
       if (permissionsError) throw permissionsError;
 
-      // Create a map of member_id -> permission_id
+      // Create a map of member_id -> permission record
       const permissionsMap = new Map(
-        (permissionsData || []).map(p => [p.member_id, p.id])
+        (permissionsData || []).map(permission => [permission.member_id, permission])
       );
 
       // Combine data
-      const membersWithPermissions: MemberWithPermission[] = (membersData || []).map(member => ({
-        id: member.id,
-        full_name: member.full_name,
-        username: member.username,
-        avatar_url: member.avatar_url,
-        has_permission: permissionsMap.has(member.id),
-        permission_id: permissionsMap.get(member.id) || null
-      }));
+      const membersWithPermissions: MemberWithPermission[] = (membersData || []).map(member => {
+        const permission = permissionsMap.get(member.id);
+        const hasPermission = !!permission && (
+          permission.can_add_albums ||
+          permission.can_edit_albums ||
+          permission.can_delete_albums ||
+          permission.can_add_images ||
+          permission.can_edit_images ||
+          permission.can_delete_images
+        );
+
+        return {
+          id: member.id,
+          full_name: member.full_name,
+          username: member.username,
+          avatar_url: member.avatar_url,
+          has_permission: hasPermission,
+          permission_id: permission?.id || null
+        };
+      });
 
       setMembers(membersWithPermissions);
       setFilteredMembers(membersWithPermissions);
@@ -111,7 +123,7 @@ export function GalleryPermissionsPanel() {
         const { error } = await supabase
           .from("gallery_permissions")
           .delete()
-          .eq("id", member.permission_id!);
+          .eq("member_id", member.id);
 
         if (error) throw error;
 
@@ -126,9 +138,17 @@ export function GalleryPermissionsPanel() {
         // Grant permission
         const { error } = await supabase
           .from("gallery_permissions")
-          .insert({
+          .upsert({
             member_id: member.id,
-            granted_by: session.user.id
+            granted_by: session.user.id,
+            can_add_albums: true,
+            can_edit_albums: true,
+            can_delete_albums: true,
+            can_add_images: true,
+            can_edit_images: true,
+            can_delete_images: true
+          }, {
+            onConflict: "member_id"
           });
 
         if (error) throw error;
@@ -174,11 +194,20 @@ export function GalleryPermissionsPanel() {
 
       const { error } = await supabase
         .from("gallery_permissions")
-        .insert(
+        .upsert(
           membersWithoutPermission.map(m => ({ 
             member_id: m.id,
-            granted_by: session.user.id
-          }))
+            granted_by: session.user.id,
+            can_add_albums: true,
+            can_edit_albums: true,
+            can_delete_albums: true,
+            can_add_images: true,
+            can_edit_images: true,
+            can_delete_images: true
+          })),
+          {
+            onConflict: "member_id"
+          }
         );
 
       if (error) throw error;

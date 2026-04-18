@@ -40,6 +40,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Folder,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
@@ -54,6 +55,7 @@ import {
   updateImage,
   deleteImage,
   checkMemberPermissions,
+  setAlbumCover,
   type AlbumWithImages,
   type ImageWithAlbum,
   type GalleryImageWithThumbnail,
@@ -259,6 +261,21 @@ export default function GalleryPage() {
     }
   }
 
+  async function handleSetAlbumCover(image: GalleryImageWithThumbnail) {
+    if (!selectedAlbum) return;
+
+    try {
+      setUploading(true);
+      await setAlbumCover(selectedAlbum.id, image.image_url);
+      await loadAlbumImages(selectedAlbum.id);
+      await loadData();
+    } catch (error) {
+      console.error("Set album cover error:", error);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function openEditImageDialog(image: GalleryImageWithThumbnail) {
     setEditingImage(image);
     setEditImageCaption(image.description || image.title || "");
@@ -424,6 +441,11 @@ export default function GalleryPage() {
                             placeholder="blur"
                             blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
                           />
+                          {selectedAlbum.cover_image_url === image.image_url && (
+                            <Badge className="absolute left-2 top-2 bg-amber-500 text-white">
+                              Cover Album
+                            </Badge>
+                          )}
                           {(image.description || image.title) && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-xs">
                               {image.description || image.title}
@@ -431,7 +453,19 @@ export default function GalleryPage() {
                           )}
                         </div>
                         {canManageAlbum(selectedAlbum.id) && (
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className={`h-7 w-7 ${selectedAlbum.cover_image_url === image.image_url ? "bg-amber-500 text-white hover:bg-amber-500" : ""}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSetAlbumCover(image);
+                              }}
+                              disabled={uploading || selectedAlbum.cover_image_url === image.image_url}
+                            >
+                              <Star className="h-3 w-3" />
+                            </Button>
                             <Button
                               size="icon"
                               variant="secondary"

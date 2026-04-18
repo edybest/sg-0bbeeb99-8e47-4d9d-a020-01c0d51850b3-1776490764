@@ -377,6 +377,25 @@ export async function uploadImage(
     throw error;
   }
 
+  const { data: albumData, error: albumError } = await supabase
+    .from("gallery_albums")
+    .select("cover_image_url")
+    .eq("id", albumId)
+    .maybeSingle();
+
+  if (albumError) {
+    console.error("Get album cover error:", albumError);
+  } else if (!albumData?.cover_image_url) {
+    const { error: coverError } = await supabase
+      .from("gallery_albums")
+      .update({ cover_image_url: data.image_url })
+      .eq("id", albumId);
+
+    if (coverError) {
+      console.error("Auto set album cover error:", coverError);
+    }
+  }
+
   return data;
 }
 
@@ -457,6 +476,12 @@ export async function reorderImages(imageIds: string[]): Promise<void> {
   }
 }
 
+export async function setAlbumCover(albumId: string, imageUrl: string): Promise<GalleryAlbum> {
+  return updateAlbum(albumId, {
+    cover_image_url: imageUrl
+  });
+}
+
 /**
  * Check if member has gallery permissions
  */
@@ -474,17 +499,24 @@ export async function checkMemberPermissions(memberId: string): Promise<{
     return { canManage: true, albumIds: [] };
   }
 
-  const { data: permissions } = await supabase
+  const { data: permissions, error } = await supabase
     .from("gallery_permissions")
-    .select("*")
+    .select("can_add_albums, can_edit_albums, can_delete_albums, can_add_images, can_edit_images, can_delete_images")
     .eq("member_id", memberId)
-    .single();
+    .maybeSingle();
+
+  if (error) {
+    console.error("Check gallery permissions error:", error);
+    throw error;
+  }
 
   const hasGlobalPermission = !!permissions && (
-    permissions.can_add_albums || 
-    permissions.can_add_images || 
-    permissions.can_edit_albums || 
-    permissions.can_edit_images
+    permissions.can_add_albums ||
+    permissions.can_edit_albums ||
+    permissions.can_delete_albums ||
+    permissions.can_add_images ||
+    permissions.can_edit_images ||
+    permissions.can_delete_images
   );
 
   return {
