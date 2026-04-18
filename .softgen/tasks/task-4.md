@@ -1,6 +1,6 @@
 ---
 title: Reka bentuk Podium Leaderboard di halaman Blok
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -20,5 +20,5 @@ Reka bentuk halaman Blok kini menggunakan podium untuk top 3 dan senarai leaderb
 - [x] Kekalkan senarai penuh dengan data sedia ada seperti G1 hingga G5, total, handicap, average, dan difference.
 - [x] Uji responsiviti pada mobile.
 - [x] Ringkaskan kad leaderboard mobile supaya maklumat penting lebih mudah dibaca.
-- [ ] Buang fungsi "Papar Lebih Banyak" dan had visibleLimit daripada halaman Blok.
-- [ ] Paparkan semua rekod terus pada mobile dan desktop tanpa pagination manual.
+- [x] Buang fungsi "Papar Lebih Banyak" dan had visibleLimit daripada halaman Blok.
+- [x] Paparkan semua rekod terus pada mobile dan desktop tanpa pagination manual.

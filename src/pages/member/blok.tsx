@@ -1445,7 +1445,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     Carian: {searchQuery.split(",").filter((s) => s.trim()).length} nama
                                                     <button
-                                                        onClick={() => setSearchQuery("")}
+                                                        onClick={() => { setSearchQuery(""); setVisibleLimit(15); }}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1456,7 +1456,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     {genderFilter === "men" ? "Lelaki" : "Perempuan"}
                                                     <button
-                                                        onClick={() => setGenderFilter("ALL")}
+                                                        onClick={() => { setGenderFilter("ALL"); setVisibleLimit(15); }}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1467,7 +1467,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     {techniqueFilter}
                                                     <button
-                                                        onClick={() => setTechniqueFilter("ALL")}
+                                                        onClick={() => { setTechniqueFilter("ALL"); setVisibleLimit(15); }}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1479,6 +1479,7 @@ export default function BlokPage() {
                                                     setSearchQuery("");
                                                     setGenderFilter("ALL");
                                                     setTechniqueFilter("ALL");
+                                                    setVisibleLimit(15);
                                                 }}
                                                 className="text-xs text-red-600 hover:text-red-800 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors"
                                             >
@@ -1707,7 +1708,8 @@ export default function BlokPage() {
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    filteredLeaderboard.map((player, index) => {
+                                                    <>
+                                                    {filteredLeaderboard.map((player, index) => {
                                                         const isTop3 = player.rank <= 3;
                                                         const rowBg = isTop3
                                                             ? index % 2 === 0
@@ -1832,8 +1834,150 @@ export default function BlokPage() {
                                                                     </button>
                                                                 </td>
                                                             </tr>
-                                                        );
-                                                    })
+                                                            {visibleLeaderboard.map((player, index) => {
+                                                                const isTop3 = player.rank <= 3;
+                                                                const rowBg = isTop3
+                                                                    ? index % 2 === 0
+                                                                        ? "bg-amber-50/30 hover:bg-amber-100/50"
+                                                                        : "bg-amber-50/60 hover:bg-amber-100/50"
+                                                                    : index % 2 === 0
+                                                                        ? "bg-white hover:bg-sky-50/50"
+                                                                        : "bg-slate-50/50 hover:bg-sky-50/50";
+
+                                                                const stickyBg = isTop3 ? "bg-amber-50/80" : "bg-white";
+
+                                                                return (
+                                                                    <tr
+                                                                        key={player.id}
+                                                                        className={`border-b border-sky-100 transition-colors group ${rowBg}`}
+                                                                    >
+                                                                        <td
+                                                                            className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}
+                                                                        >
+                                                                            {getRankDisplay(player.rank)}
+                                                                        </td>
+                                                                        <td
+                                                                            className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}
+                                                                        >
+                                                                            <div className="relative inline-block">
+                                                                                {player.member.avatar_url ? (
+                                                                                    <Image
+                                                                                        src={player.member.avatar_url}
+                                                                                        alt={player.member.username}
+                                                                                        width={40}
+                                                                                        height={40}
+                                                                                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                                        unoptimized
+                                                                                        loading="lazy"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
+                                                                                        {player.member.username[0].toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                                {player.clean_game && (
+                                                                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-md">
+                                                                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td
+                                                                            className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}
+                                                                        >
+                                                                            <Link
+                                                                                href={`/member/profile?id=${player.member.id}`}
+                                                                                className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]"
+                                                                            >
+                                                                                {player.member.username}
+                                                                            </Link>
+                                                                            <div className="flex items-center gap-1 mt-1">
+                                                                                <span className="text-xs font-bold text-slate-500">
+                                                                                    {player.member.sex === "men" ? "♂️ L" : "♀️ P"}
+                                                                                </span>
+                                                                                {player.member.bowling_technique && (
+                                                                                    <>
+                                                                                        <span>•</span>
+                                                                                        <span className="text-xs font-bold text-slate-500">
+                                                                                            {player.member.bowling_technique}
+                                                                                        </span>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        </td>
+                                                                        <td
+                                                                            className={`sticky ${STICKY_LEFT.overall} z-10 ${isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
+                                                                                } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
+                                                                        >
+                                                                            <span className="font-black text-lg text-emerald-700">
+                                                                                {player.overall_score}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td
+                                                                            className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}
+                                                                        >
+                                                                            <span className="font-bold text-sm text-orange-600">
+                                                                                {player.difference > 0 ? `+${player.difference}` : "-"}
+                                                                            </span>
+                                                                        </td>
+                                                                        {[
+                                                                            player.game1_score,
+                                                                            player.game2_score,
+                                                                            player.game3_score,
+                                                                            player.game4_score,
+                                                                            player.game5_score,
+                                                                        ].map((score, i) => (
+                                                                            <td
+                                                                                key={i}
+                                                                                className="px-3 py-3 text-center border-r border-sky-200"
+                                                                            >
+                                                                                <span className="font-semibold text-sky-900">
+                                                                                    {formatScore(score, player.id)}
+                                                                                </span>
+                                                                            </td>
+                                                                        ))}
+                                                                        <td className="px-3 py-3 text-center border-r border-sky-200">
+                                                                            <span className="font-bold text-slate-800">
+                                                                                {player.total_score}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-3 py-3 text-center border-r border-sky-200">
+                                                                            <span className="font-bold text-blue-600">
+                                                                                {player.handicap}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="px-3 py-3 text-center">
+                                                                            <button
+                                                                                onClick={(e) => handleReaction(player.id, e)}
+                                                                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
+                                                                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
+                                                                            >
+                                                                                <ThumbsUp className="w-4 h-4" />
+                                                                                <span className="font-bold text-sm">
+                                                                                    {player.likes_count || 0}
+                                                                                </span>
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                    );
+                                                                })}
+                                                            </>
+                                                        </tr>
+                                                    )}
+                                                    {visibleLimit < filteredLeaderboard.length && (
+                                                        <tr>
+                                                            <td colSpan={13} className="py-4 text-center bg-slate-50 border-t border-sky-200">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    onClick={() => setVisibleLimit(prev => prev + 15)}
+                                                                    className="w-full max-w-[300px] border-sky-300 text-sky-700 font-bold bg-white hover:bg-sky-100 shadow-sm"
+                                                                >
+                                                                    Papar Lebih Banyak Pemain ({filteredLeaderboard.length - visibleLimit})
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    </>
                                                 )}
                                             </tbody>
                                         </table>
