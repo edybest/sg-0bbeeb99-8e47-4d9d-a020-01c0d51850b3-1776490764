@@ -329,6 +329,63 @@ export default function BlokPage() {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                toast({
+                    title: "Imej Dimuat Turun",
+                    description: "Browser tidak menyokong direct share. Imej telah dimuat turun.",
+                });
+            }
+        } catch (err) {
+            console.error("Screenshot error:", err);
+            toast({
+                title: "Ralat",
+                description: "Gagal memproses screenshot. Sila cuba lagi.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsCapturingScreenshot(false);
+        }
+    };
+
+
+    const menVsWomenRef = useRef<HTMLDivElement>(null);
+    const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
+
+    const handleShareMenVsWomen = async () => {
+        if (!menVsWomenRef.current) return;
+        try {
+            setIsCapturingScreenshot(true);
+            await new Promise((resolve) => setTimeout(resolve, 150));
+
+            const canvas = await html2canvas(menVsWomenRef.current, {
+                scale: 2,
+                backgroundColor: "#f8fafc",
+                useCORS: true,
+                logging: false,
+            });
+
+            const blob = await new Promise<Blob | null>((resolve) =>
+                canvas.toBlob(resolve, "image/png", 1.0)
+            );
+
+            if (!blob) throw new Error("Gagal menghasilkan imej");
+
+            const file = new File([blob], `AMBC-Men-vs-Women-${Date.now()}.png`, { type: "image/png" });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: "Keputusan Men vs Women AMBC",
+                    text: `Keputusan terkini Men vs Women bagi game ${games.find(g => g.id === selectedGame)?.game_name || ''}!`,
+                    files: [file],
+                });
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 // toast is available in scope
             }
         } catch (err) {
@@ -2357,6 +2414,7 @@ export default function BlokPage() {
                 <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
                     <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl [&>button]:hidden">
                         <div ref={menVsWomenRef} className="bg-slate-50 min-h-full">
+                            <div ref={menVsWomenRef} className="bg-slate-50 min-h-full">
                             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-20 shadow-md" data-html2canvas-ignore={isCapturingScreenshot ? "true" : undefined}>
                                 <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl font-bold">
                                     <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
@@ -2588,6 +2646,7 @@ export default function BlokPage() {
                                     </div>
                                 )}
                             </div>
+                        </div>
                         </div>
                     </DialogContent>
                 </Dialog>
