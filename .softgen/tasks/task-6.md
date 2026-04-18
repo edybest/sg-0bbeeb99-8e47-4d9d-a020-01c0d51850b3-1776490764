@@ -14,7 +14,7 @@ position: 6
 ---
 
 ## Notes
-Siasatan awal telah membetulkan pemberian flag permission dan menambah tindakan cover album. Namun laporan terbaru menunjukkan isu masih berulang untuk kes sebenar: username `edy` yang telah dibenarkan admin masih tidak boleh upload ke galeri, dan untuk projek yang hanya mempunyai satu album, cover/default image masih tidak menjadi. Perlu semak semula aliran semakan permission berasaskan session pengguna sebenar, RLS schema semasa, dan cara UI memuat semula `cover_image_url` selepas tindakan set cover.
+Siasatan awal telah membetulkan pemberian flag permission dan menambah tindakan cover album. Namun laporan terbaru menunjukkan isu masih berulang untuk kes sebenar: username `edy` yang telah dibenarkan admin masih tidak boleh upload ke galeri, dan untuk projek yang hanya mempunyai satu album, cover/default image masih tidak menjadi. Bukti query database menunjukkan punca sebenar ialah rekod `gallery_permissions` untuk `EDY` memang wujud tetapi semua flag `can_add_albums`, `can_edit_albums`, `can_delete_albums`, `can_add_images`, `can_edit_images`, dan `can_delete_images` masih `false`. Polisi RLS untuk `gallery_albums` dan `gallery_images` memerlukan flag-flag ini bernilai `true`, jadi upload dan set cover terus ditolak walaupun UI admin nampak seperti kebenaran telah diberi. Data legacy ini sedang dibaiki terus pada database.
 
 ## Checklist
 - [x] Siasat aliran semakan kebenaran upload galeri untuk username yang diluluskan admin.
@@ -23,7 +23,8 @@ Siasatan awal telah membetulkan pemberian flag permission dan menambah tindakan 
 - [x] Tambah sokongan tetapan gambar default atau cover image untuk album.
 - [x] Kemaskan UI admin atau galeri untuk memilih gambar sebagai cover album.
 - [x] Jalankan semakan ralat dan sahkan kedua-dua aliran berfungsi.
-- [ ] Sahkan semula pemetaan antara `members.user_id`, session login sebenar, dan `gallery_permissions` untuk username `edy`.
-- [ ] Semak semula query dan polisi semasa upload gambar untuk cari punca sebenar kegagalan upload.
-- [ ] Semak kenapa tindakan set cover album tidak kelihatan atau tidak kekal untuk album tunggal.
-- [ ] Jalankan semakan ralat selepas pembetulan susulan.
+- [x] Sahkan semula pemetaan antara `members.user_id`, session login sebenar, dan `gallery_permissions` untuk username `edy`.
+- [x] Semak semula query dan polisi semasa upload gambar untuk cari punca sebenar kegagalan upload.
+- [x] Semak kenapa tindakan set cover album tidak kelihatan atau tidak kekal untuk album tunggal.
+- [x] Baiki data legacy `gallery_permissions` yang masih menyimpan semua flag sebagai `false`.
+- [ ] Jalankan semakan akhir bersama pengguna pada peranti sebenar selepas pembaikan data.
