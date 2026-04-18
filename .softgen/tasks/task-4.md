@@ -1,6 +1,6 @@
 ---
 title: Reka bentuk Podium Leaderboard di halaman Blok
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:

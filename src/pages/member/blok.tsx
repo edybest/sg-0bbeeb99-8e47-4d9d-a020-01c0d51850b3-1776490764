@@ -39,7 +39,9 @@ import {
     Heart,
     Target,
     Search,
-    Users
+    Users,
+    Crown,
+    Star
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -243,6 +245,99 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
         loves_count: entry.loves_count ?? 0,
     }));
 }
+
+// ─── Podium Component ────────────────────────────────────────────────────────
+const LeaderboardPodium = ({ data }: { data: LeaderboardEntry[] }) => {
+    if (data.length < 3) return null;
+    
+    const rank2 = data[1];
+    const rank1 = data[0];
+    const rank3 = data[2];
+
+    const PlayerAvatar = ({ player, rank, delay }: { player: LeaderboardEntry, rank: number, delay: string }) => (
+        <div className="flex flex-col items-center mb-3 md:mb-5 z-20 transition-all duration-500 hover:-translate-y-2">
+            {rank === 1 && <Crown className="text-yellow-300 w-8 h-8 md:w-10 md:h-10 -mb-2 md:-mb-3 z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]" />}
+            <div className={`relative rounded-full p-1 ${rank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-[0_0_15px_rgba(253,224,71,0.5)]' : 'bg-white/30 shadow-md'}`}>
+                {player.member.avatar_url ? (
+                    <Image
+                        src={player.member.avatar_url}
+                        alt={player.member.username}
+                        width={rank === 1 ? 80 : 64}
+                        height={rank === 1 ? 80 : 64}
+                        className={`rounded-full object-cover border-2 border-white/80 ${rank === 1 ? 'w-20 h-20 md:w-24 md:h-24' : 'w-14 h-14 md:w-16 md:h-16'}`}
+                        unoptimized
+                    />
+                ) : (
+                    <div className={`rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 border-2 border-white/80 ${rank === 1 ? 'w-20 h-20 md:w-24 md:h-24 text-3xl' : 'w-14 h-14 md:max-w-[100px] md:max-h-[100px] text-xl'}`}>
+                        {player.member.username[0].toUpperCase()}
+                    </div>
+                )}
+            </div>
+            <span className="text-white font-bold text-sm md:text-base mt-2 drop-shadow-md truncate max-w-[90px] md:max-w-[120px] text-center">
+                {player.member.username}
+            </span>
+            <span className="text-white/90 font-black text-lg md:text-xl drop-shadow-md">
+                {player.overall_score}
+            </span>
+        </div>
+    );
+
+    return (
+        <div className="mb-8 relative rounded-[2rem] overflow-hidden bg-gradient-to-b from-fuchsia-500 via-purple-500 to-indigo-600 pt-8 pb-0 shadow-2xl border-4 border-white/30">
+            {/* Sunburst background effect */}
+            <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ background: 'repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg 10deg, #fff 10deg 20deg)' }} />
+            
+            <div className="relative z-10 flex items-end justify-center gap-[25px] md:gap-[45px] px-4 max-w-4xl mx-auto mt-6 md:mt-10 h-[280px] md:h-[380px]">
+                
+                {/* Rank 2 */}
+                <div className="flex flex-col items-center z-20">
+                    <PlayerAvatar player={rank2} rank={2} delay="0.2s" />
+                    <div className="relative w-[22vw] max-w-[80px] md:max-w-[100px] h-[130px] md:h-[180px]">
+                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-fuchsia-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-fuchsia-700 origin-left" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-fuchsia-300 to-fuchsia-600 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-fuchsia-200 overflow-hidden shadow-lg">
+                            <div className="bg-rose-500 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
+                                <Star className="w-3 h-3 md:w-4 md:h-4 fill-yellow-300 text-yellow-300" />
+                            </div>
+                            <span className="text-white/30 font-black text-6xl md:text-8xl mt-auto -mb-4 md:-mb-6">2</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rank 1 */}
+                <div className="flex flex-col items-center z-30">
+                    <PlayerAvatar player={rank1} rank={1} delay="0.4s" />
+                    <div className="relative w-[28vw] max-w-[100px] md:max-w-[120px] h-[180px] md:h-[250px]">
+                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-pink-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-pink-700 origin-left" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-pink-300 to-pink-600 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-pink-200 overflow-hidden shadow-2xl">
+                            <div className="bg-rose-500 text-white rounded-full w-7 h-7 md:w-9 md:h-9 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
+                                <Star className="w-4 h-4 md:w-5 md:h-5 fill-yellow-300 text-yellow-300" />
+                            </div>
+                            <span className="text-white/30 font-black text-8xl md:text-9xl mt-auto -mb-6 md:-mb-8">1</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rank 3 */}
+                <div className="flex flex-col items-center z-10">
+                    <PlayerAvatar player={rank3} rank={3} delay="0.6s" />
+                    <div className="relative w-[22vw] max-w-[80px] md:max-w-[100px] h-[100px] md:h-[140px]">
+                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-purple-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-purple-800 origin-left" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-purple-400 to-purple-700 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-purple-300 overflow-hidden shadow-lg">
+                            <div className="bg-rose-500 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
+                                <Star className="w-3 h-3 md:w-4 md:h-4 fill-yellow-300 text-yellow-300" />
+                            </div>
+                            <span className="text-white/20 font-black text-6xl md:text-8xl mt-auto -mb-4 md:-mb-6">3</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    );
+};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -818,11 +913,13 @@ export default function BlokPage() {
             return (
                 <ArrowUpDown className="w-4 h-4 ml-1 opacity-20 hover:opacity-100 transition-opacity" />
             );
-        return sortDirection === "asc" ? (
-            <ArrowUp className="w-4 h-4 ml-1 text-sky-600" />
-        ) : (
-            <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />
-        );
+        return sortDirection === "asc"
+            ? (
+                <ArrowUp className="w-4 h-4 ml-1 text-sky-600" />
+            )
+            : (
+                <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />
+            );
     };
 
     const handleReaction = async (
@@ -1485,6 +1582,11 @@ export default function BlokPage() {
 
                         {selectedGame && (
                             <>
+                                {/* ── 3D Podium Section ── */}
+                                {!searchQuery && genderFilter === "ALL" && techniqueFilter === "ALL" && filteredLeaderboard.length >= 3 && (
+                                    <LeaderboardPodium data={filteredLeaderboard} />
+                                )}
+
                                 {/* ── Mobile card layout ── */}
                                 <div className="block md:hidden space-y-3 mb-6">
                                     {filteredLeaderboard.length > 0 && (
@@ -1688,7 +1790,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </th>
                                                     <th
-                                                        className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r border-sky-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
+                                                        className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r-2 border-sky-200`}
                                                         onClick={() => handleSort("overall_score")}
                                                     >
                                                         <div className="flex items-center justify-center text-xs font-extrabold text-sky-900 uppercase tracking-wider">
@@ -1774,7 +1876,7 @@ export default function BlokPage() {
                                                                                 alt={player.member.username}
                                                                                 width={40}
                                                                                 height={40}
-                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-white/80 shadow-sm"
                                                                                 unoptimized
                                                                                 loading="lazy"
                                                                             />
