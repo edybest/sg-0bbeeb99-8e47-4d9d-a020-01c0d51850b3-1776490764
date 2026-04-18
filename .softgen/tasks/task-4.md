@@ -1,6 +1,6 @@
 ---
 title: Reka bentuk Podium Leaderboard di halaman Blok
-status: done
+status: in_progress
 priority: high
 type: feature
 tags:
@@ -13,7 +13,7 @@ position: 4
 ---
 
 ## Notes
-Reka bentuk halaman Blok kini menggunakan senarai leaderboard penuh tanpa podium Top 3 dan tanpa fungsi "Papar Lebih Banyak". Susulan maklum balas terkini, bahagian carian pada halaman Blok perlu diringkaskan: hanya carian utama dipaparkan dahulu, manakala penapis jantina dan teknik balingan disembunyikan sehingga pengguna menekan butang "More...".
+Reka bentuk halaman Blok kini menggunakan senarai leaderboard penuh tanpa podium Top 3 dan tanpa fungsi "Papar Lebih Banyak". Penapis jantina dan teknik balingan juga disorok dahulu di bawah butang "More...". Susulan maklum balas terbaru, paparan score double pada mobile masih nampak serabut dan perlu dikemaskan supaya susun atur ranking, ahli pasukan, skor individu, dan jumlah skor pasukan lebih jelas serta selesa dibaca.
 
 ## Checklist
 - [x] Tambah podium Top 3 di bahagian atas leaderboard halaman Blok.
@@ -28,3 +28,4 @@ Reka bentuk halaman Blok kini menggunakan senarai leaderboard penuh tanpa podium
 - [x] Sediakan mesej perkongsian yang jelas dengan nama ahli dan jumlah skor pasukan.
 - [x] Sembunyikan penapis jantina dan teknik balingan pada paparan awal halaman Blok.
 - [x] Tambah butang "More..." untuk membuka penapis lanjutan apabila diperlukan pengguna.
+- [ ] Kemaskan kad double score pada mobile supaya susun atur ahli, skor individu, ranking, dan jumlah keseluruhan lebih tersusun.
