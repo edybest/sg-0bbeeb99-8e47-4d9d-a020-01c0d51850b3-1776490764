@@ -1202,12 +1202,12 @@ export default function BlokPage() {
                                                 </div>
                                             </div>
 
-                                            {selectedGame?.double_enabled && (
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.double_enabled && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => {
-                                                        void loadDoubleRecords(selectedGame.id);
+                                                        void loadDoubleRecords(selectedGame);
                                                         setDoubleDialogOpen(true);
                                                     }}
                                                     className="flex-1"
@@ -1217,12 +1217,12 @@ export default function BlokPage() {
                                                 </Button>
                                             )}
 
-                                            {(selectedGame as any)?.trio_enabled && (
+                                            {selectedGame && (games.find(g => g.id === selectedGame) as any)?.trio_enabled && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => {
-                                                        void loadTrioRecords(selectedGame.id);
+                                                        void loadTrioRecords(selectedGame);
                                                         setTrioDialogOpen(true);
                                                     }}
                                                     className="flex-1"
@@ -1232,7 +1232,7 @@ export default function BlokPage() {
                                                 </Button>
                                             )}
 
-                                            {selectedGame?.men_vs_women_enabled && (
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.men_vs_women_enabled && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
