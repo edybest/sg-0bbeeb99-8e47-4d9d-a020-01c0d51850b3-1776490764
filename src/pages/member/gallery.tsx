@@ -454,41 +454,46 @@ export default function GalleryPage() {
                           )}
                         </div>
                         {canManageAlbum(selectedAlbum.id) && (
-                          <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className={`h-7 w-7 ${selectedAlbum.cover_image_url === image.image_url ? "bg-amber-500 text-white hover:bg-amber-500" : ""}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSetAlbumCover(image);
-                              }}
-                              disabled={uploading || selectedAlbum.cover_image_url === image.image_url}
-                            >
-                              <Star className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="secondary"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditImageDialog(image);
-                              }}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="destructive"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteTarget({ type: "image", id: image.id });
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                          <div className="border-t bg-background/95 p-2">
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className={`h-8 ${selectedAlbum.cover_image_url === image.image_url ? "bg-amber-500 text-white hover:bg-amber-500" : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSetAlbumCover(image);
+                                }}
+                                disabled={uploading || selectedAlbum.cover_image_url === image.image_url}
+                              >
+                                <Star className="mr-1 h-3.5 w-3.5" />
+                                {selectedAlbum.cover_image_url === image.image_url ? "Cover Album" : "Jadikan Cover"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditImageDialog(image);
+                                }}
+                              >
+                                <Edit2 className="mr-1 h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTarget({ type: "image", id: image.id });
+                                }}
+                              >
+                                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                Padam
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </Card>
@@ -515,9 +520,9 @@ export default function GalleryPage() {
                         onClick={() => loadAlbumImages(album.id)}
                       >
                         <div className="aspect-video relative bg-rose-100">
-                          {album.cover_image_thumbnail ? (
+                          {album.cover_image_thumbnail || album.cover_image_url ? (
                             <Image
-                              src={album.cover_image_thumbnail}
+                              src={album.cover_image_thumbnail || album.cover_image_url || "/ambc-logo.png"}
                               alt={album.name}
                               fill
                               sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
