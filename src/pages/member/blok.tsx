@@ -1321,7 +1321,7 @@ export default function BlokPage() {
                                         <p>Tiada data clean game dijumpai.</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4 mt-2">
+                                    <div className="space-y-4">
                                         {[1, 2, 3, 4, 5].map((gameNum) => {
                                             const winners = cleanGameDataByGame[gameNum] || [];
                                             return (
@@ -1504,7 +1504,7 @@ export default function BlokPage() {
                                         const isTop3 = player.rank <= 3;
                                         
                                         const cardBg = isTop3
-                                            ? "bg-gradient-to-br from-amber-50 to-yellow-100/50 border-amber-200"
+                                            ? "bg-gradient-to-br from-amber-500 to-yellow-100/50 border-amber-200"
                                             : "bg-white border-sky-100";
 
                                         return (
@@ -1606,6 +1606,19 @@ export default function BlokPage() {
                                                         <div className="text-sm font-black text-purple-700">{player.average_score.toFixed(1)}</div>
                                                     </div>
                                                 </div>
+
+                                                {/* Load More Button */}
+                                                {visibleLimit < filteredLeaderboard.length && (
+                                                    <div className="pt-4 pb-2 flex justify-center">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => setVisibleLimit(prev => prev + 15)}
+                                                            className="w-full max-w-[250px] border-sky-300 text-sky-700 font-bold bg-white hover:bg-sky-50 shadow-sm"
+                                                        >
+                                                            Papar Lebih Banyak ({filteredLeaderboard.length - visibleLimit})
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </motion.div>
                                         );
                                     })}
@@ -1641,7 +1654,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </th>
                                                     <th
-                                                        className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r border-sky-200 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]`}
+                                                        className={`sticky ${STICKY_LEFT.overall} z-20 bg-sky-100 px-4 py-3 text-center cursor-pointer hover:bg-sky-200 transition-colors border-r-2 border-sky-200`}
                                                         onClick={() => handleSort("overall_score")}
                                                     >
                                                         <div className="flex items-center justify-center text-xs font-extrabold text-sky-900 uppercase tracking-wider">
