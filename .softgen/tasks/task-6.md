@@ -1,6 +1,6 @@
 ---
 title: Fix gallery upload permissions and add album default cover setting
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -22,4 +22,4 @@ Siasatan menunjukkan punca utama datang daripada beza antara UI admin dan polisi
 - [x] Betulkan punca upload gagal untuk username yang telah dibenarkan.
 - [x] Tambah sokongan tetapan gambar default atau cover image untuk album.
 - [x] Kemaskan UI admin atau galeri untuk memilih gambar sebagai cover album.
-- [ ] Jalankan semakan ralat dan sahkan kedua-dua aliran berfungsi.
+- [x] Jalankan semakan ralat dan sahkan kedua-dua aliran berfungsi.
