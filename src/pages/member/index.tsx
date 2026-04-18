@@ -21,8 +21,12 @@ import {
   ImageIcon,
   MessageSquare,
   Heart,
-  Shuffle } from
-"lucide-react";
+  Shuffle,
+  LayoutGrid,
+  Crown,
+  Dices,
+  MapPin
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type Member = {
@@ -43,13 +47,10 @@ type QuickStat = {
 
 type NavigationCard = {
   title: string;
-  description: string;
   href: string;
   icon: any;
   gradient: string;
-  iconColor: string;
   badgeText?: string;
-  badgeColor?: string;
 };
 
 export default function MemberDashboard() {
@@ -135,95 +136,69 @@ export default function MemberDashboard() {
   const navigationCards: NavigationCard[] = [
   {
     title: "Blok",
-    description: "Lihat kedudukan blok",
     href: "/member/blok",
     icon: Trophy,
-    gradient: "from-violet-400 to-purple-500",
-    iconColor: "text-white",
-    badgeText: "Game",
+    gradient: "from-purple-500 to-fuchsia-400"
   },
   {
     title: "Couple",
-    description: "Leaderboard bergandingan",
     href: "/member/couple",
-    icon: Heart,
-    gradient: "from-emerald-300 to-teal-400",
-    iconColor: "text-white",
-    badgeText: "Team",
+    icon: Users,
+    gradient: "from-teal-400 to-emerald-300"
   },
   {
     title: "Five+Five",
-    description: "Sertai pertandingan five-five",
     href: "/member/five-five",
     icon: Star,
-    gradient: "from-blue-400 to-indigo-500",
-    iconColor: "text-white",
-    badgeText: "5+5",
+    gradient: "from-blue-500 to-sky-400"
   },
   {
     title: "Mini Blok",
-    description: "Rekod mini blok anda",
     href: "/member/mini-blok",
-    icon: BarChart3,
-    gradient: "from-amber-300 to-orange-400",
-    iconColor: "text-white"
+    icon: LayoutGrid,
+    gradient: "from-orange-400 to-amber-300"
   },
   {
     title: "Hall of Fame",
-    description: "Senarai pencapaian terbaik",
     href: "/member/hall-of-fame",
-    icon: Award,
-    gradient: "from-sky-300 to-blue-400",
-    iconColor: "text-white",
-    badgeText: "Juara",
+    icon: Crown,
+    gradient: "from-sky-400 to-cyan-300"
   },
   {
     title: "Training",
-    description: "Rekod latihan bowling",
     href: "/member/training",
     icon: Target,
-    gradient: "from-rose-300 to-red-400",
-    iconColor: "text-white"
+    gradient: "from-rose-500 to-red-400"
   },
   {
     title: "Purata Skor",
-    description: "Statistik purata skor ahli",
     href: "/member/average-score",
     icon: TrendingUp,
-    gradient: "from-cyan-300 to-sky-400",
-    iconColor: "text-white"
+    gradient: "from-cyan-400 to-teal-300"
   },
   {
     title: "Undi Lane",
-    description: "Undian lane secara rawak",
     href: "/member/undi-lane",
-    icon: Shuffle,
-    gradient: "from-pink-400 to-rose-500",
-    iconColor: "text-white",
+    icon: Dices,
+    gradient: "from-pink-500 to-rose-400"
   },
   {
     title: "Lane",
-    description: "Semak tugasan lane",
     href: "/member/lane",
-    icon: Users,
-    gradient: "from-indigo-400 to-violet-500",
-    iconColor: "text-white"
+    icon: MapPin,
+    gradient: "from-indigo-500 to-purple-400"
   },
   {
     title: "Gallery",
-    description: "Album foto & aktiviti",
     href: "/member/gallery",
     icon: ImageIcon,
-    gradient: "from-fuchsia-400 to-pink-500",
-    iconColor: "text-white"
+    gradient: "from-teal-500 to-emerald-400"
   },
   {
     title: "Feedback",
-    description: "Hantar maklum balas",
     href: "/member/feedback",
     icon: MessageSquare,
-    gradient: "from-teal-400 to-emerald-500",
-    iconColor: "text-white"
+    gradient: "from-amber-500 to-orange-400"
   }];
 
 
@@ -385,37 +360,28 @@ export default function MemberDashboard() {
                 className="group"
               >
                   <Link href={card.href} className="block h-full">
-                    <div className={`relative overflow-hidden rounded-[20px] p-4 md:p-5 aspect-[4/3] md:aspect-[3/2] shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 active:scale-95 bg-gradient-to-br ${card.gradient}`}>
+                    <div className={`relative overflow-hidden rounded-[16px] h-24 md:h-28 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 active:scale-95 bg-gradient-to-r ${card.gradient}`}>
                       
-                      {/* Sparkles Decoration */}
-                      <div className="absolute top-3 right-4 md:right-5 text-white/50">
-                        <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
-                      </div>
-                      <div className="absolute top-8 right-10 md:right-12 text-white/30">
-                        <Star className="w-2 h-2 md:w-3 md:h-3" />
-                      </div>
-                      <div className="absolute top-1/2 left-3 md:left-4 text-white/40">
-                        <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-white" />
-                      </div>
+                      {/* Decorative elements matching the screenshot */}
+                      <span className="absolute top-2 left-2 text-white/50 text-[10px] font-black leading-none select-none">+</span>
+                      <span className="absolute bottom-3 left-6 text-white/40 text-[10px] font-black leading-none select-none">+</span>
+                      <span className="absolute top-4 right-1/2 text-white/30 text-[12px] font-black leading-none select-none">+</span>
+                      <Sparkles className="absolute top-2 right-4 text-white/40 w-3 h-3" />
+                      <div className="absolute top-1/2 left-3 text-white/30 w-1 h-1 rounded-full bg-white" />
 
                       {/* Title */}
-                      <div className="relative z-10 flex flex-col h-full">
-                        <span className="font-bold text-base md:text-xl text-white tracking-wide leading-tight drop-shadow-sm">
+                      <div className="absolute top-3 left-4 md:top-4 md:left-5 z-10">
+                        <span className="font-bold text-[15px] md:text-lg text-white tracking-wide drop-shadow-md">
                           {card.title}
                         </span>
-                        {card.badgeText && (
-                          <span className="mt-1 md:mt-1.5 inline-block px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-white text-[10px] md:text-xs font-semibold w-fit shadow-sm border border-white/10">
-                            {card.badgeText}
-                          </span>
-                        )}
                       </div>
 
-                      {/* Large Icons */}
-                      <div className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-24 h-24 md:w-32 md:h-32 text-white opacity-20 transform rotate-[15deg] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-[5deg]">
-                        <card.icon className="w-full h-full" strokeWidth={1.5} />
+                      {/* 3D/Glass Layered Icon Effect */}
+                      <div className="absolute -bottom-3 -right-3 md:-bottom-4 md:-right-4 w-16 h-16 md:w-20 md:h-20 text-white opacity-20 transform rotate-[-15deg] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-0">
+                        <card.icon className="w-full h-full" strokeWidth={3} />
                       </div>
-                      <div className="absolute -bottom-2 -right-2 md:-bottom-3 md:-right-3 w-20 h-20 md:w-28 md:h-28 text-white opacity-[0.15] transform rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-0">
-                        <card.icon className="w-full h-full" strokeWidth={2.5} />
+                      <div className="absolute -bottom-2 -right-2 md:-bottom-3 md:-right-3 w-16 h-16 md:w-20 md:h-20 text-white opacity-[0.55] transform rotate-[-15deg] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-0">
+                        <card.icon className="w-full h-full" strokeWidth={1.5} />
                       </div>
                     </div>
                   </Link>
