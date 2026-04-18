@@ -5,6 +5,8 @@ const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_SERVER_CONFIG_ERROR =
+  "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
 
 type SendTACRequest = {
   phone: string;
@@ -46,6 +48,17 @@ export default async function handler(
       return res.status(500).json({
         success: false,
         error: "WhatsApp service not configured",
+      });
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("❌ Missing Supabase server config", {
+        hasSupabaseUrl: Boolean(supabaseUrl),
+        hasSupabaseServiceRoleKey: Boolean(supabaseServiceKey),
+      });
+      return res.status(500).json({
+        success: false,
+        error: SUPABASE_SERVER_CONFIG_ERROR,
       });
     }
 
@@ -311,9 +324,16 @@ Terima kasih! 🎳`;
     console.error("\n=== ERROR ===");
     console.error("Error:", error);
 
+    const errorMessage =
+      error instanceof Error && error.message === "supabaseKey is required."
+        ? SUPABASE_SERVER_CONFIG_ERROR
+        : error instanceof Error
+          ? error.message
+          : "Internal server error";
+
     return res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : "Internal server error",
+      error: errorMessage,
     });
   }
 }

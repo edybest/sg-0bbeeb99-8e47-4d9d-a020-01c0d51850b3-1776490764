@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const SUPABASE_SERVER_CONFIG_ERROR =
+  "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,6 +15,16 @@ export default async function handler(
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("❌ Missing Supabase server config", {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasSupabaseServiceRoleKey: Boolean(supabaseServiceKey),
+    });
+    return res.status(500).json({
+      error: SUPABASE_SERVER_CONFIG_ERROR,
+    });
   }
 
   const { phone_number, tac } = req.body;
@@ -210,8 +222,14 @@ export default async function handler(
 
   } catch (error: any) {
     console.error("❌ Verify TAC error:", error);
+
+    const errorMessage =
+      error instanceof Error && error.message === "supabaseKey is required."
+        ? SUPABASE_SERVER_CONFIG_ERROR
+        : "Ralat sistem. Sila cuba lagi atau hubungi admin.";
+
     return res.status(500).json({ 
-      error: "Ralat sistem. Sila cuba lagi atau hubungi admin." 
+      error: errorMessage
     });
   }
 }

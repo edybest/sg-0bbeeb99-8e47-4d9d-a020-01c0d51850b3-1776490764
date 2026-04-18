@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const SUPABASE_SERVER_CONFIG_ERROR =
+  "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,6 +12,14 @@ export default async function handler(
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("❌ Missing Supabase server config", {
+      hasSupabaseUrl: Boolean(supabaseUrl),
+      hasSupabaseServiceRoleKey: Boolean(supabaseServiceKey),
+    });
+    return res.status(500).json({ error: SUPABASE_SERVER_CONFIG_ERROR });
   }
 
   try {
@@ -73,8 +83,14 @@ export default async function handler(
 
   } catch (error: any) {
     console.error("Error in generate-login-token:", error);
+
+    const errorMessage =
+      error instanceof Error && error.message === "supabaseKey is required."
+        ? SUPABASE_SERVER_CONFIG_ERROR
+        : error?.message || "Internal server error";
+
     return res.status(500).json({ 
-      error: error.message || "Internal server error" 
+      error: errorMessage
     });
   }
 }
