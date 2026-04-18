@@ -298,9 +298,6 @@ export default function BlokPage() {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [genderFilter, setGenderFilter] = useState<string>("ALL");
     const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
-    
-    // For performance optimization (Load More)
-    const [visibleLimit, setVisibleLimit] = useState<number>(15);
 
     const isInitialLoading = loadingGames && games.length === 0;
     const isPageLoading = authLoading || isInitialLoading;
@@ -345,10 +342,6 @@ export default function BlokPage() {
                 .slice(0, 3),
         [filteredLeaderboard]
     );
-
-    const visibleLeaderboard = useMemo(() => {
-        return filteredLeaderboard.slice(0, visibleLimit);
-    }, [filteredLeaderboard, visibleLimit]);
 
     const applyCurrentSort = useCallback(
         (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
@@ -1445,7 +1438,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     Carian: {searchQuery.split(",").filter((s) => s.trim()).length} nama
                                                     <button
-                                                        onClick={() => { setSearchQuery(""); setVisibleLimit(15); }}
+                                                        onClick={() => setSearchQuery("")}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1456,7 +1449,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     {genderFilter === "men" ? "Lelaki" : "Perempuan"}
                                                     <button
-                                                        onClick={() => { setGenderFilter("ALL"); setVisibleLimit(15); }}
+                                                        onClick={() => setGenderFilter("ALL")}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1467,7 +1460,7 @@ export default function BlokPage() {
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
                                                     {techniqueFilter}
                                                     <button
-                                                        onClick={() => { setTechniqueFilter("ALL"); setVisibleLimit(15); }}
+                                                        onClick={() => setTechniqueFilter("ALL")}
                                                         className="hover:text-red-600 ml-1 bg-sky-200 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                                                     >
                                                         ✕
@@ -1479,7 +1472,6 @@ export default function BlokPage() {
                                                     setSearchQuery("");
                                                     setGenderFilter("ALL");
                                                     setTechniqueFilter("ALL");
-                                                    setVisibleLimit(15);
                                                 }}
                                                 className="text-xs text-red-600 hover:text-red-800 font-bold ml-auto bg-red-50 px-2 py-1 rounded transition-colors"
                                             >
@@ -1499,13 +1491,15 @@ export default function BlokPage() {
 
                         {selectedGame && (
                             <>
-                                {/* ── Mobile card layout ── */}
+                                {!searchQuery && genderFilter === "ALL" && techniqueFilter === "ALL" && filteredLeaderboard.length >= 3 && (
+                                    <LeaderboardPodium data={filteredLeaderboard} />
+                                )}
+
                                 <div className="block md:hidden space-y-3 mb-6">
-                                    {visibleLeaderboard.map((player, index) => {
+                                    {filteredLeaderboard.map((player, index) => {
                                         const isTop3 = player.rank <= 3;
-                                        
                                         const cardBg = isTop3
-                                            ? "bg-gradient-to-br from-amber-500 to-yellow-100/50 border-amber-200"
+                                            ? "bg-gradient-to-br from-amber-50 to-yellow-100/50 border-amber-200"
                                             : "bg-white border-sky-100";
 
                                         return (
@@ -1516,14 +1510,18 @@ export default function BlokPage() {
                                                 transition={{ delay: Math.min(index * 0.05, 0.5) }}
                                                 className={`${cardBg} rounded-xl border shadow-sm p-3`}
                                             >
-                                                {/* Top Row: Rank, Avatar, Name, Overall */}
                                                 <div className="flex items-center gap-3 mb-3">
                                                     <div className="flex-shrink-0 w-8 flex justify-center">
                                                         {player.rank <= 3 ? (
-                                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm
-                                                                ${player.rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' : 
-                                                                  player.rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500' : 
-                                                                  'bg-gradient-to-br from-amber-600 to-amber-800'}`}>
+                                                            <div
+                                                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${
+                                                                    player.rank === 1
+                                                                        ? "bg-gradient-to-br from-yellow-400 to-yellow-600"
+                                                                        : player.rank === 2
+                                                                            ? "bg-gradient-to-br from-gray-300 to-gray-500"
+                                                                            : "bg-gradient-to-br from-amber-600 to-amber-800"
+                                                                }`}
+                                                            >
                                                                 {player.rank}
                                                             </div>
                                                         ) : (
@@ -1578,7 +1576,6 @@ export default function BlokPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Middle Row: G1-G5 */}
                                                 <div className="grid grid-cols-5 gap-1 mb-2">
                                                     {[1, 2, 3, 4, 5].map((gameNum) => {
                                                         const scoreKey = `game${gameNum}_score` as keyof LeaderboardEntry;
@@ -1592,7 +1589,6 @@ export default function BlokPage() {
                                                     })}
                                                 </div>
 
-                                                {/* Bottom Row: Total, Handicap, Average */}
                                                 <div className="grid grid-cols-3 gap-1.5">
                                                     <div className="bg-slate-50 border border-slate-200 rounded py-1 text-center shadow-sm">
                                                         <div className="text-[9px] font-bold text-slate-400 uppercase">Total</div>
@@ -1607,24 +1603,11 @@ export default function BlokPage() {
                                                         <div className="text-sm font-black text-purple-700">{player.average_score.toFixed(1)}</div>
                                                     </div>
                                                 </div>
-
-                                                {visibleLimit < filteredLeaderboard.length && (
-                                                    <div className="pt-4 pb-2 flex justify-center">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => setVisibleLimit((prev) => prev + 15)}
-                                                            className="w-full max-w-[250px] border-sky-300 text-sky-700 font-bold bg-white hover:bg-sky-50 shadow-sm"
-                                                        >
-                                                            Papar Lebih Banyak ({filteredLeaderboard.length - visibleLimit})
-                                                        </Button>
-                                                    </div>
-                                                )}
                                             </motion.div>
                                         );
                                     })}
                                 </div>
 
-                                {/* ── Desktop table ── */}
                                 <div className="hidden md:block">
                                     <div className="overflow-x-auto rounded-xl border border-sky-200 shadow-md">
                                         <table className="w-full min-w-[1200px] bg-white">
@@ -1638,12 +1621,8 @@ export default function BlokPage() {
                                                             # {getSortIcon("rank")}
                                                         </div>
                                                     </th>
-                                                    <th
-                                                        className={`sticky ${STICKY_LEFT.avatar} z-20 bg-sky-50 w-14 px-2 py-3 text-center border-r border-sky-200`}
-                                                    >
-                                                        <span className="text-xs font-semibold text-sky-800 uppercase tracking-wider">
-                                                            Avatar
-                                                        </span>
+                                                    <th className={`sticky ${STICKY_LEFT.avatar} z-20 bg-sky-50 w-14 px-2 py-3 text-center border-r border-sky-200`}>
+                                                        <span className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Avatar</span>
                                                     </th>
                                                     <th
                                                         className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
@@ -1693,23 +1672,18 @@ export default function BlokPage() {
                                                     <tr>
                                                         <td colSpan={13} className="py-20 text-center">
                                                             <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
-                                                            <span className="text-sky-600 mt-2 block">
-                                                                Memuatkan skor...
-                                                            </span>
+                                                            <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
                                                         </td>
                                                     </tr>
                                                 ) : filteredLeaderboard.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={13} className="py-20 text-center bg-slate-50">
                                                             <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                                                            <p className="text-sky-500">
-                                                                Tiada skor dijumpai untuk kriteria carian
-                                                            </p>
+                                                            <p className="text-sky-500">Tiada skor dijumpai untuk kriteria carian</p>
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    <>
-                                                    {filteredLeaderboard.map((player, index) => {
+                                                    filteredLeaderboard.map((player, index) => {
                                                         const isTop3 = player.rank <= 3;
                                                         const rowBg = isTop3
                                                             ? index % 2 === 0
@@ -1722,18 +1696,11 @@ export default function BlokPage() {
                                                         const stickyBg = isTop3 ? "bg-amber-50/80" : "bg-white";
 
                                                         return (
-                                                            <tr
-                                                                key={player.id}
-                                                                className={`border-b border-sky-100 transition-colors group ${rowBg}`}
-                                                            >
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}
-                                                                >
+                                                            <tr key={player.id} className={`border-b border-sky-100 transition-colors group ${rowBg}`}>
+                                                                <td className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}>
                                                                     {getRankDisplay(player.rank)}
                                                                 </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}
-                                                                >
+                                                                <td className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}>
                                                                     <div className="relative inline-block">
                                                                         {player.member.avatar_url ? (
                                                                             <Image
@@ -1757,9 +1724,7 @@ export default function BlokPage() {
                                                                         )}
                                                                     </div>
                                                                 </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}
-                                                                >
+                                                                <td className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}>
                                                                     <Link
                                                                         href={`/member/profile?id=${player.member.id}`}
                                                                         className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]"
@@ -1781,45 +1746,27 @@ export default function BlokPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td
-                                                                    className={`sticky ${STICKY_LEFT.overall} z-10 ${isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
-                                                                        } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
+                                                                    className={`sticky ${STICKY_LEFT.overall} z-10 ${
+                                                                        isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
+                                                                    } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
                                                                 >
-                                                                    <span className="font-black text-lg text-emerald-700">
-                                                                        {player.overall_score}
-                                                                    </span>
+                                                                    <span className="font-black text-lg text-emerald-700">{player.overall_score}</span>
                                                                 </td>
-                                                                <td
-                                                                    className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}
-                                                                >
+                                                                <td className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}>
                                                                     <span className="font-bold text-sm text-orange-600">
                                                                         {player.difference > 0 ? `+${player.difference}` : "-"}
                                                                     </span>
                                                                 </td>
-                                                                {[
-                                                                    player.game1_score,
-                                                                    player.game2_score,
-                                                                    player.game3_score,
-                                                                    player.game4_score,
-                                                                    player.game5_score,
-                                                                ].map((score, i) => (
-                                                                    <td
-                                                                        key={i}
-                                                                        className="px-3 py-3 text-center border-r border-sky-200"
-                                                                    >
-                                                                        <span className="font-semibold text-sky-900">
-                                                                            {formatScore(score, player.id)}
-                                                                        </span>
+                                                                {[player.game1_score, player.game2_score, player.game3_score, player.game4_score, player.game5_score].map((score, i) => (
+                                                                    <td key={i} className="px-3 py-3 text-center border-r border-sky-200">
+                                                                        <span className="font-semibold text-sky-900">{formatScore(score, player.id)}</span>
                                                                     </td>
                                                                 ))}
                                                                 <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-slate-800">
-                                                                        {player.total_score}
-                                                                    </span>
+                                                                    <span className="font-bold text-slate-800">{player.total_score}</span>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-blue-600">
-                                                                        {player.handicap}
-                                                                    </span>
+                                                                    <span className="font-bold text-blue-600">{player.handicap}</span>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center">
                                                                     <button
@@ -1828,156 +1775,12 @@ export default function BlokPage() {
                                                                         className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
                                                                     >
                                                                         <ThumbsUp className="w-4 h-4" />
-                                                                        <span className="font-bold text-sm">
-                                                                            {player.likes_count || 0}
-                                                                        </span>
+                                                                        <span className="font-bold text-sm">{player.likes_count || 0}</span>
                                                                     </button>
                                                                 </td>
                                                             </tr>
-                                                            {visibleLeaderboard.map((player, index) => {
-                                                                const isTop3 = player.rank <= 3;
-                                                                const rowBg = isTop3
-                                                                    ? index % 2 === 0
-                                                                        ? "bg-amber-50/30 hover:bg-amber-100/50"
-                                                                        : "bg-amber-50/60 hover:bg-amber-100/50"
-                                                                    : index % 2 === 0
-                                                                        ? "bg-white hover:bg-sky-50/50"
-                                                                        : "bg-slate-50/50 hover:bg-sky-50/50";
-
-                                                                const stickyBg = isTop3 ? "bg-amber-50/80" : "bg-white";
-
-                                                                return (
-                                                                    <tr
-                                                                        key={player.id}
-                                                                        className={`border-b border-sky-100 transition-colors group ${rowBg}`}
-                                                                    >
-                                                                        <td
-                                                                            className={`sticky ${STICKY_LEFT.rank} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r border-sky-100 transition-colors`}
-                                                                        >
-                                                                            {getRankDisplay(player.rank)}
-                                                                        </td>
-                                                                        <td
-                                                                            className={`sticky ${STICKY_LEFT.avatar} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-2 py-3 border-r border-sky-100 text-center transition-colors`}
-                                                                        >
-                                                                            <div className="relative inline-block">
-                                                                                {player.member.avatar_url ? (
-                                                                                    <Image
-                                                                                        src={player.member.avatar_url}
-                                                                                        alt={player.member.username}
-                                                                                        width={40}
-                                                                                        height={40}
-                                                                                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
-                                                                                        unoptimized
-                                                                                        loading="lazy"
-                                                                                    />
-                                                                                ) : (
-                                                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center font-bold text-sky-700 border-2 border-white shadow-sm">
-                                                                                        {player.member.username[0].toUpperCase()}
-                                                                                    </div>
-                                                                                )}
-                                                                                {player.clean_game && (
-                                                                                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-md">
-                                                                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </td>
-                                                                        <td
-                                                                            className={`sticky ${STICKY_LEFT.player} z-10 bg-white group-hover:bg-sky-50/50 px-4 py-3 border-r border-sky-100`}
-                                                                        >
-                                                                            <Link
-                                                                                href={`/member/profile?id=${player.member.id}`}
-                                                                                className="font-bold text-sm text-sky-900 hover:text-blue-600 truncate block max-w-[140px]"
-                                                                            >
-                                                                                {player.member.username}
-                                                                            </Link>
-                                                                            <div className="flex items-center gap-1 mt-1">
-                                                                                <span className="text-xs font-bold text-slate-500">
-                                                                                    {player.member.sex === "men" ? "♂️ L" : "♀️ P"}
-                                                                                </span>
-                                                                                {player.member.bowling_technique && (
-                                                                                    <>
-                                                                                        <span>•</span>
-                                                                                        <span className="text-xs font-bold text-slate-500">
-                                                                                            {player.member.bowling_technique}
-                                                                                        </span>
-                                                                                    </>
-                                                                                )}
-                                                                            </div>
-                                                                        </td>
-                                                                        <td
-                                                                            className={`sticky ${STICKY_LEFT.overall} z-10 ${isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
-                                                                                } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
-                                                                        >
-                                                                            <span className="font-black text-lg text-emerald-700">
-                                                                                {player.overall_score}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td
-                                                                            className={`sticky ${STICKY_LEFT.diff} z-10 ${stickyBg} group-hover:bg-sky-50/80 px-4 py-3 border-r-2 border-sky-200 text-center transition-colors`}
-                                                                        >
-                                                                            <span className="font-bold text-sm text-orange-600">
-                                                                                {player.difference > 0 ? `+${player.difference}` : "-"}
-                                                                            </span>
-                                                                        </td>
-                                                                        {[
-                                                                            player.game1_score,
-                                                                            player.game2_score,
-                                                                            player.game3_score,
-                                                                            player.game4_score,
-                                                                            player.game5_score,
-                                                                        ].map((score, i) => (
-                                                                            <td
-                                                                                key={i}
-                                                                                className="px-3 py-3 text-center border-r border-sky-200"
-                                                                            >
-                                                                                <span className="font-semibold text-sky-900">
-                                                                                    {formatScore(score, player.id)}
-                                                                                </span>
-                                                                            </td>
-                                                                        ))}
-                                                                        <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                            <span className="font-bold text-slate-800">
-                                                                                {player.total_score}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                            <span className="font-bold text-blue-600">
-                                                                                {player.handicap}
-                                                                            </span>
-                                                                        </td>
-                                                                        <td className="px-3 py-3 text-center">
-                                                                            <button
-                                                                                onClick={(e) => handleReaction(player.id, e)}
-                                                                                disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
-                                                                            >
-                                                                                <ThumbsUp className="w-4 h-4" />
-                                                                                <span className="font-bold text-sm">
-                                                                                    {player.likes_count || 0}
-                                                                                </span>
-                                                                            </button>
-                                                                        </td>
-                                                                    </tr>
-                                                                    );
-                                                                })}
-                                                            </>
-                                                        </tr>
-                                                    )}
-                                                    {visibleLimit < filteredLeaderboard.length && (
-                                                        <tr>
-                                                            <td colSpan={13} className="py-4 text-center bg-slate-50 border-t border-sky-200">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    onClick={() => setVisibleLimit(prev => prev + 15)}
-                                                                    className="w-full max-w-[300px] border-sky-300 text-sky-700 font-bold bg-white hover:bg-sky-100 shadow-sm"
-                                                                >
-                                                                    Papar Lebih Banyak Pemain ({filteredLeaderboard.length - visibleLimit})
-                                                                </Button>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                    </>
+                                                        );
+                                                    })
                                                 )}
                                             </tbody>
                                         </table>
