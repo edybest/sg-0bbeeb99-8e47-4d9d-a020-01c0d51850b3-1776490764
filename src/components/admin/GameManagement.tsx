@@ -29,6 +29,8 @@ type Game = Database["public"]["Tables"]["games"]["Row"] & {
   five_five_count?: number;
   clean_game_count?: number;
   players?: any[];
+  double_enabled?: boolean;
+  trio_enabled?: boolean;
   men_vs_women_enabled?: boolean;
   women_handicap?: number;
 };
@@ -1547,23 +1549,21 @@ ${closingMsg}`;
 
                       {/* Double Records List */}
                       {expandedGame === game.id && game.double_enabled &&
-                  <CardContent className="border-t bg-muted/20 pt-4">
+                        <div className="border-t bg-muted/20 pt-4">
                           {loadingDoubles[game.id] ?
-                    <div className="text-center py-4">
+                            <div className="text-center py-4">
                               <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
                             </div> :
-                    !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
-                    <div className="text-center py-6 text-muted-foreground">
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
                               <p>Tiada rekod double lagi</p>
                             </div> :
-
-                    <div className="space-y-2">
+                            <div className="space-y-2">
                               <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
                               {doubleRecords[game.id].map((record, index) =>
-                      <div
-                        key={record.id}
-                        className="flex items-center justify-between p-3 bg-background rounded-lg border">
-                        
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
                                   <div className="flex items-center gap-3">
                                     <Badge variant="outline" className="w-8 justify-center">
                                       #{index + 1}
@@ -1571,10 +1571,14 @@ ${closingMsg}`;
                                     <div>
                                       <div className="flex items-center gap-2 text-sm">
                                         <span className="font-medium">@{record.player1?.username}</span>
-                                        <Badge variant="secondary">{record.player1_score}</Badge>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
                                         <span className="text-muted-foreground">+</span>
                                         <span className="font-medium">@{record.player2?.username}</span>
-                                        <Badge variant="secondary">{record.player2_score}</Badge>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground mt-1">
                                         {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
@@ -1583,17 +1587,75 @@ ${closingMsg}`;
                                     </div>
                                   </div>
                                   <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteDouble(record.id, game.id)}>
-                          
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
                                 </div>
-                      )}
+                              )}
                             </div>
-                    }
-                        </CardContent>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+                    </CardContent>
                   </Card>
                 </motion.div>
             )}
