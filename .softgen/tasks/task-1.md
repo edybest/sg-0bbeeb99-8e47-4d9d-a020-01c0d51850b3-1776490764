@@ -21,4 +21,5 @@ Pulihkan semula paparan leaderboard pada halaman Blok selepas perubahan berkaita
 - [x] Pulihkan semula paparan leaderboard mobile dan desktop yang hilang
 - [x] Pastikan dialog Double, Trio, dan Men vs Women menggunakan game id yang betul
 - [x] Kekalkan loading icon dengan progress percentage semasa leaderboard dimuatkan
+- [ ] Pulihkan semula susun atur leaderboard mobile untuk pemain dan score seperti versi sebelum ini
 - [x] Jalankan semakan ralat dan tandakan tugasan selesai jika lulus
