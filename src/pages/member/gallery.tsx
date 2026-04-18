@@ -137,7 +137,8 @@ export default function GalleryPage() {
 
   function canManageAlbum(albumId: string): boolean {
     if (member?.is_admin) return true;
-    if (managedAlbumIds.length === 0) return false;
+    if (!canManage) return false;
+    if (managedAlbumIds.length === 0) return true;
     return managedAlbumIds.includes(albumId);
   }
 
