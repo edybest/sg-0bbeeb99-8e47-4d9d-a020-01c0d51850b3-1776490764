@@ -1607,12 +1607,11 @@ export default function BlokPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Load More Button */}
                                                 {visibleLimit < filteredLeaderboard.length && (
                                                     <div className="pt-4 pb-2 flex justify-center">
                                                         <Button
                                                             variant="outline"
-                                                            onClick={() => setVisibleLimit(prev => prev + 15)}
+                                                            onClick={() => setVisibleLimit((prev) => prev + 15)}
                                                             className="w-full max-w-[250px] border-sky-300 text-sky-700 font-bold bg-white hover:bg-sky-50 shadow-sm"
                                                         >
                                                             Papar Lebih Banyak ({filteredLeaderboard.length - visibleLimit})
