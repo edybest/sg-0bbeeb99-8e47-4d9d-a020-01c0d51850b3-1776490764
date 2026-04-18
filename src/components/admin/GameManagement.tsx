@@ -41,12 +41,46 @@ interface DoubleRecord {
   player1_score: number;
   player2_score: number;
   total_score: number;
+  include_handicap: boolean;
+  player1_handicap?: number;
+  player2_handicap?: number;
   player1?: {
     id: string;
     username: string;
     full_name: string;
   };
   player2?: {
+    id: string;
+    username: string;
+    full_name: string;
+  };
+}
+
+interface TrioRecord {
+  id: string;
+  game_id: string;
+  player1_id: string;
+  player2_id: string;
+  player3_id: string;
+  player1_score: number;
+  player2_score: number;
+  player3_score: number;
+  total_score: number;
+  include_handicap: boolean;
+  player1_handicap?: number;
+  player2_handicap?: number;
+  player3_handicap?: number;
+  player1?: {
+    id: string;
+    username: string;
+    full_name: string;
+  };
+  player2?: {
+    id: string;
+    username: string;
+    full_name: string;
+  };
+  player3?: {
     id: string;
     username: string;
     full_name: string;
@@ -94,8 +128,7 @@ export function GameManagement() {
   const [doubleForm, setDoubleForm] = useState({
     player1_id: "",
     player2_id: "",
-    player1_score: "",
-    player2_score: ""
+    include_handicap: true
   });
 
   // Men vs Women Exclusion states
@@ -711,6 +744,47 @@ ${closingMsg}`;
     }
   };
 
+  const toggleGameTrio = async (gameId: string, currentValue: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id, username, is_admin")
+        .eq("user_id", user?.id)
+        .single();
+
+      if (!member?.is_admin) {
+        toast({
+          title: "Akses Ditolak",
+          description: "Hanya admin boleh mengubah tetapan ini",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from("games")
+        .update({ trio_enabled: !currentValue })
+        .eq("id", gameId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: `Trio game ${!currentValue ? "diaktifkan" : "dinyahaktifkan"}`
+      });
+
+      await loadGames();
+    } catch (error) {
+      console.error("Error toggling trio:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini tetapan trio",
+        variant: "destructive"
+      });
+    }
+  };
+
   const toggleMenVsWomen = async (gameId: string, currentValue: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -832,6 +906,34 @@ ${closingMsg}`;
     }
   };
 
+  const fetchTrioRecords = async (gameId: string) => {
+    try {
+      setLoadingTrios((prev) => ({ ...prev, [gameId]: true }));
+
+      const { data, error } = await (supabase as any)
+        .from("trio_records")
+        .select(`
+          *,
+          player1:members!trio_records_player1_id_fkey(id, username, full_name),
+          player2:members!trio_records_player2_id_fkey(id, username, full_name),
+          player3:members!trio_records_player3_id_fkey(id, username, full_name)
+        `)
+        .eq("game_id", gameId)
+        .order("total_score", { ascending: false });
+
+      if (error) throw error;
+
+      setTrioRecords((prev) => ({
+        ...prev,
+        [gameId]: data || []
+      }));
+    } catch (error) {
+      console.error("Error fetching trio records:", error);
+    } finally {
+      setLoadingTrios((prev) => ({ ...prev, [gameId]: false }));
+    }
+  };
+
   const handleAddDouble = async () => {
     if (!selectedGameForDouble || !doubleForm.player1_id || !doubleForm.player2_id) {
       toast({
@@ -852,35 +954,41 @@ ${closingMsg}`;
     }
 
     try {
-      // Fetch player scores from game_players table (if exists)
-      const { data: gamePlayers, error: fetchError } = await supabase.
-      from("game_players").
-      select("member_id, total_score, handicap").
-      eq("game_id", selectedGameForDouble.id).
-      in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
+      const { data: gamePlayers, error: fetchError } = await supabase
+        .from("game_players")
+        .select("member_id, total_score, handicap")
+        .eq("game_id", selectedGameForDouble.id)
+        .in("member_id", [doubleForm.player1_id, doubleForm.player2_id]);
 
       if (fetchError) throw fetchError;
 
-      // Get scores or default to 0 if not yet entered
       const player1 = gamePlayers?.find((p) => p.member_id === doubleForm.player1_id);
       const player2 = gamePlayers?.find((p) => p.member_id === doubleForm.player2_id);
 
-      const player1Score = (player1?.total_score || 0) + (player1?.handicap || 0);
-      const player2Score = (player2?.total_score || 0) + (player2?.handicap || 0);
+      const player1BaseScore = player1?.total_score || 0;
+      const player2BaseScore = player2?.total_score || 0;
+      const player1Handicap = player1?.handicap || 0;
+      const player2Handicap = player2?.handicap || 0;
+
+      const player1Total = player1BaseScore + (doubleForm.include_handicap ? player1Handicap : 0);
+      const player2Total = player2BaseScore + (doubleForm.include_handicap ? player2Handicap : 0);
 
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: member } = await supabase.
-      from("members").
-      select("id").
-      eq("user_id", user?.id).
-      single();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
 
       const { error } = await supabase.from("double_records").insert([{
         game_id: selectedGameForDouble.id,
         player1_id: doubleForm.player1_id,
         player2_id: doubleForm.player2_id,
-        player1_score: player1Score,
-        player2_score: player2Score,
+        player1_score: player1BaseScore,
+        player2_score: player2BaseScore,
+        player1_handicap: player1Handicap,
+        player2_handicap: player2Handicap,
+        include_handicap: doubleForm.include_handicap,
         created_by: member?.id
       }]);
 
@@ -888,17 +996,107 @@ ${closingMsg}`;
 
       toast({
         title: "Berjaya",
-        description: `Rekod double telah ditambah (${player1Score} + ${player2Score} = ${player1Score + player2Score})`
+        description: `Rekod double telah ditambah (${doubleForm.include_handicap ? "termasuk" : "tanpa"} handicap)`
       });
 
       setIsDoubleDialogOpen(false);
-      setDoubleForm({ player1_id: "", player2_id: "", player1_score: "", player2_score: "" });
+      setDoubleForm({ player1_id: "", player2_id: "", include_handicap: true });
       fetchDoubleRecords(selectedGameForDouble.id);
     } catch (error) {
       console.error("Error adding double:", error);
       toast({
         title: "Ralat",
         description: "Gagal menambah rekod double",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddTrio = async () => {
+    if (!selectedGameForTrio || !trioForm.player1_id || !trioForm.player2_id || !trioForm.player3_id) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih ketiga-tiga pemain",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (
+      trioForm.player1_id === trioForm.player2_id ||
+      trioForm.player1_id === trioForm.player3_id ||
+      trioForm.player2_id === trioForm.player3_id
+    ) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih 3 pemain yang berbeza",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { data: gamePlayers, error: fetchError } = await supabase
+        .from("game_players")
+        .select("member_id, total_score, handicap")
+        .eq("game_id", selectedGameForTrio.id)
+        .in("member_id", [trioForm.player1_id, trioForm.player2_id, trioForm.player3_id]);
+
+      if (fetchError) throw fetchError;
+
+      const player1 = gamePlayers?.find((p) => p.member_id === trioForm.player1_id);
+      const player2 = gamePlayers?.find((p) => p.member_id === trioForm.player2_id);
+      const player3 = gamePlayers?.find((p) => p.member_id === trioForm.player3_id);
+
+      const player1BaseScore = player1?.total_score || 0;
+      const player2BaseScore = player2?.total_score || 0;
+      const player3BaseScore = player3?.total_score || 0;
+      const player1Handicap = player1?.handicap || 0;
+      const player2Handicap = player2?.handicap || 0;
+      const player3Handicap = player3?.handicap || 0;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: member } = await supabase
+        .from("members")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
+
+      const { error } = await supabase.from("trio_records").insert([{
+        game_id: selectedGameForTrio.id,
+        player1_id: trioForm.player1_id,
+        player2_id: trioForm.player2_id,
+        player3_id: trioForm.player3_id,
+        player1_score: player1BaseScore,
+        player2_score: player2BaseScore,
+        player3_score: player3BaseScore,
+        player1_handicap: player1Handicap,
+        player2_handicap: player2Handicap,
+        player3_handicap: player3Handicap,
+        include_handicap: trioForm.include_handicap,
+        created_by: member?.id
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: `Rekod trio telah ditambah (${trioForm.include_handicap ? "termasuk" : "tanpa"} handicap)`
+      });
+
+      setIsTrioDialogOpen(false);
+      setTrioForm({
+        player1_id: "",
+        player2_id: "",
+        player3_id: "",
+        include_handicap: true
+      });
+      fetchTrioRecords(selectedGameForTrio.id);
+    } catch (error) {
+      console.error("Error adding trio:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal menambah rekod trio",
         variant: "destructive"
       });
     }
@@ -931,6 +1129,33 @@ ${closingMsg}`;
     }
   };
 
+  const handleDeleteTrio = async (trioId: string, gameId: string) => {
+    if (!confirm("Adakah anda pasti mahu memadam rekod trio ini?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("trio_records")
+        .delete()
+        .eq("id", trioId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Rekod trio telah dipadam"
+      });
+
+      fetchTrioRecords(gameId);
+    } catch (error) {
+      console.error("Error deleting trio:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memadam rekod trio",
+        variant: "destructive"
+      });
+    }
+  };
+
   const toggleExpandedGame = (gameId: string) => {
     if (expandedGame === gameId) {
       setExpandedGame(null);
@@ -938,6 +1163,17 @@ ${closingMsg}`;
       setExpandedGame(gameId);
       if (!doubleRecords[gameId]) {
         fetchDoubleRecords(gameId);
+      }
+    }
+  };
+
+  const toggleExpandedTrioGame = (gameId: string) => {
+    if (expandedTrioGame === gameId) {
+      setExpandedTrioGame(null);
+    } else {
+      setExpandedTrioGame(gameId);
+      if (!trioRecords[gameId]) {
+        fetchTrioRecords(gameId);
       }
     }
   };
@@ -1123,39 +1359,72 @@ ${closingMsg}`;
                             <Label>Double Game</Label>
                             <p className="text-sm text-muted-foreground">Pemain main berpasangan</p>
                           </div>
-                          
-
-
-                      
                         </div>
 
                         {game.double_enabled &&
-                    <div className="flex gap-2">
+                          <div className="flex gap-2">
                             <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleExpandedGame(game.id)}>
-                        
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleExpandedGame(game.id)}
+                            >
                               {expandedGame === game.id ? "Tutup" : "Lihat"} Rekod Double
                               {doubleRecords[game.id] && doubleRecords[game.id].length > 0 &&
-                        <Badge variant="secondary" className="ml-2">
+                                <Badge variant="secondary" className="ml-2">
                                   {doubleRecords[game.id].length}
                                 </Badge>
-                        }
+                              }
                             </Button>
                             <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedGameForDouble(game);
-                          setIsDoubleDialogOpen(true);
-                          loadAvailableMembersForDouble(game.id);
-                        }}>
-                        
+                              size="sm"
+                              onClick={() => {
+                                setSelectedGameForDouble(game);
+                                setIsDoubleDialogOpen(true);
+                                loadAvailableMembersForDouble(game.id);
+                              }}
+                            >
                               <Plus className="h-4 w-4 mr-2" />
                               Tambah Double
                             </Button>
                           </div>
-                    }
+                        }
+                      </div>
+
+                      <div className="border-t pt-4 mt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Trio Game</Label>
+                            <p className="text-sm text-muted-foreground">Pemain main bertiga</p>
+                          </div>
+                        </div>
+
+                        {game.trio_enabled &&
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleExpandedTrioGame(game.id)}
+                            >
+                              {expandedTrioGame === game.id ? "Tutup" : "Lihat"} Rekod Trio
+                              {trioRecords[game.id] && trioRecords[game.id].length > 0 &&
+                                <Badge variant="secondary" className="ml-2">
+                                  {trioRecords[game.id].length}
+                                </Badge>
+                              }
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedGameForTrio(game);
+                                setIsTrioDialogOpen(true);
+                                loadAvailableMembersForDouble(game.id);
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Tambah Trio
+                            </Button>
+                          </div>
+                        }
                       </div>
 
                       {/* Men vs Women Toggle */}
@@ -1165,21 +1434,21 @@ ${closingMsg}`;
                             Double Game
                           </Label>
                           <Switch
-                        id={`double-${game.id}`}
-                        checked={game.double_enabled || false}
-                        onCheckedChange={(checked) => toggleGameDouble(game.id, game.double_enabled || false)} />
-                      
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
-                            Men vs Women
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
                           </Label>
                           <Switch
-                        id={`mvw-${game.id}`}
-                        checked={game.men_vs_women_enabled || false}
-                        onCheckedChange={(checked) => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)} />
-                      
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
                         </div>
 
                         {game.men_vs_women_enabled && (
@@ -1308,7 +1577,8 @@ ${closingMsg}`;
                                         <Badge variant="secondary">{record.player2_score}</Badge>
                                       </div>
                                       <p className="text-sm text-muted-foreground mt-1">
-                                        Jumlah: <span className="font-bold text-primary">{record.total_score}</span>
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
                                       </p>
                                     </div>
                                   </div>
@@ -1325,6 +1595,65 @@ ${closingMsg}`;
                     }
                         </CardContent>
                   }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <CardContent className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </CardContent>
+                      }
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -1674,7 +2003,7 @@ ${closingMsg}`;
             <DialogHeader>
               <DialogTitle>Tambah Rekod Double</DialogTitle>
               <DialogDescription>
-                Pilih 2 pemain yang main game ini. Score akan diambil automatik dari rekod game (atau 0 jika belum isi).
+                Pilih 2 pemain yang main game ini dan tetapkan sama ada jumlah score termasuk handicap atau tidak.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1717,24 +2046,133 @@ ${closingMsg}`;
                 </div>
               </div>
 
+              <div className="flex items-center space-x-2 rounded-lg border p-3">
+                <Switch
+                  id="double-include-handicap"
+                  checked={doubleForm.include_handicap}
+                  onCheckedChange={(checked) => setDoubleForm({ ...doubleForm, include_handicap: checked })}
+                />
+                <Label htmlFor="double-include-handicap">
+                  Kira jumlah score termasuk handicap
+                </Label>
+              </div>
+
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <p className="text-sm font-medium text-blue-900 mb-2">💡 Nota:</p>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                   <li>Hanya pemain yang main game ini akan dipaparkan</li>
-                  <li>Score akan diambil automatik: Total Score + Handicap</li>
-                  <li>Jika score belum diisi, akan guna 0 sebagai default</li>
+                  <li>Score akan diambil automatik dari rekod pemain semasa</li>
+                  <li>Anda boleh pilih sama ada jumlah akhir termasuk handicap atau tidak</li>
                 </ul>
               </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDoubleDialogOpen(false)}>
-                  Batal
-                </Button>
-                <Button onClick={handleAddDouble}>
-                  Tambah Rekod Double
-                </Button>
-              </DialogFooter>
             </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDoubleDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button onClick={handleAddDouble}>
+                Tambah Rekod Double
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isTrioDialogOpen} onOpenChange={setIsTrioDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tambah Rekod Trio</DialogTitle>
+              <DialogDescription>
+                Pilih 3 pemain yang main game ini dan tetapkan sama ada jumlah score termasuk handicap atau tidak.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Pemain 1</Label>
+                  <Select
+                    value={trioForm.player1_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player1_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 1" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t1-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pemain 2</Label>
+                  <Select
+                    value={trioForm.player2_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player2_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 2" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t2-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pemain 3</Label>
+                  <Select
+                    value={trioForm.player3_id}
+                    onValueChange={(value) => setTrioForm({ ...trioForm, player3_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih pemain 3" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMembers.map((member) => (
+                        <SelectItem key={`t3-${member.id}`} value={member.id}>
+                          @{member.username}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 rounded-lg border p-3">
+                <Switch
+                  id="trio-include-handicap"
+                  checked={trioForm.include_handicap}
+                  onCheckedChange={(checked) => setTrioForm({ ...trioForm, include_handicap: checked })}
+                />
+                <Label htmlFor="trio-include-handicap">
+                  Kira jumlah score termasuk handicap
+                </Label>
+              </div>
+
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm font-medium text-purple-900 mb-2">💡 Nota:</p>
+                <ul className="text-sm text-purple-800 space-y-1 list-disc list-inside">
+                  <li>Hanya pemain yang main game ini akan dipaparkan</li>
+                  <li>Score akan diambil automatik dari rekod pemain semasa</li>
+                  <li>Anda boleh pilih sama ada jumlah akhir termasuk handicap atau tidak</li>
+                </ul>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsTrioDialogOpen(false)}>
+                Batal
+              </Button>
+              <Button onClick={handleAddTrio}>
+                Tambah Rekod Trio
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
