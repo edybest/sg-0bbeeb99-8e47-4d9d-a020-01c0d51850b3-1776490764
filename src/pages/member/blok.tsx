@@ -53,6 +53,7 @@ type GameSummary = Pick<
     Tables<"games">,
     "id" | "game_name" | "game_format" | "game_date" | "created_at" | "double_enabled"
 > & {
+    trio_enabled?: boolean;
     men_vs_women_enabled?: boolean;
     women_handicap?: number;
 };
@@ -86,6 +87,40 @@ interface DoubleRecord {
         avatar_url: string | null;
     };
     player2?: {
+        id: string;
+        username: string;
+        full_name?: string;
+        avatar_url: string | null;
+    };
+}
+
+interface TrioRecord {
+    id: string;
+    game_id: string;
+    player1_id: string;
+    player2_id: string;
+    player3_id: string;
+    player1_score: number;
+    player2_score: number;
+    player3_score: number;
+    total_score: number;
+    include_handicap: boolean;
+    player1_handicap?: number;
+    player2_handicap?: number;
+    player3_handicap?: number;
+    player1?: {
+        id: string;
+        username: string;
+        full_name?: string;
+        avatar_url: string | null;
+    };
+    player2?: {
+        id: string;
+        username: string;
+        full_name?: string;
+        avatar_url: string | null;
+    };
+    player3?: {
         id: string;
         username: string;
         full_name?: string;
@@ -234,6 +269,10 @@ export default function BlokPage() {
     const [isDoubleDialogOpen, setIsDoubleDialogOpen] = useState(false);
     const [loadingDoubles, setLoadingDoubles] = useState(false);
 
+    const [trioRecords, setTrioRecords] = useState<TrioRecord[]>([]);
+    const [isTrioDialogOpen, setIsTrioDialogOpen] = useState(false);
+    const [loadingTrios, setLoadingTrios] = useState(false);
+
     const [isMenVsWomenDialogOpen, setIsMenVsWomenDialogOpen] = useState(false);
     const [menVsWomenData, setMenVsWomenData] = useState<{
         menTotal: number;
@@ -324,7 +363,7 @@ export default function BlokPage() {
 
                 const { data, error: dbError } = await supabase
                     .from("games")
-                    .select("id, game_name, game_format, game_date, created_at, double_enabled, men_vs_women_enabled, women_handicap")
+                    .select("id, game_name, game_format, game_date, created_at, double_enabled, trio_enabled, men_vs_women_enabled, women_handicap")
                     .neq("game_type", "COUPLE")
                     .order("game_date", { ascending: false });
 
@@ -386,6 +425,9 @@ export default function BlokPage() {
                         player1_score,
                         player2_score,
                         total_score,
+                        include_handicap,
+                        player1_handicap,
+                        player2_handicap,
                         player1:members!double_records_player1_id_fkey(id, username, full_name, avatar_url),
                         player2:members!double_records_player2_id_fkey(id, username, full_name, avatar_url)
                     `)
@@ -404,6 +446,52 @@ export default function BlokPage() {
                 });
             } finally {
                 setLoadingDoubles(false);
+            }
+        },
+        [toast]
+    );
+
+    const loadTrioRecords = useCallback(
+        async (gameId: string) => {
+            if (!gameId) return;
+
+            try {
+                setLoadingTrios(true);
+
+                const { data: triosData, error: triosError } = await (supabase as any)
+                    .from("trio_records")
+                    .select(`
+                        id,
+                        player1_id,
+                        player2_id,
+                        player3_id,
+                        player1_score,
+                        player2_score,
+                        player3_score,
+                        total_score,
+                        include_handicap,
+                        player1_handicap,
+                        player2_handicap,
+                        player3_handicap,
+                        player1:members!trio_records_player1_id_fkey(id, username, full_name, avatar_url),
+                        player2:members!trio_records_player2_id_fkey(id, username, full_name, avatar_url),
+                        player3:members!trio_records_player3_id_fkey(id, username, full_name, avatar_url)
+                    `)
+                    .eq("game_id", gameId)
+                    .order("total_score", { ascending: false });
+
+                if (triosError) throw triosError;
+
+                setTrioRecords((triosData as any) || []);
+            } catch (err) {
+                console.error("Error loading trio records:", err);
+                toast({
+                    title: "Error",
+                    description: "Failed to load trio records",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoadingTrios(false);
             }
         },
         [toast]
@@ -556,6 +644,16 @@ export default function BlokPage() {
         
         if (doubleRecords.length === 0) {
             await loadDoubleRecords(selectedGame);
+        }
+    };
+
+    const handleOpenTrioDialog = async () => {
+        if (!selectedGame) return;
+
+        setIsTrioDialogOpen(true);
+        
+        if (trioRecords.length === 0) {
+            await loadTrioRecords(selectedGame);
         }
     };
 
@@ -1103,6 +1201,18 @@ export default function BlokPage() {
                                                 </Button>
                                             )}
 
+                                            {/* Trio Game Button */}
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.trio_enabled && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
+                                                    onClick={handleOpenTrioDialog}
+                                                >
+                                                    <Users className="w-4 h-4 mr-2" />
+                                                    Score Trio
+                                                </Button>
+                                            )}
+
                                             {/* Men vs Women Button */}
                                             {selectedGame && games.find(g => g.id === selectedGame)?.men_vs_women_enabled && (
                                                 <Button
@@ -1519,7 +1629,7 @@ export default function BlokPage() {
                                                 {/* Stats */}
                                                 <div className="grid grid-cols-3 gap-1.5 pt-1">
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Total
                                                         </div>
                                                         <div className="text-base font-bold text-slate-800 mt-0.5">
@@ -1527,7 +1637,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Hcp
                                                         </div>
                                                         <div className="text-base font-bold text-sky-600 mt-0.5">
@@ -1535,7 +1645,7 @@ export default function BlokPage() {
                                                         </div>
                                                     </div>
                                                     <div className="bg-slate-50/80 rounded p-2 text-center">
-                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                                             Avg
                                                         </div>
                                                         <div className="text-base font-bold text-purple-600 mt-0.5">
@@ -1870,7 +1980,7 @@ export default function BlokPage() {
                                                                     @{record.player1?.username}
                                                                 </Link>
                                                                 <Badge variant="secondary" className="font-bold">
-                                                                    {record.player1_score}
+                                                                    {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
                                                                 </Badge>
                                                             </div>
 
@@ -1899,15 +2009,185 @@ export default function BlokPage() {
                                                                     @{record.player2?.username}
                                                                 </Link>
                                                                 <Badge variant="secondary" className="font-bold">
-                                                                    {record.player2_score}
+                                                                    {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
                                                                 </Badge>
                                                             </div>
                                                         </div>
 
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-gray-600">Jumlah:</span>
+                                                            <span className="text-sm text-gray-600">
+                                                                {record.include_handicap ? "Jumlah (+ handicap):" : "Jumlah (tanpa handicap):"}
+                                                            </span>
                                                             <span className={`text-2xl font-black ${
                                                                 isTop3 ? "text-blue-600" : "text-gray-700"
+                                                            }`}>
+                                                                {record.total_score}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {isTop3 && (
+                                                    <Trophy className={`w-8 h-8 ${
+                                                        index === 0 ? "text-yellow-500" :
+                                                        index === 1 ? "text-gray-400" :
+                                                        "text-orange-600"
+                                                    }`} />
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* ── Trio Game Dialog ── */}
+                <Dialog open={isTrioDialogOpen} onOpenChange={setIsTrioDialogOpen}>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-purple-500" />
+                                Score Trio - {games.find(g => g.id === selectedGame)?.game_name}
+                            </DialogTitle>
+                        </DialogHeader>
+                        {loadingTrios ? (
+                            <div className="flex justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+                            </div>
+                        ) : trioRecords.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <p>Tiada rekod trio untuk game ini</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="text-sm text-gray-600 mb-4">
+                                    Jumlah Pasukan: <span className="font-bold">{trioRecords.length}</span>
+                                </div>
+                                {trioRecords.map((record, index) => {
+                                    const isTop3 = index < 3;
+                                    const rankBg = 
+                                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-amber-500 border-yellow-300" :
+                                        index === 1 ? "bg-gradient-to-r from-gray-400 to-slate-400 border-gray-300" :
+                                        index === 2 ? "bg-gradient-to-r from-orange-600 to-amber-600 border-orange-300" :
+                                        "bg-white border-gray-200";
+
+                                    return (
+                                        <motion.div
+                                            key={record.id}
+                                            initial={{ opacity: 0, y: -20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className={`border-2 rounded-lg p-4 ${rankBg}`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4 flex-1">
+                                                    <div className={`
+                                                        flex items-center justify-center w-10 h-10 rounded-full font-bold text-lg
+                                                        ${index === 0 ? "bg-yellow-500 text-white" : 
+                                                          index === 1 ? "bg-gray-400 text-white" :
+                                                          index === 2 ? "bg-orange-600 text-white" :
+                                                          "bg-purple-100 text-purple-700"}
+                                                    `}>
+                                                        #{index + 1}
+                                                    </div>
+
+                                                    <div className="flex-1">
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                {record.player1?.avatar_url ? (
+                                                                    <Image
+                                                                        src={record.player1.avatar_url}
+                                                                        alt={record.player1.username}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                                                                        unoptimized
+                                                                        loading="lazy"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
+                                                                        {record.player1?.username[0].toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <Link
+                                                                    href={`/member/profile?id=${record.player1_id}`}
+                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
+                                                                >
+                                                                    @{record.player1?.username}
+                                                                </Link>
+                                                                <Badge variant="secondary" className="font-bold">
+                                                                    {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                                                </Badge>
+                                                            </div>
+
+                                                            <span className="text-gray-400 font-bold">+</span>
+
+                                                            <div className="flex items-center gap-2">
+                                                                {record.player2?.avatar_url ? (
+                                                                    <Image
+                                                                        src={record.player2.avatar_url}
+                                                                        alt={record.player2.username}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                                                                        unoptimized
+                                                                        loading="lazy"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
+                                                                        {record.player2?.username[0].toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <Link
+                                                                    href={`/member/profile?id=${record.player2_id}`}
+                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
+                                                                >
+                                                                    @{record.player2?.username}
+                                                                </Link>
+                                                                <Badge variant="secondary" className="font-bold">
+                                                                    {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                                                </Badge>
+                                                            </div>
+
+                                                            <span className="text-gray-400 font-bold">+</span>
+
+                                                            <div className="flex items-center gap-2">
+                                                                {record.player3?.avatar_url ? (
+                                                                    <Image
+                                                                        src={record.player3.avatar_url}
+                                                                        alt={record.player3.username}
+                                                                        width={32}
+                                                                        height={32}
+                                                                        className="w-8 h-8 rounded-full object-cover border-2 border-white"
+                                                                        unoptimized
+                                                                        loading="lazy"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-sm border-2 border-white">
+                                                                        {record.player3?.username[0].toUpperCase()}
+                                                                    </div>
+                                                                )}
+                                                                <Link
+                                                                    href={`/member/profile?id=${record.player3_id}`}
+                                                                    className="font-semibold text-purple-900 hover:text-purple-700"
+                                                                >
+                                                                    @{record.player3?.username}
+                                                                </Link>
+                                                                <Badge variant="secondary" className="font-bold">
+                                                                    {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                                                </Badge>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm text-gray-600">
+                                                                {record.include_handicap ? "Jumlah (+ handicap):" : "Jumlah (tanpa handicap):"}
+                                                            </span>
+                                                            <span className={`text-2xl font-black ${
+                                                                isTop3 ? "text-purple-600" : "text-gray-700"
                                                             }`}>
                                                                 {record.total_score}
                                                             </span>
@@ -1997,7 +2277,9 @@ export default function BlokPage() {
                                         className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
                                             menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                 ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
-                                                : "bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300"
+                                                : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
+                                                    : "bg-gradient-to-br from-purple-500 to-purple-600 border-purple-300"
                                         }`}
                                     >
                                         <div className="text-center">
@@ -2005,7 +2287,9 @@ export default function BlokPage() {
                                             <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
-                                                    : "text-pink-900"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-900"
+                                                        : "text-purple-900"
                                             }`}>
                                                 <span>WOMEN TEAM</span>
                                                 {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
@@ -2015,14 +2299,18 @@ export default function BlokPage() {
                                             <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
-                                                    : "text-pink-700"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-700"
+                                                        : "text-purple-700"
                                             }`}>
                                                 {menVsWomenData.womenTotal}
                                             </div>
                                             <div className={`text-xs sm:text-sm ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-pink-100"
-                                                    : "text-pink-600"
+                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                        ? "text-pink-600"
+                                                        : "text-purple-600"
                                             }`}>
                                                 {menVsWomenData.womenCount} pemain
                                             </div>
