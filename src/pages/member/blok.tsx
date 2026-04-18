@@ -254,82 +254,81 @@ const LeaderboardPodium = ({ data }: { data: LeaderboardEntry[] }) => {
     const rank1 = data[0];
     const rank3 = data[2];
 
-    const PlayerAvatar = ({ player, rank, delay }: { player: LeaderboardEntry, rank: number, delay: string }) => (
-        <div className="flex flex-col items-center mb-3 md:mb-5 z-20 transition-all duration-500 hover:-translate-y-2">
-            {rank === 1 && <Crown className="text-yellow-300 w-8 h-8 md:w-10 md:h-10 -mb-2 md:-mb-3 z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]" />}
-            <div className={`relative rounded-full p-1 ${rank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-[0_0_15px_rgba(253,224,71,0.5)]' : 'bg-white/30 shadow-md'}`}>
+    const PlayerAvatar = ({ player, rank }: { player: LeaderboardEntry, rank: number }) => (
+        <div className="flex flex-col items-center z-30 relative mb-2 md:mb-4">
+            {rank === 1 && <Crown className="text-yellow-300 w-8 h-8 md:w-10 md:h-10 -mb-2 md:-mb-3 z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" />}
+            <div className={`relative rounded-full p-1 ${rank === 1 ? 'bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-[0_0_15px_rgba(253,224,71,0.6)]' : 'bg-white/30 shadow-md'}`}>
                 {player.member.avatar_url ? (
                     <Image
                         src={player.member.avatar_url}
                         alt={player.member.username}
                         width={rank === 1 ? 80 : 64}
                         height={rank === 1 ? 80 : 64}
-                        className={`rounded-full object-cover border-2 border-white/80 ${rank === 1 ? 'w-20 h-20 md:w-24 md:h-24' : 'w-14 h-14 md:w-16 md:h-16'}`}
+                        className={`rounded-full object-cover border-2 border-white/80 ${rank === 1 ? 'w-16 h-16 md:w-20 md:h-20' : 'w-12 h-12 md:w-14 md:h-14'}`}
                         unoptimized
                     />
                 ) : (
-                    <div className={`rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 border-2 border-white/80 ${rank === 1 ? 'w-20 h-20 md:w-24 md:h-24 text-3xl' : 'w-14 h-14 md:max-w-[100px] md:max-h-[100px] text-xl'}`}>
+                    <div className={`rounded-full bg-purple-100 flex items-center justify-center font-bold text-purple-700 border-2 border-white/80 ${rank === 1 ? 'w-16 h-16 md:w-20 md:h-20 text-2xl' : 'w-12 h-12 md:w-14 md:h-14 text-xl'}`}>
                         {player.member.username[0].toUpperCase()}
                     </div>
                 )}
             </div>
-            <span className="text-white font-bold text-sm md:text-base mt-2 drop-shadow-md truncate max-w-[90px] md:max-w-[120px] text-center">
+            <span className="text-white font-bold text-[11px] md:text-sm mt-2 text-center leading-tight w-[22vw] max-w-[90px] break-words line-clamp-2 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
                 {player.member.username}
-            </span>
-            <span className="text-white/90 font-black text-lg md:text-xl drop-shadow-md">
-                {player.overall_score}
             </span>
         </div>
     );
 
     return (
-        <div className="mb-8 relative rounded-[2rem] overflow-hidden bg-gradient-to-b from-fuchsia-500 via-purple-500 to-indigo-600 pt-8 pb-0 shadow-2xl border-4 border-white/30">
-            {/* Sunburst background effect */}
+        <div className="mb-8 relative rounded-[2rem] overflow-hidden bg-gradient-to-b from-fuchsia-500 via-purple-500 to-indigo-600 pt-6 pb-0 shadow-2xl border-4 border-white/30">
             <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ background: 'repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg 10deg, #fff 10deg 20deg)' }} />
             
-            <div className="relative z-10 flex items-end justify-center gap-[25px] md:gap-[45px] px-4 max-w-4xl mx-auto mt-6 md:mt-10 h-[280px] md:h-[380px]">
+            <div className="relative z-10 flex items-end justify-center gap-2 md:gap-6 px-2 max-w-4xl mx-auto mt-4 md:mt-8 h-[260px] md:h-[340px]">
                 
                 {/* Rank 2 */}
                 <div className="flex flex-col items-center z-20">
-                    <PlayerAvatar player={rank2} rank={2} delay="0.2s" />
-                    <div className="relative w-[22vw] max-w-[80px] md:max-w-[100px] h-[130px] md:h-[180px]">
-                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-fuchsia-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
-                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-fuchsia-700 origin-left" style={{ transform: 'skewY(-45deg)' }} />
-                        <div className="absolute inset-0 bg-gradient-to-b from-fuchsia-300 to-fuchsia-600 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-fuchsia-200 overflow-hidden shadow-lg">
-                            <div className="bg-rose-500 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
+                    <PlayerAvatar player={rank2} rank={2} />
+                    <div className="relative w-[28vw] max-w-[90px] md:max-w-[110px] h-[120px] md:h-[160px]">
+                        <div className="absolute -top-[12px] md:-top-[16px] left-0 w-full h-[12px] md:h-[16px] bg-pink-200 origin-bottom border-t border-l border-white/40" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[12px] md:-right-[16px] w-[12px] md:w-[16px] h-full bg-pink-700 origin-left border-t border-r border-black/20" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-pink-400 to-pink-600 flex flex-col items-center justify-start pt-3 md:pt-4 border-t border-white/30 overflow-hidden shadow-lg rounded-bl-sm">
+                            <div className="bg-rose-500 text-white rounded-full w-5 h-5 md:w-7 md:h-7 flex items-center justify-center shadow-md border border-white mb-1 z-10">
                                 <Star className="w-3 h-3 md:w-4 md:h-4 fill-yellow-300 text-yellow-300" />
                             </div>
-                            <span className="text-white/30 font-black text-6xl md:text-8xl mt-auto -mb-4 md:-mb-6">2</span>
+                            <span className="text-white font-bold text-sm md:text-lg z-10 drop-shadow-md">{rank2.overall_score}</span>
+                            <span className="text-white/20 font-black text-6xl md:text-8xl mt-auto -mb-4 md:-mb-6 leading-none">2</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Rank 1 */}
                 <div className="flex flex-col items-center z-30">
-                    <PlayerAvatar player={rank1} rank={1} delay="0.4s" />
-                    <div className="relative w-[28vw] max-w-[100px] md:max-w-[120px] h-[180px] md:h-[250px]">
-                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-pink-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
-                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-pink-700 origin-left" style={{ transform: 'skewY(-45deg)' }} />
-                        <div className="absolute inset-0 bg-gradient-to-b from-pink-300 to-pink-600 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-pink-200 overflow-hidden shadow-2xl">
-                            <div className="bg-rose-500 text-white rounded-full w-7 h-7 md:w-9 md:h-9 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
-                                <Star className="w-4 h-4 md:w-5 md:h-5 fill-yellow-300 text-yellow-300" />
+                    <PlayerAvatar player={rank1} rank={1} />
+                    <div className="relative w-[32vw] max-w-[100px] md:max-w-[130px] h-[160px] md:h-[220px]">
+                        <div className="absolute -top-[12px] md:-top-[16px] left-0 w-full h-[12px] md:h-[16px] bg-fuchsia-100 origin-bottom border-t border-l border-white/50" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[12px] md:-right-[16px] w-[12px] md:w-[16px] h-full bg-fuchsia-700 origin-left border-t border-r border-black/20" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-fuchsia-300 to-fuchsia-500 flex flex-col items-center justify-start pt-3 md:pt-4 border-t border-white/40 overflow-hidden shadow-2xl rounded-bl-sm">
+                            <div className="bg-rose-500 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-md border-2 border-white mb-1 z-10">
+                                <Star className="w-3 h-3 md:w-5 md:h-5 fill-yellow-300 text-yellow-300" />
                             </div>
-                            <span className="text-white/30 font-black text-8xl md:text-9xl mt-auto -mb-6 md:-mb-8">1</span>
+                            <span className="text-white font-black text-base md:text-xl z-10 drop-shadow-md">{rank1.overall_score}</span>
+                            <span className="text-white/30 font-black text-8xl md:text-9xl mt-auto -mb-6 md:-mb-8 leading-none">1</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Rank 3 */}
                 <div className="flex flex-col items-center z-10">
-                    <PlayerAvatar player={rank3} rank={3} delay="0.6s" />
-                    <div className="relative w-[22vw] max-w-[80px] md:max-w-[100px] h-[100px] md:h-[140px]">
-                        <div className="absolute -top-[15px] md:-top-[25px] left-0 w-full h-[15px] md:h-[25px] bg-purple-100 origin-bottom" style={{ transform: 'skewX(-45deg)' }} />
-                        <div className="absolute top-0 -right-[15px] md:-right-[25px] w-[15px] md:w-[25px] h-full bg-purple-800 origin-left" style={{ transform: 'skewY(-45deg)' }} />
-                        <div className="absolute inset-0 bg-gradient-to-b from-purple-400 to-purple-700 flex flex-col items-center justify-start pt-4 md:pt-6 border-t border-purple-300 overflow-hidden shadow-lg">
-                            <div className="bg-rose-500 text-white rounded-full w-6 h-6 md:w-8 md:h-8 flex items-center justify-center shadow-lg border-2 border-white mb-2 z-10">
+                    <PlayerAvatar player={rank3} rank={3} />
+                    <div className="relative w-[28vw] max-w-[90px] md:max-w-[110px] h-[90px] md:h-[130px]">
+                        <div className="absolute -top-[12px] md:-top-[16px] left-0 w-full h-[12px] md:h-[16px] bg-purple-200 origin-bottom border-t border-l border-white/30" style={{ transform: 'skewX(-45deg)' }} />
+                        <div className="absolute top-0 -right-[12px] md:-right-[16px] w-[12px] md:w-[16px] h-full bg-purple-800 origin-left border-t border-r border-black/20" style={{ transform: 'skewY(-45deg)' }} />
+                        <div className="absolute inset-0 bg-gradient-to-b from-purple-400 to-purple-600 flex flex-col items-center justify-start pt-2 md:pt-4 border-t border-white/20 overflow-hidden shadow-lg rounded-bl-sm">
+                            <div className="bg-rose-500 text-white rounded-full w-5 h-5 md:w-7 md:h-7 flex items-center justify-center shadow-md border border-white mb-1 z-10">
                                 <Star className="w-3 h-3 md:w-4 md:h-4 fill-yellow-300 text-yellow-300" />
                             </div>
-                            <span className="text-white/20 font-black text-6xl md:text-8xl mt-auto -mb-4 md:-mb-6">3</span>
+                            <span className="text-white font-bold text-sm md:text-lg z-10 drop-shadow-md">{rank3.overall_score}</span>
+                            <span className="text-white/20 font-black text-5xl md:text-7xl mt-auto -mb-3 md:-mb-5 leading-none">3</span>
                         </div>
                     </div>
                 </div>
@@ -1782,7 +1781,7 @@ export default function BlokPage() {
                                                         </span>
                                                     </th>
                                                     <th
-                                                        className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
+                                                        className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r-2 border-sky-200`}
                                                         onClick={() => handleSort("username")}
                                                     >
                                                         <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
