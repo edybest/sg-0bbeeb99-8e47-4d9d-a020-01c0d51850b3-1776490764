@@ -39,7 +39,9 @@ import {
     Heart,
     Target,
     Search,
-    Users
+    Users,
+    Star,
+    Crown
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -243,6 +245,76 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
         loves_count: entry.loves_count ?? 0,
     }));
 }
+
+const LeaderboardPodium = ({ data }: { data: LeaderboardEntry[] }) => {
+    if (data.length < 3) return null;
+
+    const [rank1, rank2, rank3] = [data[0], data[1], data[2]];
+
+    const podiumPlayers = [
+        { player: rank2, place: 2, height: "h-32 md:h-40", tone: "from-fuchsia-300 to-fuchsia-500" },
+        { player: rank1, place: 1, height: "h-44 md:h-56", tone: "from-pink-300 to-fuchsia-500" },
+        { player: rank3, place: 3, height: "h-24 md:h-32", tone: "from-violet-400 to-violet-600" },
+    ] as const;
+
+    return (
+        <section className="mb-6 overflow-hidden rounded-[2rem] border border-fuchsia-200/60 bg-gradient-to-b from-fuchsia-500 via-purple-500 to-indigo-600 shadow-xl">
+            <div className="relative px-3 pb-4 pt-6 md:px-6 md:pt-8">
+                <div
+                    className="absolute inset-0 opacity-15"
+                    style={{
+                        background:
+                            "repeating-conic-gradient(from 0deg at 50% 40%, rgba(255,255,255,0.65) 0deg 8deg, transparent 8deg 16deg)",
+                    }}
+                />
+                <div className="relative flex items-end justify-center gap-2 md:gap-6">
+                    {podiumPlayers.map(({ player, place, height, tone }) => (
+                        <div key={player.id} className="flex w-[30%] max-w-[140px] flex-col items-center">
+                            <div className="mb-2 flex flex-col items-center">
+                                {place === 1 && (
+                                    <Crown className="mb-[-6px] h-6 w-6 text-yellow-300 drop-shadow md:h-8 md:w-8" />
+                                )}
+                                {player.member.avatar_url ? (
+                                    <Image
+                                        src={player.member.avatar_url}
+                                        alt={player.member.username}
+                                        width={place === 1 ? 72 : 60}
+                                        height={place === 1 ? 72 : 60}
+                                        className={`rounded-full border-4 border-white object-cover shadow-lg ${
+                                            place === 1 ? "h-16 w-16 md:h-20 md:w-20" : "h-14 w-14 md:h-16 md:w-16"
+                                        }`}
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div
+                                        className={`flex items-center justify-center rounded-full border-4 border-white bg-white/90 font-bold text-fuchsia-700 shadow-lg ${
+                                            place === 1 ? "h-16 w-16 text-xl md:h-20 md:w-20 md:text-2xl" : "h-14 w-14 text-lg md:h-16 md:w-16"
+                                        }`}
+                                    >
+                                        {player.member.username[0].toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="mt-2 max-w-[92px] text-center text-xs font-bold leading-tight text-white drop-shadow md:max-w-[120px] md:text-sm">
+                                    {player.member.username}
+                                </div>
+                            </div>
+
+                            <div className={`relative flex w-full flex-col items-center justify-start rounded-t-xl bg-gradient-to-b ${tone} ${height} border border-white/30 pt-3 shadow-lg`}>
+                                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 shadow md:h-7 md:w-7">
+                                    <Star className="h-3 w-3 fill-yellow-300 text-yellow-300 md:h-4 md:w-4" />
+                                </div>
+                                <div className="text-sm font-black text-white md:text-lg">{player.overall_score}</div>
+                                <div className="mt-auto text-6xl font-black leading-none text-white/20 md:text-8xl">
+                                    {place}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
