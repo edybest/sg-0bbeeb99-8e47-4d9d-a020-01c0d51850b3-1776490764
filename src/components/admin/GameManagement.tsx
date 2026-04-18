@@ -1281,7 +1281,7 @@ ${closingMsg}`;
                   <CardContent className="border-t bg-muted/20 pt-4">
                           {loadingDoubles[game.id] ?
                     <div className="text-center py-4">
-                              <Loader2 className="h-6 w-6 animate-spin text-pink-600" />
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
                             </div> :
                     !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
                     <div className="text-center py-6 text-muted-foreground">
