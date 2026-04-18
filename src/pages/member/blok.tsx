@@ -817,6 +817,75 @@ export default function BlokPage() {
         setLeaderboard(applyCurrentSort(leaderboardBase, field, newDirection));
     };
 
+    const buildDoubleShareMessage = useCallback(
+        (record: DoubleRecord, rank: number) => {
+            const gameName = games.find((game) => game.id === selectedGame)?.game_name ?? "Blok";
+            const memberNames = [
+                record.player1?.username ? `@${record.player1.username}` : "@Unknown",
+                record.player2?.username ? `@${record.player2.username}` : "@Unknown",
+            ];
+
+            return [
+                "🏆 Keputusan Double Score AMBC Club",
+                `Game: ${gameName}`,
+                `Ranking: #${rank}`,
+                `Pasukan: ${memberNames.join(" + ")}`,
+                `${record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}: ${record.total_score}`,
+            ].join("\n");
+        },
+        [games, selectedGame]
+    );
+
+    const handleShareDouble = useCallback(
+        async (record: DoubleRecord, rank: number) => {
+            const shareText = buildDoubleShareMessage(record, rank);
+            const shareUrl =
+                typeof window !== "undefined"
+                    ? `${window.location.origin}${router.asPath}`
+                    : undefined;
+            const sharePayload = {
+                title: `Double Score #${rank} - AMBC Club`,
+                text: shareText,
+                url: shareUrl,
+            };
+
+            try {
+                if (typeof navigator !== "undefined" && navigator.share) {
+                    await navigator.share(sharePayload);
+                    return;
+                }
+
+                if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(
+                        shareUrl ? `${shareText}\n${shareUrl}` : shareText
+                    );
+                    toast({
+                        title: "Teks perkongsian disalin",
+                        description: "Keputusan double sudah disalin dan sedia untuk dikongsi.",
+                    });
+                    return;
+                }
+
+                toast({
+                    title: "Perkongsian tidak disokong",
+                    description: "Browser ini tidak menyokong fungsi kongsi atau salin.",
+                    variant: "destructive",
+                });
+            } catch (error) {
+                if (error instanceof Error && error.name === "AbortError") {
+                    return;
+                }
+
+                toast({
+                    title: "Gagal berkongsi",
+                    description: "Cuba semula atau gunakan browser yang menyokong fungsi kongsi.",
+                    variant: "destructive",
+                });
+            }
+        },
+        [buildDoubleShareMessage, router.asPath, toast]
+    );
+
     const buildTrioShareMessage = useCallback(
         (record: TrioRecord, rank: number) => {
             const gameName = games.find((game) => game.id === selectedGame)?.game_name ?? "Blok";
@@ -2045,8 +2114,8 @@ export default function BlokPage() {
                                                     type="button"
                                                     variant="outline"
                                                     size="sm"
-                                                    onClick={() => void handleShareTrio(record, index + 1)}
-                                                    className="h-9 rounded-full border-white/70 bg-white/85 px-4 text-xs font-semibold text-purple-700 shadow-sm hover:bg-white"
+                                                    onClick={() => void handleShareDouble(record, index + 1)}
+                                                    className="h-9 rounded-full border-white/70 bg-white/85 px-4 text-xs font-semibold text-blue-700 shadow-sm hover:bg-white"
                                                 >
                                                     <Share2 className="mr-1.5 h-4 w-4" />
                                                     Kongsi
