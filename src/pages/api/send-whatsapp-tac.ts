@@ -7,6 +7,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_SERVER_CONFIG_ERROR =
   "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
+const SUPABASE_SERVER_INVALID_KEY_ERROR =
+  "SUPABASE_SERVICE_ROLE_KEY tidak sah pada runtime server. Semak semula key di Settings → Environment dan pastikan ia ialah service_role key yang betul.";
 
 type SendTACRequest = {
   phone: string;
@@ -139,9 +141,15 @@ export default async function handler(
 
     if (memberError) {
       console.error("❌ Database error:", memberError);
+
+      const databaseErrorMessage =
+        memberError.message === "Invalid API key"
+          ? SUPABASE_SERVER_INVALID_KEY_ERROR
+          : "Ralat pangkalan data";
+
       return res.status(500).json({
         success: false,
-        error: "Ralat pangkalan data",
+        error: databaseErrorMessage,
       });
     }
 
@@ -327,9 +335,11 @@ Terima kasih! 🎳`;
     const errorMessage =
       error instanceof Error && error.message === "supabaseKey is required."
         ? SUPABASE_SERVER_CONFIG_ERROR
-        : error instanceof Error
-          ? error.message
-          : "Internal server error";
+        : error instanceof Error && error.message === "Invalid API key"
+          ? SUPABASE_SERVER_INVALID_KEY_ERROR
+          : error instanceof Error
+            ? error.message
+            : "Internal server error";
 
     return res.status(500).json({
       success: false,
