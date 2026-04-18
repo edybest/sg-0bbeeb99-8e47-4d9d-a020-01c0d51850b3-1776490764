@@ -301,6 +301,7 @@ export default function BlokPage() {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [genderFilter, setGenderFilter] = useState<string>("ALL");
     const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
     const isInitialLoading = loadingGames && games.length === 0;
     const isPageLoading = authLoading || isInitialLoading;
@@ -1463,38 +1464,55 @@ export default function BlokPage() {
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-sky-700 mb-2">
-                                                Jantina
-                                            </label>
-                                            <select
-                                                value={genderFilter}
-                                                onChange={(e) => setGenderFilter(e.target.value)}
-                                                className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
-                                            >
-                                                <option value="ALL">Semua Jantina</option>
-                                                <option value="men">Lelaki</option>
-                                                <option value="women">Perempuan</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-sky-700 mb-2">
-                                                Teknik Balingan
-                                            </label>
-                                            <select
-                                                value={techniqueFilter}
-                                                onChange={(e) => setTechniqueFilter(e.target.value)}
-                                                className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
-                                            >
-                                                <option value="ALL">Semua Teknik</option>
-                                                <option value="Straight">Straight</option>
-                                                <option value="Hook">Hook</option>
-                                                <option value="Spinner">Spinner</option>
-                                                <option value="Backup">Backup</option>
-                                            </select>
-                                        </div>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-xs md:text-sm text-sky-700">
+                                            Penapis lanjutan untuk jantina dan teknik balingan
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                                            className="h-9 rounded-full border-sky-300 px-4 text-sky-700 hover:bg-sky-50"
+                                        >
+                                            {showAdvancedFilters ? "Less..." : "More..."}
+                                        </Button>
                                     </div>
+
+                                    {showAdvancedFilters && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-sky-700 mb-2">
+                                                    Jantina
+                                                </label>
+                                                <select
+                                                    value={genderFilter}
+                                                    onChange={(e) => setGenderFilter(e.target.value)}
+                                                    className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
+                                                >
+                                                    <option value="ALL">Semua Jantina</option>
+                                                    <option value="men">Lelaki</option>
+                                                    <option value="women">Perempuan</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-sky-700 mb-2">
+                                                    Teknik Balingan
+                                                </label>
+                                                <select
+                                                    value={techniqueFilter}
+                                                    onChange={(e) => setTechniqueFilter(e.target.value)}
+                                                    className="w-full px-4 py-3 border border-sky-300 rounded-lg bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sky-900 cursor-pointer"
+                                                >
+                                                    <option value="ALL">Semua Teknik</option>
+                                                    <option value="Straight">Straight</option>
+                                                    <option value="Hook">Hook</option>
+                                                    <option value="Spinner">Spinner</option>
+                                                    <option value="Backup">Backup</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
                                         <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
@@ -2160,29 +2178,14 @@ export default function BlokPage() {
                                                             </p>
                                                         </div>
 
-                                                        <div className={cn("min-w-[76px] rounded-full px-3 py-1.5 text-center text-lg font-black", accent.pill)}>
+                                                        <div className={cn("min-w-[76px] rounded-full px-3 py-1.5 text-center text-lg font-black", accent.total)}>
                                                             {item.score}
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/70 bg-white/85 px-3 py-3">
-                                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                                                    <Target className="h-4 w-4 text-purple-500" />
-                                                    <span>Jumlah Pasukan</span>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[11px] text-slate-500">
-                                                        {record.include_handicap ? "Termasuk handicap" : "Tanpa handicap"}
-                                                    </p>
-                                                    <p className={cn("text-3xl font-black leading-none", accent.total)}>
-                                                        {record.total_score}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 flex justify-end">
+                                            <div className="mt-4 flex justify-end">
                                                 <Button
                                                     type="button"
                                                     variant="outline"
