@@ -132,6 +132,17 @@ export function GameManagement() {
     player2_id: "",
     include_handicap: true
   });
+  const [isTrioDialogOpen, setIsTrioDialogOpen] = useState(false);
+  const [selectedGameForTrio, setSelectedGameForTrio] = useState<Game | null>(null);
+  const [expandedTrioGame, setExpandedTrioGame] = useState<string | null>(null);
+  const [trioRecords, setTrioRecords] = useState<Record<string, TrioRecord[]>>({});
+  const [loadingTrios, setLoadingTrios] = useState<Record<string, boolean>>({});
+  const [trioForm, setTrioForm] = useState({
+    player1_id: "",
+    player2_id: "",
+    player3_id: "",
+    include_handicap: true
+  });
 
   // Men vs Women Exclusion states
   const [isMenVsWomenExclusionDialogOpen, setIsMenVsWomenExclusionDialogOpen] = useState(false);
@@ -2241,7 +2252,7 @@ ${closingMsg}`;
 
                       <div className="flex items-center gap-2">
                         <Label
-                          htmlFor={`exclude-${player.id}`}
+                          htmlFor={`double-${player.id}`}
                           className={`text-sm whitespace-nowrap ${
                             player.exclude_from_men_vs_women
                               ? "text-red-700 font-semibold"
@@ -2251,7 +2262,7 @@ ${closingMsg}`;
                           {player.exclude_from_men_vs_women ? "Dikecualikan" : "Bermain"}
                         </Label>
                         <Switch
-                          id={`exclude-${player.id}`}
+                          id={`double-${player.id}`}
                           checked={player.exclude_from_men_vs_women || false}
                           onCheckedChange={() => togglePlayerExclusion(player.id, player.exclude_from_men_vs_women || false)}
                         />
