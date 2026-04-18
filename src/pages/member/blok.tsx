@@ -1202,58 +1202,36 @@ export default function BlokPage() {
                                                 </div>
                                             </div>
 
-                                            {selectedGame?.double_enabled && (
+                                            {/* Double Game Button */}
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.double_enabled && (
                                                 <Button
                                                     variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        void loadDoubleRecords(selectedGame.id);
-                                                        setDoubleDialogOpen(true);
-                                                    }}
-                                                    className="flex-1"
+                                                    className="w-full mt-2 border-2 border-blue-500 text-blue-700 hover:bg-blue-50"
+                                                    onClick={handleOpenDoubleDialog}
                                                 >
                                                     <Users className="w-4 h-4 mr-2" />
                                                     Score Double
                                                 </Button>
                                             )}
 
-                                            {(selectedGame as any)?.trio_enabled && (
+                                            {/* Men vs Women Button */}
+                                            {selectedGame && games.find(g => g.id === selectedGame)?.men_vs_women_enabled && (
                                                 <Button
                                                     variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        void loadTrioRecords(selectedGame.id);
-                                                        setTrioDialogOpen(true);
-                                                    }}
-                                                    className="flex-1"
-                                                >
-                                                    <Users className="w-4 h-4 mr-2" />
-                                                    Score Trio
-                                                </Button>
-                                            )}
-
-                                            {selectedGame?.men_vs_women_enabled && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        void handleOpenMenVsWomenDialog();
-                                                    }}
-                                                    className="flex-1"
+                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
+                                                    onClick={handleOpenMenVsWomenDialog}
                                                 >
                                                     <Users className="w-4 h-4 mr-2" />
                                                     Men vs Women
                                                 </Button>
                                             )}
 
+                                            {/* Clean Game Button */}
                                             {selectedGame && leaderboard.some((p) => p.clean_game) && (
                                                 <Button
                                                     variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        void handleOpenCleanGameDialog();
-                                                    }}
-                                                    className="flex-1"
+                                                    className="w-full mt-2 border-2 border-amber-500 text-amber-700 hover:bg-amber-50"
+                                                    onClick={handleOpenCleanGameDialog}
                                                 >
                                                     <Sparkles className="w-4 h-4 mr-2" />
                                                     Clean Game Winners
