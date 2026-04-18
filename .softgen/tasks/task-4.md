@@ -1,6 +1,6 @@
 ---
 title: Reka bentuk Podium Leaderboard di halaman Blok
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -24,5 +24,5 @@ Reka bentuk halaman Blok kini menggunakan podium untuk top 3 dan senarai leaderb
 - [x] Paparkan semua rekod terus pada mobile dan desktop tanpa pagination manual.
 - [x] Buang seksyen podium Top 3 pada halaman Blok.
 - [x] Kemaskan kad trio score pada mobile supaya susun atur ahli, skor individu, ranking, dan jumlah keseluruhan lebih tersusun.
-- [ ] Tambah butang kongsi pada dialog Trio score untuk kongsi keputusan pasukan ke media sosial.
-- [ ] Sediakan mesej perkongsian yang jelas dengan nama ahli dan jumlah skor pasukan.
+- [x] Tambah butang kongsi pada dialog Trio score untuk kongsi keputusan pasukan ke media sosial.
+- [x] Sediakan mesej perkongsian yang jelas dengan nama ahli dan jumlah skor pasukan.

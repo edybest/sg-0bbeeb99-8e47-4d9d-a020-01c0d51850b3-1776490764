@@ -41,7 +41,8 @@ import {
     Search,
     Users,
     Star,
-    Crown
+    Crown,
+    Share2
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -815,6 +816,76 @@ export default function BlokPage() {
         setLeaderboard(applyCurrentSort(leaderboardBase, field, newDirection));
     };
 
+    const buildTrioShareMessage = useCallback(
+        (record: TrioRecord, rank: number) => {
+            const gameName = games.find((game) => game.id === selectedGame)?.game_name ?? "Blok";
+            const memberNames = [
+                record.player1?.username ? `@${record.player1.username}` : "@Unknown",
+                record.player2?.username ? `@${record.player2.username}` : "@Unknown",
+                record.player3?.username ? `@${record.player3.username}` : "@Unknown",
+            ];
+
+            return [
+                "🏆 Keputusan Trio Score AMBC Club",
+                `Game: ${gameName}`,
+                `Ranking: #${rank}`,
+                `Pasukan: ${memberNames.join(" + ")}`,
+                `${record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}: ${record.total_score}`,
+            ].join("\n");
+        },
+        [games, selectedGame]
+    );
+
+    const handleShareTrio = useCallback(
+        async (record: TrioRecord, rank: number) => {
+            const shareText = buildTrioShareMessage(record, rank);
+            const shareUrl =
+                typeof window !== "undefined"
+                    ? `${window.location.origin}${router.asPath}`
+                    : undefined;
+            const sharePayload = {
+                title: `Trio Score #${rank} - AMBC Club`,
+                text: shareText,
+                url: shareUrl,
+            };
+
+            try {
+                if (typeof navigator !== "undefined" && navigator.share) {
+                    await navigator.share(sharePayload);
+                    return;
+                }
+
+                if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(
+                        shareUrl ? `${shareText}\n${shareUrl}` : shareText
+                    );
+                    toast({
+                        title: "Teks perkongsian disalin",
+                        description: "Keputusan trio sudah disalin dan sedia untuk dikongsi.",
+                    });
+                    return;
+                }
+
+                toast({
+                    title: "Perkongsian tidak disokong",
+                    description: "Browser ini tidak menyokong fungsi kongsi atau salin.",
+                    variant: "destructive",
+                });
+            } catch (error) {
+                if (error instanceof Error && error.name === "AbortError") {
+                    return;
+                }
+
+                toast({
+                    title: "Gagal berkongsi",
+                    description: "Cuba semula atau gunakan browser yang menyokong fungsi kongsi.",
+                    variant: "destructive",
+                });
+            }
+        },
+        [buildTrioShareMessage, router.asPath, toast]
+    );
+
     const getSortIcon = (field: SortField) => {
         if (sortField !== field)
             return (
@@ -1098,14 +1169,6 @@ export default function BlokPage() {
                     @keyframes particle-5 {
                         0%   { transform: translate(-50%, 0)                       scale(1); opacity: 1; }
                         100% { transform: translate(calc(-50% - 42px), 42px)       scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-6 {
-                        0%   { transform: translate(-50%, 0)               scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% - 60px), 0)  scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-7 {
-                        0%   { transform: translate(-50%, 0)                       scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% - 42px), -42px)      scale(0); opacity: 0; }
                     }
                 `}</style>
 
@@ -1941,7 +2004,7 @@ export default function BlokPage() {
                                                     <Trophy className={`w-8 h-8 ${
                                                         index === 0 ? "text-yellow-500" :
                                                         index === 1 ? "text-gray-400" :
-                                                        "text-orange-600"
+                                                        "text-orange-500"
                                                     }`} />
                                                 )}
                                             </div>
@@ -2117,6 +2180,19 @@ export default function BlokPage() {
                                                         {record.total_score}
                                                     </p>
                                                 </div>
+                                            </div>
+
+                                            <div className="mt-3 flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => void handleShareTrio(record, index + 1)}
+                                                    className="h-9 rounded-full border-white/70 bg-white/85 px-4 text-xs font-semibold text-purple-700 shadow-sm hover:bg-white"
+                                                >
+                                                    <Share2 className="mr-1.5 h-4 w-4" />
+                                                    Kongsi
+                                                </Button>
                                             </div>
                                         </motion.div>
                                     );
