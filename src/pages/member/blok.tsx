@@ -1384,7 +1384,7 @@ export default function BlokPage() {
                                         {[1, 2, 3, 4, 5].map((gameNum) => {
                                             const winners = cleanGameDataByGame[gameNum] || [];
                                             return (
-                                                <div key={`game-${gameNum}`} className="bg-amber-50/50 rounded-lg p-3 border border-amber-100">
+                                                <div key={`game-${gameNum}`} className="bg-amber-50/50 rounded-lg p-3 border border-amber-100/50">
                                                     <div className="font-bold text-amber-900 border-b border-amber-200 pb-2 mb-2">
                                                         Game {gameNum}
                                                     </div>
@@ -1410,7 +1410,7 @@ export default function BlokPage() {
                                                                         )}
                                                                         <div>
                                                                             <div className="font-bold text-sm text-slate-800">{winner.member_name}</div>
-                                                                            <div className="text-xs text-amber-600">Pemenang</div>
+                                                                            <div className="text-xs text-amber-600/80 mt-0.5 font-normal">Pemenang</div>
                                                                         </div>
                                                                     </div>
                                                                     <div className="font-bold text-emerald-600">
@@ -2011,9 +2011,9 @@ export default function BlokPage() {
                                                                 alt={item.player.username}
                                                                 width={40}
                                                                 height={40}
-                                                                className="h-10 w-10 flex-shrink-0 rounded-full border-2 border-white object-cover shadow-sm"
-                                                                unoptimized
+                                                                className="h-10 w-10 flex-shrink-0 rounded-full object-cover border-2 border-white"
                                                                 loading="lazy"
+                                                                unoptimized
                                                             />
                                                         ) : (
                                                             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-blue-100 font-bold text-blue-700 shadow-sm">
@@ -2033,7 +2033,7 @@ export default function BlokPage() {
                                                             </p>
                                                         </div>
 
-                                                        <div className={cn("min-w-[76px] rounded-full px-3 py-1.5 text-center text-lg font-black", accent.pill)}>
+                                                        <div className={cn("min-w-[76px] rounded-full px-3 py-1.5 text-center text-lg font-black", accent.total)}>
                                                             {item.score}
                                                         </div>
                                                     </div>
@@ -2235,165 +2235,216 @@ export default function BlokPage() {
 
                 {/* ── Men vs Women Dialog ── */}
                 <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
-                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                                <Users className="w-5 h-5 text-purple-500" />
-                                <span className="line-clamp-1">Men vs Women - {games.find(g => g.id === selectedGame)?.game_name}</span>
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 overflow-hidden bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl">
+                        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-20 shadow-md">
+                            <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl font-bold">
+                                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                                    <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                </div>
+                                <span className="line-clamp-1 drop-shadow-sm tracking-wide">Men vs Women <span className="opacity-75 font-medium ml-1">| {games.find(g => g.id === selectedGame)?.game_name}</span></span>
                             </DialogTitle>
-                        </DialogHeader>
+                        </div>
+                        
+                        <div className="p-4 sm:p-6 sm:pt-8 relative">
                         {loadingMenVsWomen ? (
-                            <div className="flex justify-center py-8">
-                                <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                            <div className="flex flex-col items-center justify-center py-16">
+                                <Loader2 className="w-12 h-12 animate-spin text-indigo-500 mb-4" />
+                                <p className="text-slate-500 font-medium animate-pulse">Mengira markah pertempuran...</p>
                             </div>
                         ) : !menVsWomenData ? (
-                            <div className="text-center py-8 text-gray-500">
-                                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                <p className="text-sm">Tiada data Men vs Women</p>
+                            <div className="text-center py-16 text-slate-400">
+                                <div className="bg-slate-200/50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Users className="h-12 w-12 opacity-50" />
+                                </div>
+                                <p className="text-base font-medium">Tiada data Men vs Women</p>
                             </div>
                         ) : (
-                            <div className="space-y-4 sm:space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-6 sm:space-y-8">
+                                {/* Score Cards */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 relative">
+                                    {/* VS Badge in the middle for desktop */}
+                                    <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center font-black text-xl text-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
+                                        VS
+                                    </div>
+                                    
+                                    {/* Men Card */}
                                     <motion.div
-                                        initial={{ opacity: 0, y: -20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border border-blue-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 ${
                                             menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                                ? "bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300"
-                                                : "bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300"
+                                                ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-blue-500/30 shadow-[0_15px_50px_rgb(59,130,246,0.3)] transform sm:scale-105 z-10 border-none"
+                                                : "bg-white"
                                         }`}
                                     >
-                                        <div className="text-center">
-                                            <div className="text-3xl sm:text-4xl mb-2">👨</div>
-                                            <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
-                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                                    ? "text-white"
-                                                    : "text-blue-900"
+                                        {/* Decorative background elements */}
+                                        <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                                        <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                                        
+                                        <div className="relative z-10 flex flex-col items-center text-center">
+                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl mb-4 shadow-inner ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal ? "bg-white/20 backdrop-blur-md border border-white/30" : "bg-blue-50 border border-blue-100"
                                             }`}>
-                                                <span>MEN TEAM</span>
-                                                {menVsWomenData.menTotal > menVsWomenData.womenTotal && (
-                                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
-                                                )}
+                                                👨
+                                            </div>
+                                            <h3 className={`text-sm sm:text-base font-bold tracking-[0.2em] mb-2 uppercase ${
+                                                menVsWomenData.menTotal > menVsWomenData.womenTotal
+                                                    ? "text-blue-50"
+                                                    : "text-slate-500"
+                                            }`}>
+                                                Men Team
                                             </h3>
-                                            <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
+                                            <div className={`text-5xl sm:text-7xl font-black tracking-tighter mb-4 drop-shadow-sm ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "text-white"
-                                                    : "text-blue-700"
+                                                    : "text-blue-600"
                                             }`}>
                                                 {menVsWomenData.menTotal}
                                             </div>
-                                            <div className={`text-xs sm:text-sm ${
+                                            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-sm ${
                                                 menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                                    ? "text-blue-100"
-                                                    : "text-blue-600"
+                                                    ? "bg-black/15 text-white backdrop-blur-sm border border-white/10"
+                                                    : "bg-slate-100 text-slate-600 border border-slate-200"
                                             }`}>
-                                                {menVsWomenData.menCount} pemain
+                                                <Users className="w-4 h-4" />
+                                                {menVsWomenData.menCount} Pemain
                                             </div>
                                         </div>
                                     </motion.div>
 
+                                    {/* VS Badge for mobile (shows between cards) */}
+                                    <div className="flex sm:hidden justify-center -my-3 relative z-20">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-lg text-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
+                                            VS
+                                        </div>
+                                    </div>
+
+                                    {/* Women Card */}
                                     <motion.div
-                                        initial={{ opacity: 0, y: -20 }}
-                                        animate={{ opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.1 }}
-                                        className={`p-4 sm:p-6 rounded-xl border-3 sm:border-4 ${
+                                        className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border border-pink-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 ${
                                             menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                ? "bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300"
-                                                : menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                    ? "bg-gradient-to-br from-gray-500 to-gray-600 border-gray-300"
-                                                    : "bg-gradient-to-br from-purple-500 to-purple-600 border-purple-300"
+                                                ? "bg-gradient-to-br from-pink-600 via-pink-500 to-rose-400 shadow-pink-500/30 shadow-[0_15px_50px_rgb(236,72,153,0.3)] transform sm:scale-105 z-10 border-none"
+                                                : "bg-white"
                                         }`}
                                     >
-                                        <div className="text-center">
-                                            <div className="text-3xl sm:text-4xl mb-2">👩</div>
-                                            <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-4 flex items-center justify-center gap-2 ${
-                                                menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                    ? "text-white"
-                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                        ? "text-pink-900"
-                                                        : "text-purple-900"
+                                        {/* Decorative background elements */}
+                                        <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                                        <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-pink-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                                        
+                                        <div className="relative z-10 flex flex-col items-center text-center">
+                                            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl mb-4 shadow-inner ${
+                                                menVsWomenData.womenTotal > menVsWomenData.menTotal ? "bg-white/20 backdrop-blur-md border border-white/30" : "bg-pink-50 border border-pink-100"
                                             }`}>
-                                                <span>WOMEN TEAM</span>
-                                                {menVsWomenData.womenTotal > menVsWomenData.menTotal && (
-                                                    <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
-                                                )}
+                                                👩
+                                            </div>
+                                            <h3 className={`text-sm sm:text-base font-bold tracking-[0.2em] mb-2 uppercase ${
+                                                menVsWomenData.womenTotal > menVsWomenData.menTotal
+                                                    ? "text-pink-50"
+                                                    : "text-slate-500"
+                                            }`}>
+                                                Women Team
                                             </h3>
-                                            <div className={`text-4xl sm:text-5xl font-black mb-2 sm:mb-4 ${
+                                            <div className={`text-5xl sm:text-7xl font-black tracking-tighter mb-4 drop-shadow-sm ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "text-white"
-                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                        ? "text-pink-700"
-                                                        : "text-purple-700"
+                                                    : "text-pink-600"
                                             }`}>
                                                 {menVsWomenData.womenTotal}
                                             </div>
-                                            <div className={`text-xs sm:text-sm ${
+                                            <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold shadow-sm ${
                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                    ? "text-pink-100"
-                                                    : menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                        ? "text-pink-600"
-                                                        : "text-purple-600"
+                                                    ? "bg-black/15 text-white backdrop-blur-sm border border-white/10"
+                                                    : "bg-slate-100 text-slate-600 border border-slate-200"
                                             }`}>
-                                                {menVsWomenData.womenCount} pemain
+                                                <Users className="w-4 h-4" />
+                                                {menVsWomenData.womenCount} Pemain
                                             </div>
                                         </div>
                                     </motion.div>
                                 </div>
 
-                                <div className="bg-purple-50 rounded-lg p-3 sm:p-4 border border-purple-200">
-                                    <h4 className="font-bold text-purple-900 mb-2 sm:mb-3 text-sm sm:text-base flex items-center gap-2">
-                                        <span className="text-base sm:text-lg">📊</span>
-                                        Breakdown Kiraan:
-                                    </h4>
-                                    <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-                                        <div className="flex justify-between items-center gap-2">
-                                            <span className="text-gray-700">👨 Men Total Score:</span>
-                                            <span className="font-bold text-blue-700">{menVsWomenData.menTotal}</span>
+                                {/* Winner Banner */}
+                                <motion.div
+                                    initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.3, type: "spring", stiffness: 200, damping: 20 }}
+                                    className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 p-1 shadow-[0_10px_30px_rgb(251,191,36,0.3)] mx-auto max-w-2xl"
+                                >
+                                    <div className="absolute inset-0 bg-[url('/bowling-pattern.svg')] opacity-10 mix-blend-overlay bg-repeat pointer-events-none"></div>
+                                    <div className="relative bg-white/95 backdrop-blur-md rounded-[1.25rem] py-5 sm:py-6 px-4 text-center border border-white/60 shadow-inner">
+                                        <div className="flex justify-center items-center gap-3 sm:gap-4 mb-3">
+                                            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-amber-500 drop-shadow-sm" />
+                                            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tight">
+                                                {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "Kemenangan Lelaki!" :
+                                                 menVsWomenData.womenTotal > menVsWomenData.menTotal ? "Kemenangan Wanita!" :
+                                                 "Perlawanan Seri!"}
+                                            </h3>
+                                            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-amber-500 drop-shadow-sm" />
                                         </div>
-                                        <div className="flex justify-between items-center gap-2">
-                                            <span className="text-gray-700">👩 Women Total Score:</span>
-                                            <span className="font-bold text-pink-700">
+                                        <div className="inline-flex items-center gap-2 bg-slate-800 text-white px-5 py-2 rounded-full text-sm font-bold shadow-md">
+                                            <span>Beza Markah:</span>
+                                            <span className="text-amber-400 text-base">{Math.abs(menVsWomenData.menTotal - menVsWomenData.womenTotal)} pin</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Breakdown Section */}
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    className="bg-white rounded-[1.5rem] border border-slate-200/60 p-5 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]"
+                                >
+                                    <h4 className="font-bold text-slate-800 mb-5 text-sm sm:text-base flex items-center gap-3 uppercase tracking-wide">
+                                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                                            <Target className="w-4 h-4" />
+                                        </div>
+                                        Perincian Markah
+                                    </h4>
+                                    
+                                    <div className="space-y-4 sm:space-y-5 text-sm sm:text-base">
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                            <div className="flex items-center gap-3 text-slate-600 font-medium">
+                                                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-sm shadow-sm border border-blue-100">👨</div>
+                                                Jumlah Markah Lelaki
+                                            </div>
+                                            <span className="font-bold text-blue-700 text-xl">{menVsWomenData.menTotal}</span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                            <div className="flex items-center gap-3 text-slate-600 font-medium">
+                                                <div className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-sm shadow-sm border border-pink-100">👩</div>
+                                                Markah Asas Wanita
+                                            </div>
+                                            <span className="font-bold text-pink-600 text-xl">
                                                 {menVsWomenData.womenTotal - (menVsWomenData.womenHandicap * menVsWomenData.womenCount)}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-center gap-2">
-                                            <span className="text-gray-700 flex-shrink-0">➕ Women Handicap:</span>
-                                            <span className="font-bold text-pink-700 text-right">
-                                                {menVsWomenData.womenHandicap} × {menVsWomenData.womenCount} = {menVsWomenData.womenHandicap * menVsWomenData.womenCount}
+                                        
+                                        <div className="flex justify-between items-center py-3 border-b border-slate-100 bg-amber-50/40 -mx-3 px-3 rounded-xl border border-amber-100/50">
+                                            <div className="flex items-center gap-3 text-slate-600 font-medium">
+                                                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm text-amber-700 shadow-sm border border-amber-200">➕</div>
+                                                <div>
+                                                    <div className="text-amber-900 font-semibold">Handicap Wanita</div>
+                                                    <div className="text-xs text-amber-600/80 mt-0.5 font-normal">{menVsWomenData.womenHandicap} pin × {menVsWomenData.womenCount} org</div>
+                                                </div>
+                                            </div>
+                                            <span className="font-bold text-amber-600 text-xl bg-white px-3 py-1 rounded-lg shadow-sm border border-amber-100">
+                                                +{menVsWomenData.womenHandicap * menVsWomenData.womenCount}
                                             </span>
                                         </div>
-                                        <div className="border-t border-purple-300 pt-2 mt-2 flex justify-between items-center gap-2">
-                                            <span className="text-gray-700 font-bold flex-shrink-0">👩 Women Final Total:</span>
-                                            <span className="font-black text-pink-700">{menVsWomenData.womenTotal}</span>
+                                        
+                                        <div className="flex justify-between items-center pt-4 mt-2">
+                                            <div className="flex items-center gap-3 text-slate-800 font-bold">
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm shadow-md text-white">🏆</div>
+                                                <span className="text-lg">Jumlah Akhir Wanita</span>
+                                            </div>
+                                            <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600 text-3xl drop-shadow-sm">{menVsWomenData.womenTotal}</span>
                                         </div>
                                     </div>
-                                </div>
-
-                                <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ delay: 0.3, type: "spring" }}
-                                    className={`p-4 sm:p-6 rounded-xl text-center ${
-                                        menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                            ? "bg-gradient-to-r from-blue-500 to-blue-600"
-                                            : menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                ? "bg-gradient-to-r from-pink-500 to-pink-600"
-                                                : "bg-gradient-to-r from-gray-500 to-gray-600"
-                                    }`}
-                                >
-                                    <div className="text-4xl sm:text-6xl mb-2 sm:mb-3">
-                                        {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "👨🏆" :
-                                         menVsWomenData.womenTotal > menVsWomenData.menTotal ? "👩🏆" :
-                                         "🤝"}
-                                    </div>
-                                    <h3 className="text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">
-                                        {menVsWomenData.menTotal > menVsWomenData.womenTotal ? "MEN TEAM MENANG!" :
-                                         menVsWomenData.womenTotal > menVsWomenData.menTotal ? "WOMEN TEAM MENANG!" :
-                                         "SERI!"}
-                                    </h3>
-                                    <p className="text-white text-sm sm:text-lg">
-                                        Perbezaan: {Math.abs(menVsWomenData.menTotal - menVsWomenData.womenTotal)} pin
-                                    </p>
                                 </motion.div>
                             </div>
                         )}
