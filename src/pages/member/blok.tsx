@@ -2302,7 +2302,7 @@ export default function BlokPage() {
 
                 {/* ── Men vs Women Dialog ── */}
                 <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
-                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 overflow-hidden bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl">
+                    <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl">
                         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 sm:p-5 text-white flex items-center justify-between sticky top-0 z-20 shadow-md">
                             <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl font-bold">
                                 <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
