@@ -1,6 +1,6 @@
 ---
 title: Reka bentuk Podium Leaderboard di halaman Blok
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -28,4 +28,4 @@ Reka bentuk halaman Blok kini menggunakan senarai leaderboard penuh tanpa podium
 - [x] Sediakan mesej perkongsian yang jelas dengan nama ahli dan jumlah skor pasukan.
 - [x] Sembunyikan penapis jantina dan teknik balingan pada paparan awal halaman Blok.
 - [x] Tambah butang "More..." untuk membuka penapis lanjutan apabila diperlukan pengguna.
-- [ ] Kemaskan kad double score pada mobile supaya susun atur ahli, skor individu, ranking, dan jumlah keseluruhan lebih tersusun.
+- [x] Kemaskan kad double score pada mobile supaya susun atur ahli, skor individu, ranking, dan jumlah keseluruhan lebih tersusun.
