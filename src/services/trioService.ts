@@ -13,10 +13,10 @@ interface TrioPlayer {
   handicap: number;
 }
 
-interface TrioRecordWithPlayers extends Omit<TrioRecord, "player1_id" | "player2_id" | "player3_id"> {
-  player1: TrioPlayer;
-  player2: TrioPlayer;
-  player3: TrioPlayer;
+interface TrioRecordWithPlayers extends TrioRecord {
+  player1?: TrioPlayer | null;
+  player2?: TrioPlayer | null;
+  player3?: TrioPlayer | null;
 }
 
 /**
