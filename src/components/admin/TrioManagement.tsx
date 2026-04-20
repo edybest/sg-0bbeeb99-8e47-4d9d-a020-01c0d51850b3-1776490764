@@ -83,34 +83,69 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
     try {
       setSaving(true);
 
+      console.log("Saving trio configuration:", {
+        gameId,
+        player1Id,
+        player2Id,
+        player3Id,
+      });
+
       const player1 = players.find((p) => p.id === player1Id);
       const player2 = players.find((p) => p.id === player2Id);
       const player3 = players.find((p) => p.id === player3Id);
 
-      await upsertTrioRecord({
+      if (!player1 || !player2 || !player3) {
+        throw new Error("Pemain tidak dijumpai");
+      }
+
+      const trioData = {
         game_id: gameId,
         player1_id: player1Id,
         player2_id: player2Id,
         player3_id: player3Id,
-        player1_handicap: player1?.handicap || 0,
-        player2_handicap: player2?.handicap || 0,
-        player3_handicap: player3?.handicap || 0,
+        player1_handicap: player1.handicap || 0,
+        player2_handicap: player2.handicap || 0,
+        player3_handicap: player3.handicap || 0,
         player1_score: 0,
         player2_score: 0,
         player3_score: 0,
         total_score: 0,
-      });
+      };
+
+      console.log("Trio data to save:", trioData);
+
+      await upsertTrioRecord(trioData);
+
+      console.log("Trio saved successfully");
 
       toast({
         title: "✅ Berjaya",
         description: "Konfigurasi Trio telah disimpan",
       });
-    } catch (error) {
-      console.error("Error saving trio:", error);
+
+      // Reload data to show updated trio
+      await loadTrioData();
+    } catch (error: any) {
+      console.error("Error saving trio:", {
+        error,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+
+      const errorMsg = error?.message || "Ralat tidak diketahui";
+      const errorDetails = error?.details || error?.hint || "";
+
       toast({
-        title: "Error",
-        description: "Gagal menyimpan konfigurasi trio",
+        title: "❌ Gagal Menyimpan",
+        description: (
+          <div className="space-y-1">
+            <p>{errorMsg}</p>
+            {errorDetails && <p className="text-xs text-muted-foreground">{errorDetails}</p>}
+          </div>
+        ),
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setSaving(false);
