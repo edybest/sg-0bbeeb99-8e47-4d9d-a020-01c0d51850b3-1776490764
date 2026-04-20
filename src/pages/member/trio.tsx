@@ -5,13 +5,36 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/router";
-import { getAllTrioRecordsByGame, getTrioEnabledGames, type TrioRecordWithPlayers } from "@/services/trioService";
-import { Users, Trophy, Medal, Crown, Calendar, TrendingUp, Star, Zap } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Trophy, Users, Medal, TrendingUp, ArrowLeft, ArrowUp, ArrowDown, Calendar } from "lucide-react";
+import Link from "next/link";
+import { getTrioEnabledGames, getAllTrioRecordsByGame } from "@/services/trioService";
+import { getGamesByDate } from "@/services/gameService";
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { Loader2 } from "lucide-react";
+import { Crown, Zap, Star } from "lucide-react";
 
+type Member = Database["public"]["Tables"]["members"]["Row"];
 type Game = Database["public"]["Tables"]["games"]["Row"];
+
+interface TrioTeam {
+  id: string;
+  rank: number;
+  teamName: string;
+  playerA: string;
+  playerAId: string;
+  playerB: string;
+  playerBId: string;
+  playerC: string;
+  playerCId: string;
+  scoreA: number;
+  scoreB: number;
+  scoreC: number;
+  totalScore: number;
+  averageScore: number;
+}
 
 export default function TrioPage() {
   const { toast } = useToast();
@@ -29,23 +52,16 @@ export default function TrioPage() {
   }, []);
 
   useEffect(() => {
-    if (date && games.length > 0) {
-      const targetDate = new Date(date as string).toISOString().split("T")[0];
-      const matchingGame = games.find(g => {
-        const gameDate = new Date(g.game_date).toISOString().split("T")[0];
-        return gameDate === targetDate;
-      });
-      if (matchingGame) {
-        setSelectedGameId(matchingGame.id);
-      }
+    if (router.query.date) {
+      setSelectedDate(router.query.date as string);
     }
-  }, [date, games]);
+  }, [router.query]);
 
   useEffect(() => {
-    if (selectedGameId) {
-      loadTrios();
+    if (selectedDate) {
+      loadTrioData();
     }
-  }, [selectedGameId]);
+  }, [selectedDate]);
 
   useEffect(() => {
     // Sort trios by total_score descending
@@ -60,17 +76,22 @@ export default function TrioPage() {
   async function loadData() {
     try {
       setLoading(true);
+      
+      // Load trio-enabled games
       const trioGames = await getTrioEnabledGames();
       setGames(trioGames);
-
-      if (trioGames.length > 0 && !selectedGameId) {
-        setSelectedGameId(trioGames[0].id);
+      
+      // If date from URL, use it, otherwise use first game
+      if (router.query.date) {
+        setSelectedDate(router.query.date as string);
+      } else if (trioGames.length > 0) {
+        setSelectedDate(trioGames[0].game_date);
       }
     } catch (error) {
       console.error("Error loading games:", error);
       toast({
-        title: "Ralat",
-        description: "Gagal memuatkan senarai game",
+        title: "Error",
+        description: "Gagal memuatkan data games",
         variant: "destructive",
       });
     } finally {
@@ -78,19 +99,81 @@ export default function TrioPage() {
     }
   }
 
-  async function loadTrios() {
-    if (!selectedGameId) return;
+  async function loadTrioData() {
+    if (!selectedDate) return;
 
     try {
-      const records = await getAllTrioRecordsByGame(selectedGameId);
-      setTrios(records);
+      setLoading(true);
+      
+      // Find game for this date
+      const game = games.find(g => g.game_date === selectedDate);
+      if (!game) {
+        setTrioTeams([]);
+        return;
+      }
+      
+      // Get trio records for this game
+      const trioRecords = await getAllTrioRecordsByGame(game.id);
+      
+      // Get all scores for this game
+      const { data: scores, error: scoresError } = await supabase
+        .from("scores")
+        .select("*")
+        .eq("game_id", game.id);
+      
+      if (scoresError) {
+        console.error("Error fetching scores:", error);
+        throw scoresError;
+      }
+      
+      // Calculate trio teams with real scores
+      const teams: TrioTeam[] = [];
+      
+      for (const trio of trioRecords) {
+        if (!trio.player1 || !trio.player2 || !trio.player3) continue;
+        
+        // Get scores for each player
+        const scoreA = scores?.find(s => s.member_id === trio.player1!.id)?.total_score || 0;
+        const scoreB = scores?.find(s => s.member_id === trio.player2!.id)?.total_score || 0;
+        const scoreC = scores?.find(s => s.member_id === trio.player3!.id)?.total_score || 0;
+        
+        const totalScore = scoreA + scoreB + scoreC;
+        const averageScore = totalScore / 3;
+        
+        teams.push({
+          id: trio.id,
+          rank: 0, // Will be calculated after sorting
+          teamName: trio.player1.username,
+          playerA: trio.player1.username,
+          playerAId: trio.player1.id,
+          playerB: trio.player2.username,
+          playerBId: trio.player2.id,
+          playerC: trio.player3.username,
+          playerCId: trio.player3.id,
+          scoreA,
+          scoreB,
+          scoreC,
+          totalScore,
+          averageScore,
+        });
+      }
+      
+      // Sort by total score (highest first) and assign ranks
+      teams.sort((a, b) => b.totalScore - a.totalScore);
+      teams.forEach((team, index) => {
+        team.rank = index + 1;
+      });
+      
+      setTrioTeams(teams);
     } catch (error) {
-      console.error("Error loading trios:", error);
+      console.error("Error loading trio data:", error);
       toast({
-        title: "Ralat",
+        title: "Error",
         description: "Gagal memuatkan data trio",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   }
 
