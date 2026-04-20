@@ -4,11 +4,11 @@ status: done
 priority: high
 type: feature
 tags:
-  - member
-  - dashboard
-  - ui
+- member
+- dashboard
+- ui
 created_by: agent
-created_at: 2026-04-18T09:20:29Z
+created_at: 2026-04-18 09:20:29+00:00
 position: 3
 ---
 

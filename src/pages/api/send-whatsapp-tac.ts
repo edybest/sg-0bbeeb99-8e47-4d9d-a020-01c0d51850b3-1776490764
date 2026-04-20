@@ -187,8 +187,10 @@ export default async function handler(
       // Create new auth user with phone
       console.log("Creating Supabase Auth user with phone...");
       
+      const randomPassword = Math.random().toString(36).slice(-10) + "A1!";
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         phone: cleanPhone,
+        password: randomPassword,
         phone_confirm: true,
         user_metadata: {
           member_id: member.id,
@@ -199,9 +201,26 @@ export default async function handler(
 
       if (authError) {
         console.error("❌ Failed to create auth user:", authError);
+        
+        // Check if phone auth might be disabled
+        if (authError.message.includes("Signups not allowed") || authError.message.includes("provider is disabled")) {
+          return res.status(500).json({
+            success: false,
+            error: "Sila pastikan 'Phone Auth' diaktifkan dalam Supabase Settings → Authentication → Providers.",
+          });
+        }
+        
+        // Check if phone number already exists in auth
+        if (authError.message.includes("already registered")) {
+          return res.status(500).json({
+            success: false,
+            error: "Nombor telefon ini sudah didaftarkan pada akaun auth lain.",
+          });
+        }
+
         return res.status(500).json({
           success: false,
-          error: "Failed to create auth user",
+          error: `Gagal mencipta akaun: ${authError.message}`,
         });
       }
 

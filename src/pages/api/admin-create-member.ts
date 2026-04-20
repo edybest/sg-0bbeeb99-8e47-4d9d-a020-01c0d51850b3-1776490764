@@ -96,7 +96,7 @@ export default async function handler(
       if (createUserError || !newUser.user) {
         console.error("Error creating auth user:", createUserError);
         return res.status(500).json({ 
-          error: "Failed to create auth user", 
+          error: `Failed to create auth user: ${createUserError?.message || "Unknown error"}`, 
           details: createUserError?.message || "Unknown error"
         });
       }
