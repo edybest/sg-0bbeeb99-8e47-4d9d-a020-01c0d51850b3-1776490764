@@ -70,7 +70,7 @@ export const memberService = {
   async getAllMembers(): Promise<Member[]> {
     const { data, error } = await supabase
       .from("members")
-      .select("id, username, full_name, email, phone, avatar_url, gender, is_verified, is_admin, created_at")
+      .select("*")
       .eq("is_verified", true)
       .order("username")
       .limit(200); // Reduce to 200 for faster initial load
@@ -88,7 +88,7 @@ export const memberService = {
 
     const { data, error, count } = await supabase
       .from("members")
-      .select("id, username, full_name, email, phone, avatar_url, gender, is_verified, is_admin, created_at", { count: "exact" })
+      .select("*", { count: "exact" })
       .eq("is_verified", true)
       .order("username")
       .range(from, to);
