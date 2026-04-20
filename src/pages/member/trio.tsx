@@ -115,14 +115,14 @@ export default function TrioPage() {
       // Get trio records for this game
       const trioRecords = await getAllTrioRecordsByGame(game.id);
       
-      // Get all scores for this game
-      const { data: scores, error: scoresError } = await supabase
-        .from("scores")
-        .select("*")
+      // Get all player scores from game_players table
+      const { data: gamePlayers, error: scoresError } = await supabase
+        .from("game_players")
+        .select("member_id, overall_score")
         .eq("game_id", game.id);
       
       if (scoresError) {
-        console.error("Error fetching scores:", error);
+        console.error("Error fetching scores:", scoresError);
         throw scoresError;
       }
       
@@ -132,13 +132,17 @@ export default function TrioPage() {
       for (const trio of trioRecords) {
         if (!trio.player1 || !trio.player2 || !trio.player3) continue;
         
-        // Get scores for each player
-        const scoreA = scores?.find(s => s.member_id === trio.player1!.id)?.total_score || 0;
-        const scoreB = scores?.find(s => s.member_id === trio.player2!.id)?.total_score || 0;
-        const scoreC = scores?.find(s => s.member_id === trio.player3!.id)?.total_score || 0;
+        // Get overall_score for each player from game_players
+        const playerAScore = gamePlayers?.find(gp => gp.member_id === trio.player1!.id);
+        const playerBScore = gamePlayers?.find(gp => gp.member_id === trio.player2!.id);
+        const playerCScore = gamePlayers?.find(gp => gp.member_id === trio.player3!.id);
+        
+        const scoreA = playerAScore?.overall_score || 0;
+        const scoreB = playerBScore?.overall_score || 0;
+        const scoreC = playerCScore?.overall_score || 0;
         
         const totalScore = scoreA + scoreB + scoreC;
-        const averageScore = totalScore / 3;
+        const averageScore = Math.round((totalScore / 3) * 100) / 100; // Round to 2 decimals
         
         teams.push({
           id: trio.id,
