@@ -1063,11 +1063,13 @@ export default function BlokPage() {
             return (
                 <ArrowUpDown className="w-4 h-4 ml-1 opacity-20 hover:opacity-100 transition-opacity" />
             );
-        return sortDirection === "asc" ? (
-            <ArrowUp className="w-4 h-4 ml-1 text-sky-600" />
-        ) : (
-            <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />
-        );
+        return sortDirection === "asc"
+            ? (
+                <ArrowUp className="w-4 h-4 ml-1 text-sky-600" />
+            )
+            : (
+                <ArrowDown className="w-4 h-4 ml-1 text-sky-600" />
+            );
     };
 
     const handleReaction = async (
@@ -1458,10 +1460,10 @@ export default function BlokPage() {
                                             {selectedGame && games.find(g => g.id === selectedGame)?.men_vs_women_enabled && (
                                                 <Button
                                                     variant="outline"
-                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
                                                     onClick={handleOpenMenVsWomenDialog}
+                                                    className="flex-1 h-16 text-lg font-bold transition-all hover:border-pink-400 hover:text-pink-600 hover:bg-pink-50"
                                                 >
-                                                    <Users className="w-4 h-4 mr-2" />
+                                                    <Users className="w-6 h-6 mr-2" />
                                                     Men vs Women
                                                 </Button>
                                             )}
@@ -2017,7 +2019,7 @@ export default function BlokPage() {
                                                                 </td>
                                                                 <td
                                                                     className={`sticky ${STICKY_LEFT.overall} z-10 ${
-                                                                        isTop3 ? "bg-amber-100/80" : "bg-sky-50/80"
+                                                                        isTop3 ? "bg-amber-100/80" : "bg-sky-100/80"
                                                                     } group-hover:bg-sky-100/80 px-4 py-3 border-r border-sky-200 text-center transition-colors shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]`}
                                                                 >
                                                                     <span className="font-black text-lg text-emerald-700">{player.overall_score}</span>
@@ -2127,28 +2129,28 @@ export default function BlokPage() {
 
                                     const accent = index === 0
                                         ? {
-                                            card: "border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-100",
+                                            card: "border-amber-300 bg-gradient-to-br from-amber-500 to-yellow-500",
                                             badge: "bg-amber-500 text-white",
                                             total: "text-amber-600",
                                             pill: "bg-amber-100 text-amber-800",
                                         }
                                         : index === 1
                                             ? {
-                                                card: "border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100",
+                                                card: "border-slate-300 bg-gradient-to-br from-slate-500 to-slate-600",
                                                 badge: "bg-slate-500 text-white",
                                                 total: "text-slate-700",
                                                 pill: "bg-slate-200 text-slate-800",
                                             }
                                             : index === 2
                                                 ? {
-                                                    card: "border-orange-300 bg-gradient-to-br from-orange-50 to-amber-100",
+                                                    card: "border-orange-300 bg-gradient-to-br from-orange-500 to-orange-600",
                                                     badge: "bg-orange-500 text-white",
                                                     total: "text-orange-700",
                                                     pill: "bg-orange-100 text-orange-800",
                                                 }
                                                 : {
-                                                    card: "border-blue-100 bg-white",
-                                                    badge: "bg-blue-100 text-blue-700",
+                                                    card: "border-blue-300 bg-gradient-to-br from-blue-500 to-blue-600",
+                                                    badge: "bg-blue-500 text-white",
                                                     total: "text-blue-700",
                                                     pill: "bg-blue-100 text-blue-800",
                                                 };
@@ -2278,21 +2280,11 @@ export default function BlokPage() {
             </Button>
                                         <Button
               variant="outline"
-              onClick={() => {
-                if (selectedDate) {
-                  router.push(`/member/trio?date=${selectedDate}`);
-                } else {
-                  toast({
-                    title: "Sila Pilih Tarikh",
-                    description: "Pilih tarikh game dahulu",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              className="flex-1 h-16 text-lg font-bold transition-all hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50"
+              onClick={handleOpenMenVsWomenDialog}
+              className="flex-1 h-16 text-lg font-bold transition-all hover:border-pink-400 hover:text-pink-600 hover:bg-pink-50"
             >
               <Users className="w-6 h-6 mr-2" />
-              Trio
+              Men vs Women
             </Button>
                                         <button 
                                             onClick={handleShareMenVsWomen}
@@ -2330,7 +2322,7 @@ export default function BlokPage() {
                                     <div className="space-y-6 sm:space-y-8">
                                         {/* Score Cards */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 relative">
-                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center font-black text-xl text-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
+                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center text-4xl sm:text-5xl mb-4 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
                                                 VS
                                             </div>
                                             
@@ -2339,7 +2331,7 @@ export default function BlokPage() {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border border-blue-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 ${
                                                     menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                                        ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-pink-500/30 shadow-[0_15px_50px_rgb(59,130,246,0.3)] transform sm:scale-105 z-10 border-none"
+                                                        ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-pink-500/30 shadow-[0_10px_30px_rgb(59,130,246,0.3)] transform sm:scale-105 z-10 border-none"
                                                         : "bg-white"
                                                 }`}
                                             >
@@ -2383,7 +2375,7 @@ export default function BlokPage() {
                                                 transition={{ delay: 0.1 }}
                                                 className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border border-pink-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 ${
                                                     menVsWomenData.womenTotal > menVsWomenData.menTotal
-                                                        ? "bg-gradient-to-br from-pink-600 via-pink-500 to-rose-400 shadow-pink-500/30 shadow-[0_15px_50px_rgb(236,72,153,0.3)] transform sm:scale-105 z-10 border-none"
+                                                        ? "bg-gradient-to-br from-pink-600 via-pink-500 to-rose-400 shadow-pink-500/30 shadow-[0_20px_30px_rgb(236,72,153,0.3)] transform sm:scale-105 z-10 border-none"
                                                         : "bg-white"
                                                 }`}
                                             >
