@@ -594,9 +594,29 @@ export default function BlokPage() {
                 const { data: rawData, error: dbError } = await supabase
                     .from("game_players")
                     .select(
-                        `*, member:members(id, username, full_name, avatar_url, sex, bowling_technique)`
+                        `
+                        id,
+                        member_id,
+                        game_id,
+                        game1_score,
+                        game2_score,
+                        game3_score,
+                        game4_score,
+                        game5_score,
+                        total_score,
+                        member:members!game_players_member_id_fkey(
+                            id,
+                            username,
+                            full_name,
+                            avatar_url,
+                            sex,
+                            bowling_technique
+                        )
+                        `
                     )
-                    .eq("game_id", gameId);
+                    .eq("game_id", gameId)
+                    .order("total_score", { ascending: false })
+                    .limit(150);
 
                 if (dbError) throw dbError;
 
@@ -682,7 +702,7 @@ export default function BlokPage() {
                 setLoadingLeaderboard(false);
             }
         },
-        [applyCurrentSort, loadUserLikesCount, sortDirection, sortField, toast]
+        [sortField, sortDirection, toast]
     );
 
     // ─── Effects ──────────────────────────────────────────────────────────────
@@ -1450,7 +1470,7 @@ export default function BlokPage() {
                                             {mostLikedPlayers.map((player, index) => (
                                                 <div
                                                     key={`liked-${player.id}`}
-                                                    className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-red-100"
+                                                    className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-red-100/50"
                                                 >
                                                     <div className="flex items-center gap-2 md:gap-3 min-w-0">
                                                         <span className="font-bold text-red-400 w-4 md:w-5 text-sm md:text-base">
@@ -1834,7 +1854,7 @@ export default function BlokPage() {
                                                         <span className="text-xs font-semibold text-sky-800 uppercase tracking-wider">Avatar</span>
                                                     </th>
                                                     <th
-                                                        className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r border-sky-200`}
+                                                        className={`sticky ${STICKY_LEFT.player} z-20 bg-sky-50 min-w-[160px] px-4 py-3 text-left cursor-pointer hover:bg-sky-100 transition-colors border-r-2 border-sky-200`}
                                                         onClick={() => handleSort("username")}
                                                     >
                                                         <div className="flex items-center text-xs font-semibold text-sky-800 uppercase tracking-wider">
