@@ -109,7 +109,6 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
         player1_score: 0,
         player2_score: 0,
         player3_score: 0,
-        total_score: 0,
       };
 
       console.log("Trio data to save:", trioData);
