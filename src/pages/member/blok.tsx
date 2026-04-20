@@ -262,6 +262,7 @@ export default function BlokPage() {
 
     const [loadingGames, setLoadingGames] = useState(true);
     const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
     const [error, setError] = useState<string | null>(null);
 
     const [leaderboardBase, setLeaderboardBase] = useState<LeaderboardEntry[]>([]);
@@ -590,6 +591,7 @@ export default function BlokPage() {
 
             try {
                 setLoadingLeaderboard(true);
+                setLoadingProgress(10);
 
                 const { data: rawData, error: dbError } = await supabase
                     .from("game_players")
@@ -604,6 +606,12 @@ export default function BlokPage() {
                         game4_score,
                         game5_score,
                         total_score,
+                        handicap,
+                        overall_score,
+                        average_score,
+                        clean_game,
+                        likes_count,
+                        loves_count,
                         member:members!game_players_member_id_fkey(
                             id,
                             username,
@@ -615,13 +623,20 @@ export default function BlokPage() {
                         `
                     )
                     .eq("game_id", gameId)
-                    .order("total_score", { ascending: false })
+                    .order("overall_score", { ascending: false })
                     .limit(150);
+
+                setLoadingProgress(50);
 
                 if (dbError) throw dbError;
 
                 const scores = (rawData ?? []) as unknown as RawPlayerScore[];
+                
+                setLoadingProgress(70);
+                
                 const nextBase = buildLeaderboard(scores);
+
+                setLoadingProgress(85);
 
                 if (previousLeaderboardRef.current.length > 0) {
                     const changedIds = new Set<string>();
@@ -688,21 +703,27 @@ export default function BlokPage() {
                 previousLeaderboardRef.current = nextBase;
                 setLeaderboardBase(nextBase);
                 setLeaderboard(applyCurrentSort(nextBase, sortField, sortDirection));
+                
+                setLoadingProgress(95);
+                
                 void loadUserLikesCount(
                     nextBase.map((p) => p.id),
                     gameId
                 );
                 
-                console.log("First player member data:", nextBase[0]?.member);
+                setLoadingProgress(100);
             } catch (err) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load leaderboard";
                 toast({ title: "Error", description: message, variant: "destructive" });
             } finally {
-                setLoadingLeaderboard(false);
+                setTimeout(() => {
+                    setLoadingLeaderboard(false);
+                    setLoadingProgress(0);
+                }, 300);
             }
         },
-        [sortField, sortDirection, toast]
+        [sortField, sortDirection, toast, loadUserLikesCount]
     );
 
     // ─── Effects ──────────────────────────────────────────────────────────────
@@ -1459,7 +1480,7 @@ export default function BlokPage() {
 
                             {selectedGame && mostLikedPlayers.length > 0 && (
                                 <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200 shadow-md">
-                                    <CardHeader className="border-b border-red-100 pb-3 md:pb-4">
+                                    <CardHeader className="border-b border-red-100/50 pb-3 md:pb-4">
                                         <CardTitle className="text-red-900 flex items-center gap-2 text-lg md:text-xl">
                                             <Heart className="w-5 h-5 md:w-6 md:h-6 text-red-500 fill-red-500" />
                                             Pilihan Ramai
@@ -1900,8 +1921,24 @@ export default function BlokPage() {
                                                 {loadingLeaderboard ? (
                                                     <tr>
                                                         <td colSpan={13} className="py-20 text-center">
-                                                            <Loader2 className="w-8 h-8 animate-spin text-sky-600 mx-auto" />
-                                                            <span className="text-sky-600 mt-2 block">Memuatkan skor...</span>
+                                                            <div className="flex flex-col items-center gap-4">
+                                                                <div className="relative">
+                                                                    <div className="w-20 h-20 rounded-full border-4 border-sky-200 border-t-sky-600 animate-spin"></div>
+                                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                                        <span className="text-2xl">🎳</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-center">
+                                                                    <div className="text-sky-600 font-semibold mb-1">Memuatkan skor...</div>
+                                                                    <div className="text-sky-500 text-sm">{loadingProgress}% selesai</div>
+                                                                </div>
+                                                                <div className="w-64 h-2 bg-sky-100 rounded-full overflow-hidden">
+                                                                    <div 
+                                                                        className="h-full bg-gradient-to-r from-sky-500 to-blue-600 transition-all duration-300 ease-out rounded-full"
+                                                                        style={{ width: `${loadingProgress}%` }}
+                                                                    />
+                                                                </div>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ) : filteredLeaderboard.length === 0 ? (
@@ -2430,7 +2467,7 @@ export default function BlokPage() {
                                     <div className="space-y-6 sm:space-y-8">
                                         {/* Score Cards */}
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 relative">
-                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full items-center justify-center font-black text-xl text-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
+                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center font-black text-xl text-slate-800 shadow-[0_0_20px_rgba(0,0,0,0.15)] border-4 border-slate-50">
                                                 VS
                                             </div>
                                             
