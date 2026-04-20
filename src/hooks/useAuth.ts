@@ -291,6 +291,7 @@ export function useAuth(
 
         try {
             log("🔍 Checking auth...");
+            console.log("🔍 AMBC AUTH CHECK - Starting session fetch...");
 
             let sessionResult = null;
             let lastError = null;
@@ -298,15 +299,24 @@ export function useAuth(
             for (let i = 0; i < 2; i++) {
                 if (!mountedRef.current || abortControllerRef.current?.signal.aborted) {
                     log("⏸️ Auth check cancelled.");
+                    console.log("⏸️ AMBC AUTH CHECK - Cancelled");
                     safeSetState({ loading: false }); // CRITICAL FIX: Ensure loading is cleared on abort
                     return;
                 }
 
+                console.log(`🔍 AMBC AUTH CHECK - Attempt ${i + 1}/2 to fetch session...`);
                 const { data, error: sessionError } = await withTimeout(
                     supabase.auth.getSession(),
                     5000, // 5 seconds max per attempt
                     { data: { session: null }, error: new Error("Session timeout") }
                 ) as any;
+
+                console.log(`📊 AMBC AUTH CHECK - Attempt ${i + 1} result:`, { 
+                    hasData: !!data, 
+                    hasSession: !!data?.session,
+                    hasError: !!sessionError,
+                    errorMessage: sessionError?.message 
+                });
 
                 if (!sessionError) {
                     sessionResult = data;
@@ -329,6 +339,7 @@ export function useAuth(
 
             if (!session) {
                 log("❌ No active session");
+                console.log("❌ AMBC AUTH CHECK - No active session found");
 
                 clearCachedSession();
 
@@ -344,6 +355,12 @@ export function useAuth(
 
                 return;
             }
+
+            console.log("✅ AMBC AUTH CHECK - Session found:", { 
+                userId: session.user.id, 
+                email: session.user.email,
+                expiresAt: session.expires_at 
+            });
 
             await loadMemberData(session.user.id, session.user.email ?? null);
         } catch (err: any) {
