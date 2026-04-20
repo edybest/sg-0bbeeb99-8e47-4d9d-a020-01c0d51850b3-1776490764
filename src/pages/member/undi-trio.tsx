@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getTrioEnabledGames, getAllTrioRecordsByGame, type TrioRecordWithPlayers, type TrioPlayer } from "@/services/trioService";
+import { LaneSpinWheel } from "@/components/admin/LaneSpinWheel";
 import { Loader2, Users, Trophy, UserPlus, RefreshCw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -25,6 +26,7 @@ export default function UndiTrioPage() {
   // Process state
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Select A, 2: Spin B, 3: Spin C, 4: Done
   const [spinning, setSpinning] = useState(false);
+  const [rotation, setRotation] = useState(0);
   
   // Selection state
   const [selectedTrio, setSelectedTrio] = useState<TrioRecordWithPlayers | null>(null);
@@ -37,7 +39,7 @@ export default function UndiTrioPage() {
   const [poolC, setPoolC] = useState<TrioPlayer[]>([]);
 
   // Refs for animation & audio
-  const wheelRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const spinAudioRef = useRef<HTMLAudioElement | null>(null);
   const winAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -107,7 +109,7 @@ export default function UndiTrioPage() {
   }
 
   async function handleSpinForB() {
-    if (!selectedTrio || !selectedTrio.player2) return;
+    if (!selectedTrio || !selectedTrio.player2 || poolB.length === 0) return;
     
     setSpinning(true);
 
@@ -116,22 +118,20 @@ export default function UndiTrioPage() {
       spinAudioRef.current.play().catch(console.error);
     }
 
-    const spinDuration = 3000 + Math.random() * 2000;
-    const startTime = Date.now();
+    // Calculate target rotation to land on the correct player
+    const targetIndex = poolB.findIndex(p => p.id === selectedTrio.player2!.id);
+    const segmentAngle = 360 / poolB.length;
+    const targetAngle = targetIndex * segmentAngle;
+    
+    // Add multiple full rotations for dramatic effect (5-7 spins)
+    const fullRotations = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = fullRotations * 360 + targetAngle;
+    
+    setRotation(finalRotation);
 
-    const spinInterval = setInterval(() => {
-      if (wheelRef.current) {
-        const elapsed = Date.now() - startTime;
-        const progress = elapsed / spinDuration;
-        const rotation = progress * 360 * 5;
-        wheelRef.current.style.transform = `rotate(${rotation}deg)`;
-      }
-    }, 16);
+    const spinDuration = 5200; // Match LaneSpinWheel transition duration
 
     setTimeout(() => {
-      clearInterval(spinInterval);
-      
-      // Magic: Wheel stops, we show the actual pre-configured Player B!
       setPlayerB(selectedTrio.player2!);
       setSpinning(false);
       setStep(3);
@@ -200,6 +200,7 @@ export default function UndiTrioPage() {
     setPlayerC(null);
     setSelectedTrio(null);
     setSpinning(false);
+    setRotation(0);
   }
 
   // --- Rendering UI --- //
@@ -391,62 +392,15 @@ export default function UndiTrioPage() {
                     </span>
                   </h3>
                   
-                  {/* Wheel */}
-                  <div className="relative w-80 h-80 mb-10">
-                    <div
-                      ref={wheelRef}
-                      className={`w-full h-full rounded-full border-[12px] shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-transform ${
-                        step === 2 
-                          ? "border-blue-500 bg-gradient-to-br from-blue-400 to-blue-700 shadow-blue-500/30" 
-                          : "border-green-500 bg-gradient-to-br from-green-400 to-green-700 shadow-green-500/30"
-                      }`}
-                      style={{ transitionDuration: "0ms" }}
-                    >
-                      {/* Center decoration */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 flex items-center justify-center">
-                          <div className="text-white text-3xl font-black drop-shadow-md">
-                            {spinning ? "🎲" : "🎯"}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Player names in circular layout */}
-                      {(step === 2 ? poolB : poolC).map((player, index) => {
-                        const totalPlayers = (step === 2 ? poolB : poolC).length;
-                        const angle = (index * 360) / totalPlayers;
-                        const radius = 110; // Distance from center
-                        
-                        // Calculate position
-                        const x = 50 + radius * Math.sin((angle * Math.PI) / 180);
-                        const y = 50 - radius * Math.cos((angle * Math.PI) / 180);
-                        
-                        return (
-                          <div
-                            key={player.id}
-                            className="absolute"
-                            style={{
-                              left: `${x}%`,
-                              top: `${y}%`,
-                              transform: `translate(-50%, -50%) rotate(${angle}deg)`,
-                            }}
-                          >
-                            <div 
-                              className="bg-white/95 px-3 py-1.5 rounded-lg shadow-lg"
-                              style={{
-                                transform: `rotate(-${angle}deg)`, // Counter-rotate text to keep it upright
-                              }}
-                            >
-                              <span className="text-slate-900 font-bold text-sm whitespace-nowrap">
-                                {player.username}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Pointer */}
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[24px] border-r-[24px] border-t-[48px] border-l-transparent border-r-transparent border-t-yellow-400 z-10 drop-shadow-lg"></div>
+                  {/* LaneSpinWheel Component */}
+                  <div className="mb-10">
+                    <LaneSpinWheel
+                      ref={canvasRef}
+                      items={(step === 2 ? poolB : poolC).map(p => p.username)}
+                      rotation={rotation}
+                      isSpinning={spinning}
+                      onSpinClick={() => {}}
+                    />
                   </div>
 
                   {/* Spin Button */}
@@ -479,13 +433,11 @@ export default function UndiTrioPage() {
                     </p>
                   )}
 
-                  {/* Dummy pool names scrolling ticker (visual effect only) */}
-                  <div className="mt-8 w-full max-w-lg overflow-hidden whitespace-nowrap bg-black/30 rounded-lg p-3 border border-slate-700">
-                    <div className="inline-block animate-[marquee_10s_linear_infinite]">
-                      <span className="text-slate-400 text-sm font-medium tracking-widest uppercase">
-                        KOLAM UNDIAN: {(step === 2 ? poolB : poolC).map(p => p.username).join(" • ")}
-                      </span>
-                    </div>
+                  {/* Player pool info */}
+                  <div className="mt-8 text-center">
+                    <p className="text-slate-400 text-sm font-medium tracking-wide">
+                      {(step === 2 ? poolB : poolC).length} calon dalam undian
+                    </p>
                   </div>
                 </div>
               </Card>
