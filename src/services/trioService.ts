@@ -23,23 +23,65 @@ export interface TrioRecordWithPlayers extends TrioRecord {
  * Get trio record for a specific game
  */
 export async function getTrioRecordByGame(gameId: string): Promise<TrioRecordWithPlayers | null> {
-  const { data, error } = await supabase
-    .from("trio_records")
-    .select(`
-      *,
-      player1:members!trio_records_player1_id_fkey(id, username, full_name, avatar_url, handicap),
-      player2:members!trio_records_player2_id_fkey(id, username, full_name, avatar_url, handicap),
-      player3:members!trio_records_player3_id_fkey(id, username, full_name, avatar_url, handicap)
-    `)
-    .eq("game_id", gameId)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("trio_records")
+      .select(`
+        *,
+        player1:members!player1_id(id, username, full_name, avatar_url, handicap),
+        player2:members!player2_id(id, username, full_name, avatar_url, handicap),
+        player3:members!player3_id(id, username, full_name, avatar_url, handicap)
+      `)
+      .eq("game_id", gameId)
+      .maybeSingle();
 
-  if (error) {
+    if (error) throw error;
+    return data as TrioRecordWithPlayers | null;
+  } catch (error) {
     console.error("Error fetching trio record:", error);
     throw error;
   }
+}
 
-  return data as TrioRecordWithPlayers | null;
+/**
+ * Get ALL trio records for a specific game (supports multiple trios)
+ */
+export async function getAllTrioRecordsByGame(gameId: string): Promise<TrioRecordWithPlayers[]> {
+  try {
+    const { data, error } = await supabase
+      .from("trio_records")
+      .select(`
+        *,
+        player1:members!player1_id(id, username, full_name, avatar_url, handicap),
+        player2:members!player2_id(id, username, full_name, avatar_url, handicap),
+        player3:members!player3_id(id, username, full_name, avatar_url, handicap)
+      `)
+      .eq("game_id", gameId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return (data as TrioRecordWithPlayers[]) || [];
+  } catch (error) {
+    console.error("Error fetching trio records:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a trio record
+ */
+export async function deleteTrioRecord(trioId: string): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("trio_records")
+      .delete()
+      .eq("id", trioId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting trio record:", error);
+    throw error;
+  }
 }
 
 /**
@@ -47,80 +89,36 @@ export async function getTrioRecordByGame(gameId: string): Promise<TrioRecordWit
  */
 export async function upsertTrioRecord(data: TrioRecordInsert): Promise<TrioRecord> {
   try {
-    console.log("upsertTrioRecord called with data:", data);
+    console.log("Creating new trio record with data:", data);
 
-    // Check if record exists
-    const { data: existing, error: checkError } = await supabase
+    // Always create new record (support multiple trios per game)
+    const { data: created, error: insertError } = await supabase
       .from("trio_records")
-      .select("id")
-      .eq("game_id", data.game_id!)
-      .maybeSingle();
+      .insert(data)
+      .select()
+      .single();
 
-    if (checkError) {
-      console.error("Error checking existing trio record:", checkError);
-      throw new Error(`Gagal menyemak rekod sedia ada: ${checkError.message}`);
-    }
+    if (insertError) {
+      console.error("Error creating trio record:", {
+        error: insertError,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
 
-    console.log("Existing trio record:", existing);
-
-    if (existing) {
-      // Update existing record
-      console.log("Updating existing trio record:", existing.id);
-
-      const { data: updated, error: updateError } = await supabase
-        .from("trio_records")
-        .update(data as TrioRecordUpdate)
-        .eq("id", existing.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error("Error updating trio record:", {
-          error: updateError,
-          message: updateError.message,
-          details: updateError.details,
-          hint: updateError.hint,
-          code: updateError.code,
-        });
-        throw new Error(`Gagal mengemas kini rekod: ${updateError.message}`);
+      // Provide user-friendly error messages
+      if (insertError.code === "23503") {
+        throw new Error("Pemain atau game tidak dijumpai");
+      } else if (insertError.code === "42501") {
+        throw new Error("Anda tidak mempunyai kebenaran untuk mencipta rekod trio. Sila pastikan anda log masuk sebagai admin.");
       }
 
-      console.log("Trio record updated successfully:", updated);
-      return updated;
-    } else {
-      // Create new record
-      console.log("Creating new trio record");
-
-      const { data: created, error: insertError } = await supabase
-        .from("trio_records")
-        .insert(data)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error("Error creating trio record:", {
-          error: insertError,
-          message: insertError.message,
-          details: insertError.details,
-          hint: insertError.hint,
-          code: insertError.code,
-        });
-
-        // Provide user-friendly error messages
-        if (insertError.code === "23505") {
-          throw new Error("Rekod trio untuk game ini sudah wujud");
-        } else if (insertError.code === "23503") {
-          throw new Error("Pemain atau game tidak dijumpai");
-        } else if (insertError.code === "42501") {
-          throw new Error("Anda tidak mempunyai kebenaran untuk mencipta rekod trio. Sila pastikan anda log masuk sebagai admin.");
-        }
-
-        throw new Error(`Gagal mencipta rekod: ${insertError.message}`);
-      }
-
-      console.log("Trio record created successfully:", created);
-      return created;
+      throw new Error(`Gagal mencipta rekod: ${insertError.message}`);
     }
+
+    console.log("Trio record created successfully:", created);
+    return created;
   } catch (error: any) {
     console.error("upsertTrioRecord error:", error);
     throw error;
@@ -210,21 +208,6 @@ export async function updateTrioScores(
   }
 
   return data;
-}
-
-/**
- * Delete trio record
- */
-export async function deleteTrioRecord(gameId: string): Promise<void> {
-  const { error } = await supabase
-    .from("trio_records")
-    .delete()
-    .eq("game_id", gameId);
-
-  if (error) {
-    console.error("Error deleting trio record:", error);
-    throw error;
-  }
 }
 
 /**

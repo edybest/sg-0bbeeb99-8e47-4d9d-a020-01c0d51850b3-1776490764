@@ -1,58 +1,48 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getGamePlayers, upsertTrioRecord, getTrioRecordByGame } from "@/services/trioService";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Plus, Trash2, Users } from "lucide-react";
+import { 
+  upsertTrioRecord, 
+  getAllTrioRecordsByGame, 
+  deleteTrioRecord,
+  type TrioPlayer,
+  type TrioRecordWithPlayers
+} from "@/services/trioService";
+import { getMembersByGameDate } from "@/services/memberService";
 
 interface TrioManagementProps {
   gameId: string;
-}
-
-interface Player {
-  id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string | null;
-  handicap: number;
 }
 
 export function TrioManagement({ gameId }: TrioManagementProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [players, setPlayers] = useState<TrioPlayer[]>([]);
+  const [trios, setTrios] = useState<TrioRecordWithPlayers[]>([]);
+  
+  // Form state for new trio
   const [player1Id, setPlayer1Id] = useState<string>("");
   const [player2Id, setPlayer2Id] = useState<string>("");
   const [player3Id, setPlayer3Id] = useState<string>("");
 
   useEffect(() => {
-    loadTrioData();
+    loadData();
   }, [gameId]);
 
-  async function loadTrioData() {
+  async function loadData() {
     try {
       setLoading(true);
-
-      // Load all players for this game
-      const gamePlayers = await getGamePlayers(gameId);
-      setPlayers(gamePlayers);
-
-      // Load existing trio configuration
-      const trioRecord = await getTrioRecordByGame(gameId);
-      if (trioRecord) {
-        setPlayer1Id(trioRecord.player1_id || "");
-        setPlayer2Id(trioRecord.player2_id || "");
-        setPlayer3Id(trioRecord.player3_id || "");
-      }
+      await Promise.all([loadPlayers(), loadTrios()]);
     } catch (error) {
       console.error("Error loading trio data:", error);
       toast({
-        title: "Error",
-        description: "Gagal memuatkan data trio",
+        title: "Ralat",
+        description: "Gagal memuatkan data",
         variant: "destructive",
       });
     } finally {
@@ -60,7 +50,33 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
     }
   }
 
-  async function handleSave() {
+  async function loadPlayers() {
+    try {
+      const members = await getMembersByGameDate(gameId);
+      setPlayers(members.map(m => ({
+        id: m.id,
+        username: m.username,
+        full_name: m.full_name,
+        avatar_url: m.avatar_url,
+        handicap: m.handicap || 0,
+      })));
+    } catch (error) {
+      console.error("Error loading players:", error);
+      throw error;
+    }
+  }
+
+  async function loadTrios() {
+    try {
+      const trioRecords = await getAllTrioRecordsByGame(gameId);
+      setTrios(trioRecords);
+    } catch (error) {
+      console.error("Error loading trios:", error);
+      throw error;
+    }
+  }
+
+  async function handleAddTrio() {
     if (!player1Id || !player2Id || !player3Id) {
       toast({
         title: "Ralat",
@@ -83,13 +99,6 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
     try {
       setSaving(true);
 
-      console.log("Saving trio configuration:", {
-        gameId,
-        player1Id,
-        player2Id,
-        player3Id,
-      });
-
       const player1 = players.find((p) => p.id === player1Id);
       const player2 = players.find((p) => p.id === player2Id);
       const player3 = players.find((p) => p.id === player3Id);
@@ -111,38 +120,27 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
         player3_score: 0,
       };
 
-      console.log("Trio data to save:", trioData);
-
       await upsertTrioRecord(trioData);
-
-      console.log("Trio saved successfully");
 
       toast({
         title: "✅ Berjaya",
-        description: "Konfigurasi Trio telah disimpan",
+        description: "Trio baru telah ditambah",
       });
 
-      // Reload data to show updated trio
-      await loadTrioData();
+      // Reset form
+      setPlayer1Id("");
+      setPlayer2Id("");
+      setPlayer3Id("");
+
+      // Reload trios
+      await loadTrios();
     } catch (error: any) {
-      console.error("Error saving trio:", {
-        error,
-        message: error?.message,
-        details: error?.details,
-        hint: error?.hint,
-      });
+      console.error("Error adding trio:", error);
 
       const errorMsg = error?.message || "Ralat tidak diketahui";
-      const errorDetails = error?.details || error?.hint || "";
-
       toast({
-        title: "❌ Gagal Menyimpan",
-        description: (
-          <div className="space-y-1">
-            <p>{errorMsg}</p>
-            {errorDetails && <p className="text-xs text-muted-foreground">{errorDetails}</p>}
-          </div>
-        ),
+        title: "❌ Gagal Menambah Trio",
+        description: errorMsg,
         variant: "destructive",
         duration: 5000,
       });
@@ -151,120 +149,187 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-      </div>
-    );
+  async function handleDeleteTrio(trioId: string) {
+    if (!confirm("Adakah anda pasti mahu memadam trio ini?")) {
+      return;
+    }
+
+    try {
+      await deleteTrioRecord(trioId);
+      toast({
+        title: "✅ Berjaya",
+        description: "Trio telah dipadam",
+      });
+      await loadTrios();
+    } catch (error) {
+      console.error("Error deleting trio:", error);
+      toast({
+        title: "❌ Ralat",
+        description: "Gagal memadam trio",
+        variant: "destructive",
+      });
+    }
   }
 
-  if (players.length < 3) {
+  if (loading) {
     return (
       <Card className="p-6">
-        <div className="text-center text-muted-foreground">
-          <Users className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-          <p>Sekurang-kurangnya 3 pemain diperlukan untuk Trio Mode</p>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
         </div>
       </Card>
     );
   }
 
-  const getPlayerDisplay = (playerId: string) => {
-    const player = players.find((p) => p.id === playerId);
-    if (!player) return null;
-    return (
-      <div className="flex items-center gap-2 mt-1">
-        {player.avatar_url && (
-          <img src={player.avatar_url} alt={player.username} className="w-8 h-8 rounded-full object-cover" />
-        )}
-        <div>
-          <div className="font-semibold text-sm">{player.username}</div>
-          <div className="text-xs text-muted-foreground">Handicap: {player.handicap}</div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Users className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-bold">Konfigurasi Trio Players</h3>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Player A */}
-        <div>
-          <Label className="mb-2 flex items-center gap-2">
-            <Badge variant="default" className="bg-red-500">PLAYER A</Badge>
-          </Label>
-          <Select value={player1Id} onValueChange={setPlayer1Id}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Pilih Player A" />
-            </SelectTrigger>
-            <SelectContent>
-              {players.map((player) => (
-                <SelectItem key={player.id} value={player.id}>
-                  {player.username} (HC: {player.handicap})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {player1Id && getPlayerDisplay(player1Id)}
+    <div className="space-y-4">
+      {/* Add New Trio Form */}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Users className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-bold">Tambah Trio Baru</h3>
         </div>
 
-        {/* Player B */}
-        <div>
-          <Label className="mb-2 flex items-center gap-2">
-            <Badge variant="default" className="bg-blue-500">PLAYER B</Badge>
-          </Label>
-          <Select value={player2Id} onValueChange={setPlayer2Id}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Pilih Player B" />
-            </SelectTrigger>
-            <SelectContent>
-              {players.map((player) => (
-                <SelectItem key={player.id} value={player.id}>
-                  {player.username} (HC: {player.handicap})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {player2Id && getPlayerDisplay(player2Id)}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-red-600">
+              Player A
+            </label>
+            <Select value={player1Id} onValueChange={setPlayer1Id}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Player A" />
+              </SelectTrigger>
+              <SelectContent>
+                {players.map((player) => (
+                  <SelectItem key={player.id} value={player.id}>
+                    {player.username} ({player.full_name})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-blue-600">
+              Player B
+            </label>
+            <Select value={player2Id} onValueChange={setPlayer2Id}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Player B" />
+              </SelectTrigger>
+              <SelectContent>
+                {players
+                  .filter((p) => p.id !== player1Id)
+                  .map((player) => (
+                    <SelectItem key={player.id} value={player.id}>
+                      {player.username} ({player.full_name})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-green-600">
+              Player C
+            </label>
+            <Select value={player3Id} onValueChange={setPlayer3Id}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih Player C" />
+              </SelectTrigger>
+              <SelectContent>
+                {players
+                  .filter((p) => p.id !== player1Id && p.id !== player2Id)
+                  .map((player) => (
+                    <SelectItem key={player.id} value={player.id}>
+                      {player.username} ({player.full_name})
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Player C */}
-        <div>
-          <Label className="mb-2 flex items-center gap-2">
-            <Badge variant="default" className="bg-green-500">PLAYER C</Badge>
-          </Label>
-          <Select value={player3Id} onValueChange={setPlayer3Id}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Pilih Player C" />
-            </SelectTrigger>
-            <SelectContent>
-              {players.map((player) => (
-                <SelectItem key={player.id} value={player.id}>
-                  {player.username} (HC: {player.handicap})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {player3Id && getPlayerDisplay(player3Id)}
-        </div>
-      </div>
+        <Button
+          onClick={handleAddTrio}
+          disabled={saving || !player1Id || !player2Id || !player3Id}
+          className="w-full"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Menyimpan...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah Trio
+            </>
+          )}
+        </Button>
+      </Card>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full">
-        {saving ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Menyimpan...
-          </>
+      {/* List of Configured Trios */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold">
+            Senarai Trio ({trios.length})
+          </h3>
+        </div>
+
+        {trios.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p>Tiada trio dikonfigurasi lagi</p>
+            <p className="text-sm mt-1">Tambah trio pertama di atas</p>
+          </div>
         ) : (
-          "💾 Simpan Konfigurasi Trio"
+          <div className="space-y-3">
+            {trios.map((trio, index) => (
+              <div
+                key={trio.id}
+                className="flex items-center gap-3 p-4 bg-gradient-to-r from-slate-50 to-white border rounded-lg"
+              >
+                <Badge variant="outline" className="text-lg font-bold">
+                  #{index + 1}
+                </Badge>
+
+                <div className="flex-1 grid grid-cols-3 gap-3">
+                  <div className="bg-red-50 border border-red-200 rounded p-2">
+                    <div className="text-xs font-semibold text-red-600 mb-1">Player A</div>
+                    <div className="text-sm font-bold text-red-800">
+                      {trio.player1?.username || "N/A"}
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                    <div className="text-xs font-semibold text-blue-600 mb-1">Player B</div>
+                    <div className="text-sm font-bold text-blue-800">
+                      {trio.player2?.username || "N/A"}
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded p-2">
+                    <div className="text-xs font-semibold text-green-600 mb-1">Player C</div>
+                    <div className="text-sm font-bold text-green-800">
+                      {trio.player3?.username || "N/A"}
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteTrio(trio.id)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
         )}
-      </Button>
-    </Card>
+      </Card>
+    </div>
   );
 }
