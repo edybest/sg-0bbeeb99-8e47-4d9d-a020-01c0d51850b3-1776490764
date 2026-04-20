@@ -25,9 +25,11 @@ import {
   LayoutGrid,
   Crown,
   Dices,
-  MapPin
+  MapPin,
+  ArrowRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Users as UsersIcon } from "lucide-react";
 
 type Member = {
   id: string;

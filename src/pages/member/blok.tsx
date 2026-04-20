@@ -1441,12 +1441,16 @@ export default function BlokPage() {
                                             {/* Trio Game Button */}
                                             {selectedGame && games.find(g => g.id === selectedGame)?.trio_enabled && (
                                                 <Button
-                                                    variant="outline"
-                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
-                                                    onClick={handleOpenTrioDialog}
+                                                    variant={gameFormat === "trio" ? "default" : "outline"}
+                                                    onClick={() => setGameFormat("trio")}
+                                                    className={`flex-1 h-16 text-lg font-bold transition-all ${
+                                                      gameFormat === "trio"
+                                                        ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg scale-105"
+                                                        : "hover:border-purple-400 hover:text-purple-600"
+                                                    }`}
                                                 >
-                                                    <Users className="w-4 h-4 mr-2" />
-                                                    Score Trio
+                                                    <Users className="w-6 h-6 mr-2" />
+                                                    Trio
                                                 </Button>
                                             )}
 
@@ -2260,6 +2264,36 @@ export default function BlokPage() {
                                 
                                 {!isCapturingScreenshot && (
                                     <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+                                        <Button
+              variant={gameFormat === "men_vs_women" ? "default" : "outline"}
+              onClick={() => setGameFormat("men_vs_women")}
+              className={`flex-1 h-16 text-lg font-bold transition-all ${
+                gameFormat === "men_vs_women"
+                  ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white shadow-lg scale-105"
+                  : "hover:border-pink-400 hover:text-pink-600"
+              }`}
+            >
+              <Users className="w-6 h-6 mr-2" />
+              Men vs Women
+            </Button>
+                                        <Button
+              variant="outline"
+              onClick={() => {
+                if (selectedDate) {
+                  router.push(`/member/trio?date=${selectedDate}`);
+                } else {
+                  toast({
+                    title: "Sila Pilih Tarikh",
+                    description: "Pilih tarikh game dahulu",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="flex-1 h-16 text-lg font-bold transition-all hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50"
+            >
+              <Users className="w-6 h-6 mr-2" />
+              Trio
+            </Button>
                                         <button 
                                             onClick={handleShareMenVsWomen}
                                             disabled={isCapturingScreenshot || loadingMenVsWomen || !menVsWomenData}
@@ -2305,26 +2339,26 @@ export default function BlokPage() {
                                                 animate={{ opacity: 1, x: 0 }}
                                                 className={`relative overflow-hidden p-6 sm:p-8 rounded-[2rem] border border-blue-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 ${
                                                     menVsWomenData.menTotal > menVsWomenData.womenTotal
-                                                        ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-blue-500/30 shadow-[0_15px_50px_rgb(59,130,246,0.3)] transform sm:scale-105 z-10 border-none"
+                                                        ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 shadow-pink-500/30 shadow-[0_15px_50px_rgb(59,130,246,0.3)] transform sm:scale-105 z-10 border-none"
                                                         : "bg-white"
                                                 }`}
                                             >
                                                 <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                                                <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
+                                                <div className="absolute -left-12 -bottom-12 w-40 h-40 bg-pink-400/10 rounded-full blur-3xl pointer-events-none"></div>
                                                 
                                                 <div className="relative z-10 flex flex-col items-center text-center">
                                                     <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center text-4xl sm:text-5xl mb-4 shadow-inner ${
-                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "bg-white/20 backdrop-blur-md border border-white/30" : "bg-blue-50 border border-blue-100"
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "bg-white/20 backdrop-blur-md border border-white/30" : "bg-pink-50 border border-pink-100"
                                                     }`}>
                                                         👨
                                                     </div>
                                                     <h3 className={`text-sm sm:text-base font-bold tracking-[0.2em] mb-2 uppercase ${
-                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "text-blue-50" : "text-slate-500"
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "text-pink-50" : "text-slate-500"
                                                     }`}>
                                                         Men Team
                                                     </h3>
                                                     <div className={`text-5xl sm:text-7xl font-black tracking-tighter mb-4 drop-shadow-sm ${
-                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "text-white" : "text-blue-600"
+                                                        menVsWomenData.menTotal > menVsWomenData.womenTotal ? "text-white" : "text-pink-600"
                                                     }`}>
                                                         {menVsWomenData.menTotal}
                                                     </div>
@@ -2415,7 +2449,7 @@ export default function BlokPage() {
                                             className="bg-white rounded-[1.5rem] border border-slate-200/60 p-5 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.03)]"
                                         >
                                             <h4 className="font-bold text-slate-800 mb-5 text-sm sm:text-base flex items-center gap-3 uppercase tracking-wide">
-                                                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white shadow-sm border border-indigo-100">
                                                     <Target className="w-4 h-4" />
                                                 </div>
                                                 Perincian Markah
