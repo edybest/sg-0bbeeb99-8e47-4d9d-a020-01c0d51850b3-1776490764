@@ -12,7 +12,7 @@ import {
   type TrioPlayer,
   type TrioRecordWithPlayers
 } from "@/services/trioService";
-import { getMembersByGameDate } from "@/services/memberService";
+import { memberService } from "@/services/memberService";
 
 interface TrioManagementProps {
   gameId: string;
@@ -52,7 +52,7 @@ export function TrioManagement({ gameId }: TrioManagementProps) {
 
   async function loadPlayers() {
     try {
-      const members = await getMembersByGameDate(gameId);
+      const members = await memberService.getMembersByGameDate(gameId);
       setPlayers(members.map(m => ({
         id: m.id,
         username: m.username,

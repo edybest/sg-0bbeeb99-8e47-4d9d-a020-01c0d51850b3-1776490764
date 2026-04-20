@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { getTrioEnabledGames, getTrioRecordByGame, getGamePlayers, upsertTrioRecord, type TrioPlayer } from "@/services/trioService";
+import { getTrioEnabledGames, getAllTrioRecordsByGame, type TrioRecordWithPlayers, type TrioPlayer } from "@/services/trioService";
 import { Loader2, Users, Trophy, UserPlus, RefreshCw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -15,22 +15,28 @@ type Game = Database["public"]["Tables"]["games"]["Row"];
 export default function UndiTrioPage() {
   const { toast } = useToast();
   const { member } = useAuth();
+  
+  // Data state
   const [loading, setLoading] = useState(true);
-  const [spinning, setSpinning] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>("");
+  const [trios, setTrios] = useState<TrioRecordWithPlayers[]>([]);
   
-  const [players, setPlayers] = useState<TrioPlayer[]>([]);
+  // Process state
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Select A, 2: Spin B, 3: Spin C, 4: Done
+  const [spinning, setSpinning] = useState(false);
   
-  // Game State
-  // 1: Pilih A, 2: Undi B, 3: Undi C, 4: Selesai
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1); 
+  // Selection state
+  const [selectedTrio, setSelectedTrio] = useState<TrioRecordWithPlayers | null>(null);
   const [playerA, setPlayerA] = useState<TrioPlayer | null>(null);
   const [playerB, setPlayerB] = useState<TrioPlayer | null>(null);
   const [playerC, setPlayerC] = useState<TrioPlayer | null>(null);
   
-  const [resultName, setResultName] = useState<string | null>(null);
-  
+  // Dummy pool state (for spinning effect)
+  const [poolB, setPoolB] = useState<TrioPlayer[]>([]);
+  const [poolC, setPoolC] = useState<TrioPlayer[]>([]);
+
+  // Refs for animation & audio
   const wheelRef = useRef<HTMLDivElement>(null);
   const spinAudioRef = useRef<HTMLAudioElement | null>(null);
   const winAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -38,19 +44,18 @@ export default function UndiTrioPage() {
   const isAdmin = member?.is_admin || false;
 
   useEffect(() => {
-    loadGames();
-    // Load audio files
+    loadData();
     spinAudioRef.current = new Audio("/spin.mp3");
     winAudioRef.current = new Audio("/win.mp3");
   }, []);
 
   useEffect(() => {
     if (selectedGameId) {
-      loadGameData();
+      loadGameTrios();
     }
   }, [selectedGameId]);
 
-  async function loadGames() {
+  async function loadData() {
     try {
       setLoading(true);
       const trioGames = await getTrioEnabledGames();
@@ -61,96 +66,50 @@ export default function UndiTrioPage() {
       }
     } catch (error) {
       console.error("Error loading games:", error);
-      toast({ title: "Error", description: "Gagal memuatkan senarai game", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadGameData() {
-    try {
-      setLoading(true);
-      // Reset state
-      setStep(1);
-      setPlayerA(null);
-      setPlayerB(null);
-      setPlayerC(null);
-      setResultName(null);
-
-      // Load all players for this game
-      const gamePlayers = await getGamePlayers(selectedGameId);
-      setPlayers(gamePlayers);
-
-      // Check if trio record already exists
-      const trioRecord = await getTrioRecordByGame(selectedGameId);
-      if (trioRecord && trioRecord.player1_id) {
-        if (trioRecord.player1) setPlayerA(trioRecord.player1);
-        if (trioRecord.player2) setPlayerB(trioRecord.player2);
-        if (trioRecord.player3) setPlayerC(trioRecord.player3);
-        setStep(4); // Completed
-      }
-    } catch (error) {
-      console.error("Error loading game data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleSelectPlayerA = (playerId: string) => {
-    const selected = players.find(p => p.id === playerId);
-    if (selected) {
-      setPlayerA(selected);
-      setStep(2); // Move to Spin B
-    }
-  };
-
-  async function saveTrioToDatabase(a: TrioPlayer, b: TrioPlayer, c: TrioPlayer) {
-    try {
-      await upsertTrioRecord({
-        game_id: selectedGameId,
-        player1_id: a.id,
-        player2_id: b.id,
-        player3_id: c.id,
-        player1_handicap: a.handicap || 0,
-        player2_handicap: b.handicap || 0,
-        player3_handicap: c.handicap || 0,
-        player1_score: 0,
-        player2_score: 0,
-        player3_score: 0,
-        total_score: 0
-      });
-      
       toast({
-        title: "✅ Selesai!",
-        description: "Data Trio telah berjaya disimpan ke dalam database.",
-        duration: 5000,
-      });
-    } catch (error) {
-      console.error("Error saving trio:", error);
-      toast({
-        title: "Ralat Menyimpan",
-        description: "Gagal menyimpan rekod trio ke database.",
+        title: "Ralat",
+        description: "Gagal memuatkan senarai game",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function handleSpin() {
-    if (!isAdmin) return;
+  async function loadGameTrios() {
+    if (!selectedGameId) return;
 
-    // Determine available players
-    let availablePlayers = players.filter(p => p.id !== playerA?.id);
-    if (step === 3) {
-      availablePlayers = availablePlayers.filter(p => p.id !== playerB?.id);
+    try {
+      const records = await getAllTrioRecordsByGame(selectedGameId);
+      setTrios(records);
+      
+      // Build dummy pools for spinning from ALL configured B and C players
+      const allB = records.map(r => r.player2).filter(p => p != null) as TrioPlayer[];
+      const allC = records.map(r => r.player3).filter(p => p != null) as TrioPlayer[];
+      
+      setPoolB(allB);
+      setPoolC(allC);
+      
+      // Reset state when game changes
+      handleReset();
+    } catch (error) {
+      console.error("Error loading trios:", error);
     }
+  }
 
-    if (availablePlayers.length === 0) {
-      toast({ title: "Tiada Pemain", description: "Tiada pemain yang tinggal untuk diundi", variant: "destructive" });
-      return;
+  function handleSelectPlayerA(trioId: string) {
+    const trio = trios.find(t => t.id === trioId);
+    if (trio && trio.player1) {
+      setSelectedTrio(trio);
+      setPlayerA(trio.player1);
+      setStep(2);
     }
+  }
 
+  async function handleSpinForB() {
+    if (!selectedTrio || !selectedTrio.player2) return;
+    
     setSpinning(true);
-    setResultName(null);
 
     if (spinAudioRef.current) {
       spinAudioRef.current.currentTime = 0;
@@ -172,39 +131,80 @@ export default function UndiTrioPage() {
     setTimeout(() => {
       clearInterval(spinInterval);
       
-      const pickedPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-      setResultName(pickedPlayer.username);
+      // Magic: Wheel stops, we show the actual pre-configured Player B!
+      setPlayerB(selectedTrio.player2!);
       setSpinning(false);
+      setStep(3);
 
       if (winAudioRef.current) {
         winAudioRef.current.currentTime = 0;
         winAudioRef.current.play().catch(console.error);
       }
 
-      if (step === 2) {
-        setPlayerB(pickedPlayer);
-        setStep(3); // Move to Spin C
-      } else if (step === 3) {
-        setPlayerC(pickedPlayer);
-        setStep(4); // Done
-        if (playerA && playerB && pickedPlayer) {
-          saveTrioToDatabase(playerA, playerB, pickedPlayer);
-        }
+      toast({
+        title: "🎉 Undian Selesai!",
+        description: `${selectedTrio.player2!.username} dipilih sebagai Player B!`,
+        duration: 3000,
+      });
+    }, spinDuration);
+  }
+
+  async function handleSpinForC() {
+    if (!selectedTrio || !selectedTrio.player3) return;
+    
+    setSpinning(true);
+
+    if (spinAudioRef.current) {
+      spinAudioRef.current.currentTime = 0;
+      spinAudioRef.current.play().catch(console.error);
+    }
+
+    const spinDuration = 3000 + Math.random() * 2000;
+    const startTime = Date.now();
+
+    const spinInterval = setInterval(() => {
+      if (wheelRef.current) {
+        const elapsed = Date.now() - startTime;
+        const progress = elapsed / spinDuration;
+        const rotation = progress * 360 * 5;
+        wheelRef.current.style.transform = `rotate(${rotation}deg)`;
+      }
+    }, 16);
+
+    setTimeout(async () => {
+      clearInterval(spinInterval);
+      
+      // Magic: Wheel stops, we show the actual pre-configured Player C!
+      setPlayerC(selectedTrio.player3!);
+      setSpinning(false);
+      setStep(4);
+
+      if (winAudioRef.current) {
+        winAudioRef.current.currentTime = 0;
+        winAudioRef.current.play().catch(console.error);
       }
 
+      toast({
+        title: "🎉 Pasukan Lengkap!",
+        description: `Trio untuk ${playerA?.username} telah dilengkapkan!`,
+        duration: 5000,
+      });
+      
     }, spinDuration);
   }
 
   function handleReset() {
-    if (!confirm("Anda pasti mahu reset undian untuk game ini? Ini akan mengosongkan Player B & C yang telah diundi (belum padam dari database sehingga disave baru).")) return;
     setStep(1);
     setPlayerA(null);
     setPlayerB(null);
     setPlayerC(null);
-    setResultName(null);
+    setSelectedTrio(null);
+    setSpinning(false);
   }
 
-  if (loading && games.length === 0) {
+  // --- Rendering UI --- //
+
+  if (loading) {
     return (
       <MemberLayout>
         <div className="flex items-center justify-center min-h-screen">
@@ -218,10 +218,10 @@ export default function UndiTrioPage() {
     return (
       <MemberLayout>
         <div className="container mx-auto p-4 max-w-4xl">
-          <Card className="p-8 text-center">
-            <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h2 className="text-xl font-bold mb-2">Tiada Game Trio Aktif</h2>
-            <p className="text-muted-foreground">Sila aktifkan Trio Mode pada mana-man game di ruang Admin dahulu.</p>
+          <Card className="p-12 text-center shadow-lg border-2 border-dashed border-gray-200">
+            <Users className="w-20 h-20 mx-auto mb-4 text-gray-300" />
+            <h2 className="text-2xl font-bold mb-2">Tiada Game Trio Aktif</h2>
+            <p className="text-muted-foreground">Sila aktifkan Trio Mode pada game dari panel admin.</p>
           </Card>
         </div>
       </MemberLayout>
@@ -230,223 +230,263 @@ export default function UndiTrioPage() {
 
   return (
     <MemberLayout>
-      <div className="container mx-auto p-4 max-w-5xl">
+      <div className="container mx-auto p-4 max-w-4xl">
         {/* Header */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Badge className="bg-purple-600 text-white px-4 py-2 text-lg">PENCARIAN TRIO</Badge>
-              <Trophy className="w-6 h-6 text-purple-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">Undian Trio Bowling</h1>
-            <p className="text-muted-foreground mt-1">Lengkapkan Trio anda dengan roda undian</p>
+        <div className="mb-8 text-center bg-gradient-to-r from-slate-900 to-slate-800 text-white p-8 rounded-2xl shadow-xl">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <Trophy className="w-10 h-10 text-yellow-400" />
+            <h1 className="text-4xl font-black tracking-tight">LIVE DRAW TRIO</h1>
+            <Trophy className="w-10 h-10 text-yellow-400" />
           </div>
-
-          <div className="w-full md:w-64">
-            <Select value={selectedGameId} onValueChange={setSelectedGameId} disabled={spinning}>
-              <SelectTrigger className="w-full bg-white shadow-sm border-purple-200">
-                <SelectValue placeholder="Pilih Game" />
-              </SelectTrigger>
-              <SelectContent>
-                {games.map((game) => (
-                  <SelectItem key={game.id} value={game.id}>
-                    {new Date(game.game_date).toLocaleDateString("ms-MY", {
-                      day: "numeric", month: "short"
-                    })} - {game.game_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <p className="text-slate-300 text-lg">Undian Pasukan Trio Secara Langsung</p>
         </div>
 
-        {/* Players Display Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          
-          {/* PLAYER A */}
-          <Card className={`p-5 border-2 transition-all ${step === 1 ? 'border-red-500 shadow-md ring-4 ring-red-100' : 'border-red-200 opacity-90'}`}>
-            <div className="flex justify-between items-center mb-4">
-              <Badge className="bg-red-500 hover:bg-red-600">PLAYER A (KETUA)</Badge>
-              {step > 1 && isAdmin && (
-                <button onClick={handleReset} className="text-xs text-red-500 hover:underline flex items-center">
-                  <RefreshCw className="w-3 h-3 mr-1" /> Reset
-                </button>
-              )}
+        {/* Game Selection */}
+        <Card className="p-6 mb-8 border-2 border-blue-100 shadow-md">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="w-full md:w-2/3">
+              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                Sesi Cabutan (Game):
+              </label>
+              <Select value={selectedGameId} onValueChange={setSelectedGameId} disabled={step > 1}>
+                <SelectTrigger className="w-full bg-white text-lg h-12">
+                  <SelectValue placeholder="Pilih game" />
+                </SelectTrigger>
+                <SelectContent>
+                  {games.map((game) => (
+                    <SelectItem key={game.id} value={game.id} className="text-base py-3">
+                      {new Date(game.game_date).toLocaleDateString("ms-MY", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })} - {game.game_name || "Game"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
-            {step === 1 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground font-medium">Sila pilih Player A dahulu:</p>
-                <Select onValueChange={handleSelectPlayerA} disabled={!isAdmin}>
-                  <SelectTrigger className="w-full border-red-300 bg-red-50">
-                    <SelectValue placeholder="Pilih dari senarai..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {players.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.username} (HC: {p.handicap})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!isAdmin && <p className="text-xs text-red-500 mt-2">Hanya Admin boleh buat pilihan</p>}
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                {playerA?.avatar_url ? (
-                  <img src={playerA.avatar_url} alt="" className="w-14 h-14 rounded-full border-2 border-red-500 object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-red-500 border-2 border-red-500">
-                    <Users className="w-6 h-6" />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900">{playerA?.username}</h3>
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 mt-1">HC: {playerA?.handicap}</Badge>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* PLAYER B */}
-          <Card className={`p-5 border-2 transition-all ${step === 2 ? 'border-blue-500 shadow-md ring-4 ring-blue-100' : 'border-blue-200 opacity-90'}`}>
-            <div className="mb-4">
-              <Badge className="bg-blue-500 hover:bg-blue-600">PLAYER B</Badge>
-            </div>
-            
-            {!playerB ? (
-              <div className="flex flex-col items-center justify-center py-2 text-blue-300">
-                <UserPlus className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm font-medium">{step === 2 ? "Menunggu undian..." : "Kunci Player A dahulu"}</p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 animate-in fade-in zoom-in duration-500">
-                {playerB?.avatar_url ? (
-                  <img src={playerB.avatar_url} alt="" className="w-14 h-14 rounded-full border-2 border-blue-500 object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 border-2 border-blue-500">
-                    <Users className="w-6 h-6" />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900">{playerB?.username}</h3>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 mt-1">HC: {playerB?.handicap}</Badge>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* PLAYER C */}
-          <Card className={`p-5 border-2 transition-all ${step === 3 ? 'border-green-500 shadow-md ring-4 ring-green-100' : 'border-green-200 opacity-90'}`}>
-            <div className="mb-4">
-              <Badge className="bg-green-500 hover:bg-green-600">PLAYER C</Badge>
-            </div>
-            
-            {!playerC ? (
-              <div className="flex flex-col items-center justify-center py-2 text-green-300">
-                <UserPlus className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm font-medium">{step === 3 ? "Menunggu undian..." : "Tunggu giliran"}</p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 animate-in fade-in zoom-in duration-500">
-                {playerC?.avatar_url ? (
-                  <img src={playerC.avatar_url} alt="" className="w-14 h-14 rounded-full border-2 border-green-500 object-cover" />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-500 border-2 border-green-500">
-                    <Users className="w-6 h-6" />
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-lg text-gray-900">{playerC?.username}</h3>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 mt-1">HC: {playerC?.handicap}</Badge>
-                </div>
-              </div>
-            )}
-          </Card>
-
-        </div>
-
-        {/* Action Area (Spinning Wheel) */}
-        {step > 1 && step < 4 && (
-          <Card className="p-8 border-t-4 border-t-purple-500 shadow-xl bg-gradient-to-b from-white to-purple-50">
-            <div className="flex flex-col items-center">
-              <h2 className="text-2xl font-black text-gray-800 mb-6 uppercase tracking-wider">
-                Masa untuk undi Player {step === 2 ? "B" : "C"}!
-              </h2>
-
-              {/* Wheel */}
-              <div className="relative w-64 h-64 mb-8">
-                <div
-                  ref={wheelRef}
-                  className={`w-full h-full rounded-full border-[10px] shadow-2xl flex items-center justify-center transition-transform bg-gradient-to-br ${
-                    step === 2 ? 'border-blue-500 from-blue-300 to-blue-600' : 'border-green-500 from-green-300 to-green-600'
-                  }`}
-                  style={{ transitionDuration: "0ms" }}
-                >
-                  <div className="text-white text-7xl font-bold filter drop-shadow-md">🎳</div>
-                </div>
-                {/* Pointer */}
-                <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 border-l-[20px] border-r-[20px] border-t-[40px] border-l-transparent border-r-transparent z-10 ${
-                  step === 2 ? 'border-t-blue-800' : 'border-t-green-800'
-                }`}></div>
-              </div>
-
-              {/* Result Pop */}
-              {resultName && !spinning && (
-                <div className="mb-6 text-center animate-bounce">
-                  <div className={`text-white rounded-2xl p-6 shadow-2xl ${
-                    step === 2 ? 'bg-blue-600' : 'bg-green-600'
-                  }`}>
-                    <div className="text-sm font-semibold mb-1 opacity-80 uppercase tracking-widest">TERPILIH!</div>
-                    <div className="text-4xl font-black tracking-tight">{resultName}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Spin Button */}
-              <Button
-                onClick={handleSpin}
-                disabled={spinning || !isAdmin}
-                size="lg"
-                className={`px-12 py-8 text-2xl font-black rounded-2xl shadow-xl transition-all hover:scale-105 ${
-                  step === 2 ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'
-                }`}
+            {step > 1 && (
+              <Button 
+                variant="outline" 
+                onClick={handleReset}
+                className="w-full md:w-auto h-12 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
               >
-                {spinning ? (
-                  <><Loader2 className="w-8 h-8 mr-3 animate-spin" /> BERPUSING...</>
-                ) : (
-                  `🎰 PUTAR UNTUK PLAYER ${step === 2 ? 'B' : 'C'}`
-                )}
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Undi Pasukan Lain
               </Button>
+            )}
+          </div>
+        </Card>
 
-              {!isAdmin && (
-                <p className="text-red-500 font-medium mt-4 bg-red-50 px-4 py-2 rounded-lg">
-                  ⚠️ Hanya admin kelab yang dibenarkan menekan butang undian
+        {trios.length === 0 ? (
+          <Card className="p-8 text-center border-dashed border-2">
+            <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+            <h3 className="text-xl font-bold mb-2">Tiada Trio Dikonfigurasi</h3>
+            <p className="text-muted-foreground">Admin perlu configure trio di panel Game Management terlebih dahulu.</p>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Team Board */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Player A Card */}
+              <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 1 ? 'ring-4 ring-red-500 shadow-xl shadow-red-100 scale-100 opacity-100' : 'opacity-50 scale-95'}`}>
+                <div className="bg-red-600 text-white p-3 text-center font-bold tracking-widest">
+                  PLAYER A
+                </div>
+                <div className="p-6 text-center min-h-[160px] flex flex-col items-center justify-center bg-gradient-to-b from-white to-red-50">
+                  {step === 1 ? (
+                    <div className="w-full">
+                      <p className="text-sm font-semibold text-red-600 mb-3 animate-pulse">
+                        Admin: Sila Pilih Player A
+                      </p>
+                      <Select onValueChange={handleSelectPlayerA} disabled={!isAdmin}>
+                        <SelectTrigger className="w-full border-red-200 focus:ring-red-500">
+                          <SelectValue placeholder="Pilih Player A..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {trios.map((trio) => (
+                            <SelectItem key={trio.id} value={trio.id}>
+                              {trio.player1?.username || "Unknown"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {!isAdmin && <p className="text-xs text-red-500 mt-2">Hanya admin boleh pilih</p>}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl font-black mb-3 shadow-inner">
+                        {playerA?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-2xl font-black text-slate-900">{playerA?.username}</div>
+                      <div className="text-sm font-medium text-red-600 mt-1">Ketua Trio</div>
+                    </>
+                  )}
+                </div>
+              </Card>
+
+              {/* Player B Card */}
+              <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 2 ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-100 scale-100 opacity-100' : 'opacity-40 scale-95 grayscale'}`}>
+                <div className="bg-blue-600 text-white p-3 text-center font-bold tracking-widest">
+                  PLAYER B
+                </div>
+                <div className="p-6 text-center min-h-[160px] flex flex-col items-center justify-center bg-gradient-to-b from-white to-blue-50">
+                  {!playerB ? (
+                    <Users className="w-12 h-12 text-blue-200 mb-2" />
+                  ) : (
+                    <div className="animate-in zoom-in duration-500">
+                      <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-black mb-3 shadow-inner mx-auto">
+                        {playerB.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-2xl font-black text-slate-900">{playerB.username}</div>
+                    </div>
+                  )}
+                  {step === 2 && !playerB && (
+                    <div className="absolute inset-0 bg-blue-900/10 flex items-center justify-center backdrop-blur-[2px]">
+                      <span className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg animate-pulse">
+                        Menunggu Undian...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Player C Card */}
+              <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 3 ? 'ring-4 ring-green-500 shadow-xl shadow-green-100 scale-100 opacity-100' : 'opacity-40 scale-95 grayscale'}`}>
+                <div className="bg-green-600 text-white p-3 text-center font-bold tracking-widest">
+                  PLAYER C
+                </div>
+                <div className="p-6 text-center min-h-[160px] flex flex-col items-center justify-center bg-gradient-to-b from-white to-green-50">
+                  {!playerC ? (
+                    <Users className="w-12 h-12 text-green-200 mb-2" />
+                  ) : (
+                    <div className="animate-in zoom-in duration-500">
+                      <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-2xl font-black mb-3 shadow-inner mx-auto">
+                        {playerC.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-2xl font-black text-slate-900">{playerC.username}</div>
+                    </div>
+                  )}
+                  {step === 3 && !playerC && (
+                    <div className="absolute inset-0 bg-green-900/10 flex items-center justify-center backdrop-blur-[2px]">
+                      <span className="bg-green-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg animate-pulse">
+                        Menunggu Undian...
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Spinning Wheel Area */}
+            {(step === 2 || step === 3) && (
+              <Card className="p-8 bg-slate-900 text-white shadow-2xl border-0 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-slate-900 to-slate-900"></div>
+                
+                <div className="relative z-10 flex flex-col items-center">
+                  <h3 className="text-2xl font-bold mb-8 text-center">
+                    CABUTAN UNDI UNTUK <span className={step === 2 ? "text-blue-400" : "text-green-400"}>
+                      PLAYER {step === 2 ? "B" : "C"}
+                    </span>
+                  </h3>
+                  
+                  {/* Wheel */}
+                  <div className="relative w-80 h-80 mb-10">
+                    <div
+                      ref={wheelRef}
+                      className={`w-full h-full rounded-full border-[12px] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center transition-transform ${
+                        step === 2 
+                          ? "border-blue-500 bg-gradient-to-br from-blue-400 to-blue-700 shadow-blue-500/30" 
+                          : "border-green-500 bg-gradient-to-br from-green-400 to-green-700 shadow-green-500/30"
+                      }`}
+                      style={{ transitionDuration: "0ms" }}
+                    >
+                      <div className="text-white text-7xl font-black drop-shadow-md">
+                        {spinning ? "🎲" : "🎯"}
+                      </div>
+                      
+                      {/* Decorative dots on wheel border */}
+                      {Array.from({length: 12}).map((_, i) => (
+                        <div 
+                          key={i} 
+                          className="absolute w-3 h-3 bg-white rounded-full shadow-sm"
+                          style={{
+                            top: `${50 - 46 * Math.cos(i * 30 * Math.PI / 180)}%`,
+                            left: `${50 + 46 * Math.sin(i * 30 * Math.PI / 180)}%`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {/* Pointer */}
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[24px] border-r-[24px] border-t-[48px] border-l-transparent border-r-transparent border-t-yellow-400 z-10 drop-shadow-lg"></div>
+                  </div>
+
+                  {/* Spin Button */}
+                  <Button
+                    onClick={step === 2 ? handleSpinForB : handleSpinForC}
+                    disabled={spinning || !isAdmin}
+                    size="lg"
+                    className={`px-16 py-8 text-2xl font-black rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 ${
+                      step === 2
+                        ? "bg-blue-600 hover:bg-blue-500 text-white"
+                        : "bg-green-600 hover:bg-green-500 text-white"
+                    }`}
+                  >
+                    {spinning ? (
+                      <>
+                        <Loader2 className="w-8 h-8 mr-3 animate-spin" />
+                        MEMUTAR...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-8 h-8 mr-3" />
+                        PUTAR RODA!
+                      </>
+                    )}
+                  </Button>
+
+                  {!isAdmin && (
+                    <p className="text-sm text-slate-400 mt-4 bg-black/20 px-4 py-2 rounded-full">
+                      ⚠️ Hanya admin boleh tekan butang putar
+                    </p>
+                  )}
+
+                  {/* Dummy pool names scrolling ticker (visual effect only) */}
+                  <div className="mt-8 w-full max-w-lg overflow-hidden whitespace-nowrap bg-black/30 rounded-lg p-3 border border-slate-700">
+                    <div className="inline-block animate-[marquee_10s_linear_infinite]">
+                      <span className="text-slate-400 text-sm font-medium tracking-widest uppercase">
+                        KOLAM UNDIAN: {(step === 2 ? poolB : poolC).map(p => p.username).join(" • ")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Completion State */}
+            {step === 4 && (
+              <Card className="p-10 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 text-slate-900 shadow-2xl border-0 text-center animate-in slide-in-from-bottom-8 duration-700">
+                <Trophy className="w-24 h-24 mx-auto mb-6 text-white drop-shadow-lg animate-bounce" />
+                <h2 className="text-4xl font-black mb-2 tracking-tight drop-shadow-sm">
+                  PASUKAN TRIO LENGKAP!
+                </h2>
+                <p className="text-xl font-bold mb-8 opacity-90 drop-shadow-sm">
+                  Pasukan {playerA?.username} sedia untuk berentap!
                 </p>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* Completion State */}
-        {step === 4 && (
-          <Card className="p-10 text-center bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-2xl border-none">
-            <Trophy className="w-24 h-24 mx-auto mb-6 text-yellow-300 drop-shadow-lg" />
-            <h2 className="text-4xl font-black mb-4">TRIO LENGKAP!</h2>
-            <p className="text-xl opacity-90 mb-8 max-w-2xl mx-auto">
-              Tahniah! Formasi Trio untuk game ini telah berjaya diundi dan direkodkan ke dalam database.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Button onClick={() => window.location.reload()} variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white/20 px-8 py-6 text-lg font-bold">
-                Kembali ke Utama
-              </Button>
-              {isAdmin && (
-                <Button onClick={handleReset} className="bg-red-500 hover:bg-red-600 text-white px-8 py-6 text-lg font-bold shadow-lg">
-                  Buat Undian Baru (Reset)
+                <Button 
+                  onClick={handleReset} 
+                  size="lg"
+                  className="bg-white text-yellow-600 hover:bg-slate-50 px-10 py-6 text-xl font-bold rounded-xl shadow-lg"
+                >
+                  <RefreshCw className="w-6 h-6 mr-2" />
+                  UNDI PASUKAN LAIN
                 </Button>
-              )}
-            </div>
-          </Card>
+              </Card>
+            )}
+          </div>
         )}
-
       </div>
     </MemberLayout>
   );
