@@ -5,10 +5,11 @@ interface LaneSpinWheelProps {
   rotation: number;
   isSpinning: boolean;
   onSpinClick: () => void;
+  hideInstructions?: boolean;
 }
 
 export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
-  ({ items, rotation, isSpinning, onSpinClick }, forwardedRef) => {
+  ({ items, rotation, isSpinning, onSpinClick, hideInstructions = false }, forwardedRef) => {
     const internalCanvasRef = useRef<HTMLCanvasElement>(null);
     const [isMobile, setIsMobile] = useState(false);
     
@@ -179,7 +180,7 @@ export const LaneSpinWheel = forwardRef<HTMLCanvasElement, LaneSpinWheelProps>(
         />
 
         {/* "Tap to spin" Text overlay - Responsive sizing */}
-        {!isSpinning && items.length > 0 && (
+        {!isSpinning && items.length > 0 && !hideInstructions && (
           <div 
             className="absolute text-xl sm:text-3xl md:text-5xl font-black text-white tracking-wider cursor-pointer pointer-events-none animate-pulse"
             style={{

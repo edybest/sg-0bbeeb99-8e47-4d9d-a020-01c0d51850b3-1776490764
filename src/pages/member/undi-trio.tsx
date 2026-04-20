@@ -399,6 +399,7 @@ export default function UndiTrioPage() {
                       rotation={rotation}
                       isSpinning={spinning}
                       onSpinClick={() => {}}
+                      hideInstructions={true}
                     />
                   </div>
 
