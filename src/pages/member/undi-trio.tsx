@@ -150,7 +150,7 @@ export default function UndiTrioPage() {
   }
 
   async function handleSpinForC() {
-    if (!selectedTrio || !selectedTrio.player3) return;
+    if (!selectedTrio || !selectedTrio.player3 || poolC.length === 0) return;
     
     setSpinning(true);
 
@@ -159,21 +159,20 @@ export default function UndiTrioPage() {
       spinAudioRef.current.play().catch(console.error);
     }
 
-    const spinDuration = 3000 + Math.random() * 2000;
-    const startTime = Date.now();
+    // Calculate target rotation to land on the correct player
+    const targetIndex = poolC.findIndex(p => p.id === selectedTrio.player3!.id);
+    const segmentAngle = 360 / poolC.length;
+    const targetAngle = targetIndex * segmentAngle;
+    
+    // Add multiple full rotations for dramatic effect
+    const fullRotations = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = fullRotations * 360 + targetAngle;
+    
+    setRotation(finalRotation);
 
-    const spinInterval = setInterval(() => {
-      if (wheelRef.current) {
-        const elapsed = Date.now() - startTime;
-        const progress = elapsed / spinDuration;
-        const rotation = progress * 360 * 5;
-        wheelRef.current.style.transform = `rotate(${rotation}deg)`;
-      }
-    }, 16);
+    const spinDuration = 5200;
 
     setTimeout(async () => {
-      clearInterval(spinInterval);
-      
       // Magic: Wheel stops, we show the actual pre-configured Player C!
       setPlayerC(selectedTrio.player3!);
       setSpinning(false);
