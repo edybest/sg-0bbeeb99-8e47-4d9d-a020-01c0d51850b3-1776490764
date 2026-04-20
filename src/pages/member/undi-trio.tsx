@@ -395,29 +395,55 @@ export default function UndiTrioPage() {
                   <div className="relative w-80 h-80 mb-10">
                     <div
                       ref={wheelRef}
-                      className={`w-full h-full rounded-full border-[12px] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center transition-transform ${
+                      className={`w-full h-full rounded-full border-[12px] shadow-[0_0_50px_rgba(0,0,0,0.5)] transition-transform ${
                         step === 2 
                           ? "border-blue-500 bg-gradient-to-br from-blue-400 to-blue-700 shadow-blue-500/30" 
                           : "border-green-500 bg-gradient-to-br from-green-400 to-green-700 shadow-green-500/30"
                       }`}
                       style={{ transitionDuration: "0ms" }}
                     >
-                      <div className="text-white text-7xl font-black drop-shadow-md">
-                        {spinning ? "🎲" : "🎯"}
+                      {/* Center decoration */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/40 flex items-center justify-center">
+                          <div className="text-white text-3xl font-black drop-shadow-md">
+                            {spinning ? "🎲" : "🎯"}
+                          </div>
+                        </div>
                       </div>
-                      
-                      {/* Decorative dots on wheel border */}
-                      {Array.from({length: 12}).map((_, i) => (
-                        <div 
-                          key={i} 
-                          className="absolute w-3 h-3 bg-white rounded-full shadow-sm"
-                          style={{
-                            top: `${50 - 46 * Math.cos(i * 30 * Math.PI / 180)}%`,
-                            left: `${50 + 46 * Math.sin(i * 30 * Math.PI / 180)}%`,
-                            transform: 'translate(-50%, -50%)'
-                          }}
-                        />
-                      ))}
+
+                      {/* Player names in circular layout */}
+                      {(step === 2 ? poolB : poolC).map((player, index) => {
+                        const totalPlayers = (step === 2 ? poolB : poolC).length;
+                        const angle = (index * 360) / totalPlayers;
+                        const radius = 110; // Distance from center
+                        
+                        // Calculate position
+                        const x = 50 + radius * Math.sin((angle * Math.PI) / 180);
+                        const y = 50 - radius * Math.cos((angle * Math.PI) / 180);
+                        
+                        return (
+                          <div
+                            key={player.id}
+                            className="absolute"
+                            style={{
+                              left: `${x}%`,
+                              top: `${y}%`,
+                              transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                            }}
+                          >
+                            <div 
+                              className="bg-white/95 px-3 py-1.5 rounded-lg shadow-lg"
+                              style={{
+                                transform: `rotate(-${angle}deg)`, // Counter-rotate text to keep it upright
+                              }}
+                            >
+                              <span className="text-slate-900 font-bold text-sm whitespace-nowrap">
+                                {player.username}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     {/* Pointer */}
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[24px] border-r-[24px] border-t-[48px] border-l-transparent border-r-transparent border-t-yellow-400 z-10 drop-shadow-lg"></div>
