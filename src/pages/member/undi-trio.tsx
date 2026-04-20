@@ -37,7 +37,12 @@ export default function UndiTrioPage() {
   // Dummy pool state (for spinning effect)
   const [poolB, setPoolB] = useState<TrioPlayer[]>([]);
   const [poolC, setPoolC] = useState<TrioPlayer[]>([]);
-
+  
+  // Track used/selected players (players that have been drawn)
+  const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set());
+  // Track completed trios (trio IDs that have been fully drawn)
+  const [completedTrioIds, setCompletedTrioIds] = useState<Set<string>>(new Set());
+  
   // Refs for animation & audio
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spinAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -86,14 +91,26 @@ export default function UndiTrioPage() {
       setTrios(records);
       
       // Build dummy pools for spinning from ALL configured B and C players
-      const allB = records.map(r => r.player2).filter(p => p != null) as TrioPlayer[];
-      const allC = records.map(r => r.player3).filter(p => p != null) as TrioPlayer[];
+      // Filter out players that have already been drawn/used
+      const allB = records
+        .map(r => r.player2)
+        .filter(p => p != null && !usedPlayerIds.has(p.id)) as TrioPlayer[];
+      
+      const allC = records
+        .map(r => r.player3)
+        .filter(p => p != null && !usedPlayerIds.has(p.id)) as TrioPlayer[];
       
       setPoolB(allB);
       setPoolC(allC);
       
-      // Reset state when game changes
-      handleReset();
+      // Reset current selection state when game changes
+      setStep(1);
+      setPlayerA(null);
+      setPlayerB(null);
+      setPlayerC(null);
+      setSelectedTrio(null);
+      setSpinning(false);
+      setRotation(0);
     } catch (error) {
       console.error("Error loading trios:", error);
     }
@@ -101,9 +118,27 @@ export default function UndiTrioPage() {
 
   function handleSelectPlayerA(trioId: string) {
     const trio = trios.find(t => t.id === trioId);
-    if (trio && trio.player1) {
-      setSelectedTrio(trio);
-      setPlayerA(trio.player1);
+    if (!trio || !trio.player1) return;
+    
+    setSelectedTrio(trio);
+    setPlayerA(trio.player1);
+    
+    // Check if this trio has already been completed (drawn before)
+    if (completedTrioIds.has(trio.id)) {
+      // Trio already drawn, skip spinning and show results directly
+      setPlayerB(trio.player2!);
+      setPlayerC(trio.player3!);
+      setStep(4);
+      
+      toast({
+        title: "ℹ️ Trio Sudah Diundi",
+        description: `Pasukan ${trio.player1.username} telah diundi sebelum ini`,
+        duration: 3000,
+      });
+    } else {
+      // New trio, proceed to spinning
+      setPlayerB(null);
+      setPlayerC(null);
       setStep(2);
     }
   }
@@ -129,12 +164,19 @@ export default function UndiTrioPage() {
     
     setRotation(finalRotation);
 
-    const spinDuration = 5200; // Match LaneSpinWheel transition duration
+    const spinDuration = 5200;
 
     setTimeout(() => {
-      setPlayerB(selectedTrio.player2!);
+      const selectedPlayerB = selectedTrio.player2!;
+      setPlayerB(selectedPlayerB);
       setSpinning(false);
       setStep(3);
+      
+      // Mark Player B as used
+      setUsedPlayerIds(prev => new Set([...prev, selectedPlayerB.id]));
+      
+      // Remove Player B from pool C (player can't be both B and C)
+      setPoolC(prevPool => prevPool.filter(p => p.id !== selectedPlayerB.id));
 
       if (winAudioRef.current) {
         winAudioRef.current.currentTime = 0;
@@ -143,7 +185,7 @@ export default function UndiTrioPage() {
 
       toast({
         title: "🎉 Undian Selesai!",
-        description: `${selectedTrio.player2!.username} dipilih sebagai Player B!`,
+        description: `${selectedPlayerB.username} dipilih sebagai Player B!`,
         duration: 3000,
       });
     }, spinDuration);
@@ -173,10 +215,24 @@ export default function UndiTrioPage() {
     const spinDuration = 5200;
 
     setTimeout(async () => {
-      // Magic: Wheel stops, we show the actual pre-configured Player C!
-      setPlayerC(selectedTrio.player3!);
+      const selectedPlayerC = selectedTrio.player3!;
+      setPlayerC(selectedPlayerC);
       setSpinning(false);
       setStep(4);
+      
+      // Mark Player C as used
+      setUsedPlayerIds(prev => new Set([...prev, selectedPlayerC.id]));
+      
+      // Mark this trio as completed
+      setCompletedTrioIds(prev => new Set([...prev, selectedTrio.id]));
+      
+      // Remove used players from pools for next draw
+      setPoolB(prevPool => prevPool.filter(p => 
+        p.id !== selectedTrio.player2!.id && p.id !== selectedPlayerC.id
+      ));
+      setPoolC(prevPool => prevPool.filter(p => 
+        p.id !== selectedTrio.player2!.id && p.id !== selectedPlayerC.id
+      ));
 
       if (winAudioRef.current) {
         winAudioRef.current.currentTime = 0;
@@ -193,6 +249,8 @@ export default function UndiTrioPage() {
   }
 
   function handleReset() {
+    // Only reset current selection state
+    // Keep usedPlayerIds and completedTrioIds to track drawn players
     setStep(1);
     setPlayerA(null);
     setPlayerB(null);
