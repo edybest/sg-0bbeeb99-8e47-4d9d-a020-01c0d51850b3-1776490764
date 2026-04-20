@@ -1443,16 +1443,19 @@ export default function BlokPage() {
                                             {/* Trio Game Button */}
                                             {selectedGame && games.find(g => g.id === selectedGame)?.trio_enabled && (
                                                 <Button
-                                                    variant={gameFormat === "trio" ? "default" : "outline"}
-                                                    onClick={() => setGameFormat("trio")}
-                                                    className={`flex-1 h-16 text-lg font-bold transition-all ${
-                                                      gameFormat === "trio"
-                                                        ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg scale-105"
-                                                        : "hover:border-purple-400 hover:text-purple-600"
-                                                    }`}
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        if (selectedGame) {
+                                                            const game = games.find(g => g.id === selectedGame);
+                                                            if (game) {
+                                                                router.push(`/member/trio?date=${game.game_date}`);
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="w-full mt-2 border-2 border-purple-500 text-purple-700 hover:bg-purple-50"
                                                 >
-                                                    <Users className="w-6 h-6 mr-2" />
-                                                    Trio
+                                                    <Users className="w-4 h-4 mr-2" />
+                                                    Score Trio
                                                 </Button>
                                             )}
 
@@ -2266,26 +2269,6 @@ export default function BlokPage() {
                                 
                                 {!isCapturingScreenshot && (
                                     <div className="flex items-center gap-2" data-html2canvas-ignore="true">
-                                        <Button
-              variant={gameFormat === "men_vs_women" ? "default" : "outline"}
-              onClick={() => setGameFormat("men_vs_women")}
-              className={`flex-1 h-16 text-lg font-bold transition-all ${
-                gameFormat === "men_vs_women"
-                  ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white shadow-lg scale-105"
-                  : "hover:border-pink-400 hover:text-pink-600"
-              }`}
-            >
-              <Users className="w-6 h-6 mr-2" />
-              Men vs Women
-            </Button>
-                                        <Button
-              variant="outline"
-              onClick={handleOpenMenVsWomenDialog}
-              className="flex-1 h-16 text-lg font-bold transition-all hover:border-pink-400 hover:text-pink-600 hover:bg-pink-50"
-            >
-              <Users className="w-6 h-6 mr-2" />
-              Men vs Women
-            </Button>
                                         <button 
                                             onClick={handleShareMenVsWomen}
                                             disabled={isCapturingScreenshot || loadingMenVsWomen || !menVsWomenData}
