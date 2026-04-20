@@ -70,13 +70,31 @@ export const memberService = {
   async getAllMembers(): Promise<Member[]> {
     const { data, error } = await supabase
       .from("members")
-      .select("*")
+      .select("id, username, full_name, email, phone, avatar_url, gender, is_verified, is_admin, created_at")
       .eq("is_verified", true)
       .order("username")
-      .limit(500); // Limit to 500 members for performance
+      .limit(200); // Reduce to 200 for faster initial load
 
     if (error) throw error;
     return data || [];
+  },
+
+  /**
+   * Get members with pagination
+   */
+  async getMembersPaginated(page: number = 1, pageSize: number = 50): Promise<{ data: Member[]; count: number }> {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error, count } = await supabase
+      .from("members")
+      .select("id, username, full_name, email, phone, avatar_url, gender, is_verified, is_admin, created_at", { count: "exact" })
+      .eq("is_verified", true)
+      .order("username")
+      .range(from, to);
+
+    if (error) throw error;
+    return { data: data || [], count: count || 0 };
   },
 
   /**
