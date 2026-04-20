@@ -305,11 +305,17 @@ export default function UndiTrioPage() {
                           <SelectValue placeholder="Pilih Player A..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {trios.map((trio) => (
-                            <SelectItem key={trio.id} value={trio.id}>
-                              {trio.player1?.username || "Unknown"}
-                            </SelectItem>
-                          ))}
+                          {/* Only show unique Player A names, no trio details */}
+                          {Array.from(new Set(trios.map(t => t.player1?.username)))
+                            .filter(Boolean)
+                            .map((username) => {
+                              const trio = trios.find(t => t.player1?.username === username);
+                              return (
+                                <SelectItem key={trio!.id} value={trio!.id}>
+                                  {username}
+                                </SelectItem>
+                              );
+                            })}
                         </SelectContent>
                       </Select>
                       {!isAdmin && <p className="text-xs text-red-500 mt-2">Hanya admin boleh pilih</p>}
