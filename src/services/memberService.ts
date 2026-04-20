@@ -148,4 +148,26 @@ export const memberService = {
   async linkAuthUser(memberId: string, userId: string): Promise<Member> {
     return this.updateMember(memberId, { user_id: userId });
   },
+
+  /**
+   * Get members playing in a specific game
+   */
+  async getMembersByGameDate(gameId: string): Promise<Member[]> {
+    const { data, error } = await supabase
+      .from("game_players")
+      .select(`
+        member_id,
+        members (*)
+      `)
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+    
+    // Extract members from the joined data
+    const members = data
+      ?.map((gp: any) => gp.members)
+      .filter((m: any) => m != null) as Member[];
+    
+    return members || [];
+  },
 };
