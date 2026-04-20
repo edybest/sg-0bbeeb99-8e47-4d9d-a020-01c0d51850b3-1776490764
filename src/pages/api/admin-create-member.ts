@@ -107,10 +107,25 @@ export default async function handler(
 
     // Step 3: Create member record with user_id
     console.log("Step 3: Creating member record with user_id:", userId);
+    console.log("Member data to insert:", {
+      user_id: userId,
+      username: memberData.username,
+      email: email,
+      full_name: memberData.full_name,
+      phone: memberData.phone,
+      birthday: memberData.birthday,
+      sex: memberData.sex,
+      bowling_technique: memberData.bowling_technique || null,
+      handicap: memberData.handicap || 0,
+      avatar_url: memberData.avatar_url || null,
+      is_admin: false,
+      is_verified: true,
+    });
+
     const { data: member, error: memberError } = await supabaseAdmin
       .from("members")
       .insert({
-        user_id: userId, // ✅ Link to auth user!
+        user_id: userId,
         username: memberData.username,
         email: email,
         full_name: memberData.full_name,
@@ -121,16 +136,32 @@ export default async function handler(
         handicap: memberData.handicap || 0,
         avatar_url: memberData.avatar_url || null,
         is_admin: false,
-        is_verified: true, // Admin-created members are auto-verified
+        is_verified: true,
       })
       .select()
       .single();
 
     if (memberError) {
-      console.error("Error creating member record:", memberError);
+      console.error("❌ Error creating member record:", {
+        message: memberError.message,
+        details: memberError.details,
+        hint: memberError.hint,
+        code: memberError.code,
+      });
+      
+      // Return detailed error for debugging
+      let errorMsg = memberError.message;
+      if (memberError.code === "23505") {
+        errorMsg = "Duplicate entry - Email, username, or phone already exists";
+      } else if (memberError.code === "23502") {
+        errorMsg = "Missing required field";
+      }
+      
       return res.status(500).json({ 
         error: "Failed to create member record", 
-        details: memberError.message 
+        details: errorMsg,
+        code: memberError.code,
+        hint: memberError.hint,
       });
     }
 
