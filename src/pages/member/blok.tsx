@@ -2029,10 +2029,10 @@ export default function BlokPage() {
                                                                     </td>
                                                                 ))}
                                                                 <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-slate-800">{player.total_score}</span>
+                                                                    <span className="font-bold text-slate-800">{player.total_score || 0}</span>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center border-r border-sky-200">
-                                                                    <span className="font-bold text-blue-600">{player.handicap}</span>
+                                                                    <span className="font-bold text-blue-600">{player.handicap || 0}</span>
                                                                 </td>
                                                                 <td className="px-3 py-3 text-center">
                                                                     <button
