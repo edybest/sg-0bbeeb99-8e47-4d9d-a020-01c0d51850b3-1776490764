@@ -392,6 +392,48 @@ export default function MemberDashboard() {
             </div>
           </div>
 
+          {/* Couple Section */}
+          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer bg-gradient-to-br from-rose-50 to-pink-100 border-2 border-rose-300">
+            <Link href="/member/couple">
+              <div className="p-6 relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-rose-500/10 rounded-xl group-hover:bg-rose-500/20 transition-all">
+                    <Heart className="w-8 h-8 text-rose-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="text-sm font-bold text-rose-600 bg-rose-100 px-3 py-1 rounded-full">Kemesraan</div>
+                </div>
+                <h3 className="text-2xl font-black text-rose-900 mb-2 group-hover:text-rose-700 transition-colors">Couple</h3>
+                <p className="text-rose-700/80 text-sm leading-relaxed mb-4">Leaderboard pasangan romantis terbaik</p>
+                <div className="flex items-center text-rose-600 font-semibold group-hover:translate-x-2 transition-transform">
+                  <span>Lihat Ranking</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </div>
+            </Link>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-rose-400/20 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
+          </Card>
+
+          {/* Trio Card */}
+          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer bg-gradient-to-br from-purple-50 to-indigo-100 border-2 border-purple-300">
+            <Link href="/member/trio">
+              <div className="p-6 relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all">
+                    <Users className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div className="text-sm font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">3-Player</div>
+                </div>
+                <h3 className="text-2xl font-black text-purple-900 mb-2 group-hover:text-purple-700 transition-colors">Trio</h3>
+                <p className="text-purple-700/80 text-sm leading-relaxed mb-4">Battle royale pasukan trio terbaik</p>
+                <div className="flex items-center text-purple-600 font-semibold group-hover:translate-x-2 transition-transform">
+                  <span>Lihat Leaderboard</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </div>
+            </Link>
+            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
+          </Card>
+
           {/* Profile Quick Link - Only show for logged in members */}
           {member &&
           <motion.div
