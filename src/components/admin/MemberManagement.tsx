@@ -521,8 +521,22 @@ export function MemberManagement() {
 
         const data = await response.json();
 
+        console.log("API Response:", { status: response.status, data });
+
         if (!response.ok) {
-          throw new Error(data.error || "Failed to create member");
+          // Extract detailed error message
+          const errorMsg = data.details || data.error || "Failed to create member";
+          const errorCode = data.code ? ` (Code: ${data.code})` : "";
+          const errorHint = data.hint ? `\n\nHint: ${data.hint}` : "";
+          
+          toast({
+            title: "❌ Gagal Membuat Ahli",
+            description: `${errorMsg}${errorCode}${errorHint}`,
+            variant: "destructive",
+            duration: 5000,
+          });
+          
+          throw new Error(errorMsg);
         }
 
         console.log("✅ Member created with auth user:", data.data);
