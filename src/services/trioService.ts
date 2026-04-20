@@ -5,7 +5,7 @@ type TrioRecord = Database["public"]["Tables"]["trio_records"]["Row"];
 type TrioRecordInsert = Database["public"]["Tables"]["trio_records"]["Insert"];
 type TrioRecordUpdate = Database["public"]["Tables"]["trio_records"]["Update"];
 
-interface TrioPlayer {
+export interface TrioPlayer {
   id: string;
   username: string;
   full_name: string;
@@ -13,7 +13,7 @@ interface TrioPlayer {
   handicap: number;
 }
 
-interface TrioRecordWithPlayers extends TrioRecord {
+export interface TrioRecordWithPlayers extends TrioRecord {
   player1?: TrioPlayer | null;
   player2?: TrioPlayer | null;
   player3?: TrioPlayer | null;
