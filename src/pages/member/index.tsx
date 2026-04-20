@@ -114,7 +114,7 @@ export default function MemberDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {/* Blok */}
           <Link href="/member/blok">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-purple-500 via-purple-600 to-fuchsia-600 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
@@ -165,15 +165,15 @@ export default function MemberDashboard() {
 
           {/* Five+Five */}
           <Link href="/member/five-five">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-blue-500 via-sky-500 to-cyan-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
-                  <Zap className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <Star className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
                   <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">Five+Five</h3>
+                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">5+5</h3>
                   <div className="h-1 w-12 bg-white/50 rounded-full"></div>
                 </div>
               </div>
@@ -182,11 +182,11 @@ export default function MemberDashboard() {
 
           {/* Mini Blok */}
           <Link href="/member/mini-blok">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-amber-400 via-orange-400 to-yellow-400 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-amber-400 via-orange-400 to-yellow-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
-                  <Target className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <Zap className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
                   <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
                 <div>
@@ -199,7 +199,7 @@ export default function MemberDashboard() {
 
           {/* Hall of Fame */}
           <Link href="/member/hall-of-fame">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-400 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-cyan-400 via-blue-400 to-indigo-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
@@ -216,7 +216,7 @@ export default function MemberDashboard() {
 
           {/* Training */}
           <Link href="/member/training">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-red-400 via-rose-400 to-pink-400 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-red-400 via-rose-400 to-pink-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
@@ -233,7 +233,7 @@ export default function MemberDashboard() {
 
           {/* Purata Skor */}
           <Link href="/member/average-score">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-teal-400 via-cyan-400 to-emerald-400 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-teal-400 via-emerald-400 to-green-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
@@ -250,11 +250,11 @@ export default function MemberDashboard() {
 
           {/* Undi Lane */}
           <Link href="/member/undi-lane">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-pink-400 via-rose-400 to-red-400 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
-                  <Zap className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <Flame className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
                   <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
                 <div>
@@ -267,7 +267,7 @@ export default function MemberDashboard() {
 
           {/* Lane */}
           <Link href="/member/lane">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-500 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
@@ -284,11 +284,13 @@ export default function MemberDashboard() {
 
           {/* Gallery */}
           <Link href="/member/gallery">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
-                  <Star className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <svg className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                   <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
                 <div>
@@ -301,11 +303,13 @@ export default function MemberDashboard() {
 
           {/* Feedback */}
           <Link href="/member/feedback">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 border-0 h-32">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-orange-400 via-amber-500 to-yellow-500 border-0 h-32">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
               <div className="relative h-full flex flex-col justify-between p-6">
                 <div className="flex items-start justify-between">
-                  <UsersIcon className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <svg className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
                   <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
                 <div>
