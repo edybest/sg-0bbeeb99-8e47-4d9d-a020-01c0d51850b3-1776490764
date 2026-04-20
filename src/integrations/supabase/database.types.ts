@@ -1,4 +1,4 @@
- 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export type Json =
   | string
   | number
@@ -2005,6 +2005,7 @@ export type Database = {
             }
             Returns: boolean
           }
+      uid: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
