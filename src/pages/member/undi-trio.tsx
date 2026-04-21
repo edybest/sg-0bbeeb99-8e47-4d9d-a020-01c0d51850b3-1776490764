@@ -31,23 +31,10 @@ export default function UndiTrioPage() {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   
-  // Selection state
-  const [selectedTrio, setSelectedTrio] = useState<TrioRecordWithPlayers | null>(null);
-  const [playerA, setPlayerA] = useState<TrioPlayer | null>(null);
-  const [playerB, setPlayerB] = useState<TrioPlayer | null>(null);
-  const [playerC, setPlayerC] = useState<TrioPlayer | null>(null);
-  
-  // Dummy pool state (for spinning effect)
-  const [poolB, setPoolB] = useState<TrioPlayer[]>([]);
-  const [poolC, setPoolC] = useState<TrioPlayer[]>([]);
-  
-  // Track used/selected players (players that have been drawn)
-  const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set());
-  // Track completed trios (trio IDs that have been fully drawn)
-  const [completedTrioIds, setCompletedTrioIds] = useState<Set<string>>(new Set());
-  
-  // Refs for animation & audio
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Add missing wheel refs
+  const wheelRefB = useRef<HTMLCanvasElement>(null);
+  const wheelRefC = useRef<HTMLCanvasElement>(null);
+
   const spinAudioRef = useRef<HTMLAudioElement | null>(null);
   const winAudioRef = useRef<HTMLAudioElement | null>(null);
 
