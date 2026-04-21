@@ -187,7 +187,7 @@ export async function getTrioEnabledGames() {
     throw error;
   }
 
-  return data || [];
+  return (data as any) || [];
 }
 
 /**
