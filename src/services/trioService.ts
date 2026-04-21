@@ -10,6 +10,7 @@ export type TrioPlayer = {
   username: string;
   full_name: string | null;
   avatar_url: string | null;
+  handicap?: number | null;
 };
 
 export type TrioRecordWithPlayers = {
