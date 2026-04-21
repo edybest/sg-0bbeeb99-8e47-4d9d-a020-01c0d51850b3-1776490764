@@ -321,10 +321,10 @@ export default function TrioPage() {
                                                     ({sortedTrios[1].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-gray-600 sm:text-xs">
-                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">A: {sortedTrios[1].scoreA}</span>
-                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">B: {sortedTrios[1].scoreB}</span>
-                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">C: {sortedTrios[1].scoreC}</span>
+                                            <div className="mb-2 space-y-2 text-[11px] text-gray-700 sm:text-xs">
+                                                <div className="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2"><span>A: {sortedTrios[1].playerA}</span><span className="font-black">{sortedTrios[1].scoreA}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2"><span>B: {sortedTrios[1].playerB}</span><span className="font-black">{sortedTrios[1].scoreB}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2"><span>C: {sortedTrios[1].playerC}</span><span className="font-black">{sortedTrios[1].scoreC}</span></div>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-gray-600" />
@@ -359,10 +359,10 @@ export default function TrioPage() {
                                                     ({sortedTrios[0].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-xs text-yellow-700 sm:text-sm">
-                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">A: {sortedTrios[0].scoreA}</span>
-                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">B: {sortedTrios[0].scoreB}</span>
-                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">C: {sortedTrios[0].scoreC}</span>
+                                            <div className="mb-3 space-y-2 text-xs text-yellow-800 sm:text-sm">
+                                                <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>A: {sortedTrios[0].playerA}</span><span className="font-black">{sortedTrios[0].scoreA}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>B: {sortedTrios[0].playerB}</span><span className="font-black">{sortedTrios[0].scoreB}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>C: {sortedTrios[0].playerC}</span><span className="font-black">{sortedTrios[0].scoreC}</span></div>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-3 shadow sm:mt-4 sm:bg-white/80 sm:p-4 sm:shadow-lg">
                                                 <Zap className="h-6 w-6 text-yellow-600" />
@@ -395,10 +395,10 @@ export default function TrioPage() {
                                                     ({sortedTrios[2].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-amber-700 sm:text-xs">
-                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">A: {sortedTrios[2].scoreA}</span>
-                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">B: {sortedTrios[2].scoreB}</span>
-                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">C: {sortedTrios[2].scoreC}</span>
+                                            <div className="mb-2 space-y-2 text-[11px] text-amber-800 sm:text-xs">
+                                                <div className="flex items-center justify-between rounded-lg bg-amber-100 px-3 py-2"><span>A: {sortedTrios[2].playerA}</span><span className="font-black">{sortedTrios[2].scoreA}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-amber-100 px-3 py-2"><span>B: {sortedTrios[2].playerB}</span><span className="font-black">{sortedTrios[2].scoreB}</span></div>
+                                                <div className="flex items-center justify-between rounded-lg bg-amber-100 px-3 py-2"><span>C: {sortedTrios[2].playerC}</span><span className="font-black">{sortedTrios[2].scoreC}</span></div>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-amber-600" />
@@ -439,10 +439,10 @@ export default function TrioPage() {
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-1 flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">A: {trio.scoreA}</span>
-                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">B: {trio.scoreB}</span>
-                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">C: {trio.scoreC}</span>
+                                        <div className="flex-1 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                                            <div className="flex items-center justify-between rounded-md bg-white px-3 py-2"><span className="truncate">A: {trio.playerA}</span><span className="font-black">{trio.scoreA}</span></div>
+                                            <div className="flex items-center justify-between rounded-md bg-white px-3 py-2"><span className="truncate">B: {trio.playerB}</span><span className="font-black">{trio.scoreB}</span></div>
+                                            <div className="flex items-center justify-between rounded-md bg-white px-3 py-2"><span className="truncate">C: {trio.playerC}</span><span className="font-black">{trio.scoreC}</span></div>
                                         </div>
 
                                         <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center md:min-w-[140px] md:text-right">
