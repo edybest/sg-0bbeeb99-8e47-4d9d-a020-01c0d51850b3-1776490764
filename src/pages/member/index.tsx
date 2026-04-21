@@ -392,47 +392,53 @@ export default function MemberDashboard() {
             </div>
           </div>
 
-          {/* Couple Section */}
-          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer bg-gradient-to-br from-rose-50 to-pink-100 border-2 border-rose-300">
-            <Link href="/member/couple">
-              <div className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-rose-500/10 rounded-xl group-hover:bg-rose-500/20 transition-all">
-                    <Heart className="w-8 h-8 text-rose-600 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div className="text-sm font-bold text-rose-600 bg-rose-100 px-3 py-1 rounded-full">Kemesraan</div>
+          {/* Couple */}
+          <Link href="/member/couple">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 border-0 h-32">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
+              {/* Large background pattern - Hearts */}
+              <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <svg className="absolute -right-2 top-2 w-20 h-20 text-white/10 rotate-12" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <div className="relative h-full flex flex-col justify-between p-6">
+                <div className="flex items-start justify-between">
+                  <Heart className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
-                <h3 className="text-2xl font-black text-rose-900 mb-2 group-hover:text-rose-700 transition-colors">Couple</h3>
-                <p className="text-rose-700/80 text-sm leading-relaxed mb-4">Leaderboard pasangan romantis terbaik</p>
-                <div className="flex items-center text-rose-600 font-semibold group-hover:translate-x-2 transition-transform">
-                  <span>Lihat Ranking</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                <div>
+                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">Couple</h3>
+                  <div className="h-1 w-12 bg-white/50 rounded-full"></div>
                 </div>
               </div>
-            </Link>
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-rose-400/20 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
-          </Card>
+            </Card>
+          </Link>
 
-          {/* Trio Card */}
-          <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 cursor-pointer bg-gradient-to-br from-purple-50 to-indigo-100 border-2 border-purple-300">
-            <Link href="/member/trio">
-              <div className="p-6 relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-all">
-                    <Users className="w-8 h-8 text-purple-600 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div className="text-sm font-bold text-purple-600 bg-purple-100 px-3 py-1 rounded-full">3-Player</div>
+          {/* Trio */}
+          <Link href="/member/trio">
+            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 border-0 h-32">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
+              {/* Large background pattern - Users/People */}
+              <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              <svg className="absolute -right-2 top-2 w-20 h-20 text-white/10 rotate-12" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              <div className="relative h-full flex flex-col justify-between p-6">
+                <div className="flex items-start justify-between">
+                  <Users className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                  <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
                 </div>
-                <h3 className="text-2xl font-black text-purple-900 mb-2 group-hover:text-purple-700 transition-colors">Trio</h3>
-                <p className="text-purple-700/80 text-sm leading-relaxed mb-4">Battle royale pasukan trio terbaik</p>
-                <div className="flex items-center text-purple-600 font-semibold group-hover:translate-x-2 transition-transform">
-                  <span>Lihat Leaderboard</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                <div>
+                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">Trio</h3>
+                  <div className="h-1 w-12 bg-white/50 rounded-full"></div>
                 </div>
               </div>
-            </Link>
-            <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl group-hover:scale-150 transition-transform"></div>
-          </Card>
+            </Card>
+          </Link>
 
           {/* Profile Quick Link - Only show for logged in members */}
           {member &&
