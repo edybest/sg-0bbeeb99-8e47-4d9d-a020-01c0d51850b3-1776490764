@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getTrioEnabledGames, getAllTrioRecordsByGame, type TrioRecordWithPlayers, type TrioPlayer } from "@/services/trioService";
 import { LaneSpinWheel } from "@/components/admin/LaneSpinWheel";
-import { Loader2, Users, Trophy, UserPlus, RefreshCw, RefreshCcw } from "lucide-react";
+import { Loader2, Users, Trophy, RefreshCw, RefreshCcw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,15 +26,26 @@ export default function UndiTrioPage() {
   const [selectedGameId, setSelectedGameId] = useState<string>("");
   const [trios, setTrios] = useState<TrioRecordWithPlayers[]>([]);
   
+  // Selection State
+  const [selectedTrio, setSelectedTrio] = useState<TrioRecordWithPlayers | null>(null);
+  const [playerA, setPlayerA] = useState<TrioPlayer | null>(null);
+  const [playerB, setPlayerB] = useState<TrioPlayer | null>(null);
+  const [playerC, setPlayerC] = useState<TrioPlayer | null>(null);
+  
+  // Pools & Tracking
+  const [poolB, setPoolB] = useState<TrioPlayer[]>([]);
+  const [poolC, setPoolC] = useState<TrioPlayer[]>([]);
+  const [usedPlayerIds, setUsedPlayerIds] = useState<Set<string>>(new Set());
+  const [completedTrioIds, setCompletedTrioIds] = useState<Set<string>>(new Set());
+
   // Process state
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Select A, 2: Spin B, 3: Spin C, 4: Done
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   
-  // Add missing wheel refs
+  // Refs
   const wheelRefB = useRef<HTMLCanvasElement>(null);
   const wheelRefC = useRef<HTMLCanvasElement>(null);
-
   const spinAudioRef = useRef<HTMLAudioElement | null>(null);
   const winAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -48,24 +59,18 @@ export default function UndiTrioPage() {
 
   useEffect(() => {
     if (selectedGameId) {
-      loadTrioRecordsForGame(selectedGameId);
+      loadGameTrios();
     }
   }, [selectedGameId]);
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   async function loadData() {
     try {
       setLoading(true);
-      
       const trioGames = await getTrioEnabledGames();
       setGames(trioGames);
       
       if (trioGames.length > 0) {
         setSelectedGameId(trioGames[0].id);
-        await loadTrioRecordsForGame(trioGames[0].id);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -79,32 +84,6 @@ export default function UndiTrioPage() {
     }
   }
 
-  async function loadTrioRecordsForGame(gameId: string) {
-    try {
-      const records = await getAllTrioRecordsByGame(gameId);
-      setTrios(records);
-      
-      // Check which trios are already drawn
-      const drawnIds = new Set<string>();
-      
-      records.forEach(record => {
-        if (record.is_drawn) {
-          drawnIds.add(record.id);
-        }
-      });
-      
-      setCompletedTrioIds(drawnIds);
-      
-    } catch (error) {
-      console.error("Error loading trio records:", error);
-      toast({
-        title: "Error",
-        description: "Gagal memuatkan rekod trio",
-        variant: "destructive",
-      });
-    }
-  }
-
   async function loadGameTrios() {
     if (!selectedGameId) return;
 
@@ -112,57 +91,70 @@ export default function UndiTrioPage() {
       const records = await getAllTrioRecordsByGame(selectedGameId);
       setTrios(records);
       
-      // Build dummy pools for spinning from ALL configured B and C players
-      // Filter out players that have already been drawn/used
+      const drawnIds = new Set<string>();
+      const usedIds = new Set<string>();
+
+      records.forEach(record => {
+        if (record.is_drawn) {
+          drawnIds.add(record.id);
+          if (record.player2) usedIds.add(record.player2.id);
+          if (record.player3) usedIds.add(record.player3.id);
+        }
+      });
+      
+      setCompletedTrioIds(drawnIds);
+      setUsedPlayerIds(usedIds);
+      
       const allB = records
         .map(r => r.player2)
-        .filter(p => p != null && !usedPlayerIds.has(p.id)) as TrioPlayer[];
+        .filter(p => p != null && !usedIds.has(p.id)) as TrioPlayer[];
       
       const allC = records
         .map(r => r.player3)
-        .filter(p => p != null && !usedPlayerIds.has(p.id)) as TrioPlayer[];
+        .filter(p => p != null && !usedIds.has(p.id)) as TrioPlayer[];
       
       setPoolB(allB);
       setPoolC(allC);
       
-      // Reset current selection state when game changes
-      setStep(1);
-      setPlayerA(null);
-      setPlayerB(null);
-      setPlayerC(null);
-      setSelectedTrio(null);
-      setSpinning(false);
-      setRotation(0);
+      handleReset();
     } catch (error) {
       console.error("Error loading trios:", error);
     }
   }
 
   function handleSelectPlayerA(trioId: string) {
+    handleSelectTrio(trioId);
+  }
+
+  function handleSelectTrio(trioId: string) {
     const trio = trios.find(t => t.id === trioId);
-    if (!trio || !trio.player1) return;
+    if (!trio) return;
     
     setSelectedTrio(trio);
-    setPlayerA(trio.player1);
     
-    // Check if this trio has already been completed (drawn before)
-    if (completedTrioIds.has(trio.id)) {
-      // Trio already drawn, skip spinning and show results directly
-      setPlayerB(trio.player2!);
-      setPlayerC(trio.player3!);
+    if (trio.player1) {
+      setPlayerA(trio.player1);
+    }
+    
+    // Check if drawn
+    if (trio.is_drawn && trio.player1 && trio.player2 && trio.player3) {
+      setPlayerA(trio.player1);
+      setPlayerB(trio.player2);
+      setPlayerC(trio.player3);
       setStep(4);
       
       toast({
-        title: "ℹ️ Trio Sudah Diundi",
-        description: `Pasukan ${trio.player1.username} telah diundi sebelum ini`,
+        title: "✅ Trio Telah Diundi",
+        description: `Trio ini telah siap diundi sebelum ini.`,
         duration: 3000,
       });
     } else {
-      // New trio, proceed to spinning
+      setStep(2);
       setPlayerB(null);
       setPlayerC(null);
-      setStep(2);
     }
+    
+    setRotation(0);
   }
 
   async function handleSpinForB() {
@@ -175,12 +167,10 @@ export default function UndiTrioPage() {
       spinAudioRef.current.play().catch(console.error);
     }
 
-    // Calculate target rotation to land on the correct player
     const targetIndex = poolB.findIndex(p => p.id === selectedTrio.player2!.id);
     const segmentAngle = 360 / poolB.length;
     const targetAngle = targetIndex * segmentAngle;
     
-    // Add multiple full rotations for dramatic effect (5-7 spins)
     const fullRotations = 5 + Math.floor(Math.random() * 3);
     const finalRotation = fullRotations * 360 + targetAngle;
     
@@ -194,10 +184,7 @@ export default function UndiTrioPage() {
       setSpinning(false);
       setStep(3);
       
-      // Mark Player B as used
       setUsedPlayerIds(prev => new Set([...prev, selectedPlayerB.id]));
-      
-      // Remove Player B from pool C (player can't be both B and C)
       setPoolC(prevPool => prevPool.filter(p => p.id !== selectedPlayerB.id));
 
       if (winAudioRef.current) {
@@ -223,12 +210,10 @@ export default function UndiTrioPage() {
       spinAudioRef.current.play().catch(console.error);
     }
 
-    // Calculate target rotation to land on the correct player
     const targetIndex = poolC.findIndex(p => p.id === selectedTrio.player3!.id);
     const segmentAngle = 360 / poolC.length;
     const targetAngle = targetIndex * segmentAngle;
     
-    // Add multiple full rotations for dramatic effect
     const fullRotations = 5 + Math.floor(Math.random() * 3);
     const finalRotation = fullRotations * 360 + targetAngle;
     
@@ -242,13 +227,9 @@ export default function UndiTrioPage() {
       setSpinning(false);
       setStep(4);
       
-      // Mark Player C as used
       setUsedPlayerIds(prev => new Set([...prev, selectedPlayerC.id]));
-      
-      // Mark this trio as completed
       setCompletedTrioIds(prev => new Set([...prev, selectedTrio.id]));
       
-      // Remove used players from pools for next draw
       setPoolB(prevPool => prevPool.filter(p => 
         p.id !== selectedTrio.player2!.id && p.id !== selectedPlayerC.id
       ));
@@ -256,7 +237,7 @@ export default function UndiTrioPage() {
         p.id !== selectedTrio.player2!.id && p.id !== selectedPlayerC.id
       ));
 
-      // 🔥 MARK TRIO AS DRAWN IN DATABASE
+      // Update Database
       try {
         const { error: updateError } = await supabaseClient
           .from("trio_records")
@@ -288,8 +269,6 @@ export default function UndiTrioPage() {
   }
 
   function handleReset() {
-    // Only reset current selection state
-    // Keep usedPlayerIds and completedTrioIds to track drawn players
     setStep(1);
     setPlayerA(null);
     setPlayerB(null);
@@ -299,41 +278,7 @@ export default function UndiTrioPage() {
     setRotation(0);
   }
 
-  function handleSelectTrio(trioId: string) {
-    const trio = trios.find(t => t.id === trioId);
-    if (!trio) return;
-    
-    setSelectedTrio(trio);
-    
-    if (trio.player1) {
-      setPlayerA(trio.player1);
-    }
-    
-    // 🔒 CHECK IF TRIO IS ALREADY DRAWN
-    if (trio.is_drawn && trio.player1 && trio.player2 && trio.player3) {
-      // Restore complete state
-      setPlayerA(trio.player1);
-      setPlayerB(trio.player2);
-      setPlayerC(trio.player3);
-      setStep(4); // Set to final step (complete)
-      
-      toast({
-        title: "✅ Trio Telah Diundi",
-        description: `Trio ini telah siap diundi sebelum ini.`,
-        duration: 3000,
-      });
-    } else {
-      // Fresh draw
-      setStep(1);
-      setPlayerB(null);
-      setPlayerC(null);
-    }
-    
-    setRotation(0);
-  }
-
   function handleNextTrio() {
-    // Find next undrawn trio
     const nextTrio = trios.find(
       t => !completedTrioIds.has(t.id) && t.id !== selectedTrio?.id
     );
@@ -346,12 +291,7 @@ export default function UndiTrioPage() {
         description: "Semua pasukan trio telah lengkap diundi!",
         duration: 5000,
       });
-      
-      setStep(1);
-      setSelectedTrio(null);
-      setPlayerA(null);
-      setPlayerB(null);
-      setPlayerC(null);
+      handleReset();
     }
   }
 
@@ -366,7 +306,6 @@ export default function UndiTrioPage() {
     if (!confirmed) return;
     
     try {
-      // Reset is_drawn status in database
       const { error } = await supabase
         .from("trio_records")
         .update({ 
@@ -377,22 +316,19 @@ export default function UndiTrioPage() {
       
       if (error) throw error;
       
-      // Remove from completedTrioIds
       setCompletedTrioIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(selectedTrio.id);
         return newSet;
       });
       
-      // Reset UI state
       setStep(1);
       setPlayerB(null);
       setPlayerC(null);
       setRotation(0);
       
-      // Reload trio records to refresh is_drawn status
       if (selectedGameId) {
-        await loadTrioRecordsForGame(selectedGameId);
+        await loadGameTrios();
       }
       
       toast({
@@ -410,8 +346,6 @@ export default function UndiTrioPage() {
       });
     }
   }
-
-  // --- Rendering UI --- //
 
   if (loading) {
     return (
@@ -440,7 +374,6 @@ export default function UndiTrioPage() {
   return (
     <MemberLayout>
       <div className="container mx-auto p-4 max-w-4xl">
-        {/* Header */}
         <div className="mb-8 text-center bg-gradient-to-r from-slate-900 to-slate-800 text-white p-8 rounded-2xl shadow-xl">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Trophy className="w-10 h-10 text-yellow-400" />
@@ -450,7 +383,6 @@ export default function UndiTrioPage() {
           <p className="text-slate-300 text-lg">Undian Pasukan Trio Secara Langsung</p>
         </div>
 
-        {/* Game Selection */}
         <Card className="p-6 mb-8 border-2 border-blue-100 shadow-md">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="w-full md:w-2/3">
@@ -496,9 +428,7 @@ export default function UndiTrioPage() {
           </Card>
         ) : (
           <div className="space-y-8">
-            {/* Team Board */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Player A Card */}
               <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 1 ? 'ring-4 ring-red-500 shadow-xl shadow-red-100 scale-100 opacity-100' : 'opacity-50 scale-95'}`}>
                 <div className="bg-red-600 text-white p-3 text-center font-bold tracking-widest">
                   PLAYER A
@@ -514,7 +444,6 @@ export default function UndiTrioPage() {
                           <SelectValue placeholder="Pilih Player A..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {/* Only show unique Player A names, no trio details */}
                           {Array.from(new Set(trios.map(t => t.player1?.username)))
                             .filter(Boolean)
                             .map((username) => {
@@ -541,7 +470,6 @@ export default function UndiTrioPage() {
                 </div>
               </Card>
 
-              {/* Player B Card */}
               <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 2 ? 'ring-4 ring-blue-500 shadow-xl shadow-blue-100 scale-100 opacity-100' : 'opacity-40 scale-95 grayscale'}`}>
                 <div className="bg-blue-600 text-white p-3 text-center font-bold tracking-widest">
                   PLAYER B
@@ -567,7 +495,6 @@ export default function UndiTrioPage() {
                 </div>
               </Card>
 
-              {/* Player C Card */}
               <Card className={`relative overflow-hidden transition-all duration-500 ${step >= 3 ? 'ring-4 ring-green-500 shadow-xl shadow-green-100 scale-100 opacity-100' : 'opacity-40 scale-95 grayscale'}`}>
                 <div className="bg-green-600 text-white p-3 text-center font-bold tracking-widest">
                   PLAYER C
@@ -594,7 +521,6 @@ export default function UndiTrioPage() {
               </Card>
             </div>
 
-            {/* Spinning Wheel Area */}
             {(step === 2 || step === 3) && (
               <Card className="p-8 bg-slate-900 text-white shadow-2xl border-0 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-slate-900 to-slate-900"></div>
@@ -606,56 +532,69 @@ export default function UndiTrioPage() {
                     </span>
                   </h3>
                   
-                  {/* LaneSpinWheel Component */}
-                  <div className="mb-10">
-                    <LaneSpinWheel
-                      ref={canvasRef}
-                      items={(step === 2 ? poolB : poolC).map(p => p.username)}
-                      rotation={rotation}
-                      isSpinning={spinning}
-                      onSpinClick={() => {}}
-                      hideInstructions={true}
-                    />
-                  </div>
+                  {step === 2 ? (
+                    <div className="mb-10 w-full flex justify-center">
+                      <LaneSpinWheel
+                        ref={wheelRefB}
+                        items={poolB.map(p => p.username)}
+                        rotation={rotation}
+                        isSpinning={spinning}
+                        onSpinClick={handleSpinForB}
+                        hideInstructions={true}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-10 w-full flex justify-center">
+                      <LaneSpinWheel
+                        ref={wheelRefC}
+                        items={poolC.map(p => p.username)}
+                        rotation={rotation}
+                        isSpinning={spinning}
+                        onSpinClick={handleSpinForC}
+                        hideInstructions={true}
+                      />
+                    </div>
+                  )}
 
-                  {/* Spin Button */}
-                  <Button
-                    onClick={handleSpinForB}
-                    disabled={spinning || !isAdmin || poolB.length === 0 || selectedTrio?.is_drawn}
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-6 text-xl"
-                  >
-                    {spinning ? (
-                      <>
-                        <Loader2 className="w-8 h-8 mr-3 animate-spin" />
-                        MEMUTAR...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-8 h-8 mr-3" />
-                        PUTAR RODA!
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
-                    onClick={handleSpinForC}
-                    disabled={spinning || !isAdmin || poolC.length === 0 || selectedTrio?.is_drawn}
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-xl"
-                  >
-                    {spinning ? (
-                      <>
-                        <Loader2 className="w-8 h-8 mr-3 animate-spin" />
-                        MEMUTAR...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-8 h-8 mr-3" />
-                        PUTAR RODA!
-                      </>
-                    )}
-                  </Button>
+                  {step === 2 ? (
+                    <Button
+                      onClick={handleSpinForB}
+                      disabled={spinning || !isAdmin || poolB.length === 0 || selectedTrio?.is_drawn}
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-6 text-xl"
+                    >
+                      {spinning ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mr-3 animate-spin" />
+                          MEMUTAR...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-8 h-8 mr-3" />
+                          PUTAR RODA!
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSpinForC}
+                      disabled={spinning || !isAdmin || poolC.length === 0 || selectedTrio?.is_drawn}
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-xl"
+                    >
+                      {spinning ? (
+                        <>
+                          <Loader2 className="w-8 h-8 mr-3 animate-spin" />
+                          MEMUTAR...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-8 h-8 mr-3" />
+                          PUTAR RODA!
+                        </>
+                      )}
+                    </Button>
+                  )}
 
                   {!isAdmin && (
                     <p className="text-sm text-slate-400 mt-4 bg-black/20 px-4 py-2 rounded-full">
@@ -663,7 +602,6 @@ export default function UndiTrioPage() {
                     </p>
                   )}
 
-                  {/* Player pool info */}
                   <div className="mt-8 text-center">
                     <p className="text-slate-400 text-sm font-medium tracking-wide">
                       {(step === 2 ? poolB : poolC).length} calon dalam undian
@@ -673,97 +611,6 @@ export default function UndiTrioPage() {
               </Card>
             )}
 
-            {step === 2 && playerA && selectedTrio?.player2 && (
-              <Card className="p-6">
-                <h3 className="text-2xl font-bold text-center mb-6 text-blue-600">
-                  CABUTAN UNDI UNTUK <span className="text-blue-700">PLAYER B</span>
-                </h3>
-                
-                <div className="mb-6">
-                  <LaneSpinWheel
-                    ref={wheelRefB}
-                    items={poolB.map(p => p.username)}
-                    rotation={rotation}
-                    isSpinning={spinning}
-                    onSpinClick={handleSpinForB}
-                  />
-                </div>
-
-                <div className="text-center space-y-4">
-                  {playerB && (
-                    <div className="bg-blue-100 rounded-lg p-4 mb-4">
-                      <div className="text-sm text-blue-600 mb-1">Player B Terpilih:</div>
-                      <div className="text-2xl font-bold text-blue-700">{playerB.username}</div>
-                    </div>
-                  )}
-                  
-                  {!spinning && !playerB && (
-                    <Button
-                      onClick={handleSpinForB}
-                      disabled={spinning || !isAdmin || poolB.length === 0 || selectedTrio?.is_drawn}
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-6 text-xl"
-                    >
-                      {spinning ? (
-                        <>
-                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                          Memutar...
-                        </>
-                      ) : (
-                        "🎰 PUTAR RODA!"
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {step === 3 && playerA && playerB && selectedTrio?.player3 && (
-              <Card className="p-6">
-                <h3 className="text-2xl font-bold text-center mb-6 text-green-600">
-                  CABUTAN UNDI UNTUK <span className="text-green-700">PLAYER C</span>
-                </h3>
-                
-                <div className="mb-6">
-                  <LaneSpinWheel
-                    ref={wheelRefC}
-                    items={poolC.map(p => p.username)}
-                    rotation={rotation}
-                    isSpinning={spinning}
-                    onSpinClick={handleSpinForC}
-                  />
-                </div>
-
-                <div className="text-center space-y-4">
-                  {playerC && (
-                    <div className="bg-green-100 rounded-lg p-4 mb-4">
-                      <div className="text-sm text-green-600 mb-1">Player C Terpilih:</div>
-                      <div className="text-2xl font-bold text-green-700">{playerC.username}</div>
-                    </div>
-                  )}
-                  
-                  {!spinning && !playerC && (
-                    <Button
-                      onClick={handleSpinForC}
-                      disabled={spinning || !isAdmin || poolC.length === 0 || selectedTrio?.is_drawn}
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-xl"
-                    >
-                      {spinning ? (
-                        <>
-                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                          Memutar...
-                        </>
-                      ) : (
-                        "🎰 PUTAR RODA!"
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            )}
-
-            {/* Completion State */}
             {step === 4 && playerA && playerB && playerC && (
               <Card className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300">
                 <div className="text-center">
