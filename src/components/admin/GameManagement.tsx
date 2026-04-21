@@ -23,7 +23,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { TrioManagement } from "@/components/admin/TrioManagement";
 
 type Game = Database["public"]["Tables"]["games"]["Row"] & {
   player_count?: number;
@@ -1928,3 +1927,10566 @@ ${closingMsg}`;
                           <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
                             Double Game
                           </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            onCheckedChange={() => toggleMenVsWomen(game.id, game.men_vs_women_enabled || false)}
+                          />
+                        </div>
+
+                        {game.men_vs_women_enabled && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`hcp-${game.id}`} className="text-sm whitespace-nowrap">
+                              HCP Women
+                            </Label>
+                            <Input
+                              id={`hcp-${game.id}`}
+                              type="number"
+                              min="0"
+                              value={game.women_handicap || 0}
+                              onChange={(e) => updateWomenHandicap(game.id, parseInt(e.target.value) || 0)}
+                              className="w-20"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMenVsWomenExclusionDialog(game.id)}
+                            >
+                              <Users className="w-4 h-4 mr-1" />
+                              Urus Pemain
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Players List */}
+                      {game.players && game.players.length > 0 ?
+                  <div className="flex flex-wrap gap-2 mt-4">
+                          {game.players.map((player) =>
+                    <DropdownMenu key={player.id}>
+                              <DropdownMenuTrigger asChild>
+                                <Badge
+                          variant={player.is_fivefive || player.clean_game ? "default" : "secondary"}
+                          className={`cursor-pointer hover:scale-105 transition-all px-3 py-1 text-sm ${
+                          player.is_fivefive && player.clean_game ?
+                          "bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          player.is_fivefive ?
+                          "bg-pink-500 hover:bg-pink-600 text-white border-0" :
+                          player.clean_game ?
+                          "bg-amber-500 hover:bg-amber-600 text-white border-0 ring-2 ring-amber-400 ring-offset-1 shadow-sm" :
+                          ""}`
+                          }>
+                          
+                                  {player.username || "Unknown"}
+                                  {player.is_fivefive && " ⭐"}
+                                  {player.clean_game && " ✨"}
+                                </Badge>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>
+                                  {player.username || player.full_name || "Pemain"}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleFiveFive(player.id, !!player.is_fivefive)
+                          }>
+                          
+                                  {player.is_fivefive ?
+                          "Nyahaktifkan Five-Five" :
+                          "Tandakan sebagai Five-Five"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          onClick={() =>
+                          handleToggleCleanGame(player.id, !!player.clean_game)
+                          }>
+                          
+                                  {player.clean_game ?
+                          "Nyahaktifkan Clean Game" :
+                          "Tandakan sebagai Clean Game"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() =>
+                          setDeletePlayerDialog({
+                            open: true,
+                            playerId: player.id,
+                            playerName: player.username || player.full_name || "Pemain",
+                            gameId: game.id
+                          })
+                          }>
+                          
+                                  Buang dari permainan
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                    )}
+                        </div> :
+
+                  <p className="text-sm text-muted-foreground italic">
+                          Belum ada pemain didaftarkan untuk permainan ini.
+                        </p>
+                  }
+
+                      {/* Double Records List */}
+                      {expandedGame === game.id && game.double_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingDoubles[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !doubleRecords[game.id] || doubleRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod double lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Double ({doubleRecords[game.id].length})</h4>
+                              {doubleRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteDouble(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Trio Records List */}
+                      {expandedTrioGame === game.id && game.trio_enabled &&
+                        <div className="border-t bg-muted/20 pt-4">
+                          {loadingTrios[game.id] ?
+                            <div className="text-center py-4">
+                              <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
+                            </div> :
+                          !trioRecords[game.id] || trioRecords[game.id].length === 0 ?
+                            <div className="text-center py-6 text-muted-foreground">
+                              <p>Tiada rekod trio lagi</p>
+                            </div> :
+                            <div className="space-y-2">
+                              <h4 className="font-semibold mb-3">Rekod Trio ({trioRecords[game.id].length})</h4>
+                              {trioRecords[game.id].map((record, index) =>
+                                <div
+                                  key={record.id}
+                                  className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="w-8 justify-center">
+                                      #{index + 1}
+                                    </Badge>
+                                    <div>
+                                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                                        <span className="font-medium">@{record.player1?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player1_score + (record.include_handicap ? record.player1_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player2?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player2_score + (record.include_handicap ? record.player2_handicap || 0 : 0)}
+                                        </Badge>
+                                        <span className="text-muted-foreground">+</span>
+                                        <span className="font-medium">@{record.player3?.username}</span>
+                                        <Badge variant="secondary">
+                                          {record.player3_score + (record.include_handicap ? record.player3_handicap || 0 : 0)}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {record.include_handicap ? "Jumlah termasuk handicap" : "Jumlah tanpa handicap"}:
+                                        <span className="font-bold text-primary ml-1">{record.total_score}</span>
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteTrio(record.id, game.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      {/* Men vs Women Toggle */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`double-${game.id}`} className="text-sm whitespace-nowrap">
+                            Double Game
+                          </Label>
+                          <Switch
+                            id={`double-${game.id}`}
+                            checked={game.double_enabled || false}
+                            onCheckedChange={() => toggleGameDouble(game.id, game.double_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`trio-${game.id}`} className="text-sm whitespace-nowrap">
+                            Trio Game
+                          </Label>
+                          <Switch
+                            id={`trio-${game.id}`}
+                            checked={game.trio_enabled || false}
+                            onCheckedChange={() => toggleGameTrio(game.id, game.trio_enabled || false)}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`mvw-${game.id}`} className="text-sm whitespace-nowrap">
+                            Men vs Women
+                          </Label>
+                          <Switch
+                            id={`mvw-${game.id}`}
+                            checked={game.men_vs_women_enabled || false}
+                            on
