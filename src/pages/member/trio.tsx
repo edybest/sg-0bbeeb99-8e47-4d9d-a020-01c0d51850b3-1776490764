@@ -315,12 +315,7 @@ export default function TrioPage() {
                                             <Badge className="bg-gray-400 px-3 py-1 text-sm text-white">SILVER</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
-                                            <div className="text-lg font-bold text-gray-900 sm:text-xl">
-                                                {sortedTrios[1].playerA}
-                                                <span className="ml-1 font-medium text-gray-500">
-                                                    ({sortedTrios[1].scoreA})
-                                                </span>
-                                            </div>
+                                           
                                             <div className="mb-2 space-y-2 text-[11px] text-gray-700 sm:text-xs">
                                                 <div className="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2"><span>A: {sortedTrios[1].playerA}</span><span className="font-black">{sortedTrios[1].scoreA}</span></div>
                                                 <div className="flex items-center justify-between rounded-lg bg-gray-100 px-3 py-2"><span>B: {sortedTrios[1].playerB}</span><span className="font-black">{sortedTrios[1].scoreB}</span></div>
@@ -353,12 +348,7 @@ export default function TrioPage() {
                                             </Badge>
                                         </div>
                                         <div className="space-y-3 text-center">
-                                            <div className="text-xl font-black text-yellow-900 sm:text-2xl">
-                                                {sortedTrios[0].playerA}
-                                                <span className="ml-1 font-medium text-yellow-700">
-                                                    ({sortedTrios[0].scoreA})
-                                                </span>
-                                            </div>
+                                        
                                             <div className="mb-3 space-y-2 text-xs text-yellow-800 sm:text-sm">
                                                 <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>A: {sortedTrios[0].playerA}</span><span className="font-black">{sortedTrios[0].scoreA}</span></div>
                                                 <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>B: {sortedTrios[0].playerB}</span><span className="font-black">{sortedTrios[0].scoreB}</span></div>
@@ -389,12 +379,7 @@ export default function TrioPage() {
                                             <Badge className="bg-amber-500 px-3 py-1 text-sm text-white">BRONZE</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
-                                            <div className="text-lg font-bold text-amber-900 sm:text-xl">
-                                                {sortedTrios[2].playerA}
-                                                <span className="ml-1 font-medium text-amber-700">
-                                                    ({sortedTrios[2].scoreA})
-                                                </span>
-                                            </div>
+                                        
                                             <div className="mb-2 space-y-2 text-[11px] text-amber-800 sm:text-xs">
                                                 <div className="flex items-center justify-between rounded-lg bg-amber-100 px-3 py-2"><span>A: {sortedTrios[2].playerA}</span><span className="font-black">{sortedTrios[2].scoreA}</span></div>
                                                 <div className="flex items-center justify-between rounded-lg bg-amber-100 px-3 py-2"><span>B: {sortedTrios[2].playerB}</span><span className="font-black">{sortedTrios[2].scoreB}</span></div>
