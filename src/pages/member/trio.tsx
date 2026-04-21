@@ -315,15 +315,16 @@ export default function TrioPage() {
                                             <Badge className="bg-gray-400 px-3 py-1 text-sm text-white">SILVER</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
-                                            <div className="text-sm font-semibold text-gray-600">Ketua Trio</div>
                                             <div className="text-lg font-bold text-gray-900 sm:text-xl">
                                                 {sortedTrios[1].playerA}
                                                 <span className="ml-1 font-medium text-gray-500">
                                                     ({sortedTrios[1].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 text-[11px] leading-relaxed text-gray-500 sm:text-xs">
-                                                B: {sortedTrios[1].playerB} ({sortedTrios[1].scoreB}) • C: {sortedTrios[1].playerC} ({sortedTrios[1].scoreC})
+                                            <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-gray-600 sm:text-xs">
+                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">A: {sortedTrios[1].scoreA}</span>
+                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">B: {sortedTrios[1].scoreB}</span>
+                                                <span className="rounded-full bg-gray-100 px-2 py-1 font-semibold">C: {sortedTrios[1].scoreC}</span>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-gray-600" />
@@ -352,17 +353,16 @@ export default function TrioPage() {
                                             </Badge>
                                         </div>
                                         <div className="space-y-3 text-center">
-                                            <div className="text-sm font-bold uppercase tracking-wider text-yellow-700">
-                                                Ketua Trio
-                                            </div>
                                             <div className="text-xl font-black text-yellow-900 sm:text-2xl">
                                                 {sortedTrios[0].playerA}
                                                 <span className="ml-1 font-medium text-yellow-700">
                                                     ({sortedTrios[0].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-3 text-xs font-medium leading-relaxed text-yellow-700 sm:text-sm">
-                                                B: {sortedTrios[0].playerB} ({sortedTrios[0].scoreB}) • C: {sortedTrios[0].playerC} ({sortedTrios[0].scoreC})
+                                            <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-xs text-yellow-700 sm:text-sm">
+                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">A: {sortedTrios[0].scoreA}</span>
+                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">B: {sortedTrios[0].scoreB}</span>
+                                                <span className="rounded-full bg-yellow-100 px-2.5 py-1 font-semibold">C: {sortedTrios[0].scoreC}</span>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-3 shadow sm:mt-4 sm:bg-white/80 sm:p-4 sm:shadow-lg">
                                                 <Zap className="h-6 w-6 text-yellow-600" />
@@ -389,15 +389,16 @@ export default function TrioPage() {
                                             <Badge className="bg-amber-500 px-3 py-1 text-sm text-white">BRONZE</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
-                                            <div className="text-sm font-semibold text-amber-700">Ketua Trio</div>
                                             <div className="text-lg font-bold text-amber-900 sm:text-xl">
                                                 {sortedTrios[2].playerA}
                                                 <span className="ml-1 font-medium text-amber-700">
                                                     ({sortedTrios[2].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 text-[11px] leading-relaxed text-amber-700 sm:text-xs">
-                                                B: {sortedTrios[2].playerB} ({sortedTrios[2].scoreB}) • C: {sortedTrios[2].playerC} ({sortedTrios[2].scoreC})
+                                            <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-amber-700 sm:text-xs">
+                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">A: {sortedTrios[2].scoreA}</span>
+                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">B: {sortedTrios[2].scoreB}</span>
+                                                <span className="rounded-full bg-amber-100 px-2 py-1 font-semibold">C: {sortedTrios[2].scoreC}</span>
                                             </div>
                                             <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-amber-600" />
@@ -432,24 +433,16 @@ export default function TrioPage() {
                                                 <div className="flex items-center gap-2">
                                                     {getRankIcon(actualIndex)}
                                                     <h3 className="text-lg font-black text-slate-900 sm:text-2xl">
-                                                        {trio.playerA} <span className="text-slate-500">({trio.scoreA})</span>
+                                                        {trio.playerA}
                                                     </h3>
                                                 </div>
-                                                <Badge variant="outline" className="mt-1 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-600 sm:text-xs">
-                                                    Ketua Trio
-                                                </Badge>
                                             </div>
                                         </div>
 
-                                        <div className="grid flex-1 grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-2">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="truncate font-medium text-slate-700">B: {trio.playerB}</span>
-                                                <Badge variant="secondary">{trio.scoreB}</Badge>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="truncate font-medium text-slate-700">C: {trio.playerC}</span>
-                                                <Badge variant="secondary">{trio.scoreC}</Badge>
-                                            </div>
+                                        <div className="flex flex-1 flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">A: {trio.scoreA}</span>
+                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">B: {trio.scoreB}</span>
+                                            <span className="rounded-full bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-sm">C: {trio.scoreC}</span>
                                         </div>
 
                                         <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center md:min-w-[140px] md:text-right">
