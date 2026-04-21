@@ -417,9 +417,7 @@ export default function TrioPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     {getRankIcon(actualIndex)}
-                                                    <h3 className="text-lg font-black text-slate-900 sm:text-2xl">
-                                                        {trio.playerA}
-                                                    </h3>
+                                                   
                                                 </div>
                                             </div>
                                         </div>
