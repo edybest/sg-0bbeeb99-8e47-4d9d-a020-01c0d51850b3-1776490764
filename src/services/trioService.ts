@@ -178,7 +178,7 @@ export async function getGamePlayers(gameId: string): Promise<TrioPlayer[]> {
 export async function getTrioEnabledGames() {
   const { data, error } = await supabase
     .from("games")
-    .select("*")
+    .select("id, game_date, game_name, trio_enabled")
     .eq("trio_enabled", true)
     .order("game_date", { ascending: false });
 
