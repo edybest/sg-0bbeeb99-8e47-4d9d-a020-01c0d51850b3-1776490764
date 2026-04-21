@@ -53,15 +53,13 @@ export default function UndiTrioPage() {
 
   useEffect(() => {
     loadData();
-    spinAudioRef.current = new Audio("/spin.mp3");
-    winAudioRef.current = new Audio("/win.mp3");
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedGameId) {
       loadGameTrios();
     }
-  }, [selectedGameId]);
+  }, [selectedGameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadData() {
     try {

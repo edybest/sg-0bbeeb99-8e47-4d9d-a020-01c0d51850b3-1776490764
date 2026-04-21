@@ -58,7 +58,22 @@ export async function getAllTrioRecordsByGame(gameId: string): Promise<TrioRecor
   const { data, error } = await supabase
     .from("trio_records")
     .select(`
-      *,
+      id,
+      game_id,
+      player1_id,
+      player2_id,
+      player3_id,
+      player1_score,
+      player2_score,
+      player3_score,
+      player1_handicap,
+      player2_handicap,
+      player3_handicap,
+      total_score,
+      include_handicap,
+      is_drawn,
+      drawn_at,
+      created_at,
       player1:members!trio_records_player1_id_fkey(id, username, full_name, avatar_url),
       player2:members!trio_records_player2_id_fkey(id, username, full_name, avatar_url),
       player3:members!trio_records_player3_id_fkey(id, username, full_name, avatar_url)
