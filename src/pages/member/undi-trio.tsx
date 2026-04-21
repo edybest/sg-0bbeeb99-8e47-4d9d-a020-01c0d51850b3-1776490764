@@ -448,9 +448,14 @@ export default function UndiTrioPage() {
                             .filter(Boolean)
                             .map((username) => {
                               const trio = trios.find(t => t.player1?.username === username);
+                              const isDrawn = trio?.is_drawn || false;
                               return (
-                                <SelectItem key={trio!.id} value={trio!.id}>
-                                  {username}
+                                <SelectItem 
+                                  key={trio!.id} 
+                                  value={trio!.id}
+                                  className={isDrawn ? "bg-green-100 text-green-800 font-semibold data-[highlighted]:bg-green-200" : ""}
+                                >
+                                  {isDrawn && "✅ "}{username}
                                 </SelectItem>
                               );
                             })}
