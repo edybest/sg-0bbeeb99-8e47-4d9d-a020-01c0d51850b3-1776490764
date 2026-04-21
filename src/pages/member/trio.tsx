@@ -109,8 +109,13 @@ export default function TrioPage() {
       // Get trio records for this game - ONLY DRAWN TRIOS
       const allTrioRecords = await getAllTrioRecordsByGame(game.id);
       
+      console.log("🔍 DEBUG: All trio records:", allTrioRecords);
+      console.log("🔍 DEBUG: is_drawn values:", allTrioRecords.map(t => ({ id: t.id, is_drawn: t.is_drawn })));
+      
       // 🔒 FILTER: Only show trios that have been officially drawn
       const trioRecords = allTrioRecords.filter(trio => trio.is_drawn === true);
+      
+      console.log("✅ DEBUG: Filtered (drawn only):", trioRecords);
       
       // Get all player scores from game_players table
       const { data: gamePlayers, error: scoresError } = await supabase
@@ -164,6 +169,8 @@ export default function TrioPage() {
       teams.forEach((team, index) => {
         team.rank = index + 1;
       });
+      
+      console.log("🎯 DEBUG: Final teams to display:", teams);
       
       setTrios(teams);
     } catch (error) {

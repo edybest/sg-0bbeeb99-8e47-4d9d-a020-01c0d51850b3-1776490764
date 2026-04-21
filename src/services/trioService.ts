@@ -5,19 +5,26 @@ type TrioRecord = Database["public"]["Tables"]["trio_records"]["Row"];
 type TrioRecordInsert = Database["public"]["Tables"]["trio_records"]["Insert"];
 type TrioRecordUpdate = Database["public"]["Tables"]["trio_records"]["Update"];
 
-export interface TrioPlayer {
+export type TrioPlayer = {
   id: string;
   username: string;
-  full_name: string;
+  full_name: string | null;
   avatar_url: string | null;
-  handicap: number;
-}
+};
 
-export interface TrioRecordWithPlayers extends TrioRecord {
-  player1?: TrioPlayer | null;
-  player2?: TrioPlayer | null;
-  player3?: TrioPlayer | null;
-}
+export type TrioRecordWithPlayers = {
+  id: string;
+  game_id: string;
+  player1_id: string;
+  player2_id: string;
+  player3_id: string;
+  player1: TrioPlayer | null;
+  player2: TrioPlayer | null;
+  player3: TrioPlayer | null;
+  created_at: string;
+  is_drawn: boolean;
+  drawn_at: string | null;
+};
 
 /**
  * Get trio record for a specific game
@@ -47,24 +54,23 @@ export async function getTrioRecordByGame(gameId: string): Promise<TrioRecordWit
  * Get ALL trio records for a specific game (supports multiple trios)
  */
 export async function getAllTrioRecordsByGame(gameId: string): Promise<TrioRecordWithPlayers[]> {
-  try {
-    const { data, error } = await supabase
-      .from("trio_records")
-      .select(`
-        *,
-        player1:members!player1_id(id, username, full_name, avatar_url, handicap),
-        player2:members!player2_id(id, username, full_name, avatar_url, handicap),
-        player3:members!player3_id(id, username, full_name, avatar_url, handicap)
-      `)
-      .eq("game_id", gameId)
-      .order("created_at", { ascending: true });
+  const { data, error } = await supabase
+    .from("trio_records")
+    .select(`
+      *,
+      player1:members!trio_records_player1_id_fkey(id, username, full_name, avatar_url),
+      player2:members!trio_records_player2_id_fkey(id, username, full_name, avatar_url),
+      player3:members!trio_records_player3_id_fkey(id, username, full_name, avatar_url)
+    `)
+    .eq("game_id", gameId)
+    .order("created_at", { ascending: true });
 
-    if (error) throw error;
-    return (data as TrioRecordWithPlayers[]) || [];
-  } catch (error) {
+  if (error) {
     console.error("Error fetching trio records:", error);
     throw error;
   }
+
+  return (data || []) as TrioRecordWithPlayers[];
 }
 
 /**
