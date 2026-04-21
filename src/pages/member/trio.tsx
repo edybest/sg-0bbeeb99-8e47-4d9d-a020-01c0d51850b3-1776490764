@@ -418,108 +418,45 @@ export default function TrioPage() {
 
                         {sortedTrios.slice(3).map((trio, idx) => {
                             const actualIndex = idx + 3;
-
                             return (
                                 <Card
                                     key={trio.id}
-                                    className={`border p-4 transition-all duration-300 sm:border-2 sm:p-6 sm:hover:-translate-y-1 sm:hover:shadow-lg ${getCardBorderColor(actualIndex)}`}
+                                    className={`border p-4 transition-all duration-300 sm:border-2 sm:p-6 ${getCardBorderColor(actualIndex)}`}
                                 >
-                                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-                                        <div className="flex items-center gap-3 md:flex-shrink-0">
-                                            <div
-                                                className={`flex h-11 w-11 items-center justify-center rounded-lg shadow ${getRankBadgeColor(actualIndex)} sm:h-16 sm:w-16 sm:rounded-xl sm:shadow-lg`}
-                                            >
+                                    <div className="space-y-3 md:flex md:items-center md:gap-6 md:space-y-0">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`flex h-11 w-11 items-center justify-center rounded-lg shadow ${getRankBadgeColor(actualIndex)} sm:h-16 sm:w-16`}>
                                                 <span className="text-xl font-black sm:text-3xl">{actualIndex + 1}</span>
                                             </div>
-                                            <div className="md:hidden">
-                                                <div className="mb-1 flex items-center gap-2">
+                                            <div>
+                                                <div className="flex items-center gap-2">
                                                     {getRankIcon(actualIndex)}
-                                                    <Badge
-                                                        variant="outline"
-                                                        className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-600"
-                                                    >
-                                                        Ketua Trio
-                                                    </Badge>
+                                                    <h3 className="text-lg font-black text-slate-900 sm:text-2xl">
+                                                        {trio.playerA} <span className="text-slate-500">({trio.scoreA})</span>
+                                                    </h3>
                                                 </div>
-                                                <h3 className="text-lg font-black text-slate-900 leading-tight">
-                                                    {trio.playerA}
-                                                    <span className="ml-1 text-base font-medium text-slate-500">
-                                                        ({trio.scoreA})
-                                                    </span>
-                                                </h3>
-                                            </div>
-                                        </div>
-
-                                        <div className="w-full min-w-0 flex-1">
-                                            <div className="mb-2 hidden items-center gap-2 md:flex">
-                                                {getRankIcon(actualIndex)}
-                                                <h3 className="truncate text-2xl font-black text-slate-900">
-                                                    {trio.playerA}
-                                                    <span className="ml-1 text-lg font-medium text-slate-500">
-                                                        ({trio.scoreA})
-                                                    </span>
-                                                </h3>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="ml-2 border-indigo-200 bg-indigo-50 text-xs text-indigo-600"
-                                                >
+                                                <Badge variant="outline" className="mt-1 border-indigo-200 bg-indigo-50 text-[10px] text-indigo-600 sm:text-xs">
                                                     Ketua Trio
                                                 </Badge>
                                             </div>
+                                        </div>
 
-                                            <div className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-2 sm:gap-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="flex min-w-0 items-center gap-2">
-                                                        <div className="h-2 w-2 rounded-full bg-blue-500 shadow-sm" />
-                                                        <span className="font-medium text-slate-600">Player B:</span>
-                                                        <span className="truncate font-bold text-slate-900">
-                                                            {trio.playerB}
-                                                        </span>
-                                                    </div>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="border border-slate-200 bg-white font-black text-slate-700"
-                                                    >
-                                                        {trio.scoreB}
-                                                    </Badge>
-                                                </div>
-
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="flex min-w-0 items-center gap-2">
-                                                        <div className="h-2 w-2 rounded-full bg-green-500 shadow-sm" />
-                                                        <span className="font-medium text-slate-600">Player C:</span>
-                                                        <span className="truncate font-bold text-slate-900">
-                                                            {trio.playerC}
-                                                        </span>
-                                                    </div>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="border border-slate-200 bg-white font-black text-slate-700"
-                                                    >
-                                                        {trio.scoreC}
-                                                    </Badge>
-                                                </div>
+                                        <div className="grid flex-1 grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="truncate font-medium text-slate-700">B: {trio.playerB}</span>
+                                                <Badge variant="secondary">{trio.scoreB}</Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="truncate font-medium text-slate-700">C: {trio.playerC}</span>
+                                                <Badge variant="secondary">{trio.scoreC}</Badge>
                                             </div>
                                         </div>
 
-                                        <div className="w-full flex-shrink-0 text-left md:mt-0 md:w-auto md:text-right">
-                                            <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 shadow-inner md:justify-end md:gap-2 md:px-6">
-                                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 md:hidden">
-                                                    Total Score
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <TrendingUp className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" />
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-3xl font-black leading-none text-indigo-700 sm:text-4xl">
-                                                            {trio.totalScore}
-                                                        </span>
-                                                        <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-wider text-indigo-500 md:block">
-                                                            Total Score
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center md:min-w-[140px] md:text-right">
+                                            <div className="text-xs font-bold uppercase tracking-wider text-indigo-500">Total</div>
+                                            <div className="text-3xl font-black text-indigo-700 sm:text-4xl">{trio.totalScore}</div>
                                         </div>
+                                    </div>
                                 </Card>
                             );
                         })}
