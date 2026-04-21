@@ -145,7 +145,7 @@ export default function MemberDashboard() {
   {
     title: "Couple",
     href: "/member/couple",
-    icon: Users,
+    icon: Heart,
     gradient: "from-teal-400 to-emerald-300"
   },
   {
