@@ -686,6 +686,96 @@ export default function UndiTrioPage() {
               </Card>
             )}
 
+            {step === 2 && playerA && selectedTrio?.player2 && (
+              <Card className="p-6">
+                <h3 className="text-2xl font-bold text-center mb-6 text-blue-600">
+                  CABUTAN UNDI UNTUK <span className="text-blue-700">PLAYER B</span>
+                </h3>
+                
+                <div className="mb-6">
+                  <LaneSpinWheel
+                    ref={wheelRefB}
+                    items={poolB.map(p => p.username)}
+                    rotation={rotation}
+                    isSpinning={spinning}
+                    onSpinClick={handleSpinForB}
+                  />
+                </div>
+
+                <div className="text-center space-y-4">
+                  {playerB && (
+                    <div className="bg-blue-100 rounded-lg p-4 mb-4">
+                      <div className="text-sm text-blue-600 mb-1">Player B Terpilih:</div>
+                      <div className="text-2xl font-bold text-blue-700">{playerB.username}</div>
+                    </div>
+                  )}
+                  
+                  {!spinning && !playerB && (
+                    <Button
+                      onClick={handleSpinForB}
+                      disabled={spinning || !isAdmin || poolB.length === 0 || selectedTrio?.is_drawn}
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-6 text-xl"
+                    >
+                      {spinning ? (
+                        <>
+                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                          Memutar...
+                        </>
+                      ) : (
+                        "🎰 PUTAR RODA!"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {step === 3 && playerA && playerB && selectedTrio?.player3 && (
+              <Card className="p-6">
+                <h3 className="text-2xl font-bold text-center mb-6 text-green-600">
+                  CABUTAN UNDI UNTUK <span className="text-green-700">PLAYER C</span>
+                </h3>
+                
+                <div className="mb-6">
+                  <LaneSpinWheel
+                    ref={wheelRefC}
+                    items={poolC.map(p => p.username)}
+                    rotation={rotation}
+                    isSpinning={spinning}
+                    onSpinClick={handleSpinForC}
+                  />
+                </div>
+
+                <div className="text-center space-y-4">
+                  {playerC && (
+                    <div className="bg-green-100 rounded-lg p-4 mb-4">
+                      <div className="text-sm text-green-600 mb-1">Player C Terpilih:</div>
+                      <div className="text-2xl font-bold text-green-700">{playerC.username}</div>
+                    </div>
+                  )}
+                  
+                  {!spinning && !playerC && (
+                    <Button
+                      onClick={handleSpinForC}
+                      disabled={spinning || !isAdmin || poolC.length === 0 || selectedTrio?.is_drawn}
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-xl"
+                    >
+                      {spinning ? (
+                        <>
+                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                          Memutar...
+                        </>
+                      ) : (
+                        "🎰 PUTAR RODA!"
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )}
+
             {/* Completion State */}
             {step === 4 && playerA && playerB && playerC && (
               <Card className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300">
