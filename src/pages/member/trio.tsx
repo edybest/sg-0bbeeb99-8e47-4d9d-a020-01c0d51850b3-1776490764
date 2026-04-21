@@ -233,18 +233,18 @@ export default function TrioPage() {
 
     return (
         <MemberLayout>
-            <div className="container mx-auto max-w-6xl p-4">
-                <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-8 text-white shadow-2xl">
+            <div className="container mx-auto max-w-6xl px-3 py-4 sm:p-4">
+                <div className="relative mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 px-4 py-6 text-white shadow-xl sm:mb-8 sm:rounded-3xl sm:p-8 sm:shadow-2xl">
                     <div className="absolute inset-0 bg-[url('/bowling-pattern.svg')] opacity-10" />
                     <div className="relative z-10">
-                        <div className="mb-3 flex items-center justify-center gap-3">
-                            <Trophy className="h-12 w-12 animate-pulse text-yellow-300" />
-                            <h1 className="text-center text-5xl font-black tracking-tight drop-shadow-lg">
+                        <div className="mb-2 flex items-center justify-center gap-2 sm:mb-3 sm:gap-3">
+                            <Trophy className="h-8 w-8 animate-pulse text-yellow-300 sm:h-12 sm:w-12" />
+                            <h1 className="text-center text-2xl font-black tracking-tight drop-shadow-lg sm:text-5xl">
                                 TRIO LEADERBOARD
                             </h1>
-                            <Trophy className="h-12 w-12 animate-pulse text-yellow-300" />
+                            <Trophy className="h-8 w-8 animate-pulse text-yellow-300 sm:h-12 sm:w-12" />
                         </div>
-                        <p className="text-center text-xl font-medium text-indigo-100">
+                        <p className="text-center text-sm font-medium text-indigo-100 sm:text-xl">
                             Battle Royale Edition
                         </p>
                     </div>
@@ -252,13 +252,13 @@ export default function TrioPage() {
                     <div className="absolute -left-8 -top-8 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
                 </div>
 
-                <Card className="mb-8 border-2 border-indigo-100 bg-gradient-to-r from-white to-indigo-50 p-6 shadow-lg">
-                    <div className="mb-4 flex items-center gap-3">
-                        <Calendar className="h-6 w-6 text-indigo-600" />
-                        <h2 className="text-xl font-bold text-slate-800">Pilih Tarikh Game</h2>
+                <Card className="mb-5 border border-indigo-100 bg-white p-4 shadow-sm sm:mb-8 sm:border-2 sm:bg-gradient-to-r sm:from-white sm:to-indigo-50 sm:p-6 sm:shadow-lg">
+                    <div className="mb-3 flex items-center gap-2 sm:mb-4 sm:gap-3">
+                        <Calendar className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" />
+                        <h2 className="text-base font-bold text-slate-800 sm:text-xl">Pilih Tarikh Game</h2>
                     </div>
                     <Select value={selectedGameId} onValueChange={setSelectedGameId}>
-                        <SelectTrigger className="h-14 w-full border-indigo-200 bg-white text-lg focus:ring-indigo-500">
+                        <SelectTrigger className="h-11 w-full border-indigo-200 bg-white text-sm focus:ring-indigo-500 sm:h-14 sm:text-lg">
                             <SelectValue placeholder="Pilih game untuk lihat leaderboard" />
                         </SelectTrigger>
                         <SelectContent>
@@ -304,31 +304,31 @@ export default function TrioPage() {
                 ) : (
                     <div className="space-y-4">
                         {sortedTrios.slice(0, 3).length > 0 && (
-                            <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+                            <div className="mb-6 grid grid-cols-1 gap-3 sm:gap-4 md:mb-8 md:grid-cols-3 md:gap-6">
                                 {sortedTrios[1] && (
-                                    <Card className="transform border-2 border-gray-400 bg-gradient-to-br from-gray-50 to-gray-100 p-6 shadow-xl transition-all duration-300 hover:scale-105">
+                                    <Card className="border border-gray-300 bg-white p-4 shadow-sm transition-all duration-300 sm:border-2 sm:bg-gradient-to-br sm:from-gray-50 sm:to-gray-100 sm:p-6 sm:shadow-xl sm:hover:scale-105">
                                         <div className="mb-4 text-center">
-                                            <div className="mb-3 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-300 shadow-lg">
+                                            <div className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow sm:mb-3 sm:h-16 sm:w-16 sm:bg-gray-300 sm:shadow-lg">
                                                 <Medal className="h-10 w-10 text-gray-600" />
                                             </div>
-                                            <div className="mb-2 text-6xl font-black text-gray-600">2</div>
+                                            <div className="mb-1 text-4xl font-black text-gray-600 sm:mb-2 sm:text-6xl">2</div>
                                             <Badge className="bg-gray-400 px-3 py-1 text-sm text-white">SILVER</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
                                             <div className="text-sm font-semibold text-gray-600">Ketua Trio</div>
-                                            <div className="text-xl font-bold text-gray-900">
+                                            <div className="text-lg font-bold text-gray-900 sm:text-xl">
                                                 {sortedTrios[1].playerA}
                                                 <span className="ml-1 font-medium text-gray-500">
                                                     ({sortedTrios[1].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 text-xs text-gray-500">
+                                            <div className="mb-2 text-[11px] leading-relaxed text-gray-500 sm:text-xs">
                                                 B: {sortedTrios[1].playerB} ({sortedTrios[1].scoreB}) • C: {sortedTrios[1].playerC} ({sortedTrios[1].scoreC})
                                             </div>
-                                            <div className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white/70 p-3">
+                                            <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-slate-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-gray-600" />
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-3xl font-black text-gray-700">
+                                                    <span className="text-2xl font-black text-gray-700 sm:text-3xl">
                                                         {sortedTrios[1].totalScore}
                                                     </span>
                                                     <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-500">
@@ -341,12 +341,12 @@ export default function TrioPage() {
                                 )}
 
                                 {sortedTrios[0] && (
-                                    <Card className="order-first transform border-4 border-yellow-400 bg-gradient-to-br from-yellow-50 via-yellow-100 to-amber-100 p-8 shadow-2xl transition-all duration-300 hover:scale-105 md:order-none md:-translate-y-4">
+                                    <Card className="order-first border-2 border-yellow-300 bg-white p-5 shadow-md transition-all duration-300 sm:border-4 sm:border-yellow-400 sm:bg-gradient-to-br sm:from-yellow-50 sm:via-yellow-100 sm:to-amber-100 sm:p-8 sm:shadow-2xl sm:hover:scale-105 md:order-none md:-translate-y-4">
                                         <div className="mb-4 text-center">
-                                            <div className="mb-3 inline-flex h-20 w-20 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-2xl">
-                                                <Crown className="h-12 w-12 text-white" />
+                                            <div className="mb-2 inline-flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg sm:mb-3 sm:h-20 sm:w-20 sm:shadow-2xl">
+                                                <Crown className="h-8 w-8 text-white sm:h-12 sm:w-12" />
                                             </div>
-                                            <div className="mb-2 text-7xl font-black text-yellow-600 drop-shadow-lg">1</div>
+                                            <div className="mb-1 text-5xl font-black text-yellow-600 drop-shadow-lg sm:mb-2 sm:text-7xl">1</div>
                                             <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-600 px-4 py-1.5 text-base text-white shadow-lg">
                                                 CHAMPION 🏆
                                             </Badge>
@@ -355,19 +355,19 @@ export default function TrioPage() {
                                             <div className="text-sm font-bold uppercase tracking-wider text-yellow-700">
                                                 Ketua Trio
                                             </div>
-                                            <div className="text-2xl font-black text-yellow-900">
+                                            <div className="text-xl font-black text-yellow-900 sm:text-2xl">
                                                 {sortedTrios[0].playerA}
                                                 <span className="ml-1 font-medium text-yellow-700">
                                                     ({sortedTrios[0].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-3 text-sm font-medium text-yellow-700">
+                                            <div className="mb-3 text-xs font-medium leading-relaxed text-yellow-700 sm:text-sm">
                                                 B: {sortedTrios[0].playerB} ({sortedTrios[0].scoreB}) • C: {sortedTrios[0].playerC} ({sortedTrios[0].scoreC})
                                             </div>
-                                            <div className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-yellow-200 bg-white/80 p-4 shadow-lg">
+                                            <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-3 shadow sm:mt-4 sm:bg-white/80 sm:p-4 sm:shadow-lg">
                                                 <Zap className="h-6 w-6 text-yellow-600" />
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-4xl font-black text-yellow-700">
+                                                    <span className="text-3xl font-black text-yellow-700 sm:text-4xl">
                                                         {sortedTrios[0].totalScore}
                                                     </span>
                                                     <span className="mt-1 text-[11px] font-bold uppercase tracking-widest text-yellow-600">
@@ -380,29 +380,29 @@ export default function TrioPage() {
                                 )}
 
                                 {sortedTrios[2] && (
-                                    <Card className="transform border-2 border-amber-500 bg-gradient-to-br from-amber-50 to-amber-100 p-6 shadow-xl transition-all duration-300 hover:scale-105">
+                                    <Card className="border border-amber-300 bg-white p-4 shadow-sm transition-all duration-300 sm:border-2 sm:border-amber-500 sm:bg-gradient-to-br sm:from-amber-50 sm:to-amber-100 sm:p-6 sm:shadow-xl sm:hover:scale-105">
                                         <div className="mb-4 text-center">
-                                            <div className="mb-3 inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-400 shadow-lg">
+                                            <div className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-300 shadow sm:mb-3 sm:h-16 sm:w-16 sm:bg-amber-400 sm:shadow-lg">
                                                 <Medal className="h-10 w-10 text-amber-700" />
                                             </div>
-                                            <div className="mb-2 text-6xl font-black text-amber-700">3</div>
+                                            <div className="mb-1 text-4xl font-black text-amber-700 sm:mb-2 sm:text-6xl">3</div>
                                             <Badge className="bg-amber-500 px-3 py-1 text-sm text-white">BRONZE</Badge>
                                         </div>
                                         <div className="space-y-2 text-center">
                                             <div className="text-sm font-semibold text-amber-700">Ketua Trio</div>
-                                            <div className="text-xl font-bold text-amber-900">
+                                            <div className="text-lg font-bold text-amber-900 sm:text-xl">
                                                 {sortedTrios[2].playerA}
                                                 <span className="ml-1 font-medium text-amber-700">
                                                     ({sortedTrios[2].scoreA})
                                                 </span>
                                             </div>
-                                            <div className="mb-2 text-xs text-amber-700">
+                                            <div className="mb-2 text-[11px] leading-relaxed text-amber-700 sm:text-xs">
                                                 B: {sortedTrios[2].playerB} ({sortedTrios[2].scoreB}) • C: {sortedTrios[2].playerC} ({sortedTrios[2].scoreC})
                                             </div>
-                                            <div className="mt-4 flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-white/70 p-3">
+                                            <div className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 sm:mt-4 sm:bg-white/70 sm:p-3">
                                                 <TrendingUp className="h-5 w-5 text-amber-600" />
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-3xl font-black text-amber-700">
+                                                    <span className="text-2xl font-black text-amber-700 sm:text-3xl">
                                                         {sortedTrios[2].totalScore}
                                                     </span>
                                                     <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">
@@ -422,19 +422,36 @@ export default function TrioPage() {
                             return (
                                 <Card
                                     key={trio.id}
-                                    className={`border-2 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${getCardBorderColor(actualIndex)}`}
+                                    className={`border p-4 transition-all duration-300 sm:border-2 sm:p-6 sm:hover:-translate-y-1 sm:hover:shadow-lg ${getCardBorderColor(actualIndex)}`}
                                 >
-                                    <div className="flex flex-col items-center gap-6 md:flex-row">
-                                        <div className="flex-shrink-0">
+                                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
+                                        <div className="flex items-center gap-3 md:flex-shrink-0">
                                             <div
-                                                className={`flex h-16 w-16 items-center justify-center rounded-xl shadow-lg ${getRankBadgeColor(actualIndex)}`}
+                                                className={`flex h-11 w-11 items-center justify-center rounded-lg shadow ${getRankBadgeColor(actualIndex)} sm:h-16 sm:w-16 sm:rounded-xl sm:shadow-lg`}
                                             >
-                                                <span className="text-3xl font-black">{actualIndex + 1}</span>
+                                                <span className="text-xl font-black sm:text-3xl">{actualIndex + 1}</span>
+                                            </div>
+                                            <div className="md:hidden">
+                                                <div className="mb-1 flex items-center gap-2">
+                                                    {getRankIcon(actualIndex)}
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="border-indigo-200 bg-indigo-50 text-[10px] text-indigo-600"
+                                                    >
+                                                        Ketua Trio
+                                                    </Badge>
+                                                </div>
+                                                <h3 className="text-lg font-black text-slate-900 leading-tight">
+                                                    {trio.playerA}
+                                                    <span className="ml-1 text-base font-medium text-slate-500">
+                                                        ({trio.scoreA})
+                                                    </span>
+                                                </h3>
                                             </div>
                                         </div>
 
                                         <div className="w-full min-w-0 flex-1">
-                                            <div className="mb-2 flex items-center gap-2">
+                                            <div className="mb-2 hidden items-center gap-2 md:flex">
                                                 {getRankIcon(actualIndex)}
                                                 <h3 className="truncate text-2xl font-black text-slate-900">
                                                     {trio.playerA}
@@ -450,7 +467,7 @@ export default function TrioPage() {
                                                 </Badge>
                                             </div>
 
-                                            <div className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-2">
+                                            <div className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-2 sm:gap-3">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="flex min-w-0 items-center gap-2">
                                                         <div className="h-2 w-2 rounded-full bg-blue-500 shadow-sm" />
@@ -485,32 +502,36 @@ export default function TrioPage() {
                                             </div>
                                         </div>
 
-                                        <div className="mt-4 w-full flex-shrink-0 text-center md:mt-0 md:w-auto md:text-right">
-                                            <div className="flex items-center justify-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-6 py-3 shadow-inner md:justify-end">
-                                                <TrendingUp className="h-6 w-6 text-indigo-600" />
-                                                <div className="flex flex-col items-center md:items-end">
-                                                    <span className="text-4xl font-black leading-none text-indigo-700">
-                                                        {trio.totalScore}
-                                                    </span>
-                                                    <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-500">
-                                                        Total Score
-                                                    </span>
+                                        <div className="w-full flex-shrink-0 text-left md:mt-0 md:w-auto md:text-right">
+                                            <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 shadow-inner md:justify-end md:gap-2 md:px-6">
+                                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 md:hidden">
+                                                    Total Score
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <TrendingUp className="h-5 w-5 text-indigo-600 sm:h-6 sm:w-6" />
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-3xl font-black leading-none text-indigo-700 sm:text-4xl">
+                                                            {trio.totalScore}
+                                                        </span>
+                                                        <span className="mt-1 hidden text-[10px] font-bold uppercase tracking-wider text-indigo-500 md:block">
+                                                            Total Score
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
                                 </Card>
                             );
                         })}
                     </div>
                 )}
 
-                <div className="mt-8 text-center">
+                <div className="mt-6 text-center sm:mt-8">
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={() => router.push("/member/blok")}
-                        className="px-8 py-6 text-lg font-bold shadow-sm hover:border-indigo-300 hover:bg-indigo-50"
+                        className="w-full px-5 py-5 text-base font-bold shadow-sm hover:border-indigo-300 hover:bg-indigo-50 sm:w-auto sm:px-8 sm:py-6 sm:text-lg"
                     >
                         ← Kembali ke Page Blok
                     </Button>
