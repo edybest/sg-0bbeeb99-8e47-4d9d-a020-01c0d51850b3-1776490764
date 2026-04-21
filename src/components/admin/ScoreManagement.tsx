@@ -1059,15 +1059,15 @@ export function ScoreManagement() {
 
                 return {
                     ...score,
-                    matchedMember: score.matchedMember ?? match?.member,
-                    matchConfidence: score.matchConfidence ?? match?.confidence,
+                    matchedMember: score.matchedMember ?? (match && 'member' in match ? match.member : match),
+                    matchConfidence: score.matchConfidence ?? (match && 'confidence' in match ? match.confidence : undefined),
                 };
             });
 
             setCsvParsedScores(withMatches);
 
             if (withMatches.length === 0) {
-                alert("No scores detected in CSV. Check column names: name/player, g1/game1, g2/game2, etc.");
+                alert("Tiada skor detected in CSV. Check column names: name/player, g1/game1, g2/game2, etc.");
             }
         } catch (error) {
             console.error("Error parsing CSV:", error);
