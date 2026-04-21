@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { getTrioEnabledGames, getAllTrioRecordsByGame, type TrioRecordWithPlayers, type TrioPlayer } from "@/services/trioService";
 import { LaneSpinWheel } from "@/components/admin/LaneSpinWheel";
-import { Loader2, Users, Trophy, UserPlus, RefreshCw } from "lucide-react";
+import { Loader2, Users, Trophy, UserPlus, RefreshCw, RefreshCcw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -61,28 +61,60 @@ export default function UndiTrioPage() {
 
   useEffect(() => {
     if (selectedGameId) {
-      loadGameTrios();
+      loadTrioRecordsForGame(selectedGameId);
     }
   }, [selectedGameId]);
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   async function loadData() {
     try {
       setLoading(true);
+      
       const trioGames = await getTrioEnabledGames();
       setGames(trioGames);
       
       if (trioGames.length > 0) {
         setSelectedGameId(trioGames[0].id);
+        await loadTrioRecordsForGame(trioGames[0].id);
       }
     } catch (error) {
-      console.error("Error loading games:", error);
+      console.error("Error loading data:", error);
       toast({
-        title: "Ralat",
-        description: "Gagal memuatkan senarai game",
+        title: "Error",
+        description: "Gagal memuatkan data games",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTrioRecordsForGame(gameId: string) {
+    try {
+      const records = await getAllTrioRecordsByGame(gameId);
+      setTrioRecords(records);
+      
+      // Check which trios are already drawn
+      const drawnIds = new Set<string>();
+      
+      records.forEach(record => {
+        if (record.is_drawn) {
+          drawnIds.add(record.id);
+        }
+      });
+      
+      setCompletedTrioIds(drawnIds);
+      
+    } catch (error) {
+      console.error("Error loading trio records:", error);
+      toast({
+        title: "Error",
+        description: "Gagal memuatkan rekod trio",
+        variant: "destructive",
+      });
     }
   }
 
@@ -278,6 +310,120 @@ export default function UndiTrioPage() {
     setSelectedTrio(null);
     setSpinning(false);
     setRotation(0);
+  }
+
+  function handleSelectTrio(trioId: string) {
+    const trio = trioRecords.find(t => t.id === trioId);
+    if (!trio) return;
+    
+    setSelectedTrioId(trioId);
+    setSelectedTrio(trio);
+    
+    if (trio.player1) {
+      setPlayerA(trio.player1);
+    }
+    
+    // 🔒 CHECK IF TRIO IS ALREADY DRAWN
+    if (trio.is_drawn && trio.player1 && trio.player2 && trio.player3) {
+      // Restore complete state
+      setPlayerA(trio.player1);
+      setPlayerB(trio.player2);
+      setPlayerC(trio.player3);
+      setStep(4); // Set to final step (complete)
+      
+      toast({
+        title: "✅ Trio Telah Diundi",
+        description: `Trio ini telah siap diundi sebelum ini.`,
+        duration: 3000,
+      });
+    } else {
+      // Fresh draw
+      setStep(1);
+      setPlayerB(null);
+      setPlayerC(null);
+    }
+    
+    setRotation(0);
+  }
+
+  function handleNextTrio() {
+    // Find next undrawn trio
+    const nextTrio = trioRecords.find(
+      t => !completedTrioIds.has(t.id) && t.id !== selectedTrioId
+    );
+    
+    if (nextTrio) {
+      handleSelectTrio(nextTrio.id);
+    } else {
+      toast({
+        title: "✅ Semua Trio Telah Siap",
+        description: "Semua pasukan trio telah lengkap diundi!",
+        duration: 5000,
+      });
+      
+      setStep(0);
+      setSelectedTrioId(null);
+      setSelectedTrio(null);
+      setPlayerA(null);
+      setPlayerB(null);
+      setPlayerC(null);
+    }
+  }
+
+  async function handleResetDraw() {
+    if (!selectedTrio) return;
+    
+    const confirmed = confirm(
+      `Reset undi untuk trio ${selectedTrio.player1?.username}?\n\n` +
+      "Ini akan membolehkan undi semula dan memadam rekod undian sebelum ini."
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      // Reset is_drawn status in database
+      const { error } = await supabase
+        .from("trio_records")
+        .update({ 
+          is_drawn: false,
+          drawn_at: null
+        })
+        .eq("id", selectedTrio.id);
+      
+      if (error) throw error;
+      
+      // Remove from completedTrioIds
+      setCompletedTrioIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(selectedTrio.id);
+        return newSet;
+      });
+      
+      // Reset UI state
+      setStep(1);
+      setPlayerB(null);
+      setPlayerC(null);
+      setRotation(0);
+      
+      // Reload trio records to refresh is_drawn status
+      if (selectedGameId) {
+        await loadTrioRecordsForGame(selectedGameId);
+      }
+      
+      toast({
+        title: "✅ Undi Direset",
+        description: "Trio ini boleh diundi semula sekarang",
+        duration: 3000,
+      });
+      
+    } catch (error) {
+      console.error("Error resetting draw:", error);
+      toast({
+        title: "Error",
+        description: "Gagal reset undi",
+        variant: "destructive",
+      });
+    }
   }
 
   // --- Rendering UI --- //
@@ -489,14 +635,29 @@ export default function UndiTrioPage() {
 
                   {/* Spin Button */}
                   <Button
-                    onClick={step === 2 ? handleSpinForB : handleSpinForC}
-                    disabled={spinning || !isAdmin}
+                    onClick={handleSpinForB}
+                    disabled={spinning || !isAdmin || poolB.length === 0 || selectedTrio?.is_drawn}
                     size="lg"
-                    className={`px-16 py-8 text-2xl font-black rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 ${
-                      step === 2
-                        ? "bg-blue-600 hover:bg-blue-500 text-white"
-                        : "bg-green-600 hover:bg-green-500 text-white"
-                    }`}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-6 text-xl"
+                  >
+                    {spinning ? (
+                      <>
+                        <Loader2 className="w-8 h-8 mr-3 animate-spin" />
+                        MEMUTAR...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-8 h-8 mr-3" />
+                        PUTAR RODA!
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={handleSpinForC}
+                    disabled={spinning || !isAdmin || poolC.length === 0 || selectedTrio?.is_drawn}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-6 text-xl"
                   >
                     {spinning ? (
                       <>
@@ -528,23 +689,60 @@ export default function UndiTrioPage() {
             )}
 
             {/* Completion State */}
-            {step === 4 && (
-              <Card className="p-10 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 text-slate-900 shadow-2xl border-0 text-center animate-in slide-in-from-bottom-8 duration-700">
-                <Trophy className="w-24 h-24 mx-auto mb-6 text-white drop-shadow-lg animate-bounce" />
-                <h2 className="text-4xl font-black mb-2 tracking-tight drop-shadow-sm">
-                  PASUKAN TRIO LENGKAP!
-                </h2>
-                <p className="text-xl font-bold mb-8 opacity-90 drop-shadow-sm">
-                  Pasukan {playerA?.username} sedia untuk berentap!
-                </p>
-                <Button 
-                  onClick={handleReset} 
-                  size="lg"
-                  className="bg-white text-yellow-600 hover:bg-slate-50 px-10 py-6 text-xl font-bold rounded-xl shadow-lg"
-                >
-                  <RefreshCw className="w-6 h-6 mr-2" />
-                  UNDI PASUKAN LAIN
-                </Button>
+            {step === 4 && playerA && playerB && playerC && (
+              <Card className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300">
+                <div className="text-center">
+                  <div className="flex items-center justify-center mb-6">
+                    <Trophy className="w-16 h-16 text-green-600" />
+                  </div>
+                  
+                  {selectedTrio?.is_drawn && (
+                    <Badge className="mb-4 bg-green-600 text-white px-4 py-2 text-sm">
+                      ✅ Telah Diundi Sebelum Ini
+                    </Badge>
+                  )}
+                  
+                  <h3 className="text-3xl font-black text-green-900 mb-4">🎉 Pasukan Lengkap!</h3>
+                  
+                  <div className="space-y-4 max-w-md mx-auto mb-6">
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <div className="text-sm text-gray-600 mb-1">Player A</div>
+                      <div className="text-xl font-bold text-red-600">{playerA.username}</div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <div className="text-sm text-gray-600 mb-1">Player B</div>
+                      <div className="text-xl font-bold text-blue-600">{playerB.username}</div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-4 shadow-sm">
+                      <div className="text-sm text-gray-600 mb-1">Player C</div>
+                      <div className="text-xl font-bold text-green-600">{playerC.username}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={handleNextTrio}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg font-bold"
+                    >
+                      Undi Trio Seterusnya
+                    </Button>
+                    
+                    {isAdmin && selectedTrio?.is_drawn && (
+                      <Button
+                        onClick={handleResetDraw}
+                        variant="outline"
+                        size="lg"
+                        className="border-2 border-red-500 text-red-600 hover:bg-red-50 px-8 py-6 text-lg font-bold"
+                      >
+                        <RefreshCcw className="w-5 h-5 mr-2" />
+                        Reset Undi
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </Card>
             )}
           </div>
