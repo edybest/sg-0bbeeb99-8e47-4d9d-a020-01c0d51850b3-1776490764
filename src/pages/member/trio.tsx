@@ -99,21 +99,37 @@ export default function TrioPage() {
     try {
       setLoading(true);
       
-      const trioRecords = await getAllTrioRecordsByGame(selectedGameId);
+      // Find game for this date
+      const game = games.find(g => g.game_date === selectedGameId);
+      if (!game) {
+        setTrios([]);
+        return;
+      }
+      
+      // Get trio records for this game - ONLY DRAWN TRIOS
+      const allTrioRecords = await getAllTrioRecordsByGame(game.id);
+      
+      // 🔒 FILTER: Only show trios that have been officially drawn
+      const trioRecords = allTrioRecords.filter(trio => trio.is_drawn === true);
       
       // Get all player scores from game_players table
       const { data: gamePlayers, error: scoresError } = await supabase
         .from("game_players")
         .select("member_id, overall_score")
-        .eq("game_id", selectedGameId);
+        .eq("game_id", game.id);
       
-      if (scoresError) throw scoresError;
+      if (scoresError) {
+        console.error("Error fetching scores:", scoresError);
+        throw scoresError;
+      }
       
+      // Calculate trio teams with real scores
       const teams: TrioTeam[] = [];
       
       for (const trio of trioRecords) {
         if (!trio.player1 || !trio.player2 || !trio.player3) continue;
         
+        // Get overall_score for each player from game_players
         const playerAScore = gamePlayers?.find(gp => gp.member_id === trio.player1!.id);
         const playerBScore = gamePlayers?.find(gp => gp.member_id === trio.player2!.id);
         const playerCScore = gamePlayers?.find(gp => gp.member_id === trio.player3!.id);
@@ -123,11 +139,11 @@ export default function TrioPage() {
         const scoreC = playerCScore?.overall_score || 0;
         
         const totalScore = scoreA + scoreB + scoreC;
-        const averageScore = Math.round((totalScore / 3) * 100) / 100;
+        const averageScore = Math.round((totalScore / 3) * 100) / 100; // Round to 2 decimals
         
         teams.push({
           id: trio.id,
-          rank: 0,
+          rank: 0, // Will be calculated after sorting
           teamName: trio.player1.username,
           playerA: trio.player1.username,
           playerAId: trio.player1.id,
@@ -142,6 +158,12 @@ export default function TrioPage() {
           averageScore,
         });
       }
+      
+      // Sort by total score (highest first) and assign ranks
+      teams.sort((a, b) => b.totalScore - a.totalScore);
+      teams.forEach((team, index) => {
+        team.rank = index + 1;
+      });
       
       setTrios(teams);
     } catch (error) {

@@ -1837,9 +1837,11 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
+          drawn_at: string | null
           game_id: string
           id: string
           include_handicap: boolean
+          is_drawn: boolean | null
           player1_handicap: number
           player1_id: string
           player1_score: number
@@ -1855,9 +1857,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          drawn_at?: string | null
           game_id: string
           id?: string
           include_handicap?: boolean
+          is_drawn?: boolean | null
           player1_handicap?: number
           player1_id: string
           player1_score?: number
@@ -1873,9 +1877,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
+          drawn_at?: string | null
           game_id?: string
           id?: string
           include_handicap?: boolean
+          is_drawn?: boolean | null
           player1_handicap?: number
           player1_id?: string
           player1_score?: number

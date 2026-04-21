@@ -10,6 +10,9 @@ import { getTrioEnabledGames, getAllTrioRecordsByGame, type TrioRecordWithPlayer
 import { LaneSpinWheel } from "@/components/admin/LaneSpinWheel";
 import { Loader2, Users, Trophy, UserPlus, RefreshCw } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
+
+const supabaseClient = supabase;
 
 type Game = Database["public"]["Tables"]["games"]["Row"];
 
@@ -233,6 +236,23 @@ export default function UndiTrioPage() {
       setPoolC(prevPool => prevPool.filter(p => 
         p.id !== selectedTrio.player2!.id && p.id !== selectedPlayerC.id
       ));
+
+      // 🔥 MARK TRIO AS DRAWN IN DATABASE
+      try {
+        const { error: updateError } = await supabaseClient
+          .from("trio_records")
+          .update({ 
+            is_drawn: true,
+            drawn_at: new Date().toISOString()
+          })
+          .eq("id", selectedTrio.id);
+
+        if (updateError) {
+          console.error("Error marking trio as drawn:", updateError);
+        }
+      } catch (error) {
+        console.error("Error updating trio record:", error);
+      }
 
       if (winAudioRef.current) {
         winAudioRef.current.currentTime = 0;
