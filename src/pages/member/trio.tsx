@@ -353,12 +353,7 @@ export default function TrioPage() {
                                             </Badge>
                                         </div>
                                         <div className="space-y-3 text-center">
-                                            <div className="text-xl font-black text-yellow-900 sm:text-2xl">
-                                                {sortedTrios[0].playerA}
-                                                <span className="ml-1 font-medium text-yellow-700">
-                                                    ({sortedTrios[0].scoreA})
-                                                </span>
-                                            </div>
+                                            
                                             <div className="mb-3 space-y-2 text-xs text-yellow-800 sm:text-sm">
                                                 <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>A: {sortedTrios[0].playerA}</span><span className="font-black">{sortedTrios[0].scoreA}</span></div>
                                                 <div className="flex items-center justify-between rounded-lg bg-yellow-100 px-3 py-2"><span>B: {sortedTrios[0].playerB}</span><span className="font-black">{sortedTrios[0].scoreB}</span></div>
