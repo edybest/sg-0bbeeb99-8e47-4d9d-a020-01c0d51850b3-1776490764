@@ -2255,6 +2255,64 @@ export default function BlokPage() {
                         )}
                     </DialogContent>
                 </Dialog>
+                <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-pink-600" />
+                                Men vs Women
+                            </DialogTitle>
+                            <DialogDescription>
+                                Perbandingan jumlah score lelaki dan perempuan
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {loadingMenVsWomen ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+                            </div>
+                        ) : !menVsWomenData ? (
+                            <div className="text-center py-6 text-gray-500">
+                                Tiada data dijumpai.
+                            </div>
+                        ) : (
+                            <div className="space-y-4" ref={menVsWomenRef}>
+                                <div className="rounded-xl border p-4 bg-blue-50">
+                                    <div className="text-sm text-blue-700 font-medium">Men</div>
+                                    <div className="text-2xl font-bold text-blue-900">
+                                        {menVsWomenData.menTotal}
+                                    </div>
+                                    <div className="text-xs text-blue-600">
+                                        {menVsWomenData.menCount} pemain
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border p-4 bg-pink-50">
+                                    <div className="text-sm text-pink-700 font-medium">Women</div>
+                                    <div className="text-2xl font-bold text-pink-900">
+                                        {menVsWomenData.womenTotal}
+                                    </div>
+                                    <div className="text-xs text-pink-600">
+                                        {menVsWomenData.womenCount} pemain
+                                        {menVsWomenData.womenHandicap > 0 &&
+                                            ` • handicap ${menVsWomenData.womenHandicap}`}
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handleShareMenVsWomen}
+                                    className="w-full"
+                                    disabled={isCapturingScreenshot}
+                                >
+                                    <Share2 className="w-4 h-4 mr-2" />
+                                    {isCapturingScreenshot ? "Processing..." : "Share"}
+                                </Button>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+
                 {/* ── Trio Game Dialog ── */}
                 <Dialog open={isTrioDialogOpen} onOpenChange={setIsTrioDialogOpen}>
                     <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto overflow-x-hidden p-0 bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl [&>button]:hidden">
