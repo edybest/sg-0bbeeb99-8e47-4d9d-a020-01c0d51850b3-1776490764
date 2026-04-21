@@ -392,53 +392,6 @@ export default function MemberDashboard() {
             </div>
           </div>
 
-          {/* Couple */}
-          <Link href="/member/couple">
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-          </Link>
-
-          {/* Trio */}
-          <Link href="/member/trio">
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-          </Link>
 
           {/* Profile Quick Link - Only show for logged in members */}
           {member &&
