@@ -343,3 +343,12 @@
   background-color: hsl(210 100% 65% / 0.3);
   color: hsl(220 25% 15%);
 }
+
+.screenshot-mode *,
+.screenshot-mode *::before,
+.screenshot-mode *::after {
+    animation: none !important;
+    transition: none !important;
+    backdrop-filter: none !important;
+    filter: none !important;
+}
