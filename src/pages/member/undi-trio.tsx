@@ -95,7 +95,7 @@ export default function UndiTrioPage() {
   async function loadTrioRecordsForGame(gameId: string) {
     try {
       const records = await getAllTrioRecordsByGame(gameId);
-      setTrioRecords(records);
+      setTrios(records);
       
       // Check which trios are already drawn
       const drawnIds = new Set<string>();
@@ -313,10 +313,9 @@ export default function UndiTrioPage() {
   }
 
   function handleSelectTrio(trioId: string) {
-    const trio = trioRecords.find(t => t.id === trioId);
+    const trio = trios.find(t => t.id === trioId);
     if (!trio) return;
     
-    setSelectedTrioId(trioId);
     setSelectedTrio(trio);
     
     if (trio.player1) {
@@ -348,8 +347,8 @@ export default function UndiTrioPage() {
 
   function handleNextTrio() {
     // Find next undrawn trio
-    const nextTrio = trioRecords.find(
-      t => !completedTrioIds.has(t.id) && t.id !== selectedTrioId
+    const nextTrio = trios.find(
+      t => !completedTrioIds.has(t.id) && t.id !== selectedTrio?.id
     );
     
     if (nextTrio) {
@@ -361,8 +360,7 @@ export default function UndiTrioPage() {
         duration: 5000,
       });
       
-      setStep(0);
-      setSelectedTrioId(null);
+      setStep(1);
       setSelectedTrio(null);
       setPlayerA(null);
       setPlayerB(null);
