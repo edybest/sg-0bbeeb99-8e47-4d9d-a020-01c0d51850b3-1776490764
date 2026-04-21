@@ -26,8 +26,8 @@ import {
   Crown,
   Dices,
   MapPin,
-  ArrowRight
-} from "lucide-react";
+  ArrowRight } from
+"lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Users as UsersIcon } from "lucide-react";
 
@@ -359,8 +359,8 @@ export default function MemberDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 + index * 0.05 }}
-                className="group"
-              >
+                className="group">
+                
                   <Link href={card.href} className="block h-full">
                     <div className={`relative overflow-hidden rounded-[16px] h-24 md:h-28 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 active:scale-95 bg-gradient-to-r ${card.gradient}`}>
                       
@@ -394,50 +394,50 @@ export default function MemberDashboard() {
 
           {/* Couple */}
           <Link href="/member/couple">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 border-0 h-32">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
-              {/* Large background pattern - Hearts */}
-              <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              <svg className="absolute -right-2 top-2 w-20 h-20 text-white/10 rotate-12" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              <div className="relative h-full flex flex-col justify-between p-6">
-                <div className="flex items-start justify-between">
-                  <Heart className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
-                  <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">Couple</h3>
-                  <div className="h-1 w-12 bg-white/50 rounded-full"></div>
-                </div>
-              </div>
-            </Card>
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
           </Link>
 
           {/* Trio */}
           <Link href="/member/trio">
-            <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 border-0 h-32">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
-              {/* Large background pattern - Users/People */}
-              <svg className="absolute -right-6 -bottom-6 w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-              </svg>
-              <svg className="absolute -right-2 top-2 w-20 h-20 text-white/10 rotate-12" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-              </svg>
-              <div className="relative h-full flex flex-col justify-between p-6">
-                <div className="flex items-start justify-between">
-                  <Users className="w-8 h-8 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
-                  <div className="w-20 h-20 rounded-full bg-white/10 absolute -right-4 -top-4 group-hover:scale-110 transition-transform"></div>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-white drop-shadow-lg mb-1">Trio</h3>
-                  <div className="h-1 w-12 bg-white/50 rounded-full"></div>
-                </div>
-              </div>
-            </Card>
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
           </Link>
 
           {/* Profile Quick Link - Only show for logged in members */}
