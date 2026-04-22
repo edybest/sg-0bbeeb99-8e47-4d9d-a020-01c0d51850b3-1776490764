@@ -290,11 +290,7 @@ export default function BlokPage() {
 
     const [loadingMenVsWomen, setLoadingMenVsWomen] = useState(false);
 
-    const menVsWomenRef = useRef < HTMLDivElement > (null);
-    
-    
-
-const previousLeaderboardRef = useRef < LeaderboardEntry[] > ([]);
+    const previousLeaderboardRef = useRef < LeaderboardEntry[] > ([]);
 
 const [animatingScores, setAnimatingScores] = useState < Set < string >> (new Set());
 const [retryCount, setRetryCount] = useState(0);
@@ -1718,7 +1714,7 @@ return (
                                                 <div className="flex-shrink-0 w-8 flex justify-center">
                                                     {player.rank <= 3 ? (
                                                         <div
-                                                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${player.rank === 1
+                                                            className={`w-7 h-7 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-sm ${player.rank === 1
                                                                     ? "bg-gradient-to-br from-yellow-400 to-yellow-600"
                                                                     : player.rank === 2
                                                                         ? "bg-gradient-to-br from-gray-300 to-gray-500"
@@ -1866,8 +1862,8 @@ return (
                                                     Handicap
                                                 </th>
                                                 <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10 border-l-2 border-white/20">
-                                                    <Heart className="w-4 h-4 mx-auto" />
-                                                </th>
+                                                        <Heart className="w-4 h-4 mx-auto" />
+                                                    </th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -2204,18 +2200,11 @@ return (
             {/* ── menvswomen Game Dialog ── */}
             <Dialog open={isMenVsWomenDialogOpen} onOpenChange={setIsMenVsWomenDialogOpen}>
                 <DialogContent
-                    className={`w-[96vw] max-w-[96vw] sm:max-w-2xl p-0 bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl [&>button]:hidden ${isCapturingScreenshot
-                            ? "max-h-none overflow-visible"
-                            : "max-h-[88vh] overflow-y-auto overflow-x-hidden"
-                        }`}
+                    className="w-[96vw] max-w-[96vw] sm:max-w-2xl p-0 bg-slate-50 border-0 rounded-2xl sm:rounded-3xl shadow-2xl [&>button]:hidden max-h-[88vh] overflow-y-auto overflow-x-hidden"
                 >
-                    <div
-                                                data-men-vs-women-capture="true"
-                        className={`bg-slate-50`}
-                    >
+                    <div className="bg-slate-50">
                         <div
-                            className={`bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-4 sm:px-5 sm:py-5 text-white flex items-start sm:items-center justify-between gap-3 shadow-md ${""
-                                }`}
+                            className="bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-4 sm:px-5 sm:py-5 text-white flex items-start sm:items-center justify-between gap-3 shadow-md sticky top-0 z-20"
                         >
                             <DialogTitle className="flex items-center gap-3 min-w-0 text-base sm:text-xl font-bold">
                                 <div className="bg-white/20 p-2 rounded-xl shrink-0">
@@ -2230,18 +2219,15 @@ return (
                                 </div>
                             </DialogTitle>
 
-                            {!isCapturingScreenshot && (
-                                <div className="flex items-center gap-2 shrink-0"="true">
-                                    
-                                    <button
-                                        onClick={() => setIsMenVsWomenDialogOpen(false)}
-                                        className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                                        title="Tutup"
-                                    >
-                                        <X className="w-5 h-5 text-white" />
-                                    </button>
-                                </div>
-                            )}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    onClick={() => setIsMenVsWomenDialogOpen(false)}
+                                    className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                                    title="Tutup"
+                                >
+                                    <X className="w-5 h-5 text-white" />
+                                </button>
+                            </div>
                         </div>
 
                         <div className="p-4 sm:p-6 pb-6 sm:pb-8">
@@ -2265,8 +2251,8 @@ return (
                                         </div>
 
                                         <motion.div
-                                            initial={isCapturingScreenshot ? false : { opacity: 0, y: 12 }}
-                                            animate={isCapturingScreenshot ? undefined : { opacity: 1, y: 0 }}
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
                                             className={`relative overflow-hidden rounded-3xl p-4 sm:p-7 border shadow-sm ${menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                     ? "bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 border-transparent text-white"
                                                     : "bg-white border-blue-100"
@@ -2306,7 +2292,7 @@ return (
                                                 <div
                                                     className={`text-3xl sm:text-6xl font-black leading-none shrink-0 ${menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                             ? "text-white"
-                                                            : "text-blue-600"
+                                                            : "text-pink-600"
                                                         }`}
                                                 >
                                                     {menVsWomenData.menTotal}
@@ -2321,8 +2307,8 @@ return (
                                         </div>
 
                                         <motion.div
-                                            initial={isCapturingScreenshot ? false : { opacity: 0, y: 12 }}
-                                            animate={isCapturingScreenshot ? undefined : { opacity: 1, y: 0 }}
+                                            initial={{ opacity: 0, y: 12 }}
+                                            animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: 0.1 }}
                                             className={`relative overflow-hidden rounded-3xl p-4 sm:p-7 border shadow-sm ${menVsWomenData.womenTotal > menVsWomenData.menTotal
                                                     ? "bg-gradient-to-br from-pink-600 via-pink-500 to-rose-400 border-transparent text-white"
@@ -2373,8 +2359,8 @@ return (
                                     </div>
 
                                     <motion.div
-                                        initial={isCapturingScreenshot ? false : { scale: 0.98, opacity: 0 }}
-                                        animate={isCapturingScreenshot ? undefined : { scale: 1, opacity: 1 }}
+                                        initial={{ scale: 0.98, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
                                         transition={{ delay: 0.2 }}
                                         className="rounded-3xl bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 p-[1px] shadow-lg"
                                     >
@@ -2401,8 +2387,8 @@ return (
                                     </motion.div>
 
                                     <motion.div
-                                        initial={isCapturingScreenshot ? false : { opacity: 0, y: 14 }}
-                                        animate={isCapturingScreenshot ? undefined : { opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0, y: 14 }}
+                                        animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.3 }}
                                         className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-6 shadow-sm"
                                     >
