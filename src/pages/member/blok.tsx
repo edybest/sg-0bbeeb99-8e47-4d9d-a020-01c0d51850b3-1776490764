@@ -35,16 +35,14 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronRight,
-    ThumbsUp,
-    Heart,
-    Target,
-    Search,
     Users,
     Star,
     Crown,
     Share2,
     X,
-    Camera
+    Camera,
+    Target,
+    Search
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -156,8 +154,6 @@ interface LeaderboardEntry {
     difference: number;
     rank: number;
     clean_game: boolean;
-    likes_count: number;
-    loves_count: number;
 }
 
 interface ParticleEntry {
@@ -245,8 +241,6 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
         difference: index === 0 ? 0 : topScore - (entry.overall_score ?? 0),
         rank: index + 1,
         clean_game: entry.clean_game ?? false,
-        likes_count: entry.likes_count ?? 0,
-        loves_count: entry.loves_count ?? 0,
     }));
 }
 
@@ -464,19 +458,15 @@ export default function BlokPage() {
 
 const previousLeaderboardRef = useRef < LeaderboardEntry[] > ([]);
 
-const [animatingScores, setAnimatingScores] = useState < Set < string >> (new Set());
+const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
 const [retryCount, setRetryCount] = useState(0);
 
-const [sortField, setSortField] = useState < SortField > ("rank");
-const [sortDirection, setSortDirection] = useState < SortDirection > ("asc");
+const [sortField, setSortField] = useState<SortField>("rank");
+const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-const [reactions, setReactions] = useState < { id: string; playerId: string; x: number; y: number }[] > ([]);
-const [particles, setParticles] = useState < ParticleEntry[] > ([]);
-const [userLikesCount, setUserLikesCount] = useState < number > (0);
-
-const [searchQuery, setSearchQuery] = useState < string > ("");
-const [genderFilter, setGenderFilter] = useState < string > ("ALL");
-const [techniqueFilter, setTechniqueFilter] = useState < string > ("ALL");
+const [searchQuery, setSearchQuery] = useState<string>("");
+const [genderFilter, setGenderFilter] = useState<string>("ALL");
+const [techniqueFilter, setTechniqueFilter] = useState<string>("ALL");
 const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 const isInitialLoading = loadingGames && games.length === 0;
@@ -513,15 +503,6 @@ const filteredLeaderboard = useMemo(() => {
 
     return filtered;
 }, [leaderboard, searchQuery, genderFilter, techniqueFilter]);
-
-const mostLikedPlayers = useMemo(
-    () =>
-        [...filteredLeaderboard]
-            .filter((p) => p.likes_count > 0)
-            .sort((a, b) => b.likes_count - a.likes_count)
-            .slice(0, 3),
-    [filteredLeaderboard]
-);
 
 const applyCurrentSort = useCallback(
     (baseData: LeaderboardEntry[], field: SortField, direction: SortDirection) => {
@@ -677,28 +658,6 @@ const loadTrioRecords = useCallback(
     [toast]
 );
 
-const loadUserLikesCount = useCallback(
-    async (playerIds: string[], gameId: string) => {
-        if (!currentUser?.user_id || !gameId || playerIds.length === 0) {
-            setUserLikesCount(0);
-            return;
-        }
-        try {
-            const { count } = await supabase
-                .from("player_reactions_log")
-                .select("*", { count: "exact", head: true })
-                .eq("member_id", currentUser.user_id)
-                .in("game_player_id", playerIds);
-
-            setUserLikesCount(count ?? 0);
-        } catch (err) {
-            console.error("Error loading user likes count:", err);
-            setUserLikesCount(0);
-        }
-    },
-    [currentUser?.user_id]
-);
-
 const loadLeaderboard = useCallback(
     async (gameId: string) => {
         if (!gameId) return;
@@ -724,8 +683,6 @@ const loadLeaderboard = useCallback(
                         overall_score,
                         average_score,
                         clean_game,
-                        likes_count,
-                        loves_count,
                         member:members!game_players_member_id_fkey(
                             id,
                             username,
@@ -818,13 +775,6 @@ const loadLeaderboard = useCallback(
             setLeaderboardBase(nextBase);
             setLeaderboard(applyCurrentSort(nextBase, sortField, sortDirection));
 
-            setLoadingProgress(95);
-
-            void loadUserLikesCount(
-                nextBase.map((p) => p.id),
-                gameId
-            );
-
             setLoadingProgress(100);
         } catch (err) {
             const message =
@@ -837,7 +787,7 @@ const loadLeaderboard = useCallback(
             }, 300);
         }
     },
-    [sortField, sortDirection, toast, loadUserLikesCount, applyCurrentSort]
+    [sortField, sortDirection, toast, applyCurrentSort]
 );
 
 // ─── Effects ──────────────────────────────────────────────────────────────
@@ -1187,83 +1137,6 @@ const getSortIcon = (field: SortField) => {
         );
 };
 
-const handleReaction = async (
-    playerId: string,
-    event: React.MouseEvent<HTMLButtonElement>
-) => {
-    if (!currentUser || !selectedGame) return;
-
-    if (userLikesCount >= MAX_LIKES_PER_GAME) {
-        toast({
-            title: "Had Like Tercapai",
-            description: `Anda telah menggunakan semua ${MAX_LIKES_PER_GAME} like untuk game ini.`,
-            variant: "destructive",
-        });
-        return;
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top;
-
-    const reactionId = `reaction-${Date.now()}-${Math.random()}`;
-    setReactions((prev) => [...prev, { id: reactionId, playerId, x, y }]);
-
-    const particleEntries: ParticleEntry[] = Array.from({ length: 8 }, (_, i) => ({
-        id: `particle-${Date.now()}-${i}`,
-        x,
-        y,
-        dir: i,
-    }));
-    setParticles((prev) => [...prev, ...particleEntries]);
-
-    setTimeout(() => {
-        setReactions((prev) => prev.filter((r) => r.id !== reactionId));
-        setParticles((prev) =>
-            prev.filter((p) => !particleEntries.some((pe) => pe.id === p.id))
-        );
-    }, 2000);
-
-    try {
-        const playerEntry = leaderboard.find((p) => p.id === playerId);
-        const currentLikesCount = playerEntry?.likes_count ?? 0;
-
-        setLeaderboard((prev) =>
-            prev.map((p) =>
-                p.id === playerId ? { ...p, likes_count: p.likes_count + 1 } : p
-            )
-        );
-
-        if (currentUser.user_id) {
-            await supabase.from("player_reactions_log").insert({
-                game_player_id: playerId,
-                member_id: currentUser.user_id,
-                reaction_type: "like",
-            });
-
-            await supabase
-                .from("game_players")
-                .update({ likes_count: currentLikesCount + 1 })
-                .eq("id", playerId);
-
-            setUserLikesCount((prev) => {
-                const next = prev + 1;
-                const remaining = MAX_LIKES_PER_GAME - next;
-                toast({
-                    title: "Like Berjaya!",
-                    description:
-                        remaining > 0
-                            ? `${remaining} like lagi. Anda boleh like pemain yang sama berkali-kali.`
-                            : "Semua 5 like telah digunakan untuk game ini.",
-                });
-                return next;
-            });
-        }
-    } catch (err) {
-        console.error("Error toggling like:", err);
-    }
-};
-
 // ─── Rank display ─────────────────────────────────────────────────────────
 
 const getRankDisplay = (rank: number) => {
@@ -1427,38 +1300,6 @@ return (
                         100% { transform: scale(1);   background-color: transparent; }
                     }
                     .score-changed { animation: scoreChange 1s ease-in-out; }
-
-                    @keyframes heartPop {
-                        0%   { transform: translate(-50%, 0)    scale(0);   opacity: 1; }
-                        50%  { transform: translate(-50%, -30px) scale(1.2); opacity: 1; }
-                        100% { transform: translate(-50%, -80px) scale(0.8); opacity: 0; }
-                    }
-                    .heart-pop { animation: heartPop 1s ease-out forwards; }
-
-                    @keyframes particle-0 {
-                        0%   { transform: translate(-50%, 0)              scale(1); opacity: 1; }
-                        100% { transform: translate(-50%, -60px)          scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-1 {
-                        0%   { transform: translate(-50%, 0)                       scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% + 42px), -42px)      scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-2 {
-                        0%   { transform: translate(-50%, 0)               scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% + 60px), 0)  scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-3 {
-                        0%   { transform: translate(-50%, 0)                      scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% + 42px), 42px)      scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-4 {
-                        0%   { transform: translate(-50%, 0)    scale(1); opacity: 1; }
-                        100% { transform: translate(-50%, 60px) scale(0); opacity: 0; }
-                    }
-                    @keyframes particle-5 {
-                        0%   { transform: translate(-50%, 0)                       scale(1); opacity: 1; }
-                        100% { transform: translate(calc(-50% - 42px), 42px)       scale(0); opacity: 0; }
-                    }
                 `}</style>
 
             <SEO
@@ -1486,15 +1327,6 @@ return (
                                     </h1>
                                 </div>
                             </div>
-
-                            {selectedGame && (
-                                <div className="flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-full border border-red-200 shadow-md flex-shrink-0">
-                                    <span className="text-xl">👍</span>
-                                    <span className="text-xs md:text-sm font-bold text-red-700">
-                                        {userLikesCount}/{MAX_LIKES_PER_GAME} Likes
-                                    </span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </header>
@@ -1502,8 +1334,8 @@ return (
                 <main className="container mx-auto px-3 md:px-4 py-6">
 
                     {/* ── Game Selector + Most Liked ── */}
-                    <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-                        <Card className="bg-white border-sky-200 shadow-md lg:col-span-2">
+                    <div className="mb-6">
+                        <Card className="bg-white border-sky-200 shadow-md">
                             <CardHeader className="border-b border-sky-100/50 pb-3 md:pb-4">
                                 <CardTitle className="text-sky-900 flex items-center gap-2 text-lg md:text-xl">
                                     <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
@@ -1601,63 +1433,12 @@ return (
                                 )}
                             </CardContent>
                         </Card>
-
-                        {selectedGame && mostLikedPlayers.length > 0 && (
-                            <Card className="bg-gradient-to-br from-red-50 to-pink-50 border-red-200 shadow-md">
-                                <CardHeader className="border-b border-red-100/50 pb-3 md:pb-4">
-                                    <CardTitle className="text-red-900 flex items-center gap-2 text-lg md:text-xl">
-                                        <Heart className="w-5 h-5 md:w-6 md:h-6 text-red-500 fill-red-500" />
-                                        Pilihan Ramai
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="pt-4 md:pt-6">
-                                    <div className="space-y-3">
-                                        {mostLikedPlayers.map((player, index) => (
-                                            <div
-                                                key={`liked-${player.id}`}
-                                                className="flex items-center justify-between bg-white/60 p-2 rounded-lg border border-red-100/50"
-                                            >
-                                                <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                                                    <span className="font-bold text-red-400 w-4 md:w-5 text-sm md:text-base">
-                                                        #{index + 1}
-                                                    </span>
-                                                    {player.member.avatar_url ? (
-                                                        <Image
-                                                            src={player.member.avatar_url}
-                                                            alt={player.member.username}
-                                                            width={28}
-                                                            height={28}
-                                                            className="w-7 h-7 md:w-8 md:h-8 rounded-full object-cover border-2 border-white shadow-sm"
-                                                            unoptimized
-                                                        />
-                                                    ) : (
-                                                        <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-red-100 flex items-center justify-center font-bold text-red-600 text-xs md:text-sm border-2 border-white shadow-sm">
-                                                            {player.member.username[0].toUpperCase()}
-                                                        </div>
-                                                    )}
-                                                    <Link
-                                                        href={`/member/profile?id=${player.member.id}`}
-                                                        className="font-semibold text-red-900 hover:text-red-700 truncate text-xs md:text-sm"
-                                                    >
-                                                        {player.member.username}
-                                                    </Link>
-                                                </div>
-                                                <div className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 md:py-1 rounded text-xs md:text-sm font-bold shadow-sm flex-shrink-0 ml-2">
-                                                    <span>👍</span>
-                                                    {player.likes_count}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
 
                     {/* Clean Game Section has been removed and replaced by the single button above */}
 
                     {/* ── Clean Game Dialog ── */}
-                    <Dialog open={cleanGameDialogOpen} onOpenChange={setCleanGameDialogOpen}>
+                    <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
                         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
@@ -1888,7 +1669,7 @@ return (
                                                 <div className="flex-shrink-0 w-8 flex justify-center">
                                                     {player.rank <= 3 ? (
                                                         <div
-                                                            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm ${player.rank === 1
+                                                            className={`w-7 h-7 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-sm ${player.rank === 1
                                                                     ? "bg-gradient-to-br from-yellow-400 to-yellow-600"
                                                                     : player.rank === 2
                                                                         ? "bg-gradient-to-br from-gray-300 to-gray-500"
@@ -1928,13 +1709,6 @@ return (
                                                         {player.member.username}
                                                     </Link>
                                                     <div className="flex items-center gap-2 mt-0.5">
-                                                        <button
-                                                            onClick={(e) => handleReaction(player.id, e)}
-                                                            disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                            className="flex items-center gap-1 text-red-500 text-[10px] font-bold bg-red-50 px-1.5 py-0.5 rounded hover:bg-red-100 disabled:opacity-50"
-                                                        >
-                                                            <ThumbsUp className="w-3 h-3" /> {player.likes_count || 0}
-                                                        </button>
                                                         {player.rank > 1 && leaderboard[0] && (
                                                             <span className="text-[10px] text-red-500 font-bold">
                                                                 Diff: -{leaderboard[0].overall_score - player.overall_score}
@@ -2024,19 +1798,16 @@ return (
                                                 {["Game 1", "Game 2", "Game 3", "Game 4", "Game 5"].map((g) => (
                                                     <th
                                                         key={g}
-                                                        className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20"
+                                                        className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r border-white/20"
                                                     >
                                                         {g}
                                                     </th>
                                                 ))}
-                                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-500 to-indigo-600 text-white z-10 border-l-2 border-white/20">
+                                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-indigo-700 text-white z-10 border-l-2 border-white/20">
                                                     Total
                                                 </th>
                                                 <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-blue-600 to-indigo-700 text-white z-10 border-l-2 border-white/20">
                                                     Handicap
-                                                </th>
-                                                <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10 border-l-2 border-white/20">
-                                                    <Heart className="w-4 h-4 mx-auto" />
                                                 </th>
                                             </tr>
                                         </thead>
@@ -2066,7 +1837,7 @@ return (
                                                 </tr>
                                             ) : filteredLeaderboard.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={13} className="py-20 text-center bg-slate-50">
+                                                    <td colSpan={12} className="py-20 text-center bg-slate-50">
                                                         <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                                         <p className="text-sky-500">Tiada skor dijumpai untuk kriteria carian</p>
                                                     </td>
@@ -2156,16 +1927,6 @@ return (
                                                             <td className="px-3 py-3 text-center border-r border-sky-200">
                                                                 <span className="font-bold text-blue-600">{player.handicap || 0}</span>
                                                             </td>
-                                                            <td className="px-3 py-3 text-center">
-                                                                <button
-                                                                    onClick={(e) => handleReaction(player.id, e)}
-                                                                    disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
-                                                                >
-                                                                    <ThumbsUp className="w-4 h-4" />
-                                                                    <span className="font-bold text-sm">{player.likes_count || 0}</span>
-                                                                </button>
-                                                            </td>
                                                         </tr>
                                                     );
                                                 })
@@ -2178,31 +1939,6 @@ return (
                     )}
                 </main>
             </div>
-
-            {/* ── Floating reactions ── */}
-            {reactions.map((reaction) => (
-                <div
-                    key={reaction.id}
-                    className="heart-pop fixed pointer-events-none z-50 text-6xl"
-                    style={{ left: `${reaction.x}px`, top: `${reaction.y}px` }}
-                >
-                    👍
-                </div>
-            ))}
-
-            {particles.map((particle) => (
-                <div
-                    key={particle.id}
-                    className="fixed pointer-events-none z-50"
-                    style={{
-                        left: `${particle.x}px`,
-                        top: `${particle.y}px`,
-                        animation: `particle-${particle.dir} 1s ease-out forwards`,
-                    }}
-                >
-                    <span className="text-2xl">👍</span>
-                </div>
-            ))}
 
             {/* ── Double Game Dialog ── */}
             <Dialog open={isDoubleDialogOpen} onOpenChange={setIsDoubleDialogOpen}>
@@ -2443,7 +2179,7 @@ return (
                             ) : (
                                 <div className="space-y-5 sm:space-y-8">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
-                                        <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
+                                        <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
                                             VS
                                         </div>
 
@@ -2489,7 +2225,7 @@ return (
                                                 <div
                                                     className={`text-3xl sm:text-6xl font-black leading-none shrink-0 ${menVsWomenData.menTotal > menVsWomenData.womenTotal
                                                             ? "text-white"
-                                                            : "text-blue-600"
+                                                            : "text-pink-600"
                                                         }`}
                                                 >
                                                     {menVsWomenData.menTotal}
