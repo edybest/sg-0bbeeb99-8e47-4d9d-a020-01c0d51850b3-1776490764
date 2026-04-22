@@ -1158,9 +1158,9 @@ export default function BlokPage() {
                                 </div>
                             </DialogContent>
                         </Dialog>
-                    </>
-                </MemberLayout>
-            );
-        }
-    }
+                    </main>
+                </div>
+            </>
+        </MemberLayout>
+    );
 }
