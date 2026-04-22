@@ -168,17 +168,16 @@ export default function UndiTrioPage() {
     const targetIndex = poolB.findIndex(p => p.id === selectedTrio.player2!.id);
     const segmentAngle = 360 / poolB.length;
     
-    // Calculate angle to center of segment - arrow points RIGHT (90deg offset)
-    // We want the CENTER of the target segment to align with the arrow
-    const targetAngle = targetIndex * segmentAngle + (segmentAngle / 2);
+    // Arrow is at the RIGHT (0° in canvas coordinates)
+    // Calculate the center angle of the target segment
+    const segmentCenterAngle = targetIndex * segmentAngle + (segmentAngle / 2);
     
-    // Account for arrow position (pointing right = 90deg from top)
-    // We need to rotate so the target segment center aligns with the right arrow
-    const arrowOffset = 90;
-    const finalAngle = (360 - targetAngle + arrowOffset) % 360;
+    // Rotate wheel so the target segment center aligns with arrow at 0°
+    const targetRotation = 360 - segmentCenterAngle;
     
+    // Add multiple full rotations for animation effect
     const fullRotations = 5 + Math.floor(Math.random() * 3);
-    const finalRotation = fullRotations * 360 + finalAngle;
+    const finalRotation = fullRotations * 360 + targetRotation;
     
     setRotation(finalRotation);
 
@@ -219,15 +218,16 @@ export default function UndiTrioPage() {
     const targetIndex = poolC.findIndex(p => p.id === selectedTrio.player3!.id);
     const segmentAngle = 360 / poolC.length;
     
-    // Calculate angle to center of segment - arrow points RIGHT (90deg offset)
-    const targetAngle = targetIndex * segmentAngle + (segmentAngle / 2);
+    // Arrow is at the RIGHT (0° in canvas coordinates)
+    // Calculate the center angle of the target segment
+    const segmentCenterAngle = targetIndex * segmentAngle + (segmentAngle / 2);
     
-    // Account for arrow position (pointing right = 90deg from top)
-    const arrowOffset = 90;
-    const finalAngle = (360 - targetAngle + arrowOffset) % 360;
+    // Rotate wheel so the target segment center aligns with arrow at 0°
+    const targetRotation = 360 - segmentCenterAngle;
     
+    // Add multiple full rotations for animation effect
     const fullRotations = 5 + Math.floor(Math.random() * 3);
-    const finalRotation = fullRotations * 360 + finalAngle;
+    const finalRotation = fullRotations * 360 + targetRotation;
     
     setRotation(finalRotation);
 
