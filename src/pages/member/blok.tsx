@@ -738,7 +738,7 @@ const loadLeaderboard = useCallback(
                 )
                 .eq("game_id", gameId)
                 .order("overall_score", { ascending: false })
-                .limit(150);
+                .limit(50);
 
             setLoadingProgress(50);
 
@@ -753,7 +753,7 @@ const loadLeaderboard = useCallback(
             setLoadingProgress(85);
 
             if (previousLeaderboardRef.current.length > 0) {
-                const changedIds = new Set < string > ();
+                const changedIds = new Set<string>();
                 const notifications: string[] = [];
 
                 nextBase.forEach((newEntry) => {
@@ -837,7 +837,7 @@ const loadLeaderboard = useCallback(
             }, 300);
         }
     },
-    [sortField, sortDirection, toast, loadUserLikesCount]
+    [sortField, sortDirection, toast, loadUserLikesCount, applyCurrentSort]
 );
 
 // ─── Effects ──────────────────────────────────────────────────────────────

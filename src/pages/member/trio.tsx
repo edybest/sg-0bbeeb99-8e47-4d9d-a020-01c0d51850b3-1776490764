@@ -140,17 +140,34 @@ export default function TrioPage() {
             const allTrioRecords = await getAllTrioRecordsByGame(selectedGame.id);
             const trioRecords = allTrioRecords.filter((trio) => trio.is_drawn === true);
 
+            // Early return if no drawn trios
+            if (trioRecords.length === 0) {
+                setTrios([]);
+                setIsTrioLoading(false);
+                return;
+            }
+
+            // Get unique member IDs from all trios
+            const memberIds = new Set<string>();
+            trioRecords.forEach(trio => {
+                if (trio.player1?.id) memberIds.add(trio.player1.id);
+                if (trio.player2?.id) memberIds.add(trio.player2.id);
+                if (trio.player3?.id) memberIds.add(trio.player3.id);
+            });
+
+            // Fetch scores only for members in trios
             const { data: gamePlayers, error: scoresError } = await supabase
                 .from("game_players")
                 .select("member_id, overall_score")
-                .eq("game_id", selectedGame.id);
+                .eq("game_id", selectedGame.id)
+                .in("member_id", Array.from(memberIds));
 
             if (scoresError) {
                 console.error("Error fetching scores:", scoresError);
                 throw scoresError;
             }
 
-            const scoreMap = new Map < string, number> ();
+            const scoreMap = new Map<string, number>();
             for (const player of gamePlayers ?? []) {
                 scoreMap.set(player.member_id, player.overall_score ?? 0);
             }
