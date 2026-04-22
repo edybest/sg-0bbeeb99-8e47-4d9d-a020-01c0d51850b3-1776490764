@@ -910,7 +910,7 @@ const handleOpenCleanGameDialog = async () => {
         const cleanGamePlayersCount = playersData?.length || 0;
         const totalPrize = cleanGamePlayersCount * 2;
 
-        const allWinnerIds = new Set < string > ();
+        const allWinnerIds = new Set<string>();
         for (let i = 1; i <= 5; i++) {
             const wIds = cleanGameData[`game${i}`] || [];
             wIds.forEach((id: string) => allWinnerIds.add(id));
@@ -939,6 +939,7 @@ const handleOpenCleanGameDialog = async () => {
 
             winnersByGame[i] = wIds.map((id: string) => ({
                 member_name: membersMap[id]?.username || "Unknown",
+                avatar_url: membersMap[id]?.avatar_url || null,
                 prize: prizePerWinner
             }));
         }
