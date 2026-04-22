@@ -738,7 +738,7 @@ const loadLeaderboard = useCallback(
                 )
                 .eq("game_id", gameId)
                 .order("overall_score", { ascending: false })
-                .limit(50);
+                .limit(60);
 
             setLoadingProgress(50);
 
@@ -2395,7 +2395,7 @@ return (
 
                                 <div className="min-w-0">
                                     <div className="truncate leading-tight">Men vs Women</div>
-                                    <div className="text-xs sm:text-sm text-white/80 truncate font-medium mt-0.5">
+                                    <div className="text-xs sm:text-base text-white/80 truncate font-medium mt-0.5">
                                         {games.find((g) => g.id === selectedGame)?.game_name}
                                     </div>
                                 </div>
