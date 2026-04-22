@@ -167,10 +167,18 @@ export default function UndiTrioPage() {
 
     const targetIndex = poolB.findIndex(p => p.id === selectedTrio.player2!.id);
     const segmentAngle = 360 / poolB.length;
-    const targetAngle = targetIndex * segmentAngle;
+    
+    // Calculate angle to center of segment - arrow points RIGHT (90deg offset)
+    // We want the CENTER of the target segment to align with the arrow
+    const targetAngle = targetIndex * segmentAngle + (segmentAngle / 2);
+    
+    // Account for arrow position (pointing right = 90deg from top)
+    // We need to rotate so the target segment center aligns with the right arrow
+    const arrowOffset = 90;
+    const finalAngle = (360 - targetAngle + arrowOffset) % 360;
     
     const fullRotations = 5 + Math.floor(Math.random() * 3);
-    const finalRotation = fullRotations * 360 + targetAngle;
+    const finalRotation = fullRotations * 360 + finalAngle;
     
     setRotation(finalRotation);
 
@@ -210,10 +218,16 @@ export default function UndiTrioPage() {
 
     const targetIndex = poolC.findIndex(p => p.id === selectedTrio.player3!.id);
     const segmentAngle = 360 / poolC.length;
-    const targetAngle = targetIndex * segmentAngle;
+    
+    // Calculate angle to center of segment - arrow points RIGHT (90deg offset)
+    const targetAngle = targetIndex * segmentAngle + (segmentAngle / 2);
+    
+    // Account for arrow position (pointing right = 90deg from top)
+    const arrowOffset = 90;
+    const finalAngle = (360 - targetAngle + arrowOffset) % 360;
     
     const fullRotations = 5 + Math.floor(Math.random() * 3);
-    const finalRotation = fullRotations * 360 + targetAngle;
+    const finalRotation = fullRotations * 360 + finalAngle;
     
     setRotation(finalRotation);
 
