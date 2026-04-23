@@ -76,9 +76,9 @@ export function MemberTopBarNav() {
                         <Image
                             src={member.avatar_url}
                             alt={member.username || member.full_name || "Profile"}
-                            width={40}
-                            height={40}
-                            className="rounded-full object-cover border-2 border-gray-200"
+                            width={36}
+                            height={36}
+                            className="h-9 w-9 rounded-full object-cover border-2 border-gray-200"
                             unoptimized
                         />
                     </Link>
