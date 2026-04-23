@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 export function MemberTopBarNav() {
     const router = useRouter();
@@ -56,8 +57,13 @@ export function MemberTopBarNav() {
                         </button>
                     </SheetTrigger>
                     <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 flex flex-col h-full max-h-screen">
-                        <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0 relative">
+                        <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0 relative flex flex-row items-center justify-between space-y-0">
                             <SheetTitle>Notifications</SheetTitle>
+                            <SheetClose asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </SheetClose>
                         </SheetHeader>
                         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
                             <NotificationInbox />
