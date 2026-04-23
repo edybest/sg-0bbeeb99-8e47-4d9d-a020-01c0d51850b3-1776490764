@@ -799,51 +799,52 @@ export function LaneManagement() {
       return;
     }
 
-    if (!confirm("Reset semua lane sebenar kepada ?/? ? Admin perlu set lane sebenar secara manual.")) {
+    if (!confirm("Reset semua lane sebenar (header kuning) kepada ?/? ? Admin perlu set lane sebenar secara manual selepas ini.")) {
       return;
     }
 
     try {
       setLoading(true);
 
-      // Get all lane assignments for this game and set lane_position to null
-      const { data: existingAssignments, error: fetchError } = await supabase
-        .from("lane_assignments")
+      // Update all lane configurations for this game to set lane_sebenar to "?/?"
+      const { data: configsToUpdate, error: fetchError } = await supabase
+        .from("lane_configurations")
         .select("id")
         .eq("game_id", selectedGameId);
 
       if (fetchError) throw fetchError;
 
-      if (!existingAssignments || existingAssignments.length === 0) {
+      if (!configsToUpdate || configsToUpdate.length === 0) {
         toast({
           title: "Info",
-          description: "Tiada lane assignment untuk game ini.",
+          description: "Tiada konfigurasi lane untuk game ini.",
         });
         setLoading(false);
         return;
       }
 
-      // Update all assignments to set lane_position to null
       const { error: updateError } = await supabase
-        .from("lane_assignments")
-        .update({ lane_position: null })
+        .from("lane_configurations")
+        .update({ lane_sebenar: "?/?" })
         .eq("game_id", selectedGameId);
 
       if (updateError) throw updateError;
 
+      // Also reset local state to update the UI immediately
+      setLaneConfigs(prev => 
+        prev.map(c => ({ ...c, lane_sebenar: "?/?" }))
+      );
+
       toast({
         title: "Berjaya",
-        description: `${existingAssignments.length} lane sebenar telah direset kepada ?/?`,
+        description: "Semua lane sebenar telah direset kepada ?/?",
       });
 
-      // Reload data
-      await loadLaneAssignments(selectedGameId);
-      await loadSpinResults(selectedGameId);
     } catch (error) {
       console.error("Error resetting lanes:", error);
       toast({
         title: "Ralat",
-        description: "Gagal reset lane",
+        description: "Gagal reset lane sebenar",
         variant: "destructive"
       });
     } finally {
@@ -1041,9 +1042,6 @@ export function LaneManagement() {
                               <div className="font-medium text-sm">{m.username}</div>
                               <div className="text-xs text-muted-foreground">{m.full_name}</div>
                             </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Sebenar: {formatLaneDisplay(m.lane_position)}
                           </div>
                         </div>
                       </div>
