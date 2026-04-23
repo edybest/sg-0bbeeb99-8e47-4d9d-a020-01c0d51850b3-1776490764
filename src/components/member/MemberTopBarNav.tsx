@@ -1,100 +1,83 @@
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
-import { Bell, LogOut, User, Users, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { NotificationInbox } from "@/components/notifications/NotificationInbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NavigationMenuLink } from "@/components/ui/navigation-menu";
-import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
 
 export function MemberTopBarNav() {
-  const { member, logout } = useAuth();
-  const router = useRouter();
+    const router = useRouter();
+    const { session } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
+    useEffect(() => {
+        async function loadUnreadCount() {
+            if (!session?.user?.id) return;
 
-  const displayName = member?.full_name || "Memuatkan...";
-  const initials = member?.full_name ? member.full_name.substring(0, 2).toUpperCase() : "??";
+            try {
+                const { notificationService } = await import("@/services/notificationService");
+                const count = await notificationService.getUnreadCount();
+                setUnreadCount(count);
+            } catch (e) {
+                console.error("Failed to load unread count:", e);
+            }
+        }
 
-  return (
-    <header className="sticky top-0 z-50 w-full border-b border-sky-200/50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md shadow-soft">
-      <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <div className="flex items-center gap-4">
-          <Link href="/member" className="flex items-center gap-3 group">
-   
-            <span className="font-serif font-bold text-xl sm:inline-block bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent tracking-tight drop-shadow-xl">
-              AMBC
-            </span>
-          </Link>
+        void loadUnreadCount();
+
+        const handleUpdate = () => {
+            void loadUnreadCount();
+        };
+
+        window.addEventListener("notifications-updated", handleUpdate);
+        return () => window.removeEventListener("notifications-updated", handleUpdate);
+    }, [session?.user?.id]);
+
+    return (
+        <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-white px-4 shadow-sm">
+            <Link href="/member" className="flex items-center gap-2">
+                <Image src="/ambc-logo.png" alt="AMBC" width={40} height={40} className="rounded-md" unoptimized />
+                <h1 className="text-xl font-bold text-sky-900">AMBC</h1>
+            </Link>
+
+            <div className="flex items-center gap-4">
+                <Sheet open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+                    <SheetTrigger asChild>
+                        <button className="relative rounded-full p-2 hover:bg-gray-100 transition-colors">
+                            <Bell className={`h-6 w-6 ${unreadCount > 0 ? "text-blue-600" : "text-gray-600"}`} />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white animate-pulse">
+                                    {unreadCount > 9 ? "9+" : unreadCount}
+                                </span>
+                            )}
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                        <SheetHeader className="px-6 py-4 border-b">
+                            <SheetTitle>Notifications</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                            <NotificationInbox />
+                        </div>
+                    </SheetContent>
+                </Sheet>
+
+                {session?.user?.user_metadata?.avatar_url && (
+                    <Link href="/member/profile">
+                        <Image
+                            src={session.user.user_metadata.avatar_url}
+                            alt="Profile"
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover border-2 border-gray-200"
+                            unoptimized
+                        />
+                    </Link>
+                )}
+            </div>
         </div>
-
-        <div className="flex items-center gap-1 sm:gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="relative text-sky-600 hover:bg-sky-50 hover:text-sky-700 rounded-full h-10 w-10 transition-colors"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-sky-500 border-2 border-white dark:border-gray-950" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              className="w-[400px] max-w-[calc(100vw-2rem)] border-sky-100 shadow-large mt-2" 
-              align="end"
-            >
-              <NotificationInbox />
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full ml-1 sm:ml-2 ring-2 ring-sky-200 hover:ring-sky-300 transition-all p-0 overflow-hidden">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={member?.avatar_url || ""} alt={displayName} className="object-cover" />
-                  <AvatarFallback className="bg-gradient-to-br from-sky-100 to-blue-100 text-sky-600 font-medium">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 border-sky-100 shadow-large mt-2" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal p-3">
-                <div className="flex flex-col space-y-1.5">
-                  <p className="text-sm font-semibold leading-none text-foreground">{displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {member?.email || member?.phone || "AMBC Member"}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-sky-100" />
-              <DropdownMenuItem asChild className="p-2">
-                <Link href="/member/profile" className="flex items-center cursor-pointer text-foreground hover:text-sky-600 focus:text-sky-600 focus:bg-sky-50 rounded-lg transition-colors">
-                  <User className="mr-3 h-4 w-4" />
-                  <span className="font-medium">My Profile</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="p-2 text-sky-600 focus:text-sky-700 focus:bg-sky-50 rounded-lg cursor-pointer transition-colors">
-                <LogOut className="mr-3 h-4 w-4" />
-                <span className="font-medium">Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </header>
-  );
+    );
 }

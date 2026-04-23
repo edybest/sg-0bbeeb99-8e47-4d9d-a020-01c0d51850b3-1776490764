@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { notificationService } from "@/services/notificationService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, MailOpen, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -136,34 +135,40 @@ export function NotificationInbox() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-base">Notifications</CardTitle>
-          <div className="text-sm text-muted-foreground">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
             {loading ? "Loading..." : unreadCount > 0 ? `${unreadCount} unread` : "All read"}
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading...
           </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading...
-            </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-lg border p-4 text-sm text-muted-foreground">Tiada message lagi.</div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((it, idx) => {
-                const rowKey = `${it.recipient.notification_id}:${it.recipient.member_id}`;
-                return (
-                  <div key={rowKey} className="rounded-lg border p-4">
+        ) : items.length === 0 ? (
+          <div className="rounded-lg border p-4 text-sm text-center text-muted-foreground">
+            Tiada message lagi.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {items.map((it, idx) => {
+              const rowKey = `${it.recipient.notification_id}:${it.recipient.member_id}`;
+              return (
+                <div key={rowKey}>
+                  <div className="rounded-lg border p-4 bg-white">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate font-semibold">{it.notification?.title ?? "Message"}</p>
-                          {!it.recipient.read_at && <span className="h-2 w-2 rounded-full bg-red-600" aria-label="Unread" />}
+                          <p className="font-semibold text-sm">{it.notification?.title ?? "Message"}</p>
+                          {!it.recipient.read_at && (
+                            <span className="h-2 w-2 rounded-full bg-red-600 flex-shrink-0" aria-label="Unread" />
+                          )}
                         </div>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{it.notification?.message ?? ""}</p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
+                          {it.notification?.message ?? ""}
+                        </p>
                         <p className="mt-2 text-xs text-muted-foreground">
                           {formatDate(it.notification?.created_at ?? it.recipient.delivered_at)}
                         </p>
@@ -180,10 +185,7 @@ export function NotificationInbox() {
                             {marking === rowKey ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <>
-                                <MailOpen className="mr-2 h-4 w-4" />
-                                Read
-                              </>
+                              <MailOpen className="h-4 w-4" />
                             )}
                           </Button>
                         )}
@@ -202,44 +204,45 @@ export function NotificationInbox() {
                         </Button>
                       </div>
                     </div>
-                    {idx !== items.length - 1 && <Separator className="mt-4" />}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  {idx !== items.length - 1 && <Separator className="my-2" />}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void load(currentPage - 1)}
-                disabled={loading || currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void load(currentPage + 1)}
-                disabled={loading || currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void load(currentPage - 1)}
+              disabled={loading || currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void load(currentPage + 1)}
+              disabled={loading || currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        )}
 
-          <Button variant="outline" className="w-full" onClick={() => void load(currentPage)} disabled={loading}>
-            Refresh
-          </Button>
-        </CardContent>
-      </Card>
+        <Button variant="outline" className="w-full" onClick={() => void load(currentPage)} disabled={loading}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Refresh
+        </Button>
+      </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
