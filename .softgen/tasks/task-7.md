@@ -1,6 +1,6 @@
 ---
 title: Reset senarai ahli
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -13,11 +13,11 @@ position: 7
 ---
 
 ## Notes
-Pengguna mahu satu fungsi untuk reset senarai ahli dalam Pengurusan Lane. Apabila digunakan, semua ahli yang sudah disusun ke mana-mana lane perlu dibuang daripada susunan semasa dan kembali ke senarai ahli supaya admin boleh susun semula dari awal. Fungsi ini perlu fokus pada susunan ahli, bukan pada lane undian atau lane sebenar.
+Pengguna mahu satu fungsi untuk reset senarai ahli dalam Pengurusan Lane. Apabila digunakan, semua ahli yang sudah disusun ke mana-mana lane perlu dibuang daripada susunan semasa dan kembali ke senarai ahli supaya admin boleh susun semula dari awal. Fungsi ini fokus pada susunan ahli dengan memadam semua rekod `lane_assignments` bagi game semasa, supaya senarai “Belum Susun” dimuat semula menggunakan logik sedia ada.
 
 ## Checklist
-- [ ] Semak sumber data susunan ahli dalam `src/components/admin/LaneManagement.tsx`
-- [ ] Cari cara ahli ditandakan sebagai sudah disusun ke lane
-- [ ] Tambah aksi reset untuk buang semua assignment ahli bagi game semasa
-- [ ] Pastikan semua ahli kembali dipaparkan dalam senarai ahli belum susun
-- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [x] Semak sumber data susunan ahli dalam `src/components/admin/LaneManagement.tsx`
+- [x] Cari cara ahli ditandakan sebagai sudah disusun ke lane
+- [x] Tambah aksi reset untuk buang semua assignment ahli bagi game semasa
+- [x] Pastikan semua ahli kembali dipaparkan dalam senarai ahli belum susun
+- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus

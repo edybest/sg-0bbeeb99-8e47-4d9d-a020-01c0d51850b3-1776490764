@@ -557,6 +557,46 @@ export function LaneManagement() {
     }
   }
 
+  async function handleResetMemberList() {
+    if (!selectedGameId) return;
+
+    if (assignments.length === 0) {
+      toast({
+        title: "Info",
+        description: "Tiada ahli yang telah disusun untuk game ini.",
+      });
+      return;
+    }
+
+    const game = games.find((g) => g.id === selectedGameId);
+    const label = game?.game_type === "COUPLE" ? "pasangan" : "ahli";
+
+    if (!confirm(`Buang semua ${label} yang telah disusun dari lane dan kembalikan ke senarai asal?`)) {
+      return;
+    }
+
+    try {
+      const totalAssignments = assignments.length;
+
+      await withLoading("admin:lane:reset-member-list", async () => {
+        await laneService.resetAssignmentsForGame(selectedGameId);
+        await loadLaneAssignments(selectedGameId);
+      });
+
+      toast({
+        title: "Berjaya",
+        description: `${totalAssignments} ${label} telah dikembalikan ke senarai belum susun.`,
+      });
+    } catch (error) {
+      console.error("Error resetting member list:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal reset senarai ahli",
+        variant: "destructive",
+      });
+    }
+  }
+
   function handleShareReminder() {
     if (!activeGame) return;
     
@@ -944,6 +984,15 @@ export function LaneManagement() {
               )}
 
               <div className="w-full sm:w-auto flex flex-wrap justify-end gap-2 mt-3 sm:mt-0">
+                <Button
+                  variant="outline"
+                  onClick={handleResetMemberList}
+                  disabled={!selectedGameId || assignments.length === 0}
+                  className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Senarai Ahli
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleAutoRandomAssign}

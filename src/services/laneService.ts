@@ -279,6 +279,15 @@ export const laneService = {
     if (error) throw error;
   },
 
+  async resetAssignmentsForGame(gameId: string): Promise<void> {
+    const { error } = await supabase
+      .from("lane_assignments")
+      .delete()
+      .eq("game_id", gameId);
+
+    if (error) throw error;
+  },
+
   // Get all members for drag and drop
   async getAllMembers() {
     const { data, error } = await supabase
