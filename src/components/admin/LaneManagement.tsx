@@ -799,47 +799,45 @@ export function LaneManagement() {
       return;
     }
 
-    if (!confirm("Reset semua lane sebenar kepada ?/? ? Semua assignment perlu diatur semula secara manual.")) {
+    if (!confirm("Reset semua lane sebenar kepada ?/? ? Admin perlu set semula lane sebenar secara manual selepas ini.")) {
+      return;
+    }
+
+    const configsToReset = laneConfigs.filter((config) => config.lane_sebenar !== "?/?");
+
+    if (configsToReset.length === 0) {
+      toast({
+        title: "Info",
+        description: "Semua lane sebenar sudah berada pada ?/?",
+      });
       return;
     }
 
     try {
       setLoading(true);
 
-      // Set all lane_position to null for this game
-      const { data: assignments, error: fetchError } = await supabase
-        .from("lane_assignments")
-        .select("id")
-        .eq("game_id", selectedGameId);
-
-      if (fetchError) throw fetchError;
-
-      if (!assignments || assignments.length === 0) {
-        toast({
-          title: "Info",
-          description: "Tiada lane assignment untuk game ini.",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Update all to null (will show as ?/? in UI)
-      const { error: updateError } = await supabase
-        .from("lane_assignments")
-        .update({ lane_position: null })
-        .eq("game_id", selectedGameId);
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Berjaya",
-        description: `${assignments.length} lane sebenar telah direset kepada ?/?`,
+      await withLoading("admin:lane:reset-actual-lanes", async () => {
+        await Promise.all(
+          configsToReset.map((config) =>
+            laneService.updateLaneConfiguration(config.id, config.lane_sebenar, "?/?", selectedGameId)
+          )
+        );
       });
 
-      // Reload data to reflect changes
+      setLaneConfigs((prev) =>
+        prev.map((config) => ({
+          ...config,
+          lane_sebenar: "?/?",
+        }))
+      );
+
       await loadLaneAssignments(selectedGameId);
       await loadSpinResults(selectedGameId);
 
+      toast({
+        title: "Berjaya",
+        description: "Semua lane sebenar telah direset kepada ?/?",
+      });
     } catch (error) {
       console.error("Error resetting lanes:", error);
       toast({

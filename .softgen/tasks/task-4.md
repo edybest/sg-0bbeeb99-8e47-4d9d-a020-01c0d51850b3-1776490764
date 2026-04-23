@@ -13,11 +13,11 @@ position: 4
 ---
 
 ## Notes
-Pengguna mahu butang reset dalam Pengurusan Lane menjadikan semua paparan lane sebenar kepada ?/? sahaja. Ia tidak patut menambah teks "Sebenar: ?/?" pada senarai ahli dan tidak patut mengubah bahagian lain yang tidak berkaitan. Perlu semak implementasi semasa dalam LaneManagement dan betulkan aliran reset berdasarkan kod sebenar.
+Pengguna mahu butang reset dalam Pengurusan Lane menjadikan semua paparan lane sebenar kepada ?/? sahaja. Sumber paparan itu datang daripada `config.lane_sebenar` pada kad lane, bukan daripada senarai ahli. Senarai ahli tidak perlu memaparkan teks tambahan `Sebenar: ?/?`. Pembetulan perlu kekal fokus pada header lane sebenar dan aliran edit manual sedia ada.
 
 ## Checklist
-- [ ] Cari implementasi semasa reset lane dalam `src/components/admin/LaneManagement.tsx`
-- [ ] Sahkan sumber paparan `LANE SEBENAR` dalam komponen lane
-- [ ] Ubah fungsi reset supaya semua lane sebenar menjadi `?/?`
-- [ ] Buang sebarang teks `Sebenar: ?/?` daripada senarai ahli jika masih ada
+- [x] Cari implementasi semasa reset lane dalam `src/components/admin/LaneManagement.tsx`
+- [x] Sahkan sumber paparan `LANE SEBENAR` dalam komponen lane
+- [x] Ubah fungsi reset supaya semua lane sebenar menjadi `?/?`
+- [x] Buang sebarang teks `Sebenar: ?/?` daripada senarai ahli jika masih ada
 - [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
