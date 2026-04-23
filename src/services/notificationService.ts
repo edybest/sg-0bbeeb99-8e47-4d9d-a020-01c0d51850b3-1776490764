@@ -107,7 +107,7 @@ export const notificationService = {
     return notification as Row<"notifications">;
   },
 
-  async listMyNotifications(limit = 30) {
+  async listMyNotifications(limit = 30, offset = 0) {
     const { data, error } = await supabase
       .from("notification_recipients")
       .select(
@@ -125,7 +125,7 @@ export const notificationService = {
       `
       )
       .order("delivered_at", { ascending: false, nullsFirst: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
@@ -133,6 +133,18 @@ export const notificationService = {
       recipient: row as Row<"notification_recipients">,
       notification: Array.isArray((row as any).notifications) ? (row as any).notifications[0] : (row as any).notifications,
     }));
+  },
+
+  async getTotalCount() {
+    const { count, error } = await supabase
+      .from("notification_recipients")
+      .select("*", { count: "exact", head: true });
+
+    if (error) {
+      console.error("Failed to get total count:", error);
+      return 0;
+    }
+    return count ?? 0;
   },
 
   async getUnreadCount() {
@@ -152,6 +164,16 @@ export const notificationService = {
     const { error } = await supabase
       .from("notification_recipients")
       .update({ read_at: new Date().toISOString() })
+      .eq("notification_id", notificationId)
+      .eq("member_id", memberId);
+
+    if (error) throw error;
+  },
+
+  async deleteNotification(notificationId: string, memberId: string) {
+    const { error } = await supabase
+      .from("notification_recipients")
+      .delete()
       .eq("notification_id", notificationId)
       .eq("member_id", memberId);
 
