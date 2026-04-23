@@ -813,7 +813,7 @@ export function LaneManagement() {
       // 2. Get all current lane assignments
       const { data: existingAssignments, error: fetchError } = await supabase
         .from("lane_assignments")
-        .select("id, member_id, game_id")
+        .select("id, member_id, game_id, lane_position")
         .eq("game_id", selectedGameId);
 
       if (fetchError) throw fetchError;
