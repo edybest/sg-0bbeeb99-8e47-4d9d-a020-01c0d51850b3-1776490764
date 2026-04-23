@@ -1,6 +1,6 @@
 ---
 title: Page lane sync dengan lane undian
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -19,5 +19,5 @@ Pengguna mahu page lane ikut logik yang sama seperti Pengurusan Lane di admin. B
 - [x] Semak implementasi `src/pages/member/lane.tsx` untuk sumber label slot dan render lane
 - [x] Kenal pasti bagaimana page lane membaca `lane_sebenar`, `lane_undian`, dan visibility lane
 - [x] Betulkan label slot supaya bila `lane_sebenar` ialah `?/?`, slot ikut `lane_undian`
-- [ ] Sambungkan setting `papar/sembunyi lane` admin pada page lane
-- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [x] Sambungkan setting `papar/sembunyi lane` admin pada page lane
+- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus

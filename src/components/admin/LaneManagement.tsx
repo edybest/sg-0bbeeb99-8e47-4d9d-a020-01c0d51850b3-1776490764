@@ -103,17 +103,19 @@ export function LaneManagement() {
     try {
       setLoading(true);
       
-      const [gamesData, configsData] = await withLoading(
+      const [gamesData, configsData, hiddenLanesData] = await withLoading(
         "admin:lane:load-data",
         async () =>
           Promise.all([
             gameService.getAllGames(),
             laneService.getLaneConfigurations(),
+            laneService.getHiddenLaneUndian(),
           ])
       );
 
       setGames(gamesData);
       setLaneConfigs(configsData);
+      setHiddenLanes(new Set(hiddenLanesData));
       
       if (gamesData && gamesData.length > 0) {
         setActiveGame(gamesData[0]);
