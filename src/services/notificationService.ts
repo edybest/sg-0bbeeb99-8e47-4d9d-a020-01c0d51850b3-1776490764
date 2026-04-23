@@ -68,6 +68,8 @@ export const notificationService = {
 
     console.log("✅ Notification created:", notification);
 
+    const deliveredAt = notification.created_at ?? new Date().toISOString();
+
     if (input.audience.type === "all_members") {
       const { data: memberRows, error: membersError } = await supabase.from("members").select("id");
       if (membersError) throw membersError;
@@ -75,6 +77,7 @@ export const notificationService = {
       const recipients = (memberRows ?? []).map((m) => ({
         notification_id: notification.id,
         member_id: m.id,
+        delivered_at: deliveredAt,
       })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
@@ -88,6 +91,7 @@ export const notificationService = {
       const recipients = unique.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
+        delivered_at: deliveredAt,
       })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
@@ -110,6 +114,7 @@ export const notificationService = {
       const recipients = memberIds.map((memberId) => ({
         notification_id: notification.id,
         member_id: memberId,
+        delivered_at: deliveredAt,
       })) satisfies Array<Insert<"notification_recipients">>;
 
       if (recipients.length > 0) {
