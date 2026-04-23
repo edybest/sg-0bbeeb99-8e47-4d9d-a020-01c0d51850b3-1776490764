@@ -897,16 +897,31 @@ export function LaneManagement() {
     }
   }
 
-  function toggleLaneVisibility(laneId: string) {
-    setHiddenLanes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(laneId)) {
-        newSet.delete(laneId);
-      } else {
-        newSet.add(laneId);
-      }
-      return newSet;
-    });
+  async function toggleLaneVisibility(laneId: string) {
+    const previousHiddenLanes = new Set(hiddenLanes);
+    const nextHiddenLanes = new Set(hiddenLanes);
+
+    if (nextHiddenLanes.has(laneId)) {
+      nextHiddenLanes.delete(laneId);
+    } else {
+      nextHiddenLanes.add(laneId);
+    }
+
+    setHiddenLanes(nextHiddenLanes);
+
+    try {
+      await withLoading("admin:lane:save-hidden-lanes", async () =>
+        laneService.saveHiddenLaneUndian(Array.from(nextHiddenLanes))
+      );
+    } catch (error) {
+      console.error("Error saving hidden lanes:", error);
+      setHiddenLanes(previousHiddenLanes);
+      toast({
+        title: "Ralat",
+        description: "Gagal simpan tetapan paparan lane",
+        variant: "destructive",
+      });
+    }
   }
 
   if (loading && games.length === 0) {
