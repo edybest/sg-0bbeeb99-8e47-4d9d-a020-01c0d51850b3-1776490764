@@ -27,11 +27,12 @@ export function BowlingBallLoader({ className, size = "md" }: BowlingBallLoaderP
         style={{ animationDuration: animationSpeed[size] }}
       >
         <Image
-          src="/ambc-logo.png"
-          alt="AMBC Club"
-          fill
-          className="object-contain"
-          sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 160px"
+          src="/file_000000002110720ba90c29d44a4b4756.png"
+          alt="Bowling ball"
+          width={60}
+          height={60}
+          className="opacity-90"
+          unoptimized
         />
       </div>
 

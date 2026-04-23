@@ -75,12 +75,11 @@ export function MemberTopBarNav() {
                     <Link href="/member/profile">
                         <Image
                             src={member.avatar_url}
-                            alt={member.username}
+                            alt={member.username || member.full_name || "Profile"}
                             width={40}
                             height={40}
-                            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                            className="rounded-full object-cover border-2 border-gray-200"
                             unoptimized
-                            loading="lazy"
                         />
                     </Link>
                 )}

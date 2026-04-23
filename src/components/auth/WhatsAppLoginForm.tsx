@@ -350,8 +350,11 @@ export function WhatsAppLoginForm() {
                         <Image
                             src="/ambc-logo.png"
                             alt="AMBC Logo"
-                            fill
-                            className="object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                            width={80}
+                            height={80}
+                            className="mx-auto rounded-lg"
+                            priority
+                            unoptimized
                         />
                     </div>
                 </div>

@@ -300,8 +300,11 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
               <Image
                 src="/ambc-logo.png"
                 alt="AMBC Logo"
-                fill
-                className="object-contain drop-shadow-2xl"
+                width={120}
+                height={120}
+                className="rounded-2xl"
+                priority
+                unoptimized
               />
             </motion.div>
           </motion.div>

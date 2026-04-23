@@ -1402,7 +1402,7 @@ export default function BlokPage() {
                                     )}
 
                                     {(searchQuery || genderFilter !== "ALL" || techniqueFilter !== "ALL") && (
-                                        <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-200">
+                                        <div className="flex flex-wrap gap-2 pt-2 border-t border-sky-100">
                                             <span className="text-sm font-medium text-sky-700 mt-1">Aktif:</span>
                                             {searchQuery && (
                                                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-700 px-2 py-1 rounded text-xs font-semibold">
@@ -1965,7 +1965,7 @@ export default function BlokPage() {
                                 ) : (
                                     <div className="space-y-5 sm:space-y-8">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
-                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
+                                            <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
                                                 VS
                                             </div>
 
@@ -2140,23 +2140,6 @@ export default function BlokPage() {
                                                     </div>
                                                     <span className="font-bold text-pink-600 text-lg sm:text-xl shrink-0">
                                                         {menVsWomenData.womenTotal - (menVsWomenData.womenHandicap * menVsWomenData.womenCount)}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center justify-between gap-3 py-3 px-3 rounded-2xl bg-amber-50 border border-amber-100">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                                                            ➕
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <div className="text-amber-900 font-semibold">Handicap Wanita</div>
-                                                            <div className="text-xs text-amber-700 truncate">
-                                                                {menVsWomenData.womenHandicap} pin × {menVsWomenData.womenCount} org
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <span className="font-bold text-amber-700 text-base sm:text-lg shrink-0">
-                                                        +{menVsWomenData.womenHandicap * menVsWomenData.womenCount}
                                                     </span>
                                                 </div>
 

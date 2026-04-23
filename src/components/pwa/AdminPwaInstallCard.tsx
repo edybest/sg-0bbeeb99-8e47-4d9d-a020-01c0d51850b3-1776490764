@@ -81,12 +81,12 @@ export function AdminPwaInstallCard({ className }: { className?: string }) {
         <div className="flex items-center gap-3 rounded-lg border bg-background p-3">
           <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
             <Image
-              src="/file_000000002110720ba90c29d44a4b4756.png"
-              alt="AMBC Admin Icon"
-              fill
-              className="object-cover"
-              sizes="40px"
-              priority
+              src="/ambc-logo.png"
+              alt="AMBC Logo"
+              width={64}
+              height={64}
+              className="rounded-lg"
+              unoptimized
             />
           </div>
           <div className="min-w-0">
