@@ -994,7 +994,9 @@ export function LaneManagement() {
 
             {selectedGameId ? (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6">
-                {laneConfigs.map(config => renderLaneSection(config))}
+                {laneConfigs
+                  .filter((config) => !hiddenLanes.has(config.lane_undian))
+                  .map((config) => renderLaneSection(config))}
               </div>
             ) : (
                <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-300">

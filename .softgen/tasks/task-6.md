@@ -1,6 +1,6 @@
 ---
 title: Papar sembunyikan lane
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -13,10 +13,10 @@ position: 6
 ---
 
 ## Notes
-Pengguna melaporkan fungsi `Papar/Sembunyikan Lane` dalam Pengurusan Lane tidak berfungsi. Perlu semak logik state, handler toggle, dan render kad lane supaya setiap lane boleh disembunyikan dan dipaparkan semula dengan betul tanpa menjejaskan lane lain.
+Pengguna melaporkan fungsi `Papar/Sembunyikan Lane` dalam Pengurusan Lane tidak berfungsi. Punca sebenar ialah state `hiddenLanes` dan handler toggle sudah wujud, tetapi render grid masih menggunakan `laneConfigs.map(...)` tanpa sebarang tapisan. Pembetulan dibuat dengan menapis `laneConfigs` berdasarkan `config.lane_undian` sebelum render kad lane.
 
 ## Checklist
-- [ ] Semak komponen `src/components/admin/LaneManagement.tsx` untuk handler `Papar/Sembunyikan Lane`
-- [ ] Jejak state atau servis yang mengawal visibility lane
-- [ ] Betulkan logik toggle supaya lane dipapar dan disembunyi dengan betul
-- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [x] Semak komponen `src/components/admin/LaneManagement.tsx` untuk handler `Papar/Sembunyikan Lane`
+- [x] Jejak state atau servis yang mengawal visibility lane
+- [x] Betulkan logik toggle supaya lane dipapar dan disembunyi dengan betul
+- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus
