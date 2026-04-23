@@ -377,9 +377,11 @@ class GameService {
   async getGamePlayers(gameId: string) {
     const { data, error } = await supabase
       .from("game_players")
-      .select(`
+      .select(
+        `
         id,
         member_id,
+        game_id,
         game1_score,
         game2_score,
         game3_score,
@@ -388,21 +390,25 @@ class GameService {
         handicap,
         total_score,
         overall_score,
-        average_score,
-        is_fivefive,
         clean_game,
-        members (
+        is_fivefive,
+        members!game_players_member_id_fkey (
           id,
           username,
           full_name,
           avatar_url
         )
-      `)
+      `
+      )
       .eq("game_id", gameId)
       .order("overall_score", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching game players:", error);
+      throw error;
+    }
     
-    if (error) throw error;
-    return data;
+    return data || [];
   }
 
   // Get member's game history
