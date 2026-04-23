@@ -13,11 +13,11 @@ position: 11
 ---
 
 ## Notes
-Pengguna melaporkan pada halaman login, butang hantar TAC kini memaparkan ralat `fetch failed`. Fokus siasatan ialah memastikan request dari borang login ke API route `/api/send-whatsapp-tac` masih berjaya, semak sama ada route crash, semak dependency servis WhatsApp, dan tentukan sama ada punca datang daripada kod, konfigurasi, atau sambungan keluar ke penyedia WhatsApp.
+Pengguna melaporkan pada halaman login, butang hantar TAC kini memaparkan ralat `fetch failed`. Siasatan setakat ini menunjukkan borang login masih menghantar request ke `/api/send-whatsapp-tac`, dan API route itu seterusnya cuba memanggil `https://api.fonnte.com/send`. Bukti semasa: DNS `api.fonnte.com` berjaya resolve, akses internet umum dari server juga normal (`fetch_example=200`), tetapi fetch terus ke Fonnte gagal dengan `fetch failed`. Ini menjadikan punca semasa lebih cenderung kepada isu sambungan network/TLS ke Fonnte atau provider upstream, bukan format nombor telefon pengguna.
 
 ## Checklist
-- [ ] Semak komponen login WhatsApp yang menghantar request TAC
-- [ ] Semak API route `send-whatsapp-tac` dan servis WhatsApp yang digunakan
-- [ ] Semak log server untuk ralat sebenar ketika request dibuat
-- [ ] Kenal pasti punca `fetch failed` dengan bukti fail atau log
+- [x] Semak komponen login WhatsApp yang menghantar request TAC
+- [x] Semak API route `send-whatsapp-tac` dan servis WhatsApp yang digunakan
+- [x] Semak log server untuk ralat sebenar ketika request dibuat
+- [x] Kenal pasti punca `fetch failed` dengan bukti fail atau log
 - [ ] Betulkan punca jika jelas dan sahkan semula dengan semakan ralat
