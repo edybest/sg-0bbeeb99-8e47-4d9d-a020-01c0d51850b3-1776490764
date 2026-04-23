@@ -1,6 +1,6 @@
 ---
 title: Reset lane sebenar
-status: done
+status: in_progress
 priority: high
 type: feature
 tags:
@@ -13,11 +13,12 @@ position: 4
 ---
 
 ## Notes
-Pengguna mahu butang reset dalam Pengurusan Lane menjadikan semua paparan lane sebenar kepada ?/? sahaja. Sumber paparan itu datang daripada `config.lane_sebenar` pada kad lane, bukan daripada senarai ahli. Senarai ahli tidak perlu memaparkan teks tambahan `Sebenar: ?/?`. Pembetulan perlu kekal fokus pada header lane sebenar dan aliran edit manual sedia ada.
+Pengguna mahu butang reset dalam Pengurusan Lane menjadikan semua paparan lane sebenar kepada ?/? sahaja. Sumber paparan itu datang daripada `config.lane_sebenar` pada kad lane, bukan daripada senarai ahli. Senarai ahli tidak perlu memaparkan teks tambahan `Sebenar: ?/?`. Tambahan pembetulan terbaru: apabila lane sebenar ialah `?/?`, label slot di dalam kotak masih mesti ikut nombor `lane undian`, contohnya lane undian `1/2` perlu memaparkan `1A 1B 1C` dan `2A 2B 2C`, bukan `?A ?B ?C`.
 
 ## Checklist
 - [x] Cari implementasi semasa reset lane dalam `src/components/admin/LaneManagement.tsx`
 - [x] Sahkan sumber paparan `LANE SEBENAR` dalam komponen lane
 - [x] Ubah fungsi reset supaya semua lane sebenar menjadi `?/?`
 - [x] Buang sebarang teks `Sebenar: ?/?` daripada senarai ahli jika masih ada
-- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [ ] Betulkan label slot supaya apabila lane sebenar `?/?`, nombor slot ikut `lane undian`
+- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
