@@ -1,6 +1,6 @@
 ---
 title: Push notification background delivery
-status: done
+status: in_progress
 priority: high
 type: bug
 tags:
@@ -14,7 +14,7 @@ position: 10
 ---
 
 ## Notes
-Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru: notification baru telah dihantar kepada user `edy`, tetapi pada bahagian notification milik `edy` tiada notification baru diterima. Semakan DB mengesahkan notifikasi terbaru memang sudah direkodkan untuk `EDY`, tetapi semua `notification_recipients.delivered_at` bernilai `NULL`. Pada masa yang sama, inbox di `src/services/notificationService.ts` menyusun data ikut `delivered_at`, jadi item baru tidak stabil dan boleh tidak muncul di bahagian atas. Pembetulan dibuat dengan backfill `delivered_at` bagi rekod lama daripada `notifications.created_at`, dan semua insert recipient baharu kini menyimpan `delivered_at` terus semasa notifikasi dicipta.
+Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru: notification baru telah dihantar kepada user `edy`, tetapi pada bahagian notification milik `edy` tiada notification baru diterima. Semakan DB sebelum ini mengesahkan notifikasi terbaru memang sudah direkodkan untuk `EDY`, dan isu `delivered_at` sudah dibetulkan. Permintaan semasa ialah menyemak jadual `push_subscriptions` untuk user `edy` dan mengesahkan status subscription serta endpoint device yang tersimpan.
 
 ## Checklist
 - [x] Semak aliran penghantaran mesej admin dalam panel push message
@@ -23,5 +23,6 @@ Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apab
 - [x] Semak komponen PWA/install/permission untuk subscription push ahli
 - [x] Semak flow simpan notification in-app untuk target user tertentu
 - [x] Semak query inbox member dan filter penerima notification
-- [x] Betulkan punca sebenar supaya notification muncul kepada penerima yang dipilih
-- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [ ] Semak rekod `push_subscriptions` untuk user `edy`
+- [ ] Sahkan status subscription dan endpoint device semasa
+- [ ] Tentukan sama ada subscription semasa sepadan dengan aliran push yang dihantar
