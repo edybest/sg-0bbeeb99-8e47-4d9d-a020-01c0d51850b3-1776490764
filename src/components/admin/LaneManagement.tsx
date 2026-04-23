@@ -57,11 +57,9 @@ export function LaneManagement() {
   }, []);
 
   useEffect(() => {
-    if (selectedGameId) {
-      loadLaneAssignments(selectedGameId);
-      loadSpinResults(selectedGameId);
-    }
-  }, [selectedGameId]);
+    loadLanes();
+    loadUnsortedMembers();
+  }, [selectedGame]);
 
   async function loadData() {
     try {
