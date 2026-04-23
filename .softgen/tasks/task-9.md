@@ -1,6 +1,6 @@
 ---
 title: Jarak atas page member
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -13,11 +13,11 @@ position: 9
 ---
 
 ## Notes
-Pengguna melaporkan beberapa page member tertutup dengan header tetap pada paparan mudah alih. Contoh yang diberi ialah page five-five, di mana kandungan bermula terlalu rapat ke atas sehingga sebahagiannya terlindung di bawah header. Fokus pembetulan ialah menambah jarak atas yang konsisten pada layout/member pages yang berkongsi header yang sama, supaya kandungan turun sedikit tanpa merosakkan spacing page lain.
+Pengguna melaporkan beberapa page member tertutup dengan header tetap pada paparan mudah alih. Contoh yang diberi ialah page five-five, di mana kandungan bermula terlalu rapat ke atas sehingga sebahagiannya terlindung di bawah header. Punca semasa datang daripada `MemberTopBarNav` yang menggunakan header tetap, manakala `MemberLayout` belum memberi offset atas yang konsisten pada wrapper kandungan. Pembetulan dibuat pada layout global supaya semua page member yang guna layout ini turun sedikit tanpa perlu ubah satu per satu.
 
 ## Checklist
-- [ ] Semak komponen layout/header yang dikongsi oleh page member
-- [ ] Kenal pasti bagaimana page five-five meletakkan kandungan utama di bawah header
-- [ ] Betulkan jarak atas global atau pada wrapper yang betul supaya kandungan tidak tertutup
-- [ ] Sahkan perubahan tidak mengganggu bottom nav atau spacing page member lain
-- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [x] Semak komponen layout/header yang dikongsi oleh page member
+- [x] Kenal pasti bagaimana page five-five meletakkan kandungan utama di bawah header
+- [x] Betulkan jarak atas global atau pada wrapper yang betul supaya kandungan tidak tertutup
+- [x] Sahkan perubahan tidak mengganggu bottom nav atau spacing page member lain
+- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus

@@ -43,6 +43,7 @@ export function MemberLayout({ children }: MemberLayoutProps) {
   const isTopNav = navSettings.position === "top";
   const isBottomNav = navSettings.position === "bottom";
   const isSidebarNav = navSettings.position === "sidebar";
+  const mainContentOffsetClass = isTopNav ? "pt-20" : "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,7 +67,9 @@ export function MemberLayout({ children }: MemberLayoutProps) {
         )}
 
         {/* Main Content */}
-        <main className={`flex-1 ${isBottomNav ? "pb-20" : ""} ${isSidebarNav ? "" : "container mx-auto"}`}>
+        <main
+          className={`flex-1 ${mainContentOffsetClass} ${isBottomNav ? "pb-20" : ""} ${isSidebarNav ? "" : "container mx-auto"}`}
+        >
           {children}
         </main>
         <MobileNav />
