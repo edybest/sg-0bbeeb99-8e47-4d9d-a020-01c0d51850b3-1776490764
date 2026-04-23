@@ -807,7 +807,8 @@ export function LaneManagement() {
       setLoading(true);
 
       // Update all lane configurations for this game to set lane_sebenar to "?/?"
-      const { data: configsToUpdate, error: fetchError } = await supabase
+      const client: any = supabase;
+      const { data: configsToUpdate, error: fetchError } = await client
         .from("lane_configurations")
         .select("id")
         .eq("game_id", selectedGameId);
@@ -823,7 +824,7 @@ export function LaneManagement() {
         return;
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await client
         .from("lane_configurations")
         .update({ lane_sebenar: "?/?" })
         .eq("game_id", selectedGameId);
