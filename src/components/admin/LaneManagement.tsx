@@ -177,7 +177,7 @@ export function LaneManagement() {
         // Logik asal untuk BLOK/individu
         const client: any = supabase;
         const [allMembersData, assignmentsData] = await Promise.all([
-          client.from("members").select("id, username, full_name, avatar_url").eq("status", "ACTIVE").order("username"),
+          client.from("members").select("id, username, full_name, avatar_url").order("username"),
           client.from("lane_assignments").select("member_id").eq("game_id", gameId).not('member_id', 'is', null)
         ]);
 

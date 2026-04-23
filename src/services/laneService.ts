@@ -496,44 +496,28 @@ export const laneService = {
     return (data && data.length > 0);
   },
 
-  async getUnsortedMembers(date: string) {
-    console.log("🔍 Fetching unsorted members for date:", date);
-    
-    // Get all assigned member IDs for this date
+  async getUnsortedMembers(date: string): Promise<Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>> {
     const { data: laneData, error: laneError } = await supabase
       .from("lane_assignments")
       .select("member_id")
       .eq("date", date);
 
-    if (laneError) {
-      console.error("❌ Error fetching lane assignments:", laneError);
-      throw laneError;
-    }
+    if (laneError) throw laneError;
 
-    const assignedMemberIds = laneData?.map((l) => l.member_id) || [];
-    console.log("📊 Assigned member IDs:", assignedMemberIds.length, "members");
+    const assignedMemberIds = (laneData || []).map((l) => l.member_id);
 
-    // Get all active members
     const { data: memberData, error: memberError } = await supabase
       .from("members")
       .select("id, username, full_name, avatar_url")
-      .order("username", { ascending: true });
+      .order("username");
 
-    if (memberError) {
-      console.error("❌ Error fetching members:", memberError);
-      throw memberError;
-    }
+    if (memberError) throw memberError;
 
-    console.log("👥 Total members:", memberData?.length || 0);
-
-    // Filter out assigned members
-    const unsorted = memberData?.filter(
+    const unsorted = (memberData || []).filter(
       (m) => !assignedMemberIds.includes(m.id)
-    ) || [];
+    );
 
-    console.log("✅ Unsorted members:", unsorted.length);
-    
-    return unsorted;
+    return unsorted as Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>;
   },
 
   async drawLane(gameId: string, memberId: string) {
