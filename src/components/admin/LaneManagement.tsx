@@ -818,31 +818,39 @@ export function LaneManagement() {
 
       if (fetchError) throw fetchError;
 
-      // 3. Prepare updates for members who have a spin result
-      const updates = (existingAssignments || [])
-        .filter(assignment => assignment.member_id && spinMap.has(assignment.member_id))
-        .map(assignment => ({
-          id: assignment.id,
-          game_id: assignment.game_id,
-          member_id: assignment.member_id,
-          lane_position: spinMap.get(assignment.member_id),
-        }));
+      // 3. Update lane_position for each member to match their spin result
+      let updateCount = 0;
+      
+      for (const assignment of existingAssignments || []) {
+        if (assignment.member_id && spinMap.has(assignment.member_id)) {
+          const spinLanePosition = spinMap.get(assignment.member_id);
+          
+          // Only update if lane_position is different
+          if (assignment.lane_position !== spinLanePosition) {
+            const { error: updateError } = await supabase
+              .from("lane_assignments")
+              .update({ lane_position: spinLanePosition })
+              .eq("id", assignment.id);
 
-      if (updates.length > 0) {
-        const { error: updateError } = await supabase
-          .from("lane_assignments")
-          .upsert(updates);
+            if (updateError) {
+              console.error("Error updating assignment:", assignment.id, updateError);
+              throw updateError;
+            }
+            
+            updateCount++;
+          }
+        }
+      }
 
-        if (updateError) throw updateError;
-        
+      if (updateCount > 0) {
         toast({
           title: "Berjaya",
-          description: `${updates.length} lane telah direset mengikut lane undian`,
+          description: `${updateCount} lane sebenar telah direset mengikut lane undian`,
         });
       } else {
         toast({
           title: "Info",
-          description: "Tiada lane yang perlu direset.",
+          description: "Semua lane sebenar sudah sama dengan lane undian.",
         });
       }
     } catch (error) {
