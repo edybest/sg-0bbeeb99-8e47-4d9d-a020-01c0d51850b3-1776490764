@@ -9,13 +9,13 @@ import { useAuth } from "@/hooks/useAuth";
 
 export function MemberTopBarNav() {
     const router = useRouter();
-    const { session } = useAuth();
+    const { member } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
     useEffect(() => {
         async function loadUnreadCount() {
-            if (!session?.user?.id) return;
+            if (!member?.id) return;
 
             try {
                 const { notificationService } = await import("@/services/notificationService");
@@ -34,7 +34,7 @@ export function MemberTopBarNav() {
 
         window.addEventListener("notifications-updated", handleUpdate);
         return () => window.removeEventListener("notifications-updated", handleUpdate);
-    }, [session?.user?.id]);
+    }, [member?.id]);
 
     return (
         <div className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b bg-white px-4 shadow-sm">
@@ -55,20 +55,20 @@ export function MemberTopBarNav() {
                             )}
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-                        <SheetHeader className="px-6 py-4 border-b">
+                    <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 flex flex-col h-full max-h-screen">
+                        <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0 relative">
                             <SheetTitle>Notifications</SheetTitle>
                         </SheetHeader>
-                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
                             <NotificationInbox />
                         </div>
                     </SheetContent>
                 </Sheet>
 
-                {session?.user?.user_metadata?.avatar_url && (
+                {member?.avatar_url && (
                     <Link href="/member/profile">
                         <Image
-                            src={session.user.user_metadata.avatar_url}
+                            src={member.avatar_url}
                             alt="Profile"
                             width={40}
                             height={40}
