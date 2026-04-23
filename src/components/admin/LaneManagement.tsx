@@ -497,9 +497,7 @@ export function LaneManagement() {
         // Find all empty slots
         const emptySlots: string[] = [];
         laneConfigs.forEach(config => {
-          const lanes = config.lane_sebenar.split("/");
-          const leftLane = lanes[0] || "?";
-          const rightLane = lanes[1] || "?";
+          const { leftLane, rightLane } = getSlotLaneLabels(config);
           const positions = [
             `${leftLane}A`, `${leftLane}B`, `${leftLane}C`,
             `${rightLane}A`, `${rightLane}B`, `${rightLane}C`
@@ -653,6 +651,15 @@ export function LaneManagement() {
     return assignments.find(a => a.lane_position === lanePosition);
   }
 
+  function getSlotLaneLabels(config: LaneConfigurationWithDetails) {
+    const laneSource = config.lane_sebenar.trim() === "?/?" ? config.lane_undian : config.lane_sebenar;
+    const lanes = laneSource.split("/");
+    const leftLane = lanes[0] || "?";
+    const rightLane = lanes[1] || "?";
+
+    return { leftLane, rightLane };
+  }
+
   function renderLaneSlot(lanePosition: string) {
     const assignment = getMemberAtPosition(lanePosition);
     const revealed = assignment ? isLaneRevealed(lanePosition) : false;
@@ -734,9 +741,7 @@ export function LaneManagement() {
 
   function renderLaneSection(config: LaneConfigurationWithDetails) {
     const isEditing = editingConfig === config.id;
-    const lanes = config.lane_sebenar.split("/");
-    const leftLane = lanes[0] || "?";
-    const rightLane = lanes[1] || "?";
+    const { leftLane, rightLane } = getSlotLaneLabels(config);
 
     const leftPositions = [`${leftLane}A`, `${leftLane}B`, `${leftLane}C`];
     const rightPositions = [`${rightLane}A`, `${rightLane}B`, `${rightLane}C`];
