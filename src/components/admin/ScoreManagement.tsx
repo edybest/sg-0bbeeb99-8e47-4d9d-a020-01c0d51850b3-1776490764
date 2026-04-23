@@ -1150,11 +1150,11 @@ export function ScoreManagement() {
                                                     </td>
                                                     <td className="px-4 py-3 text-sm">
                                                         <div className="flex items-center gap-3">
-                                                            {player.avatar_url ? (
+                                                            {player.members?.avatar_url ? (
                                                                 <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                                                                     <Image
-                                                                        src={player.avatar_url}
-                                                                        alt={player.username || player.full_name || "Player avatar"}
+                                                                        src={player.members.avatar_url}
+                                                                        alt={player.members.username || player.members.full_name || "Player avatar"}
                                                                         fill
                                                                         className="object-cover"
                                                                         sizes="32px"
@@ -1163,19 +1163,19 @@ export function ScoreManagement() {
                                                                 </div>
                                                             ) : (
                                                                 <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                                                                    {player.username[0].toUpperCase()}
+                                                                    {player.members?.username?.[0]?.toUpperCase() || "?"}
                                                                 </div>
                                                             )}
                                                             <div>
                                                                 <div className="text-gray-900 font-medium flex items-center gap-1">
-                                                                    {player.username}
+                                                                    {player.members?.username}
                                                                     {player.clean_game && (
                                                                         <span title="Joined Clean Game">
                                                                             <Sparkles className="w-3 h-3 text-amber-500" />
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div className="text-gray-500 text-xs">{player.full_name}</div>
+                                                                <div className="text-gray-500 text-xs">{player.members?.full_name}</div>
                                                             </div>
                                                         </div>
                                                     </td>
