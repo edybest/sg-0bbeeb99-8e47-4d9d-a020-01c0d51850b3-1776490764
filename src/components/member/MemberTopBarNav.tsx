@@ -56,7 +56,7 @@ export function MemberTopBarNav() {
                             )}
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 flex flex-col h-full max-h-screen">
+                    <SheetContent side="right" className="w-[85vw] sm:max-w-md p-0 flex flex-col h-full max-h-screen" showCloseButton={false}>
                         <SheetHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0 relative flex flex-row items-center justify-between space-y-0">
                             <SheetTitle>Notifications</SheetTitle>
                             <SheetClose asChild>
