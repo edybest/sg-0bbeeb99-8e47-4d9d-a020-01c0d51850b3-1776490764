@@ -52,7 +52,7 @@ export function LaneManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
-  const [spinResults, setSpinResults] = useState<{ [key: string]: number | null }>({});
+  const [spinResults, setSpinResults] = useState<Array<{ id: string; lane_position: string; member_id: string }>>([]);
   const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(new Set());
   
   const [games, setGames] = useState<Game[]>([]);
