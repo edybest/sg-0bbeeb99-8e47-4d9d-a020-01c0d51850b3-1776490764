@@ -61,6 +61,13 @@ export function LaneManagement() {
     loadUnsortedMembers();
   }, [selectedGame]);
 
+  useEffect(() => {
+    if (selectedGameId) {
+      loadLaneAssignments(selectedGameId);
+      loadSpinResults(selectedGameId);
+    }
+  }, [selectedGameId]);
+
   async function loadData() {
     try {
       setLoading(true);
