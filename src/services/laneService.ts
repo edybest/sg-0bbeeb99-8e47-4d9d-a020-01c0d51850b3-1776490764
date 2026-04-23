@@ -5,6 +5,8 @@ type LaneConfiguration = Database["public"]["Tables"]["lane_configurations"]["Ro
 type LaneAssignment = Database["public"]["Tables"]["lane_assignments"]["Row"];
 type GamePlayer = Database["public"]["Tables"]["game_players"]["Row"];
 
+const HIDDEN_LANE_SETTING_KEY = "hidden_lane_undian";
+
 export type LaneConfigurationWithDetails = LaneConfiguration;
 
 export interface LaneAssignmentWithMember extends LaneAssignment {
@@ -33,6 +35,42 @@ export const laneService = {
 
     if (error) throw error;
     return data || [];
+  },
+
+  async getHiddenLaneUndian(): Promise<string[]> {
+    const { data, error } = await supabase
+      .from("club_settings")
+      .select("setting_value")
+      .eq("setting_key", HIDDEN_LANE_SETTING_KEY)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data?.setting_value) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(data.setting_value);
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async saveHiddenLaneUndian(hiddenLanes: string[]): Promise<void> {
+    const { error } = await supabase
+      .from("club_settings")
+      .upsert(
+        {
+          setting_key: HIDDEN_LANE_SETTING_KEY,
+          setting_value: JSON.stringify(hiddenLanes),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "setting_key" }
+      );
+
+    if (error) throw error;
   },
 
   // Update lane configuration

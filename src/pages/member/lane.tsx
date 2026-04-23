@@ -46,6 +46,7 @@ export default function LanePage() {
   const [laneConfigs, setLaneConfigs] = useState<LaneConfigurationWithDetails[]>([]);
   const [assignments, setAssignments] = useState<LaneAssignmentWithMember[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(new Set());
   
   const [draggedMember, setDraggedMember] = useState<Member | null>(null);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
@@ -72,17 +73,19 @@ export default function LanePage() {
     try {
       setLoading(true);
       
-      const [gamesData, configsData] = await withLoading(
+      const [gamesData, configsData, hiddenLanesData] = await withLoading(
         "member:lane:load-data",
         async () =>
           Promise.all([
             gameService.getAllGames(),
             laneService.getLaneConfigurations(),
+            laneService.getHiddenLaneUndian(),
           ])
       );
 
       setGames(gamesData);
       setLaneConfigs(configsData);
+      setHiddenLanes(new Set(hiddenLanesData));
       
       // Auto select latest game
       if (gamesData && gamesData.length > 0) {
@@ -346,6 +349,15 @@ export default function LanePage() {
     return assignments.find(a => a.lane_position === lanePosition);
   }
 
+  function getSlotLaneLabels(config: LaneConfigurationWithDetails) {
+    const laneSource = config.lane_sebenar.trim() === "?/?" ? config.lane_undian : config.lane_sebenar;
+    const lanes = laneSource.split("/");
+    const leftLane = lanes[0]?.trim() || "?";
+    const rightLane = lanes[1]?.trim() || "?";
+
+    return { leftLane, rightLane };
+  }
+
   function renderLaneSlot(lanePosition: string) {
     const assignment = getMemberAtPosition(lanePosition);
     
@@ -403,9 +415,7 @@ export default function LanePage() {
 
   function renderLaneSection(config: LaneConfigurationWithDetails) {
     const isEditing = editingConfig === config.id;
-    const lanes = config.lane_sebenar.split("/");
-    const leftLane = lanes[0] || "?";
-    const rightLane = lanes[1] || "?";
+    const { leftLane, rightLane } = getSlotLaneLabels(config);
 
     const leftPositions = [`${leftLane}A`, `${leftLane}B`, `${leftLane}C`];
     const rightPositions = [`${rightLane}A`, `${rightLane}B`, `${rightLane}C`];
@@ -576,7 +586,9 @@ export default function LanePage() {
 
                   {selectedGameId ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-                      {laneConfigs.map(config => renderLaneSection(config))}
+                      {laneConfigs
+                        .filter((config) => !hiddenLanes.has(config.lane_undian))
+                        .map((config) => renderLaneSection(config))}
                     </div>
                   ) : (
                     <div className="text-center py-12 text-rose-500 bg-white rounded-lg border border-dashed">
