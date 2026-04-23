@@ -35,8 +35,6 @@ import {
     ArrowUp,
     ArrowDown,
     ChevronRight,
-    ThumbsUp,
-    Heart,
     Target,
     Search,
     Users,
@@ -44,7 +42,8 @@ import {
     Crown,
     Share2,
     X,
-    Camera
+    Heart,
+    ThumbsUp
 } from "lucide-react";
 
 import { motion } from "framer-motion";
@@ -1254,13 +1253,6 @@ return (
                     }
                     .score-changed { animation: scoreChange 1s ease-in-out; }
 
-                    @keyframes heartPop {
-                        0%   { transform: translate(-50%, 0)    scale(0);   opacity: 1; }
-                        50%  { transform: translate(-50%, -30px) scale(1.2); opacity: 1; }
-                        100% { transform: translate(-50%, -80px) scale(0.8); opacity: 0; }
-                    }
-                    .heart-pop { animation: heartPop 1s ease-out forwards; }
-
                     @keyframes particle-0 {
                         0%   { transform: translate(-50%, 0)              scale(1); opacity: 1; }
                         100% { transform: translate(-50%, -60px)          scale(0); opacity: 0; }
@@ -1850,7 +1842,7 @@ return (
                                                 {["Game 1", "Game 2", "Game 3", "Game 4", "Game 5"].map((g) => (
                                                     <th
                                                         key={g}
-                                                        className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-sky-600 text-white z-10 border-r-2 border-white/20"
+                                                        className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-b from-sky-500 to-indigo-600 text-white z-10 border-r-2 border-white/20"
                                                     >
                                                         {g}
                                                     </th>
@@ -1862,8 +1854,8 @@ return (
                                                     Handicap
                                                 </th>
                                                 <th className="sticky top-0 px-3 py-4 text-center text-xs font-semibold uppercase tracking-wider bg-gradient-to-br from-red-500 to-pink-600 text-white z-10 border-l-2 border-white/20">
-                                                        <Heart className="w-4 h-4 mx-auto" />
-                                                    </th>
+                                                    <Heart className="w-4 h-4 mx-auto" />
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1981,16 +1973,6 @@ return (
                                                             </td>
                                                             <td className="px-3 py-3 text-center border-r border-sky-200">
                                                                 <span className="font-bold text-blue-600">{player.handicap || 0}</span>
-                                                            </td>
-                                                            <td className="px-3 py-3 text-center">
-                                                                <button
-                                                                    onClick={(e) => handleReaction(player.id, e)}
-                                                                    disabled={userLikesCount >= MAX_LIKES_PER_GAME}
-                                                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-red-50 text-red-600 transition-colors disabled:opacity-50 shadow-sm"
-                                                                >
-                                                                    <ThumbsUp className="w-4 h-4" />
-                                                                    <span className="font-bold text-sm">{player.likes_count || 0}</span>
-                                                                </button>
                                                             </td>
                                                         </tr>
                                                     );
@@ -2246,7 +2228,7 @@ return (
                             ) : (
                                 <div className="space-y-5 sm:space-y-8">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 relative">
-                                        <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
+                                        <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-14 h-14 bg-white rounded-full flex items-center justify-center text-3xl font-black shadow-lg border-4 border-slate-50">
                                             VS
                                         </div>
 
