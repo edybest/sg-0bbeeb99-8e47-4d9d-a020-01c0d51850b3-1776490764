@@ -786,19 +786,47 @@ export function LaneManagement() {
     try {
       setLoading(true);
 
-      // Get all lane assignments for this game
+      // 1. Get all spin results for this game
+      const { data: spinResultsData, error: spinError } = await supabase
+        .from("lane_spin_results")
+        .select("member_id, lane_position")
+        .eq("game_id", selectedGameId);
+
+      if (spinError) throw spinError;
+
+      if (!spinResultsData || spinResultsData.length === 0) {
+        toast({
+          title: "Info",
+          description: "Tiada data undian dijumpai untuk game ini.",
+          variant: "default"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Create a map of member_id to their spun lane position
+      const spinMap = new Map();
+      spinResultsData.forEach(result => {
+        spinMap.set(result.member_id, result.lane_position);
+      });
+
+      // 2. Get all current lane assignments
       const { data: existingAssignments, error: fetchError } = await supabase
         .from("lane_assignments")
-        .select("*")
+        .select("id, member_id, game_id")
         .eq("game_id", selectedGameId);
 
       if (fetchError) throw fetchError;
 
-      // Update each assignment's actual_lane to match spin_result_lane
-      const updates = (existingAssignments || []).map((assignment) => ({
-        id: assignment.id,
-        actual_lane: assignment.spin_result_lane,
-      }));
+      // 3. Prepare updates for members who have a spin result
+      const updates = (existingAssignments || [])
+        .filter(assignment => assignment.member_id && spinMap.has(assignment.member_id))
+        .map(assignment => ({
+          id: assignment.id,
+          game_id: assignment.game_id,
+          member_id: assignment.member_id,
+          lane_position: spinMap.get(assignment.member_id),
+        }));
 
       if (updates.length > 0) {
         const { error: updateError } = await supabase
@@ -806,16 +834,17 @@ export function LaneManagement() {
           .upsert(updates);
 
         if (updateError) throw updateError;
+        
+        toast({
+          title: "Berjaya",
+          description: `${updates.length} lane telah direset mengikut lane undian`,
+        });
+      } else {
+        toast({
+          title: "Info",
+          description: "Tiada lane yang perlu direset.",
+        });
       }
-
-      toast({
-        title: "Berjaya",
-        description: `${updates.length} lane telah direset mengikut lane undian`,
-      });
-
-      // Reload data
-      await loadLaneAssignments(selectedGameId);
-      await loadSpinResults(selectedGameId);
     } catch (error) {
       console.error("Error resetting lanes:", error);
       toast({
