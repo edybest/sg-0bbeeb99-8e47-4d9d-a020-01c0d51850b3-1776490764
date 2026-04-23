@@ -1,6 +1,6 @@
 ---
 title: Reset lane sebenar
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -20,4 +20,4 @@ Pengguna mahu butang reset dalam Pengurusan Lane menjadikan semua paparan lane s
 - [x] Sahkan sumber paparan `LANE SEBENAR` dalam komponen lane
 - [x] Ubah fungsi reset supaya semua lane sebenar menjadi `?/?`
 - [x] Buang sebarang teks `Sebenar: ?/?` daripada senarai ahli jika masih ada
-- [ ] Jalankan semakan ralat dan tandakan task siap selepas lulus
+- [x] Jalankan semakan ralat dan tandakan task siap selepas lulus
