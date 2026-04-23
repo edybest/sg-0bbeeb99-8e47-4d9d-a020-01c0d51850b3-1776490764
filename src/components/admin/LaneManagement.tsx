@@ -174,18 +174,40 @@ export function LaneManagement() {
         console.log('[DEBUG] Unassigned couples:', unassignedCouples.length);
         setMembers(unassignedCouples as Member[]);
       } else {
-        // Logik asal untuk BLOK/individu
+        // BLOK/individu - fetch only players selected by admin in GameManagement
         const client: any = supabase;
-        const [allMembersData, assignmentsData] = await Promise.all([
-          client.from("members").select("id, username, full_name, avatar_url").order("username"),
-          client.from("lane_assignments").select("member_id").eq("game_id", gameId).not('member_id', 'is', null)
+        const [gamePlayersData, assignmentsData] = await Promise.all([
+          client
+            .from("game_players")
+            .select(`
+              member_id,
+              members!game_players_member_id_fkey(
+                id,
+                username,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq("game_id", gameId)
+            .order("members(username)"),
+          client
+            .from("lane_assignments")
+            .select("member_id")
+            .eq("game_id", gameId)
+            .not('member_id', 'is', null)
         ]);
 
-        if (allMembersData.error) throw allMembersData.error;
+        if (gamePlayersData.error) throw gamePlayersData.error;
 
         const assignedIds = new Set(assignmentsData.data?.map((a: any) => a.member_id) || []);
-        const unassignedMembers = (allMembersData.data || []).filter((m: any) => !assignedIds.has(m.id));
         
+        // Extract member data from game_players and filter out assigned ones
+        const unassignedMembers = (gamePlayersData.data || [])
+          .map((gp: any) => gp.members)
+          .filter((m: any) => m && !assignedIds.has(m.id));
+        
+        console.log('[DEBUG] Game players (selected by admin):', gamePlayersData.data?.length || 0);
+        console.log('[DEBUG] Already assigned to lanes:', assignedIds.size);
         console.log('[DEBUG] Unassigned members:', unassignedMembers.length);
         setMembers(unassignedMembers as Member[]);
       }
