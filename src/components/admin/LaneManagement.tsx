@@ -10,6 +10,7 @@ import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWith
 import { gameService } from "@/services/gameService";
 import { Save, Users, GripVertical, X, RotateCcw, Shuffle, MessageCircle } from "lucide-react";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
+import { Switch } from "@/components/ui/switch";
 
 interface Game {
   id: string;
@@ -32,19 +33,34 @@ interface CoupleData {
   avatar_url: null;
 }
 
+const LANES = [
+  { id: "1/2", label: "Lane 1/2", laneNumber: 1 },
+  { id: "3/4", label: "Lane 3/4", laneNumber: 3 },
+  { id: "5/6", label: "Lane 5/6", laneNumber: 5 },
+  { id: "7/8", label: "Lane 7/8", laneNumber: 7 },
+  { id: "9/10", label: "Lane 9/10", laneNumber: 9 },
+  { id: "11/12", label: "Lane 11/12", laneNumber: 11 },
+  { id: "13/14", label: "Lane 13/14", laneNumber: 13 },
+  { id: "15/16", label: "Lane 15/16", laneNumber: 15 },
+  { id: "17/18", label: "Lane 17/18", laneNumber: 17 },
+  { id: "19/20", label: "Lane 19/20", laneNumber: 19 },
+];
+
 export function LaneManagement() {
   const { toast } = useToast();
   const { withLoading } = useGlobalLoading();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
-  const [spinResults, setSpinResults] = useState<any[]>([]);
+  const [spinResults, setSpinResults] = useState<{ [key: string]: number | null }>({});
+  const [hiddenLanes, setHiddenLanes] = useState<Set<string>>(new Set());
   
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGameId, setSelectedGameId] = useState("");
   const [laneConfigs, setLaneConfigs] = useState<LaneConfigurationWithDetails[]>([]);
   const [assignments, setAssignments] = useState<LaneAssignmentWithMember[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [laneAssignments, setLaneAssignments] = useState<{ [key: string]: Member[] }>({});
   
   const [draggedMember, setDraggedMember] = useState<Member | null>(null);
   const [editingConfig, setEditingConfig] = useState<string | null>(null);
@@ -753,6 +769,77 @@ export function LaneManagement() {
     );
   }
 
+  async function resetToSpinResults() {
+    if (!selectedGameId) {
+      toast({
+        title: "Ralat",
+        description: "Sila pilih game terlebih dahulu",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!confirm("Reset semua lane sebenar untuk ikut lane undian? Semua perubahan manual akan hilang.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get all lane assignments for this game
+      const { data: existingAssignments, error: fetchError } = await supabase
+        .from("lane_assignments")
+        .select("*")
+        .eq("game_id", selectedGameId);
+
+      if (fetchError) throw fetchError;
+
+      // Update each assignment's actual_lane to match spin_result_lane
+      const updates = (existingAssignments || []).map((assignment) => ({
+        id: assignment.id,
+        actual_lane: assignment.spin_result_lane,
+      }));
+
+      if (updates.length > 0) {
+        const { error: updateError } = await supabase
+          .from("lane_assignments")
+          .upsert(updates);
+
+        if (updateError) throw updateError;
+      }
+
+      toast({
+        title: "Berjaya",
+        description: `${updates.length} lane telah direset mengikut lane undian`,
+      });
+
+      // Reload data
+      await loadLaneAssignments(selectedGameId);
+      await loadSpinResults(selectedGameId);
+    } catch (error) {
+      console.error("Error resetting lanes:", error);
+      toast({
+        title: "Ralat",
+        description: "Gagal reset lane",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleLaneVisibility(laneId: string) {
+    setHiddenLanes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(laneId)) {
+        newSet.delete(laneId);
+      } else {
+        newSet.add(laneId);
+      }
+      return newSet;
+    });
+  }
+
   if (loading && games.length === 0) {
     return <div className="p-8 text-center text-gray-500">Memuatkan data lane...</div>;
   }
@@ -775,7 +862,7 @@ export function LaneManagement() {
               <div className="w-full sm:w-1/2">
                 <label className="text-sm font-medium mb-1.5 block">Pilih Game</label>
                 <Select
-                  value={selectedGameId}
+                  value={selectedGameId || ""}
                   onValueChange={(val) => {
                     setSelectedGameId(val);
                     const g = games.find((x) => x.id === val) || null;
@@ -794,6 +881,40 @@ export function LaneManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {selectedGameId && (
+                <div className="flex flex-col gap-4 mt-4">
+                  {/* Reset Button */}
+                  <Button
+                    onClick={resetToSpinResults}
+                    variant="outline"
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Lane Mengikut Undian
+                  </Button>
+
+                  {/* Lane Visibility Toggles */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3 text-sm">Papar/Sembunyikan Lane</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {LANES.map((lane) => (
+                        <div key={lane.id} className="flex items-center gap-2">
+                          <Switch
+                            checked={!hiddenLanes.has(lane.id)}
+                            onCheckedChange={() => toggleLaneVisibility(lane.id)}
+                            id={`toggle-${lane.id}`}
+                          />
+                          <label htmlFor={`toggle-${lane.id}`} className="text-sm cursor-pointer">
+                            {lane.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="w-full sm:w-auto flex flex-wrap justify-end gap-2 mt-3 sm:mt-0">
                 <Button
