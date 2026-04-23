@@ -497,27 +497,58 @@ export const laneService = {
   },
 
   async getUnsortedMembers(gameId: string): Promise<Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>> {
-    const { data: laneData, error: laneError } = await supabase
-      .from("lane_assignments")
-      .select("member_id")
+    console.log("🔍 Fetching unsorted members for game:", gameId);
+    
+    // 1. Get all players who joined this game
+    const { data: gamePlayers, error: gamePlayersError } = await supabase
+      .from("game_players")
+      .select(`
+        member_id,
+        members!game_players_member_id_fkey (
+          id,
+          username,
+          full_name,
+          avatar_url
+        )
+      `)
       .eq("game_id", gameId);
 
-    if (laneError) throw laneError;
+    if (gamePlayersError) {
+      console.error("❌ Error fetching game players:", gamePlayersError);
+      throw gamePlayersError;
+    }
 
-    const assignedMemberIds = (laneData || []).map((l) => l.member_id);
+    console.log("👥 Game players found:", gamePlayers?.length || 0);
 
-    const { data: memberData, error: memberError } = await supabase
-      .from("members")
-      .select("id, username, full_name, avatar_url")
-      .order("username");
+    // 2. Get members already assigned to lanes for this game
+    const { data: laneAssignments, error: laneError } = await supabase
+      .from("lane_assignments")
+      .select("member_id")
+      .eq("game_id", gameId)
+      .not("member_id", "is", null);
 
-    if (memberError) throw memberError;
+    if (laneError) {
+      console.error("❌ Error fetching lane assignments:", laneError);
+      throw laneError;
+    }
 
-    const unsorted = (memberData || []).filter(
-      (m) => !assignedMemberIds.includes(m.id)
-    );
+    const assignedMemberIds = (laneAssignments || []).map((l) => l.member_id);
+    console.log("📊 Already assigned to lanes:", assignedMemberIds.length, "members");
 
-    return unsorted as Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>;
+    // 3. Filter: players who joined game but NOT assigned to lanes yet
+    const unsorted = (gamePlayers || [])
+      .filter((gp) => gp.member_id && !assignedMemberIds.includes(gp.member_id))
+      .map((gp) => ({
+        id: gp.members?.id || "",
+        username: gp.members?.username || "",
+        full_name: gp.members?.full_name || "",
+        avatar_url: gp.members?.avatar_url || null,
+      }))
+      .filter((m) => m.id); // Remove empty entries
+
+    console.log("✅ Unsorted members (joined game but no lane):", unsorted.length);
+    
+    return unsorted;
   },
 
   async drawLane(gameId: string, memberId: string) {
