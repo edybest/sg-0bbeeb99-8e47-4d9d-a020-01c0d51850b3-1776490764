@@ -14,7 +14,10 @@ type MemberRow = { id: string; full_name: string | null; username: string | null
 
 type AudienceMode = "all" | "selected" | "blok_by_date";
 
-function formatMember(m: MemberRow) {
+function formatMember(m: MemberRow, mode?: AudienceMode) {
+  if (mode === "selected") {
+    return m.username?.trim() || m.full_name?.trim() || m.phone?.trim() || m.id;
+  }
   const name = m.full_name?.trim() || m.username?.trim() || m.phone?.trim() || m.id;
   return name;
 }
@@ -55,7 +58,7 @@ export function PushMessagePanel() {
     return (
       selected
         .slice(0, 3)
-        .map((id) => formatMember(map.get(id) as MemberRow))
+        .map((id) => formatMember(map.get(id) as MemberRow, "selected"))
         .join(", ") + (selected.length > 3 ? ` +${selected.length - 3} lagi` : "")
     );
   }, [members, selected]);
@@ -71,16 +74,19 @@ export function PushMessagePanel() {
     try {
       if (!message.trim()) {
         toast({ title: "Ralat", description: "Message tidak boleh kosong", variant: "destructive" });
+        setSending(false);
         return;
       }
 
       if (mode === "selected" && selected.length === 0) {
         toast({ title: "Ralat", description: "Sila pilih sekurang-kurangnya 1 ahli", variant: "destructive" });
+        setSending(false);
         return;
       }
 
       if (mode === "blok_by_date" && !blokDate) {
         toast({ title: "Ralat", description: "Sila pilih tarikh blok", variant: "destructive" });
+        setSending(false);
         return;
       }
 
@@ -88,93 +94,55 @@ export function PushMessagePanel() {
 
       // 1. Save in-app notification
       console.log("📨 Creating in-app notification...");
-      await notificationService.createNotification({ title, message, audience });
-      console.log("✅ In-app notification created");
-
-      // 2. Send actual push notifications via Edge Function
-      console.log("🔐 Checking session...");
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error("❌ Session error:", sessionError);
-        toast({
-          title: "⚠️ Amaran",
-          description: `In-app notification berjaya, tetapi push notification gagal: ${sessionError.message}`,
-        });
-      } else if (!sessionData?.session) {
-        console.error("❌ No active session");
-        toast({
-          title: "⚠️ Amaran",
-          description: "In-app notification berjaya, tetapi push notification memerlukan login semula.",
-        });
-      } else {
-        console.log("✅ Session active, invoking Edge Function...");
-        console.log("📤 Request payload:", { title, message, audience });
+      try {
+        await notificationService.createNotification({ title, message, audience });
+        console.log("✅ In-app notification created");
         
+        // Trigger notifications update event for bell icon
+        window.dispatchEvent(new CustomEvent("notifications-updated"));
+        
+        // Success - show immediate feedback
+        toast({
+          title: "✅ Berjaya",
+          description: "Notification telah dihantar kepada ahli yang dipilih",
+        });
+
+        // Reset form
+        setMessage("");
+        setSelected([]);
+        setBlokDate("");
+        
+      } catch (notifError) {
+        console.error("❌ Failed to create in-app notification:", notifError);
+        throw new Error(notifError instanceof Error ? notifError.message : "Gagal create notification");
+      }
+
+      // 2. Send actual push notifications via Edge Function (optional - background)
+      console.log("🔐 Sending push notification in background...");
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData?.session) {
         try {
           const response = await supabase.functions.invoke("send-push-notification", {
             body: { title, message, audience },
           });
 
-          console.log("📬 Edge Function full response:", JSON.stringify(response, null, 2));
-          console.log("📬 Response error:", response.error);
-          console.log("📬 Response data:", response.data);
-
-          if (response.error) {
-            console.error("❌ Push notification error details:", {
-              name: response.error.name,
-              message: response.error.message,
-              context: response.error.context,
-            });
-            
-            // More specific error messages
-            let errorMsg = response.error.message;
-            if (errorMsg.includes("VAPID")) {
-              errorMsg = "VAPID keys belum di-set dalam Supabase Secrets. Sila setup VAPID_PRIVATE_KEY.";
-            } else if (errorMsg.includes("fetch")) {
-              errorMsg = "Tidak dapat connect ke Edge Function. Check Supabase Edge Function status.";
-            } else if (errorMsg.includes("timeout")) {
-              errorMsg = "Request timeout. Cuba lagi.";
-            }
-            
-            toast({
-              title: "⚠️ Sebahagian Berjaya",
-              description: `In-app notification berjaya. Push: ${errorMsg}`,
-              variant: "destructive",
-            });
-          } else if (!response.data) {
-            console.error("❌ No response data received");
-            toast({
-              title: "⚠️ Sebahagian Berjaya", 
-              description: "In-app notification berjaya. Push notification: No response from server.",
-              variant: "destructive",
-            });
-          } else {
-            const result = response.data;
-            console.log("✅ Push sent successfully:", result);
-            toast({
-              title: "✅ Berjaya",
-              description: `Notification dihantar: ${result.sent || 0} berjaya, ${result.failed || 0} gagal`,
-            });
-          }
-        } catch (invokeError) {
-          console.error("❌ Function invoke exception:", invokeError);
-          console.error("❌ Exception type:", invokeError?.constructor?.name);
-          console.error("❌ Exception details:", JSON.stringify(invokeError, Object.getOwnPropertyNames(invokeError)));
+          console.log("📬 Push notification response:", response);
           
-          toast({
-            title: "⚠️ Sebahagian Berjaya",
-            description: `In-app notification berjaya. Push: ${invokeError instanceof Error ? invokeError.message : "Unknown error"}. Check console for details.`,
-            variant: "destructive",
-          });
+          if (response.error) {
+            console.warn("⚠️ Push notification failed:", response.error.message);
+          } else if (response.data) {
+            console.log("✅ Push sent:", response.data);
+          }
+        } catch (pushError) {
+          console.warn("⚠️ Push notification error (non-critical):", pushError);
         }
+      } else {
+        console.warn("⚠️ No session - skipping push notification");
       }
 
-      setMessage("");
-      setSelected([]);
-      setBlokDate("");
     } catch (e: unknown) {
-      console.error("Send message failed:", e);
+      console.error("❌ Send message failed:", e);
       toast({
         title: "❌ Ralat",
         description: e instanceof Error ? e.message : "Gagal hantar message",
@@ -269,7 +237,7 @@ export function PushMessagePanel() {
                           setSelected(next);
                         }}
                       />
-                      <span className="truncate">{formatMember(m)}</span>
+                      <span className="truncate">{formatMember(m, "selected")}</span>
                     </label>
                   );
                 })}
