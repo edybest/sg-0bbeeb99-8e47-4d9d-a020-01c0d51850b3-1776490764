@@ -496,6 +496,46 @@ export const laneService = {
     return (data && data.length > 0);
   },
 
+  async getUnsortedMembers(date: string) {
+    console.log("🔍 Fetching unsorted members for date:", date);
+    
+    // Get all assigned member IDs for this date
+    const { data: laneData, error: laneError } = await supabase
+      .from("lane_assignments")
+      .select("member_id")
+      .eq("date", date);
+
+    if (laneError) {
+      console.error("❌ Error fetching lane assignments:", laneError);
+      throw laneError;
+    }
+
+    const assignedMemberIds = laneData?.map((l) => l.member_id) || [];
+    console.log("📊 Assigned member IDs:", assignedMemberIds.length, "members");
+
+    // Get all active members
+    const { data: memberData, error: memberError } = await supabase
+      .from("members")
+      .select("id, username, full_name, avatar_url")
+      .order("username", { ascending: true });
+
+    if (memberError) {
+      console.error("❌ Error fetching members:", memberError);
+      throw memberError;
+    }
+
+    console.log("👥 Total members:", memberData?.length || 0);
+
+    // Filter out assigned members
+    const unsorted = memberData?.filter(
+      (m) => !assignedMemberIds.includes(m.id)
+    ) || [];
+
+    console.log("✅ Unsorted members:", unsorted.length);
+    
+    return unsorted;
+  },
+
   async drawLane(gameId: string, memberId: string) {
   },
 };
