@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { laneService, type LaneConfigurationWithDetails, type LaneAssignmentWithMember } from "@/services/laneService";
 import { gameService } from "@/services/gameService";
-import { Save, Users, GripVertical, X, RotateCcw, Shuffle, MessageCircle } from "lucide-react";
+import { Save, Users, GripVertical, X, RotateCcw, Shuffle, MessageCircle, User } from "lucide-react";
 import { useGlobalLoading } from "@/contexts/GlobalLoadingContext";
 import { Switch } from "@/components/ui/switch";
+import { Avatar } from "@/components/ui/avatar";
 
 interface Game {
   id: string;
@@ -67,6 +68,25 @@ export function LaneManagement() {
   const [editValue, setEditValue] = useState("");
   const [downloading, setDownloading] = useState(false);
   const screenshotRef = useRef<HTMLDivElement | null>(null);
+
+  // Helper function to format lane display
+  function formatLaneDisplay(lanePosition: number | null | undefined): string {
+    if (!lanePosition) return "?/?";
+    
+    // Convert single number to lane pair (1 or 2 → 1/2, 3 or 4 → 3/4, etc.)
+    const isEven = lanePosition % 2 === 0;
+    const laneStart = isEven ? lanePosition - 1 : lanePosition;
+    return `${laneStart}/${laneStart + 1}`;
+  }
+
+  // Helper function to parse lane input (1, 2 → 1, 3, 4 → 3, etc.)
+  function parseLaneInput(input: string): number | null {
+    const num = parseInt(input, 10);
+    if (isNaN(num) || num < 1 || num > 20) return null;
+    
+    // Return the odd number of the pair (1 or 2 → 1, 3 or 4 → 3, etc.)
+    return num % 2 === 0 ? num - 1 : num;
+  }
 
   useEffect(() => {
     loadData();
@@ -779,80 +799,46 @@ export function LaneManagement() {
       return;
     }
 
-    if (!confirm("Reset semua lane sebenar untuk ikut lane undian? Semua perubahan manual akan hilang.")) {
+    if (!confirm("Reset semua lane sebenar kepada ?/? ? Admin perlu set lane sebenar secara manual.")) {
       return;
     }
 
     try {
       setLoading(true);
 
-      // 1. Get all spin results for this game
-      const { data: spinResultsData, error: spinError } = await supabase
-        .from("lane_spin_results")
-        .select("member_id, lane_position")
+      // Get all lane assignments for this game and set lane_position to null
+      const { data: existingAssignments, error: fetchError } = await supabase
+        .from("lane_assignments")
+        .select("id")
         .eq("game_id", selectedGameId);
 
-      if (spinError) throw spinError;
+      if (fetchError) throw fetchError;
 
-      if (!spinResultsData || spinResultsData.length === 0) {
+      if (!existingAssignments || existingAssignments.length === 0) {
         toast({
           title: "Info",
-          description: "Tiada data undian dijumpai untuk game ini.",
-          variant: "default"
+          description: "Tiada lane assignment untuk game ini.",
         });
         setLoading(false);
         return;
       }
 
-      // Create a map of member_id to their spun lane position
-      const spinMap = new Map();
-      spinResultsData.forEach(result => {
-        spinMap.set(result.member_id, result.lane_position);
-      });
-
-      // 2. Get all current lane assignments
-      const { data: existingAssignments, error: fetchError } = await supabase
+      // Update all assignments to set lane_position to null
+      const { error: updateError } = await supabase
         .from("lane_assignments")
-        .select("id, member_id, game_id, lane_position")
+        .update({ lane_position: null })
         .eq("game_id", selectedGameId);
 
-      if (fetchError) throw fetchError;
+      if (updateError) throw updateError;
 
-      // 3. Update lane_position for each member to match their spin result
-      let updateCount = 0;
-      
-      for (const assignment of existingAssignments || []) {
-        if (assignment.member_id && spinMap.has(assignment.member_id)) {
-          const spinLanePosition = spinMap.get(assignment.member_id);
-          
-          // Only update if lane_position is different
-          if (assignment.lane_position !== spinLanePosition) {
-            const { error: updateError } = await supabase
-              .from("lane_assignments")
-              .update({ lane_position: spinLanePosition })
-              .eq("id", assignment.id);
+      toast({
+        title: "Berjaya",
+        description: `${existingAssignments.length} lane sebenar telah direset kepada ?/?`,
+      });
 
-            if (updateError) {
-              console.error("Error updating assignment:", assignment.id, updateError);
-              throw updateError;
-            }
-            
-            updateCount++;
-          }
-        }
-      }
-
-      if (updateCount > 0) {
-        toast({
-          title: "Berjaya",
-          description: `${updateCount} lane sebenar telah direset mengikut lane undian`,
-        });
-      } else {
-        toast({
-          title: "Info",
-          description: "Semua lane sebenar sudah sama dengan lane undian.",
-        });
-      }
+      // Reload data
+      await loadLaneAssignments(selectedGameId);
+      await loadSpinResults(selectedGameId);
     } catch (error) {
       console.error("Error resetting lanes:", error);
       toast({
@@ -929,7 +915,7 @@ export function LaneManagement() {
                     disabled={loading}
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset Lane Mengikut Undian
+                    Reset Semua Lane Sebenar
                   </Button>
 
                   {/* Lane Visibility Toggles */}
@@ -1042,8 +1028,24 @@ export function LaneManagement() {
                     >
                       <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-red-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate text-gray-800 leading-tight">{m.username}</p>
-                        <p className="text-[10px] text-gray-500 truncate">{m.full_name}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {m.avatar_url ? (
+                              <Avatar className="h-8 w-8">
+                                <img src={m.avatar_url} alt={m.username} />
+                              </Avatar>
+                            ) : (
+                              <User className="h-8 w-8 text-muted-foreground" />
+                            )}
+                            <div>
+                              <div className="font-medium text-sm">{m.username}</div>
+                              <div className="text-xs text-muted-foreground">{m.full_name}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Sebenar: {formatLaneDisplay(m.lane_position)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
