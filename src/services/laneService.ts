@@ -496,11 +496,11 @@ export const laneService = {
     return (data && data.length > 0);
   },
 
-  async getUnsortedMembers(date: string): Promise<Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>> {
+  async getUnsortedMembers(gameId: string): Promise<Array<{ id: string; username: string; full_name: string; avatar_url: string | null }>> {
     const { data: laneData, error: laneError } = await supabase
       .from("lane_assignments")
       .select("member_id")
-      .eq("date", date);
+      .eq("game_id", gameId);
 
     if (laneError) throw laneError;
 
