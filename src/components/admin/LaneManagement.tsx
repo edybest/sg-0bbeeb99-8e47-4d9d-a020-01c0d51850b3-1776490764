@@ -799,47 +799,46 @@ export function LaneManagement() {
       return;
     }
 
-    if (!confirm("Reset semua lane sebenar (header kuning) kepada ?/? ? Admin perlu set lane sebenar secara manual selepas ini.")) {
+    if (!confirm("Reset semua lane sebenar kepada ?/? ? Semua assignment perlu diatur semula secara manual.")) {
       return;
     }
 
     try {
       setLoading(true);
 
-      // Update all lane configurations for this game to set lane_sebenar to "?/?"
-      const client: any = supabase;
-      const { data: configsToUpdate, error: fetchError } = await client
-        .from("lane_configurations")
+      // Set all lane_position to null for this game
+      const { data: assignments, error: fetchError } = await supabase
+        .from("lane_assignments")
         .select("id")
         .eq("game_id", selectedGameId);
 
       if (fetchError) throw fetchError;
 
-      if (!configsToUpdate || configsToUpdate.length === 0) {
+      if (!assignments || assignments.length === 0) {
         toast({
           title: "Info",
-          description: "Tiada konfigurasi lane untuk game ini.",
+          description: "Tiada lane assignment untuk game ini.",
         });
         setLoading(false);
         return;
       }
 
-      const { error: updateError } = await client
-        .from("lane_configurations")
-        .update({ lane_sebenar: "?/?" })
+      // Update all to null (will show as ?/? in UI)
+      const { error: updateError } = await supabase
+        .from("lane_assignments")
+        .update({ lane_position: null })
         .eq("game_id", selectedGameId);
 
       if (updateError) throw updateError;
 
-      // Also reset local state to update the UI immediately
-      setLaneConfigs(prev => 
-        prev.map(c => ({ ...c, lane_sebenar: "?/?" }))
-      );
-
       toast({
         title: "Berjaya",
-        description: "Semua lane sebenar telah direset kepada ?/?",
+        description: `${assignments.length} lane sebenar telah direset kepada ?/?`,
       });
+
+      // Reload data to reflect changes
+      await loadLaneAssignments(selectedGameId);
+      await loadSpinResults(selectedGameId);
 
     } catch (error) {
       console.error("Error resetting lanes:", error);
