@@ -14,7 +14,7 @@ position: 10
 ---
 
 ## Notes
-Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru: notification baru telah dihantar kepada user `edy`, tetapi pada bahagian notification milik `edy` tiada notification baru diterima. Semakan DB sebelum ini mengesahkan notifikasi terbaru memang sudah direkodkan untuk `EDY`, dan isu `delivered_at` sudah dibetulkan. Permintaan semasa ialah menyemak jadual `push_subscriptions` untuk user `edy` dan mengesahkan status subscription serta endpoint device yang tersimpan.
+Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru: notification baru telah dihantar kepada user `edy`, tetapi pada bahagian notification milik `edy` tiada notification baru diterima. Semakan DB sebelum ini mengesahkan notifikasi terbaru memang sudah direkodkan untuk `EDY`, dan isu `delivered_at` sudah dibetulkan. Semakan terkini pada jadual `push_subscriptions` mendapati member `EDY` (`4cb9bd96-d0d5-4d9a-b2dc-c79c5c766ce7`) tiada sebarang rekod subscription yang tersimpan, jadi tiada endpoint device, `p256dh_key`, atau `auth_key` untuk digunakan oleh aliran Web Push. Ini menunjukkan punca semasa lebih cenderung kepada subscription browser yang belum berjaya didaftarkan atau belum disimpan ke DB untuk device `edy`.
 
 ## Checklist
 - [x] Semak aliran penghantaran mesej admin dalam panel push message
@@ -23,6 +23,6 @@ Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apab
 - [x] Semak komponen PWA/install/permission untuk subscription push ahli
 - [x] Semak flow simpan notification in-app untuk target user tertentu
 - [x] Semak query inbox member dan filter penerima notification
-- [ ] Semak rekod `push_subscriptions` untuk user `edy`
-- [ ] Sahkan status subscription dan endpoint device semasa
-- [ ] Tentukan sama ada subscription semasa sepadan dengan aliran push yang dihantar
+- [x] Semak rekod `push_subscriptions` untuk user `edy`
+- [x] Sahkan status subscription dan endpoint device semasa
+- [x] Tentukan sama ada subscription semasa sepadan dengan aliran push yang dihantar
