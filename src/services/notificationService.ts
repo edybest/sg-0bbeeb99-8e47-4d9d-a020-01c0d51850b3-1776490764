@@ -27,6 +27,8 @@ function assertNonEmpty(value: string, label: string) {
 
 export const notificationService = {
   async createNotification(input: CreateNotificationInput) {
+    console.log("🔍 createNotification called with:", input);
+    
     assertNonEmpty(input.title, "Title");
     assertNonEmpty(input.message, "Message");
 
@@ -42,17 +44,29 @@ export const notificationService = {
       target_date: input.audience.type === "blok_players_by_date" ? input.audience.date : null,
     };
 
+    console.log("📝 Inserting notification:", insertData);
+
     const { data: notification, error } = await supabase
       .from("notifications")
       .insert(insertData)
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("❌ Supabase insert error:", error);
+      console.error("❌ Error code:", error.code);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error details:", error.details);
+      console.error("❌ Error hint:", error.hint);
+      throw error;
+    }
 
     if (!notification) {
+      console.error("❌ No notification returned after insert");
       throw new Error("Notification gagal dicipta");
     }
+
+    console.log("✅ Notification created:", notification);
 
     if (input.audience.type === "all_members") {
       const { data: memberRows, error: membersError } = await supabase.from("members").select("id");

@@ -94,6 +94,7 @@ export function PushMessagePanel() {
 
       // 1. Save in-app notification
       console.log("📨 Creating in-app notification...");
+      console.log("📤 Payload:", { title, message, audience });
       try {
         await notificationService.createNotification({ title, message, audience });
         console.log("✅ In-app notification created");
@@ -113,8 +114,15 @@ export function PushMessagePanel() {
         setBlokDate("");
         
       } catch (notifError) {
-        console.error("❌ Failed to create in-app notification:", notifError);
-        throw new Error(notifError instanceof Error ? notifError.message : "Gagal create notification");
+        console.error("❌ Failed to create in-app notification (full error):", notifError);
+        console.error("❌ Error details:", {
+          message: notifError instanceof Error ? notifError.message : String(notifError),
+          stack: notifError instanceof Error ? notifError.stack : undefined,
+          raw: JSON.stringify(notifError, Object.getOwnPropertyNames(notifError)),
+        });
+        
+        const errorMsg = notifError instanceof Error ? notifError.message : "Gagal create notification";
+        throw new Error(`Database error: ${errorMsg}`);
       }
 
       // 2. Send actual push notifications via Edge Function (optional - background)
