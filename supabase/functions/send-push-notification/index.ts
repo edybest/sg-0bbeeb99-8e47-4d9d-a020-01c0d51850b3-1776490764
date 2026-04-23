@@ -1,265 +1,207 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-ambc-client",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+type Audience = {
+  type?: string;
+  memberIds?: string[];
+  date?: string;
+};
+
+type PushSubscriptionRow = {
+  id: string;
+  member_id: string;
+  endpoint: string;
+  p256dh_key: string;
+  auth_key: string;
+};
+
+function jsonResponse(body: Record<string, unknown>, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+async function getAuthenticatedAdminUser(
+  supabase: ReturnType<typeof createClient>,
+  authHeader: string,
+) {
+  const jwt = authHeader.replace("Bearer ", "");
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(jwt);
+
+  if (authError || !user) {
+    throw new Error(`Authentication failed: ${authError?.message ?? "Invalid authentication"}`);
+  }
+
+  const { data: member, error: memberError } = await supabase
+    .from("members")
+    .select("is_admin")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (memberError) {
+    throw new Error(`Failed to verify admin status: ${memberError.message}`);
+  }
+
+  if (!member?.is_admin) {
+    throw new Error("Unauthorized - Admin access required");
+  }
+
+  return user;
+}
+
+async function listSubscriptions(
+  supabase: ReturnType<typeof createClient>,
+  audience: Audience,
+): Promise<PushSubscriptionRow[]> {
+  let query = supabase
+    .from("push_subscriptions")
+    .select("id, member_id, endpoint, p256dh_key, auth_key");
+
+  if (
+    (audience.type === "selected_members" || audience.type === "selected") &&
+    Array.isArray(audience.memberIds) &&
+    audience.memberIds.length > 0
+  ) {
+    query = query.in("member_id", audience.memberIds);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch subscriptions: ${error.message}`);
+  }
+
+  return (data as PushSubscriptionRow[] | null) ?? [];
+}
+
 serve(async (req) => {
-  console.log("🚀 Edge Function triggered:", new Date().toISOString());
-  console.log("🌐 Request URL:", req.url);
-  
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    console.log("✅ CORS preflight request");
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    console.log("📝 Request method:", req.method);
-    
-    // Parse request body
-    let requestBody;
-    try {
-      requestBody = await req.json();
-      console.log("📦 Request body received");
-    } catch (parseError) {
-      console.error("❌ Failed to parse request body:", parseError);
-      throw new Error("Invalid request body format");
-    }
-    
-    // Verify authentication
     const authHeader = req.headers.get("Authorization");
-    console.log("🔐 Auth header present:", !!authHeader);
-    
     if (!authHeader) {
-      console.error("❌ Missing authorization header");
       throw new Error("Missing authorization header");
     }
 
-    // Check environment variables
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    console.log("🔧 Environment check:", {
-      hasUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseKey,
-    });
+    const { title, message, audience = {} } = await req.json();
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("❌ Missing Supabase environment variables");
-      throw new Error("Server configuration error");
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Verify JWT and check if admin
-    const jwt = authHeader.replace("Bearer ", "");
-    console.log("🔍 Verifying user JWT...");
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
-    
-    if (authError) {
-      console.error("❌ Auth error:", authError);
-      throw new Error(`Authentication failed: ${authError.message}`);
-    }
-    
-    if (!user) {
-      console.error("❌ No user found");
-      throw new Error("Invalid authentication");
-    }
-
-    console.log("✅ User authenticated:", user.id);
-
-    // Check if user is admin
-    console.log("👤 Checking admin status...");
-    const { data: member, error: memberError } = await supabase
-      .from("members")
-      .select("is_admin")
-      .eq("user_id", user.id)
-      .single();
-
-    if (memberError) {
-      console.error("❌ Member query error:", memberError);
-      throw new Error(`Failed to verify admin status: ${memberError.message}`);
-    }
-    
-    if (!member?.is_admin) {
-      console.error("❌ User is not admin");
-      throw new Error("Unauthorized - Admin access required");
-    }
-
-    console.log("✅ Admin verified");
-
-    // Validate request body
-    const { title, message, audience } = requestBody;
-    
     if (!title || !message) {
-      console.error("❌ Missing title or message");
       throw new Error("Title and message are required");
     }
 
-    console.log("📬 Sending notification:", { title, audienceType: audience?.type });
-
-    // Get VAPID keys from environment
-    console.log("🔑 Checking VAPID keys...");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
 
-    console.log("🔑 VAPID keys status:", {
-      hasPublicKey: !!vapidPublicKey,
-      hasPrivateKey: !!vapidPrivateKey,
-      publicKeyLength: vapidPublicKey?.length || 0,
-      privateKeyLength: vapidPrivateKey?.length || 0,
-    });
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("Server configuration error");
+    }
 
     if (!vapidPublicKey || !vapidPrivateKey) {
-      console.error("❌ VAPID keys missing!");
-      throw new Error("VAPID keys not configured. Please add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to Supabase secrets.");
+      throw new Error("VAPID keys not configured");
     }
 
-    if (vapidPublicKey.length < 80 || vapidPrivateKey.length < 40) {
-      console.error("❌ VAPID keys seem invalid (too short)");
-      throw new Error("VAPID keys appear to be invalid. Please regenerate and update in Supabase secrets.");
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    await getAuthenticatedAdminUser(supabase, authHeader);
+
+    webpush.setVapidDetails("mailto:support@ambc.club", vapidPublicKey, vapidPrivateKey);
+
+    const subscriptions = await listSubscriptions(supabase, audience as Audience);
+
+    if (subscriptions.length === 0) {
+      return jsonResponse({
+        success: true,
+        sent: 0,
+        failed: 0,
+        total: 0,
+        message: "No push subscriptions found",
+      });
     }
 
-    console.log("✅ VAPID keys validated");
+    const payload = JSON.stringify({
+      title,
+      body: message,
+      message,
+      icon: "/ambc-logo.png",
+      badge: "/ambc-logo.png",
+      data: {
+        url: "/member",
+      },
+    });
 
-    // Build audience query
-    let subscriptionsQuery = supabase
-      .from("push_subscriptions")
-      .select("*, members!inner(id, username)");
-
-    if (audience?.type === "selected" && audience.memberIds?.length > 0) {
-      subscriptionsQuery = subscriptionsQuery.in("member_id", audience.memberIds);
-    }
-
-    const { data: subscriptions, error: subError } = await subscriptionsQuery;
-
-    if (subError) {
-      throw new Error(`Failed to fetch subscriptions: ${subError.message}`);
-    }
-
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log("⚠️ No push subscriptions found");
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "No push subscriptions found",
-          sent: 0,
-          failed: 0,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    console.log(`📬 Sending push to ${subscriptions.length} subscriptions...`);
-
-    // Send push notifications
     let sent = 0;
     let failed = 0;
 
-    for (const sub of subscriptions) {
+    for (const subscription of subscriptions) {
       try {
-        console.log(`📤 Sending to member: ${sub.member_id}`);
-
-        const pushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh_key,
-            auth: sub.auth_key,
-          },
-        };
-
-        const payload = JSON.stringify({
-          title,
-          body: message,
-          icon: "/ambc-logo.png",
-          badge: "/ambc-logo.png",
-        });
-
-        const response = await fetch("https://fcm.googleapis.com/fcm/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `key=${vapidPrivateKey}`,
-          },
-          body: JSON.stringify({
-            to: sub.endpoint,
-            notification: {
-              title,
-              body: message,
-              icon: "/ambc-logo.png",
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh_key,
+              auth: subscription.auth_key,
             },
-          }),
+          },
+          payload,
+        );
+        sent += 1;
+      } catch (error) {
+        failed += 1;
+        const statusCode =
+          typeof error === "object" && error !== null && "statusCode" in error
+            ? Number((error as { statusCode?: number }).statusCode)
+            : undefined;
+
+        console.error("Push delivery failed", {
+          memberId: subscription.member_id,
+          endpoint: subscription.endpoint,
+          statusCode,
+          error: getErrorMessage(error),
         });
 
-        if (response.ok) {
-          console.log(`✅ Push sent to member: ${sub.member_id}`);
-          sent++;
-        } else {
-          const errorText = await response.text();
-          console.error(`❌ Push failed for member ${sub.member_id}:`, errorText);
-          
-          // If subscription is invalid, delete it
-          if (response.status === 410 || errorText.includes("unregistered")) {
-            console.log(`🗑️ Deleting invalid subscription for member ${sub.member_id}`);
-            await supabase
-              .from("push_subscriptions")
-              .delete()
-              .eq("id", sub.id);
-          }
-          
-          failed++;
+        if (statusCode === 404 || statusCode === 410) {
+          await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
         }
-      } catch (pushError) {
-        console.error(`❌ Error sending push to ${sub.member_id}:`, pushError);
-        failed++;
       }
     }
 
-    console.log(`📊 Push notification results: { sent: ${sent}, failed: ${failed} }`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        sent,
-        failed,
-        total: subscriptions.length,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-
+    return jsonResponse({
+      success: true,
+      sent,
+      failed,
+      total: subscriptions.length,
+    });
   } catch (error) {
-    console.error("💥 Edge Function Error:", error);
-    console.error("💥 Error type:", error?.constructor?.name);
-    console.error("💥 Error message:", error instanceof Error ? error.message : String(error));
-    console.error("💥 Error stack:", error instanceof Error ? error.stack : "No stack trace");
-    
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    const statusCode = errorMessage.includes("authentication") || errorMessage.includes("Unauthorized") ? 401 : 
-                       errorMessage.includes("VAPID") ? 500 :
-                       errorMessage.includes("Invalid request") ? 400 : 500;
-    
-    return new Response(
-      JSON.stringify({
+    const message = getErrorMessage(error);
+    const status = message.includes("Authentication failed") || message.includes("Unauthorized") ? 401 : 500;
+
+    return jsonResponse(
+      {
         success: false,
-        error: errorMessage,
-        timestamp: new Date().toISOString(),
+        error: message,
         sent: 0,
         failed: 0,
-      }),
-      {
-        status: statusCode,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
+      status,
     );
   }
 });

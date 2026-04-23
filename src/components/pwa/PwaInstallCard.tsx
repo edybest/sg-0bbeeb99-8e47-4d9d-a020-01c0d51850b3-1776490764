@@ -73,8 +73,49 @@ export function PwaInstallCard({ className }: { className?: string }) {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  useEffect(() => {
+    if (!mounted || !standalone || !member?.id || !pushNotificationService.isSupported()) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function checkNotificationSetup() {
+      try {
+        const permission = pushNotificationService.getPermission();
+
+        if (permission === "denied") {
+          return;
+        }
+
+        if (permission !== "granted") {
+          if (isActive) {
+            setShowNotificationPrompt(true);
+          }
+          return;
+        }
+
+        const subscribed = await pushNotificationService.isSubscribed(member.id);
+
+        if (isActive && !subscribed) {
+          setShowNotificationPrompt(true);
+        }
+      } catch (error) {
+        console.error("Notification setup check error:", error);
+      }
+    }
+
+    void checkNotificationSetup();
+
+    return () => {
+      isActive = false;
+    };
+  }, [member?.id, mounted, standalone]);
+
+  const showInstallPrompt = !standalone && !dismissed;
+
   if (!mounted) return null;
-  if (standalone || dismissed) return null;
+  if (!showInstallPrompt && !showNotificationPrompt) return null;
 
   async function handleInstall() {
     if (!deferredPrompt) return;
@@ -131,7 +172,7 @@ export function PwaInstallCard({ className }: { className?: string }) {
 
   return (
     <AnimatePresence>
-      {!dismissed && (
+      {showInstallPrompt && (
         <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

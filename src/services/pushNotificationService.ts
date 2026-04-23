@@ -85,13 +85,18 @@ export async function subscribeToPushNotifications(memberId: string): Promise<bo
     const registration = await navigator.serviceWorker.ready;
     console.log("📱 Service Worker ready, subscribing to push...");
 
-    // Subscribe to push manager
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
+    const existingSubscription = await registration.pushManager.getSubscription();
+    const subscription =
+      existingSubscription ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      }));
 
-    console.log("✅ Push subscription created:", subscription.endpoint);
+    console.log(
+      existingSubscription ? "♻️ Reusing existing push subscription:" : "✅ Push subscription created:",
+      subscription.endpoint
+    );
 
     // Extract subscription data
     const subscriptionJson = subscription.toJSON();
@@ -173,13 +178,21 @@ export async function unsubscribeFromPushNotifications(memberId: string): Promis
  */
 export async function isUserSubscribed(memberId: string): Promise<boolean> {
   try {
+    const registration = await navigator.serviceWorker.ready;
+    const browserSubscription = await registration.pushManager.getSubscription();
+
+    if (!browserSubscription) {
+      return false;
+    }
+
     const { data, error } = await supabase
       .from("push_subscriptions")
       .select("id")
       .eq("member_id", memberId)
-      .single();
+      .eq("endpoint", browserSubscription.endpoint)
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       throw error;
     }
 
