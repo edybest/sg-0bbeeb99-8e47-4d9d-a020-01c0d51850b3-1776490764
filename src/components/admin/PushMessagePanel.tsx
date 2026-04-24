@@ -11,6 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Send } from "lucide-react";
 
 type MemberRow = { id: string; full_name: string | null; username: string | null; phone: string | null };
+type PushDeliveryDetail = {
+  memberId: string;
+  status: "sent" | "failed";
+  endpointPreview: string;
+  statusCode?: number;
+  error?: string;
+};
+type PushDeliveryResponse = {
+  success: boolean;
+  sent: number;
+  failed: number;
+  total: number;
+  error?: string;
+  message?: string;
+  details?: PushDeliveryDetail[];
+};
 
 type AudienceMode = "all" | "selected" | "blok_by_date";
 
@@ -34,6 +50,7 @@ export function PushMessagePanel() {
   const [selected, setSelected] = useState<string[]>([]);
   const [blokDate, setBlokDate] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [pushResult, setPushResult] = useState<PushDeliveryResponse | null>(null);
 
   useEffect(() => {
     async function loadMembers() {
@@ -71,6 +88,7 @@ export function PushMessagePanel() {
 
   async function handleSend() {
     setSending(true);
+    setPushResult(null);
     try {
       if (!message.trim()) {
         toast({ title: "Ralat", description: "Message tidak boleh kosong", variant: "destructive" });
@@ -92,63 +110,87 @@ export function PushMessagePanel() {
 
       const audience = buildAudience();
 
-      // 1. Save in-app notification
-      console.log("📨 Creating in-app notification...");
-      console.log("📤 Payload:", { title, message, audience });
       try {
         await notificationService.createNotification({ title, message, audience });
-        console.log("✅ In-app notification created");
-        
-        // Trigger notifications update event for bell icon
         window.dispatchEvent(new CustomEvent("notifications-updated"));
-        
-        // Success - show immediate feedback
-        toast({
-          title: "✅ Berjaya",
-          description: "Notification telah dihantar kepada ahli yang dipilih",
-        });
-
-        // Reset form
         setMessage("");
         setSelected([]);
         setBlokDate("");
-        
       } catch (notifError) {
-        console.error("❌ Failed to create in-app notification (full error):", notifError);
-        console.error("❌ Error details:", {
-          message: notifError instanceof Error ? notifError.message : String(notifError),
-          stack: notifError instanceof Error ? notifError.stack : undefined,
-          raw: JSON.stringify(notifError, Object.getOwnPropertyNames(notifError)),
-        });
-        
         const errorMsg = notifError instanceof Error ? notifError.message : "Gagal create notification";
         throw new Error(`Database error: ${errorMsg}`);
       }
 
-      // 2. Send actual push notifications via Edge Function (optional - background)
-      console.log("🔐 Sending push notification in background...");
+      const successDescription = "Notification inbox telah dihantar kepada ahli yang dipilih";
       const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (sessionData?.session) {
-        try {
-          const response = await supabase.functions.invoke("send-push-notification", {
-            body: { title, message, audience },
-          });
 
-          console.log("📬 Push notification response:", response);
-          
-          if (response.error) {
-            console.warn("⚠️ Push notification failed:", response.error.message);
-          } else if (response.data) {
-            console.log("✅ Push sent:", response.data);
-          }
-        } catch (pushError) {
-          console.warn("⚠️ Push notification error (non-critical):", pushError);
-        }
-      } else {
-        console.warn("⚠️ No session - skipping push notification");
+      if (!sessionData?.session) {
+        const result: PushDeliveryResponse = {
+          success: false,
+          sent: 0,
+          failed: 0,
+          total: 0,
+          error: "Missing admin session",
+          message: "Notification inbox berjaya disimpan, tetapi push background tidak dijalankan kerana sesi admin tiada.",
+          details: [],
+        };
+
+        setPushResult(result);
+        toast({
+          title: "⚠️ Push separa berjaya",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
       }
 
+      try {
+        const { data, error } = await supabase.functions.invoke("send-push-notification", {
+          body: { title, message, audience },
+        });
+
+        const result =
+          data && typeof data === "object"
+            ? (data as PushDeliveryResponse)
+            : {
+                success: !error,
+                sent: 0,
+                failed: 0,
+                total: 0,
+                error: error?.message,
+                message: error ? "Push background gagal dihantar." : "Notification inbox berjaya disimpan.",
+                details: [],
+              };
+
+        setPushResult(result);
+
+        const pushSummary =
+          result.total > 0 ? ` Push ${result.sent}/${result.total} berjaya.` : " Tiada subscription push dijumpai.";
+        const isPushProblem = !!error || !result.success || result.failed > 0;
+
+        toast({
+          title: isPushProblem ? "⚠️ Push separa berjaya" : "✅ Berjaya",
+          description: result.error ?? `${successDescription}${pushSummary}`,
+          variant: isPushProblem ? "destructive" : undefined,
+        });
+      } catch (pushError) {
+        const result: PushDeliveryResponse = {
+          success: false,
+          sent: 0,
+          failed: 0,
+          total: 0,
+          error: pushError instanceof Error ? pushError.message : "Push background gagal dihantar.",
+          message: "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
+          details: [],
+        };
+
+        setPushResult(result);
+        toast({
+          title: "⚠️ Push separa berjaya",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
     } catch (e: unknown) {
       console.error("❌ Send message failed:", e);
       toast({
@@ -272,6 +314,31 @@ export function PushMessagePanel() {
             <p className="text-xs text-muted-foreground">
               Sistem akan select pemain yang terlibat dalam Blok pada tarikh ini.
             </p>
+          </div>
+        )}
+
+        {pushResult && (
+          <div
+            className={`rounded-lg border p-3 text-sm ${
+              pushResult.failed > 0 || !pushResult.success ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium">Status push background</span>
+              <span>{pushResult.sent}/{pushResult.total} berjaya</span>
+            </div>
+            {pushResult.error ? (
+              <p className="mt-1 text-xs font-medium text-red-700">{pushResult.error}</p>
+            ) : pushResult.message ? (
+              <p className="mt-1 text-xs text-slate-700">{pushResult.message}</p>
+            ) : null}
+            {pushResult.details?.slice(0, 3).map((detail) => (
+              <p key={`${detail.memberId}-${detail.endpointPreview}`} className="mt-1 text-xs text-slate-700">
+                {detail.memberId}: {detail.status}
+                {detail.statusCode ? ` (${detail.statusCode})` : ""} - {detail.endpointPreview}
+                {detail.error ? ` - ${detail.error}` : ""}
+              </p>
+            ))}
           </div>
         )}
 

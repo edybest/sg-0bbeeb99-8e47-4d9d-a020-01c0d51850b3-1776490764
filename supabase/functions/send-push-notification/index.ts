@@ -22,6 +22,14 @@ type PushSubscriptionRow = {
   auth_key: string;
 };
 
+type DeliveryDetail = {
+  memberId: string;
+  status: "sent" | "failed";
+  endpointPreview: string;
+  statusCode?: number;
+  error?: string;
+};
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -31,6 +39,10 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function getEndpointPreview(endpoint: string) {
+  return endpoint.length > 100 ? `${endpoint.slice(0, 100)}...` : endpoint;
 }
 
 async function getAuthenticatedAdminUser(
@@ -134,6 +146,7 @@ serve(async (req) => {
         failed: 0,
         total: 0,
         message: "No push subscriptions found",
+        details: [],
       });
     }
 
@@ -150,6 +163,7 @@ serve(async (req) => {
 
     let sent = 0;
     let failed = 0;
+    const details: DeliveryDetail[] = [];
 
     for (const subscription of subscriptions) {
       try {
@@ -164,19 +178,38 @@ serve(async (req) => {
           payload,
         );
         sent += 1;
+
+        if (details.length < 25) {
+          details.push({
+            memberId: subscription.member_id,
+            status: "sent",
+            endpointPreview: getEndpointPreview(subscription.endpoint),
+          });
+        }
       } catch (error) {
         failed += 1;
         const statusCode =
           typeof error === "object" && error !== null && "statusCode" in error
             ? Number((error as { statusCode?: number }).statusCode)
             : undefined;
+        const errorMessage = getErrorMessage(error);
 
         console.error("Push delivery failed", {
           memberId: subscription.member_id,
           endpoint: subscription.endpoint,
           statusCode,
-          error: getErrorMessage(error),
+          error: errorMessage,
         });
+
+        if (details.length < 25) {
+          details.push({
+            memberId: subscription.member_id,
+            status: "failed",
+            endpointPreview: getEndpointPreview(subscription.endpoint),
+            statusCode,
+            error: errorMessage,
+          });
+        }
 
         if (statusCode === 404 || statusCode === 410) {
           await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
@@ -185,10 +218,12 @@ serve(async (req) => {
     }
 
     return jsonResponse({
-      success: true,
+      success: failed === 0,
       sent,
       failed,
       total: subscriptions.length,
+      message: failed === 0 ? "Push delivered to all subscriptions" : "Some push deliveries failed",
+      details,
     });
   } catch (error) {
     const message = getErrorMessage(error);
@@ -200,6 +235,7 @@ serve(async (req) => {
         error: message,
         sent: 0,
         failed: 0,
+        details: [],
       },
       status,
     );
