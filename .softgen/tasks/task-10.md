@@ -1,6 +1,6 @@
 ---
 title: Push notification background delivery
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -14,7 +14,7 @@ position: 10
 ---
 
 ## Notes
-Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru menunjukkan panel admin kini memaparkan mesej ralat sebenar `Unsupported JWT algorithm ES256`. Ini menunjukkan panggilan ke Edge Function `send-push-notification` gagal pada lapisan verifikasi token sesi admin sebelum proses penghantaran push bermula. Fokus semasa ialah menyemak kod verifikasi auth dalam Edge Function dan cara panel admin memanggil fungsi tersebut, kemudian membaiki aliran supaya token sesi yang sah tidak ditolak.
+Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru menunjukkan panel admin kini memaparkan mesej ralat sebenar `Unsupported JWT algorithm ES256`. Punca dikenal pasti pada lapisan verifikasi JWT platform Edge Function yang menolak token sesi admin beralgoritma `ES256` sebelum kod fungsi sempat berjalan. Pembetulan dibuat dengan redeploy `send-push-notification` tanpa platform JWT verification dan mengekalkan semakan admin secara manual di dalam fungsi menggunakan token `Authorization` yang dihantar oleh klien. Ini membolehkan fungsi terus menerima sesi admin yang sah dan meneruskan proses penghantaran push.
 
 ## Checklist
 - [x] Semak aliran penghantaran mesej admin dalam panel push message
@@ -30,6 +30,6 @@ Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apab
 - [x] Paparkan status penghantaran push sebenar dalam panel admin
 - [x] Semak punca status non-2xx daripada Edge Function
 - [x] Baiki paparan mesej ralat sebenar pada panel admin
-- [ ] Semak punca verifikasi JWT `ES256` dalam Edge Function
-- [ ] Betulkan aliran auth untuk panggilan `send-push-notification`
-- [ ] Jalankan semakan ralat selepas pembetulan
+- [x] Semak punca verifikasi JWT `ES256` dalam Edge Function
+- [x] Betulkan aliran auth untuk panggilan `send-push-notification`
+- [x] Jalankan semakan ralat selepas pembetulan

@@ -45,11 +45,23 @@ function getEndpointPreview(endpoint: string) {
   return endpoint.length > 100 ? `${endpoint.slice(0, 100)}...` : endpoint;
 }
 
+function getBearerToken(authHeader: string | null) {
+  if (!authHeader) {
+    throw new Error("Missing authorization header");
+  }
+
+  if (!authHeader.startsWith("Bearer ")) {
+    throw new Error("Invalid authorization header");
+  }
+
+  return authHeader.slice("Bearer ".length).trim();
+}
+
 async function getAuthenticatedAdminUser(
   supabase: ReturnType<typeof createClient>,
-  authHeader: string,
+  authHeader: string | null,
 ) {
-  const jwt = authHeader.replace("Bearer ", "");
+  const jwt = getBearerToken(authHeader);
   const {
     data: { user },
     error: authError,
@@ -108,10 +120,6 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
-
     const { title, message, audience = {} } = await req.json();
 
     if (!title || !message) {
@@ -177,6 +185,7 @@ serve(async (req) => {
           },
           payload,
         );
+
         sent += 1;
 
         if (details.length < 25) {
