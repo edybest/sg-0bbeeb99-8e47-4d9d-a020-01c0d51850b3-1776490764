@@ -9,6 +9,8 @@ const SUPABASE_SERVER_CONFIG_ERROR =
   "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
 const SUPABASE_SERVER_INVALID_KEY_ERROR =
   "SUPABASE_SERVICE_ROLE_KEY tidak sah pada runtime server. Semak semula key di Settings → Environment dan pastikan ia ialah service_role key yang betul.";
+const WHATSAPP_CONFIG_ERROR =
+  "FONNTE_API_TOKEN belum diisi. Buka Settings → Environment, tambah FONNTE_API_TOKEN, kemudian restart server sebelum hantar TAC semula.";
 
 type SendTACRequest = {
   phone: string;
@@ -49,7 +51,7 @@ export default async function handler(
       console.error("❌ FONNTE_API_TOKEN not configured");
       return res.status(500).json({
         success: false,
-        error: "WhatsApp service not configured",
+        error: WHATSAPP_CONFIG_ERROR,
       });
     }
 

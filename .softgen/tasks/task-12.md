@@ -1,6 +1,6 @@
 ---
 title: WhatsApp TAC configuration fix
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -13,14 +13,14 @@ position: 12
 ---
 
 ## Notes
-Pengguna menerima ralat runtime `WhatsApp service not configured` semasa menekan hantar TAC dalam borang login WhatsApp. Siasatan perlu semak komponen borang, API route penghantaran TAC, servis WhatsApp, dan pembolehubah persekitaran berkaitan untuk kenal pasti sama ada isu datang daripada semakan konfigurasi, nama env yang salah, atau fallback yang tiada.
+Siasatan mengesahkan punca ralat datang daripada semakan `FONNTE_API_TOKEN` dalam API route `send-whatsapp-tac`. Pembolehubah itu belum wujud dalam `.env.local`, jadi server sentiasa memulangkan mesej generik `WhatsApp service not configured`. Pembetulan dibuat dengan menggantikan mesej generik itu kepada arahan yang jelas untuk menambah `FONNTE_API_TOKEN` di Settings → Environment dan restart server. Borang login WhatsApp juga kini memaparkan ralat tersebut terus di dalam kad supaya pengguna tahu langkah seterusnya tanpa hanya bergantung pada toast.
 
 ## Checklist
-- [ ] Semak aliran `handleSendTAC` dalam borang login WhatsApp
-- [ ] Semak API route `send-whatsapp-tac` dan servis WhatsApp untuk punca mesej ralat
-- [ ] Semak pembolehubah persekitaran yang diperlukan oleh servis WhatsApp
-- [ ] Betulkan punca konfigurasi supaya penghantaran TAC tidak gagal secara palsu
-- [ ] Jalankan semakan ralat selepas pembetulan
+- [x] Semak aliran `handleSendTAC` dalam borang login WhatsApp
+- [x] Semak API route `send-whatsapp-tac` dan servis WhatsApp untuk punca mesej ralat
+- [x] Semak pembolehubah persekitaran yang diperlukan oleh servis WhatsApp
+- [x] Betulkan punca konfigurasi supaya penghantaran TAC tidak gagal secara palsu
+- [x] Jalankan semakan ralat selepas pembetulan
 
 ## Acceptance
 Pengguna boleh menekan butang hantar TAC tanpa menerima ralat konfigurasi palsu apabila konfigurasi yang diperlukan memang wujud.

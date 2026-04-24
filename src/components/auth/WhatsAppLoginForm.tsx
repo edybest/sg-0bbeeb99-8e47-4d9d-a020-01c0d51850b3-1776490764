@@ -127,6 +127,7 @@ export function WhatsAppLoginForm() {
 
     async function handleSendTAC() {
         const normalizedPhone = combinePhone(countryCode, formData.phone);
+        setError(null);
 
         if (!formData.phone.trim()) {
             toast({
@@ -186,12 +187,15 @@ export function WhatsAppLoginForm() {
         } catch (error: unknown) {
             console.error("Send TAC error:", error);
 
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Gagal menghantar kod TAC. Sila cuba lagi.";
+
+            setError(message);
             toast({
                 title: "Ralat",
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : "Gagal menghantar kod TAC. Sila cuba lagi.",
+                description: message,
                 variant: "destructive"
             });
         } finally {
