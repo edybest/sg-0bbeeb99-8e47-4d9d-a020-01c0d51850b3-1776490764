@@ -236,8 +236,20 @@ self.addEventListener("push", (event) => {
     ]
   };
 
+  const notifyOpenClients = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    clientList.forEach((client) => {
+      client.postMessage({
+        type: "push-received",
+        notification: notificationData,
+      });
+    });
+  });
+
   event.waitUntil(
-    self.registration.showNotification(notificationData.title, options)
+    Promise.all([
+      self.registration.showNotification(notificationData.title, options),
+      notifyOpenClients,
+    ])
   );
 });
 

@@ -1,52 +1,150 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
+type ServiceWorkerPushMessage = {
+  type?: string;
+};
+
 export function NotificationBell() {
   const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [previousCount, setPreviousCount] = useState(0);
+  const previousCountRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastPlayedAtRef = useRef(0);
+  const animationTimeoutRef = useRef<number | null>(null);
 
-  async function loadUnreadCount() {
+  const playNotificationSound = useCallback(async () => {
+    const audio = audioRef.current;
+    const now = Date.now();
+
+    if (!audio || now - lastPlayedAtRef.current < 1500) {
+      return;
+    }
+
+    lastPlayedAtRef.current = now;
+
+    try {
+      audio.currentTime = 0;
+      await audio.play();
+    } catch (error) {
+      console.warn("Notification sound playback was blocked:", error);
+    }
+  }, []);
+
+  const triggerNotificationFeedback = useCallback(
+    (newNotifications: number) => {
+      setIsAnimating(true);
+      void playNotificationSound();
+
+      toast({
+        title: `🔔 ${newNotifications} Notification Baru`,
+        description: "Klik bell icon untuk lihat",
+        duration: 4000,
+      });
+
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+
+      animationTimeoutRef.current = window.setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000);
+    },
+    [playNotificationSound, toast]
+  );
+
+  const loadUnreadCount = useCallback(async () => {
     try {
       const count = await notificationService.getUnreadCount();
-      
-      if (count > previousCount && previousCount > 0) {
-        setIsAnimating(true);
-        const newNotifications = count - previousCount;
-        toast({
-          title: `🔔 ${newNotifications} Notification Baru`,
-          description: "Klik bell icon untuk lihat",
-          duration: 4000,
-        });
-        setTimeout(() => setIsAnimating(false), 1000);
+      const previousCount = previousCountRef.current;
+
+      if (previousCount !== null && count > previousCount) {
+        triggerNotificationFeedback(count - previousCount);
       }
-      
-      setPreviousCount(count);
+
+      previousCountRef.current = count;
       setUnreadCount(count);
-    } catch (e) {
-      console.error("Failed to load unread count:", e);
+    } catch (error) {
+      console.error("Failed to load unread count:", error);
     }
-  }
+  }, [triggerNotificationFeedback]);
+
+  useEffect(() => {
+    const audio = new Audio("/win.mp3");
+    audio.preload = "auto";
+    audio.volume = 0.9;
+    audioRef.current = audio;
+
+    const primeAudio = () => {
+      const currentAudio = audioRef.current;
+
+      if (!currentAudio) {
+        return;
+      }
+
+      currentAudio.muted = true;
+      void currentAudio.play().then(() => {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.muted = false;
+      }).catch(() => {
+        currentAudio.currentTime = 0;
+        currentAudio.muted = false;
+      });
+    };
+
+    window.addEventListener("pointerdown", primeAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", primeAudio);
+
+      if (animationTimeoutRef.current) {
+        window.clearTimeout(animationTimeoutRef.current);
+      }
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     void loadUnreadCount();
 
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       void loadUnreadCount();
     }, 30000);
 
-    const handleUpdate = () => void loadUnreadCount();
+    const handleUpdate = () => {
+      void loadUnreadCount();
+    };
+
+    const handleServiceWorkerMessage = (event: MessageEvent<ServiceWorkerPushMessage>) => {
+      if (event.data?.type === "push-received") {
+        void loadUnreadCount();
+      }
+    };
+
     window.addEventListener("notifications-updated", handleUpdate);
 
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
+    }
+
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.removeEventListener("notifications-updated", handleUpdate);
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+      }
     };
-  }, [previousCount]);
+  }, [loadUnreadCount]);
 
   return (
     <div className="relative inline-block">
