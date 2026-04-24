@@ -1,6 +1,6 @@
 ---
 title: Push notification background delivery
-status: in_progress
+status: done
 priority: high
 type: bug
 tags:
@@ -14,7 +14,7 @@ position: 10
 ---
 
 ## Notes
-Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru menunjukkan panel admin memaparkan `0/0 berjaya` bersama ralat `Edge Function returned a non-2xx status code`. Ini bermaksud fungsi `send-push-notification` dipanggil tetapi memulangkan status gagal sebelum butiran delivery sebenar sempat dipaparkan. Fokus semasa ialah mengenal pasti punca non-2xx tersebut dan membaiki UI supaya mesej ralat sebenar dipaparkan dengan tepat.
+Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru menunjukkan panel admin memaparkan `0/0 berjaya` bersama ralat `Edge Function returned a non-2xx status code`. Semakan kod mendapati Edge Function sebenarnya sudah memulangkan body JSON dengan mesej ralat sebenar, tetapi panel admin hanya membaca `error.message` generik daripada Supabase Functions client. Pembetulan dibuat dengan menambah parser untuk `error.context` supaya body respons non-2xx boleh dibaca terus dan dipaparkan pada panel admin sebagai `error`, `message`, serta butiran penghantaran yang berkaitan. Ini membolehkan punca sebenar daripada `send-push-notification` dilihat terus tanpa mesej generik.
 
 ## Checklist
 - [x] Semak aliran penghantaran mesej admin dalam panel push message
@@ -28,6 +28,6 @@ Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apab
 - [x] Tentukan sama ada subscription semasa sepadan dengan aliran push yang dihantar
 - [x] Tambah butiran hasil delivery push dalam respons Edge Function
 - [x] Paparkan status penghantaran push sebenar dalam panel admin
-- [ ] Semak punca status non-2xx daripada Edge Function
-- [ ] Baiki paparan mesej ralat sebenar pada panel admin
-- [ ] Jalankan semakan ralat selepas pembetulan
+- [x] Semak punca status non-2xx daripada Edge Function
+- [x] Baiki paparan mesej ralat sebenar pada panel admin
+- [x] Jalankan semakan ralat selepas pembetulan

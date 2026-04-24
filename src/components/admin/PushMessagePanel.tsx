@@ -38,6 +38,60 @@ function formatMember(m: MemberRow, mode?: AudienceMode) {
   return name;
 }
 
+async function extractFunctionErrorResult(error: unknown): Promise<PushDeliveryResponse> {
+  if (typeof error === "object" && error !== null && "context" in error) {
+    const context = (error as { context?: Response }).context;
+
+    if (context && typeof context.clone === "function") {
+      try {
+        const payload = (await context.clone().json()) as Partial<PushDeliveryResponse>;
+        return {
+          success: false,
+          sent: Number(payload.sent ?? 0),
+          failed: Number(payload.failed ?? 0),
+          total: Number(payload.total ?? 0),
+          error: payload.error ?? payload.message ?? (error instanceof Error ? error.message : "Push background gagal dihantar."),
+          message: payload.message ?? "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
+          details: Array.isArray(payload.details) ? payload.details : [],
+        };
+      } catch {
+        try {
+          const text = await context.clone().text();
+          return {
+            success: false,
+            sent: 0,
+            failed: 0,
+            total: 0,
+            error: text || (error instanceof Error ? error.message : "Push background gagal dihantar."),
+            message: "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
+            details: [],
+          };
+        } catch {
+          return {
+            success: false,
+            sent: 0,
+            failed: 0,
+            total: 0,
+            error: error instanceof Error ? error.message : "Push background gagal dihantar.",
+            message: "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
+            details: [],
+          };
+        }
+      }
+    }
+  }
+
+  return {
+    success: false,
+    sent: 0,
+    failed: 0,
+    total: 0,
+    error: error instanceof Error ? error.message : "Push background gagal dihantar.",
+    message: "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
+    details: [],
+  };
+}
+
 export function PushMessagePanel() {
   const { toast } = useToast();
 
@@ -162,11 +216,22 @@ export function PushMessagePanel() {
                 details: [],
               };
 
+        if (error) {
+          const detailedError = await extractFunctionErrorResult(error);
+          setPushResult(detailedError);
+          toast({
+            title: "⚠️ Push separa berjaya",
+            description: detailedError.error ?? detailedError.message,
+            variant: "destructive",
+          });
+          return;
+        }
+
         setPushResult(result);
 
         const pushSummary =
           result.total > 0 ? ` Push ${result.sent}/${result.total} berjaya.` : " Tiada subscription push dijumpai.";
-        const isPushProblem = !!error || !result.success || result.failed > 0;
+        const isPushProblem = !result.success || result.failed > 0;
 
         toast({
           title: isPushProblem ? "⚠️ Push separa berjaya" : "✅ Berjaya",
@@ -174,20 +239,12 @@ export function PushMessagePanel() {
           variant: isPushProblem ? "destructive" : undefined,
         });
       } catch (pushError) {
-        const result: PushDeliveryResponse = {
-          success: false,
-          sent: 0,
-          failed: 0,
-          total: 0,
-          error: pushError instanceof Error ? pushError.message : "Push background gagal dihantar.",
-          message: "Notification inbox berjaya disimpan, tetapi push background gagal dihantar.",
-          details: [],
-        };
+        const result = await extractFunctionErrorResult(pushError);
 
         setPushResult(result);
         toast({
           title: "⚠️ Push separa berjaya",
-          description: result.error,
+          description: result.error ?? result.message,
           variant: "destructive",
         });
       }
