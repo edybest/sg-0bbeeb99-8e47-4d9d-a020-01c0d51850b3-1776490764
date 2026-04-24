@@ -1,6 +1,6 @@
 ---
 title: Push notification background delivery
-status: done
+status: in_progress
 priority: high
 type: bug
 tags:
@@ -14,7 +14,7 @@ position: 10
 ---
 
 ## Notes
-Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru: notification baru telah dihantar kepada user `edy`, tetapi pada bahagian notification milik `edy` tiada notification baru diterima. Semakan DB mengesahkan subscription push untuk `EDY` wujud sebelum notifikasi dihantar, dan rekod notification in-app juga memang sampai kepada `EDY`. Memandangkan log Edge Function tidak boleh dibaca terus dari sini, observability ditambah pada aliran push: `send-push-notification` kini memulangkan butiran delivery sebenar termasuk `memberId`, status berjaya/gagal, endpoint ringkas, kod status, dan mesej ralat. Panel admin pula memaparkan hasil penghantaran push sebenar selepas mesej dihantar, jadi kegagalan delivery boleh terus dikenal pasti tanpa perlu buka log luar.
+Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apabila admin hantar mesej selagi app tidak dibuka dahulu. Siasatan terdahulu tertumpu pada background push. Maklum balas terbaru menunjukkan panel admin memaparkan `0/0 berjaya` bersama ralat `Edge Function returned a non-2xx status code`. Ini bermaksud fungsi `send-push-notification` dipanggil tetapi memulangkan status gagal sebelum butiran delivery sebenar sempat dipaparkan. Fokus semasa ialah mengenal pasti punca non-2xx tersebut dan membaiki UI supaya mesej ralat sebenar dipaparkan dengan tepat.
 
 ## Checklist
 - [x] Semak aliran penghantaran mesej admin dalam panel push message
@@ -28,4 +28,6 @@ Pengguna melaporkan ahli yang sudah install PWA tidak menerima notification apab
 - [x] Tentukan sama ada subscription semasa sepadan dengan aliran push yang dihantar
 - [x] Tambah butiran hasil delivery push dalam respons Edge Function
 - [x] Paparkan status penghantaran push sebenar dalam panel admin
-- [x] Jalankan semakan ralat selepas penambahbaikan observability
+- [ ] Semak punca status non-2xx daripada Edge Function
+- [ ] Baiki paparan mesej ralat sebenar pada panel admin
+- [ ] Jalankan semakan ralat selepas pembetulan
