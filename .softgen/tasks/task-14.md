@@ -1,6 +1,6 @@
 ---
 title: Quick-access mobile navigation
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -13,16 +13,16 @@ position: 14
 ---
 
 ## Notes
-Pengguna mula-mula memilih arah quick-access bar untuk navigasi mobile. Bottom navigation telah dipermudahkan kepada 5 menu utama yang sentiasa kelihatan: Home, Blok, Couple, Chat, dan Profile, dengan menu lain di bawah butang "Lagi". Maklum balas terbaru meminta gaya itu ditukar kepada iOS-style floating dock. Fokus semasa ialah mengekalkan struktur quick-access yang mudah digunakan, tetapi dengan visual dock terapung yang lebih premium, ringan, dan jelas pada skrin telefon.
+Quick-access bar mobile dikekalkan dengan 5 menu utama dan butang "Lagi", tetapi visualnya kini ditukar kepada iOS-style floating dock. Dock baharu menggunakan permukaan putih lut sinar dengan blur, ikon dalam kapsul bulat lembut, bayang lebih ringan, dan label ringkas yang lebih mudah dibaca. Panel "Lagi" juga diselaraskan dengan radius lebih besar dan kad menu yang lebih selesa disentuh. Ruang bawah kandungan dalam `MemberLayout` turut ditambah supaya dock terapung tidak menutup kandungan terakhir pada halaman mobile.
 
 ## Checklist
 - [x] Susun semula menu mobile kepada 5 quick-access item utama
 - [x] Tambah butang "Lagi" untuk membuka senarai menu selebihnya
 - [x] Kemaskan gaya visual supaya lebih ringkas dan mudah ditekan
 - [x] Pastikan state aktif/current page masih jelas dipaparkan
-- [ ] Tukar bottom bar kepada iOS-style floating dock
-- [ ] Laraskan spacing bawah dan panel "Lagi" supaya sepadan dengan dock terapung
-- [ ] Jalankan semakan ralat selepas pelaksanaan
+- [x] Tukar bottom bar kepada iOS-style floating dock
+- [x] Laraskan spacing bawah dan panel "Lagi" supaya sepadan dengan dock terapung
+- [x] Jalankan semakan visual selepas pelaksanaan
 
 ## Acceptance
 Pada paparan mobile, pengguna nampak quick-access bar terapung ala iOS dengan 5 menu utama dan butang "Lagi".

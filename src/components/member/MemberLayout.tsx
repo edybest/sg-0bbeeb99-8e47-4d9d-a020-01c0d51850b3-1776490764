@@ -215,7 +215,7 @@ export function MemberLayout({ children }: MemberLayoutProps) {
           </aside>
         )}
 
-        <main className={`flex-1 ${mainContentOffsetClass} ${isBottomNav ? "pb-20" : ""} ${isSidebarNav ? "" : "container mx-auto"}`}>
+        <main className={`flex-1 ${mainContentOffsetClass} ${isBottomNav ? "pb-28" : ""} ${isSidebarNav ? "" : "container mx-auto"}`}>
           {children}
         </main>
         <MobileNav />
