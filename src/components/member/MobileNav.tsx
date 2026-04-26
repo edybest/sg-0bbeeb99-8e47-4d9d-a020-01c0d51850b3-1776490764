@@ -39,15 +39,15 @@ type MenuItem = {
 const primaryItems: MenuItem[] = [
   { href: "/member", icon: Home, label: "Home" },
   { href: "/member/blok", icon: Trophy, label: "Blok" },
+  { href: "/member/five-five", icon: Star, label: "5+5" },
   { href: "/member/couple", icon: Heart, label: "Couple" },
-  { href: "/member/chat", icon: MessageCircle, label: "Chat" },
-  { href: "/member/profile", icon: User, label: "Profile" },
+  { href: "/member/average-score", icon: Target, label: "Average" },
 ];
 
 const secondaryItems: MenuItem[] = [
-  { href: "/member/five-five", icon: Star, label: "5+5" },
+  { href: "/member/chat", icon: MessageCircle, label: "Chat" },
+  { href: "/member/profile", icon: User, label: "Profile" },
   { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame", shortLabel: "Hall of Fame" },
-  { href: "/member/average-score", icon: Target, label: "Average" },
   { href: "/member/undi-lane", icon: Dices, label: "Lane Draw" },
   { href: "/member/lane", icon: MapPin, label: "Lane" },
   { href: "/member/mini-blok", icon: Gamepad2, label: "Mini Blok", shortLabel: "Mini" },

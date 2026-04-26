@@ -1,6 +1,6 @@
 ---
 title: Quick-access mobile navigation
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -15,7 +15,7 @@ position: 14
 ## Notes
 Quick-access bar mobile dikekalkan dengan 5 menu utama dan butang "Lagi", tetapi visualnya kini ditukar kepada iOS-style floating dock. Dock baharu menggunakan permukaan putih lut sinar dengan blur, ikon dalam kapsul bulat lembut, bayang lebih ringan, dan label ringkas yang lebih mudah dibaca. Panel "Lagi" juga diselaraskan dengan radius lebih besar dan kad menu yang lebih selesa disentuh. Ruang bawah kandungan dalam `MemberLayout` turut ditambah supaya dock terapung tidak menutup kandungan terakhir pada halaman mobile.
 
-Maklum balas terbaru pengguna meminta susunan menu utama bottom dock ditukar kepada: Home, Blok, FiveFive, Couple, dan Average. Menu utama lama yang diganti perlu dialihkan ke panel `Lagi` supaya dock mengikut keutamaan penggunaan sebenar.
+Maklum balas terbaru pengguna meminta susunan menu utama bottom dock ditukar kepada: Home, Blok, FiveFive, Couple, dan Average. Susunan itu kini diterapkan pada dock utama, manakala Chat dan Profile dialihkan ke panel `Lagi` bersama menu lain supaya navigation ikut keutamaan penggunaan sebenar.
 
 ## Checklist
 - [x] Susun semula menu mobile kepada 5 quick-access item utama
@@ -24,9 +24,9 @@ Maklum balas terbaru pengguna meminta susunan menu utama bottom dock ditukar kep
 - [x] Pastikan state aktif/current page masih jelas dipaparkan
 - [x] Tukar bottom bar kepada iOS-style floating dock
 - [x] Laraskan spacing bawah dan panel "Lagi" supaya sepadan dengan dock terapung
-- [ ] Tukar susunan dock utama kepada Home, Blok, FiveFive, Couple, Average
-- [ ] Alihkan menu yang diganti ke panel `Lagi`
-- [ ] Jalankan semakan akhir selepas susunan baharu diterapkan
+- [x] Tukar susunan dock utama kepada Home, Blok, FiveFive, Couple, Average
+- [x] Alihkan menu yang diganti ke panel `Lagi`
+- [x] Jalankan semakan akhir selepas susunan baharu diterapkan
 
 ## Acceptance
 Pada paparan mobile, pengguna nampak quick-access bar terapung ala iOS dengan 5 menu utama dan butang "Lagi".
