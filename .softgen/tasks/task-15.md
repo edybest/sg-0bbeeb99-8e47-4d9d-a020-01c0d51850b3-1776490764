@@ -1,6 +1,6 @@
 ---
 title: WhatsApp Blok auto-registration
-status: done
+status: in_progress
 priority: high
 type: feature
 tags:
@@ -16,7 +16,7 @@ position: 15
 ## Notes
 Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blokambc dd.mm.yyyy` dan auto-reply status kepada pengirim. Flow tambahan untuk mesej panjang `#ambcblok` kini turut disokong: sistem mengesan tarikh seperti `29.04.2026`, cipta rekod game BLOK dalam jadual `games` jika belum wujud pada tarikh itu, baca senarai pemain bernombor dari `1.` hingga sebelum bahagian `Waiting List`, kemudian masukkan hanya pemain utama yang berjaya dipadankan ke `game_players`. Semua item selepas tajuk `Waiting List` diabaikan sepenuhnya.
 
-Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, dan kini `#status`. Sistem perlu ikut post admin `#ambcblok` yang terbaru sebagai queue aktif, simpan queue sementara dalam Supabase, susun ahli mengikut urutan join daripada nombor telefon pengirim kepada `username` ahli, isi slot utama dari 1 hingga 42, kemudian sambung ke `Waiting List` ikut turutan. Jika nama sudah ada dalam queue, sistem balas bahawa nama telah ada dalam list. Jika tarikh BLOK yang aktif sudah lepas, sistem balas bahawa tarikh blok sudah lepas dan tiada rekod queue baharu dimasukkan. Untuk `#status`, sistem perlu semak ahli berdasarkan nombor telefon pengirim dan balas kedudukan semasa mereka sama ada dalam slot utama 1–42, dalam waiting list, atau belum berada dalam queue BLOK aktif. Flow ini hanya untuk susunan list join sementara, bukan untuk memasukkan rekod join terus ke `game_players`.
+Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, `#status`, dan kini notifikasi automatik apabila ahli dalam waiting list dinaikkan ke slot utama selepas ada kekosongan. Sistem perlu kekalkan queue sementara dalam Supabase, kenal pasti perubahan kedudukan apabila slot utama kosong, kemudian hantar mesej WhatsApp automatik kepada ahli yang berjaya naik daripada waiting list ke slot utama. Notifikasi ini perlu guna nombor telefon ahli yang dipadankan kepada rekod `members`, dan hanya dihantar apabila ada perubahan sebenar pada kedudukan queue.
 
 ## Checklist
 - [x] Semak webhook WhatsApp sedia ada dan format payload mesej masuk
@@ -46,9 +46,12 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, da
 - [x] Parse command `#status`
 - [x] Semak kedudukan ahli dalam queue BLOK aktif berdasarkan nombor telefon pengirim
 - [x] Hantar auto-reply sama ada ahli berada dalam slot utama, waiting list, atau belum join
-- [x] Jalankan semakan akhir selepas pembaikan
+- [ ] Semak bagaimana slot kosong dicipta dalam queue BLOK semasa
+- [ ] Tambah logik kenaikan waiting list ke slot utama
+- [ ] Hantar notifikasi WhatsApp automatik kepada ahli yang naik ke slot utama
+- [ ] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance
 Apabila ahli menghantar `#joinblok` atau `#join blok`, sistem mengambil queue BLOK aktif daripada post admin terbaru, menambah ahli ke slot utama 1 hingga 42 atau `Waiting List` mengikut turutan, dan menghantar balasan automatik dengan kedudukan join.
 Apabila ahli menghantar `#status`, sistem membalas kedudukan semasa mereka dalam queue BLOK aktif atau memaklumkan bahawa mereka belum berada dalam senarai.
-Jika ahli yang sama sudah ada dalam queue atau tarikh BLOK aktif telah lepas, sistem tidak menambah rekod baru dan menghantar balasan status yang sesuai.
+Apabila slot utama kosong dan ahli waiting list naik ke slot utama, ahli tersebut menerima mesej WhatsApp automatik bahawa mereka telah mendapat slot kosong.
