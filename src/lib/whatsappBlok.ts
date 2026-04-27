@@ -137,7 +137,13 @@ export function parseBlokCommand(messageText: string): ParsedBlokCommand {
   }
 
   const [, dayText, monthText, yearText] = match;
-  return parseDate(dayText, monthText, yearText);
+  const parsedDate = parseDate(dayText, monthText, yearText);
+
+  if (parsedDate.status === "missing_date") {
+    return null;
+  }
+
+  return parsedDate;
 }
 
 export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
