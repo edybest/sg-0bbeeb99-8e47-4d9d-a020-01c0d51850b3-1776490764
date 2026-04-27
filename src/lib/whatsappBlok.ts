@@ -24,12 +24,19 @@ export type ParsedBlokCommand =
     }
   | null;
 
+export type ParsedJoinBlokCommand =
+  | {
+      status: "valid";
+    }
+  | null;
+
 export type ParsedAmbcBlokImport =
   | {
       status: "valid";
       isoDate: string;
       rawDate: string;
       playerNames: string[];
+      waitingListNames: string[];
       title: string | null;
       location: string | null;
     }
@@ -44,12 +51,14 @@ export type ParsedAmbcBlokImport =
       status: "no_players";
       isoDate: string;
       rawDate: string;
+      waitingListNames: string[];
       title: string | null;
       location: string | null;
     }
   | null;
 
 const BLOK_COMMAND_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
+const JOIN_BLOK_COMMAND_REGEX = /^\s*#join\s*blok\s*$/i;
 const AMBC_BLOK_HASHTAG_REGEX = /#(?:ambcblok|blokambc)\b/i;
 const DATE_REGEX = /(\d{2})\.(\d{2})\.(\d{4})/;
 
@@ -95,11 +104,10 @@ function extractMetadataLine(messageText: string, matcher: RegExp): string | nul
   return line ? sanitizeText(line) : null;
 }
 
-function extractPlayerNames(messageText: string): string[] {
-  const mainSection = messageText.split(/waiting\s*list/i)[0] || messageText;
+function extractNumberedNames(sectionText: string): string[] {
   const playerNames: string[] = [];
 
-  for (const line of mainSection.split(/\r?\n/)) {
+  for (const line of sectionText.split(/\r?\n/)) {
     const match = line.match(/^\s*\d+\.\s*(.+?)\s*$/);
 
     if (!match) {
@@ -114,6 +122,21 @@ function extractPlayerNames(messageText: string): string[] {
   }
 
   return playerNames;
+}
+
+function extractPlayerNames(messageText: string): string[] {
+  const mainSection = messageText.split(/waiting\s*list/i)[0] || messageText;
+  return extractNumberedNames(mainSection);
+}
+
+function extractWaitingListNames(messageText: string): string[] {
+  const sections = messageText.split(/waiting\s*list/i);
+
+  if (sections.length < 2) {
+    return [];
+  }
+
+  return extractNumberedNames(sections.slice(1).join("\n"));
 }
 
 function findDateInMessage(messageText: string): ParsedDateResult {
@@ -146,6 +169,14 @@ export function parseBlokCommand(messageText: string): ParsedBlokCommand {
   return parsedDate;
 }
 
+export function parseJoinBlokCommand(messageText: string): ParsedJoinBlokCommand {
+  return JOIN_BLOK_COMMAND_REGEX.test(messageText)
+    ? {
+        status: "valid",
+      }
+    : null;
+}
+
 export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
   if (!AMBC_BLOK_HASHTAG_REGEX.test(messageText)) {
     return null;
@@ -158,6 +189,7 @@ export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
   }
 
   const playerNames = extractPlayerNames(messageText);
+  const waitingListNames = extractWaitingListNames(messageText);
   const title =
     extractMetadataLine(messageText, /ambc\s*(block|blok)/i) || `BLOK ${parsedDate.rawDate}`;
   const location = extractMetadataLine(messageText, /📍/);
@@ -167,6 +199,7 @@ export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
       status: "no_players",
       isoDate: parsedDate.isoDate,
       rawDate: parsedDate.rawDate,
+      waitingListNames,
       title,
       location,
     };
@@ -177,6 +210,7 @@ export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
     isoDate: parsedDate.isoDate,
     rawDate: parsedDate.rawDate,
     playerNames,
+    waitingListNames,
     title,
     location,
   };

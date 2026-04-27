@@ -35,9 +35,9 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok` dan `#join blok`.
 - [x] Abaikan semua entri selepas tajuk `Waiting List`
 - [x] Hantar ringkasan auto-reply bagi jumlah berjaya, duplicate, dan nama yang tidak dipadankan
 - [x] Sokong alias hashtag `#blokambc` untuk mesej import pukal
-- [ ] Semak schema untuk jadual queue sementara join BLOK
-- [ ] Tambah storan Supabase untuk queue `#joinblok` berasaskan game BLOK aktif terbaru
-- [ ] Parse hashtag `#joinblok` dan `#join blok`
+- [x] Semak schema untuk jadual queue sementara join BLOK
+- [x] Tambah storan Supabase untuk queue `#joinblok` berasaskan game BLOK aktif terbaru
+- [x] Parse hashtag `#joinblok` dan `#join blok`
 - [ ] Padankan nombor telefon pengirim kepada ahli dan gunakan `username` untuk queue
 - [ ] Tolak join jika tarikh BLOK aktif sudah lepas
 - [ ] Semak duplicate nama dalam queue aktif
