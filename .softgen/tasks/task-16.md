@@ -1,6 +1,6 @@
 ---
 title: Group webhook parsing test script
-status: in_progress
+status: done
 priority: medium
 type: feature
 tags:
@@ -21,7 +21,7 @@ Create a focused automated test script that simulates a WhatsApp group webhook p
 - [x] Expose only the minimal webhook parsing helper needed for testing
 - [x] Add a focused test that simulates a group webhook payload
 - [x] Verify member sender, reply target, and group id parsing for group messages
-- [ ] Run project error checks after adding the test
+- [x] Run project error checks after adding the test
 
 ## Acceptance
 A developer can run the new test and confirm that a simulated WhatsApp group payload resolves the real sender separately from the group chat target.
