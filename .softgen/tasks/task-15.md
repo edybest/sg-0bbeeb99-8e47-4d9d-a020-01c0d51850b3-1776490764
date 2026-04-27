@@ -14,9 +14,9 @@ position: 15
 ---
 
 ## Notes
-Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blokambc dd.mm.yyyy`. Implementasi menggunakan route sedia ada `src/pages/api/whatsapp-webhook.ts` untuk baca mesej masuk, parse tarikh, normalkan nombor pengirim, padankan kepada ahli verified dalam jadual `members`, cari rekod game BLOK dalam jadual `games` berdasarkan `game_date`, dan simpan penyertaan pemain ke `game_players`. Duplicate dielakkan dengan semakan awal pada gabungan `game_id` dan `member_id`, selari dengan constraint unik database.
+Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blokambc dd.mm.yyyy` dan auto-reply status kepada pengirim. Maklum balas terbaru meminta flow tambahan untuk mesej panjang yang mengandungi hashtag `#ambcblok`: sistem perlu kesan tarikh seperti `29.04.2026`, cipta rekod game BLOK jika belum wujud pada tarikh itu, baca senarai pemain bernombor bermula dari `1.` hingga sebelum bahagian `Waiting List`, kemudian masukkan pemain utama sahaja ke database. Item dalam `Waiting List` mesti diabaikan sepenuhnya.
 
-Flow ini turut menghantar balasan WhatsApp automatik kepada pengirim selepas cubaan daftar melalui `#blokambc`. Maklum balas terbaru menunjukkan percubaan WhatsApp ke nombor webhook tidak menghasilkan rekod baru dalam database, jadi siasatan perlu fokus pada payload webhook sebenar, padanan nombor pengirim, carian game BLOK ikut tarikh, dan sebarang ralat server/log semasa proses masuk.
+Implementasi perlu mengekalkan perlindungan duplicate, padankan nama pemain kepada ahli sedia ada jika boleh, dan selaraskan penciptaan game dengan struktur jadual `games` serta `game_players` yang digunakan oleh aplikasi AMBC sekarang. Balasan WhatsApp automatik juga perlu memberitahu berapa ramai pemain berjaya diimport, siapa yang diabaikan, dan jika ada nama yang tidak dapat dipadankan.
 
 ## Checklist
 - [x] Semak webhook WhatsApp sedia ada dan format payload mesej masuk
@@ -27,11 +27,15 @@ Flow ini turut menghantar balasan WhatsApp automatik kepada pengirim selepas cub
 - [x] Tambah respons/error handling untuk nombor yang tidak dikenali atau data tidak lengkap
 - [x] Semak utiliti penghantaran WhatsApp sedia ada untuk auto-reply
 - [x] Hantar balasan automatik WhatsApp untuk status berjaya atau gagal
-- [ ] Semak log webhook dan payload WhatsApp sebenar bagi percubaan terbaru
-- [ ] Sahkan punca kegagalan insert ke database
-- [ ] Terapkan pembaikan minimum yang diperlukan
+- [ ] Semak schema terkini `games`, `game_players`, dan `members` untuk flow import pukal
+- [ ] Semak pola penciptaan game BLOK sedia ada dalam kod admin/app
+- [ ] Implement parser mesej `#ambcblok` untuk ambil tarikh dan senarai pemain utama sahaja
+- [ ] Auto-create game BLOK mengikut tarikh jika belum wujud
+- [ ] Padankan nama pemain kepada ahli dan simpan ke `game_players` tanpa duplicate
+- [ ] Abaikan semua entri selepas tajuk `Waiting List`
+- [ ] Hantar ringkasan auto-reply bagi jumlah berjaya, duplicate, dan nama yang tidak dipadankan
 - [ ] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance
-Apabila mesej `#blokambc dd.mm.yyyy` diterima oleh webhook daripada nombor ahli yang berdaftar, ahli itu ditambah ke senarai pemain BLOK untuk tarikh berkenaan dan menerima balasan pengesahan.
-Jika ahli sudah berdaftar, nombor tidak dikenali, atau game BLOK pada tarikh itu tiada, webhook tamat dengan selamat dan menghantar balasan status yang sesuai.
+Apabila mesej WhatsApp yang mengandungi `#ambcblok` diterima, sistem mengesan tarikh mesej, mencipta game BLOK jika belum ada, dan menambah hanya pemain utama sebelum bahagian `Waiting List` ke database.
+Entri dalam `Waiting List` tidak dimasukkan ke database, dan pengirim menerima balasan ringkas tentang hasil import pemain.
