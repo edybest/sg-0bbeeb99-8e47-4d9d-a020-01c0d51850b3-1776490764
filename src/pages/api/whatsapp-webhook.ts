@@ -1,9 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { Database } from "@/integrations/supabase/database.types";
+import type { Database } from "@/integrations/supabase/types";
+import {
+  parseAmbcBlokImport,
+  parseBlokCommand,
+  type ParsedAmbcBlokImport,
+  type ParsedBlokCommand,
+} from "@/lib/whatsappBlok";
 
 type FonteWebhookData = {
-  device?: string;
   sender?: string;
   message?: string;
   member?: {
@@ -15,7 +20,6 @@ type FonteWebhookData = {
     from?: string;
   };
   status?: string;
-  id?: string;
 };
 
 type WebhookResponse = {
@@ -25,27 +29,16 @@ type WebhookResponse = {
 
 type MemberLookup = Pick<
   Database["public"]["Tables"]["members"]["Row"],
-  "id" | "full_name" | "phone" | "handicap" | "is_verified"
+  "id" | "username" | "full_name" | "phone" | "handicap" | "is_verified"
 >;
 
 type GameLookup = Pick<
   Database["public"]["Tables"]["games"]["Row"],
-  "id" | "game_name" | "game_date" | "game_type" | "is_official"
+  "id" | "game_name" | "game_date" | "game_type" | "is_official" | "created_at" | "location"
 >;
 
-type ParsedBlokCommand =
-  | {
-      status: "valid";
-      isoDate: string;
-      rawDate: string;
-    }
-  | {
-      status: "invalid_date";
-      rawDate: string;
-    }
-  | null;
+type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 
-const BLOK_COMMAND_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
@@ -83,86 +76,96 @@ function normalizeComparablePhone(value: string): string {
   return digits;
 }
 
-function parseBlokCommand(messageText: string): ParsedBlokCommand {
-  const match = messageText.match(BLOK_COMMAND_REGEX);
+function normalizeComparableName(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/[*_`~]/g, " ")
+    .replace(/[^a-zA-Z0-9/ ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
-  if (!match) {
-    return null;
+function buildNameVariants(value: string): string[] {
+  const base = normalizeComparableName(value);
+
+  if (!base) {
+    return [];
   }
 
-  const [, dayText, monthText, yearText] = match;
-  const day = Number(dayText);
-  const month = Number(monthText);
-  const year = Number(yearText);
+  const variants = new Set<string>([base, base.replace(/\s+/g, "")]);
+  const tokens = base.split(" ").filter(Boolean);
+  const lastToken = tokens[tokens.length - 1];
 
-  const parsedDate = new Date(Date.UTC(year, month - 1, day));
-  const isValidDate =
-    parsedDate.getUTCFullYear() === year &&
-    parsedDate.getUTCMonth() === month - 1 &&
-    parsedDate.getUTCDate() === day;
+  if (tokens.length > 1 && /[0-9/]/.test(lastToken || "")) {
+    const trimmed = tokens.slice(0, -1).join(" ");
 
-  const rawDate = `${dayText}.${monthText}.${yearText}`;
-
-  if (!isValidDate) {
-    return {
-      status: "invalid_date",
-      rawDate,
-    };
+    if (trimmed) {
+      variants.add(trimmed);
+      variants.add(trimmed.replace(/\s+/g, ""));
+    }
   }
 
-  return {
-    status: "valid",
-    isoDate: `${yearText}-${monthText}-${dayText}`,
-    rawDate,
-  };
+  return Array.from(variants);
 }
 
 function buildReplyMessage(message: string): string {
   return `🎳 *AMBC CLUB - Pendaftaran BLOK*\n\n${message}`;
 }
 
+function summarizeNames(names: string[]): string {
+  if (names.length === 0) {
+    return "-";
+  }
+
+  if (names.length <= 8) {
+    return names.join(", ");
+  }
+
+  return `${names.slice(0, 8).join(", ")} dan ${names.length - 8} lagi`;
+}
+
 async function sendWhatsAppReply(sender: string, message: string): Promise<void> {
   const target = normalizeComparablePhone(sender);
 
-  if (!target) {
-    console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
+  if (!target || !FONNTE_TOKEN) {
     return;
   }
 
-  if (!FONNTE_TOKEN) {
-    console.warn("⚠️ WhatsApp auto-reply skipped because FONNTE_API_TOKEN is missing");
-    return;
-  }
-
-  try {
-    const response = await fetch(FONNTE_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": FONNTE_TOKEN,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        target,
-        message,
-        countryCode: "60",
-      }),
-    });
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
-      return;
-    }
-
-    console.log("✅ WhatsApp auto-reply sent:", target);
-  } catch (error) {
-    console.error("❌ WhatsApp auto-reply error:", error);
-  }
+  await fetch(FONNTE_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": FONNTE_TOKEN,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      target,
+      message,
+      countryCode: "60",
+    }),
+  });
 }
 
-async function findMatchingMember(
-  supabaseAdmin: ReturnType<typeof createClient<Database>>,
+function getSupabaseAdminClient(): SupabaseAdminClient | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+async function findMatchingMemberByPhone(
+  supabaseAdmin: SupabaseAdminClient,
   sender: string
 ): Promise<MemberLookup | null> {
   const normalizedSender = normalizeComparablePhone(sender);
@@ -173,27 +176,79 @@ async function findMatchingMember(
 
   const { data, error } = await supabaseAdmin
     .from("members")
-    .select("id, full_name, phone, handicap, is_verified")
+    .select("id, username, full_name, phone, handicap, is_verified")
     .eq("is_verified", true);
 
   if (error) {
     throw error;
   }
 
-  const members = data || [];
-
   return (
-    members.find((member) => normalizeComparablePhone(member.phone) === normalizedSender) || null
+    (data || []).find((member) => normalizeComparablePhone(member.phone) === normalizedSender) || null
   );
 }
 
-async function findTargetBlokGame(
-  supabaseAdmin: ReturnType<typeof createClient<Database>>,
+async function getVerifiedMembers(supabaseAdmin: SupabaseAdminClient): Promise<MemberLookup[]> {
+  const { data, error } = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name, phone, handicap, is_verified")
+    .eq("is_verified", true);
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+function findMatchingMemberByName(members: MemberLookup[], playerName: string): MemberLookup | null {
+  const variants = buildNameVariants(playerName);
+
+  if (variants.length === 0) {
+    return null;
+  }
+
+  const exactMatches = members.filter((member) => {
+    const username = normalizeComparableName(member.username);
+    const fullName = normalizeComparableName(member.full_name);
+
+    return variants.some(
+      (variant) =>
+        variant === username ||
+        variant === fullName ||
+        variant === username.replace(/\s+/g, "") ||
+        variant === fullName.replace(/\s+/g, "")
+    );
+  });
+
+  if (exactMatches.length === 1) {
+    return exactMatches[0];
+  }
+
+  const looseMatches = members.filter((member) => {
+    const username = normalizeComparableName(member.username);
+    const fullName = normalizeComparableName(member.full_name);
+
+    return variants.some(
+      (variant) =>
+        variant.length >= 3 &&
+        (username.startsWith(variant) ||
+          fullName.startsWith(variant) ||
+          variant.startsWith(username) ||
+          variant.startsWith(fullName))
+    );
+  });
+
+  return looseMatches.length === 1 ? looseMatches[0] : null;
+}
+
+async function findExactTargetBlokGame(
+  supabaseAdmin: SupabaseAdminClient,
   isoDate: string
 ): Promise<{ game: GameLookup | null; reason?: string }> {
   const { data, error } = await supabaseAdmin
     .from("games")
-    .select("id, game_name, game_date, game_type, is_official")
+    .select("id, game_name, game_date, game_type, is_official, created_at, location")
     .eq("game_type", "BLOK")
     .eq("game_date", isoDate)
     .order("is_official", { ascending: false })
@@ -228,6 +283,221 @@ async function findTargetBlokGame(
   };
 }
 
+async function findOrCreateBlokGame(
+  supabaseAdmin: SupabaseAdminClient,
+  parsedBulkImport: Extract<ParsedAmbcBlokImport, { status: "valid" | "no_players" }>
+): Promise<{ game: GameLookup | null; created: boolean; reason?: string }> {
+  const existingGameResult = await findExactTargetBlokGame(supabaseAdmin, parsedBulkImport.isoDate);
+
+  if (existingGameResult.game) {
+    return {
+      game: existingGameResult.game,
+      created: false,
+    };
+  }
+
+  if (existingGameResult.reason?.includes("lebih daripada satu")) {
+    return {
+      game: null,
+      created: false,
+      reason: existingGameResult.reason,
+    };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("games")
+    .insert({
+      game_name: parsedBulkImport.title || `BLOK ${parsedBulkImport.rawDate}`,
+      game_date: parsedBulkImport.isoDate,
+      game_type: "BLOK",
+      year: Number(parsedBulkImport.isoDate.slice(0, 4)),
+      is_official: true,
+      location: parsedBulkImport.location,
+    })
+    .select("id, game_name, game_date, game_type, is_official, created_at, location")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    game: data,
+    created: true,
+  };
+}
+
+async function handleSingleBlokRegistration(
+  supabaseAdmin: SupabaseAdminClient,
+  sender: string,
+  parsedCommand: Extract<ParsedBlokCommand, { status: "valid" }>
+): Promise<WebhookResponse> {
+  const member = await findMatchingMemberByPhone(supabaseAdmin, sender);
+
+  if (!member) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage("Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar.")
+    );
+
+    return {
+      success: false,
+      message: "Nombor WhatsApp tidak sepadan dengan mana-mana ahli berdaftar",
+    };
+  }
+
+  const targetGameResult = await findExactTargetBlokGame(supabaseAdmin, parsedCommand.isoDate);
+
+  if (!targetGameResult.game) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage(targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`)
+    );
+
+    return {
+      success: false,
+      message: targetGameResult.reason || "Game BLOK tidak ditemui",
+    };
+  }
+
+  const { data: existingPlayer, error: existingPlayerError } = await supabaseAdmin
+    .from("game_players")
+    .select("id")
+    .eq("game_id", targetGameResult.game.id)
+    .eq("member_id", member.id)
+    .maybeSingle();
+
+  if (existingPlayerError) {
+    throw existingPlayerError;
+  }
+
+  if (existingPlayer) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage(
+        `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
+      )
+    );
+
+    return {
+      success: true,
+      message: `${member.full_name} sudah berada dalam senarai pemain BLOK ${parsedCommand.rawDate}`,
+    };
+  }
+
+  const { error: insertError } = await supabaseAdmin.from("game_players").insert({
+    game_id: targetGameResult.game.id,
+    member_id: member.id,
+    handicap: member.handicap || 0,
+  });
+
+  if (insertError) {
+    throw insertError;
+  }
+
+  await sendWhatsAppReply(
+    sender,
+    buildReplyMessage(
+      `${member.full_name}, anda berjaya dimasukkan ke senarai pemain *${targetGameResult.game.game_name}* pada *${parsedCommand.rawDate}*.`
+    )
+  );
+
+  return {
+    success: true,
+    message: `${member.full_name} berjaya dimasukkan ke senarai pemain BLOK ${parsedCommand.rawDate}`,
+  };
+}
+
+async function handleBulkAmbcBlokImport(
+  supabaseAdmin: SupabaseAdminClient,
+  sender: string,
+  parsedBulkImport: Extract<ParsedAmbcBlokImport, { status: "valid" }>
+): Promise<WebhookResponse> {
+  const gameResult = await findOrCreateBlokGame(supabaseAdmin, parsedBulkImport);
+
+  if (!gameResult.game) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage(gameResult.reason || "Game BLOK tidak dapat diproses.")
+    );
+
+    return {
+      success: false,
+      message: gameResult.reason || "Game BLOK tidak dapat diproses",
+    };
+  }
+
+  const members = await getVerifiedMembers(supabaseAdmin);
+  const { data: existingPlayers, error: existingPlayersError } = await supabaseAdmin
+    .from("game_players")
+    .select("member_id")
+    .eq("game_id", gameResult.game.id);
+
+  if (existingPlayersError) {
+    throw existingPlayersError;
+  }
+
+  const existingMemberIds = new Set((existingPlayers || []).map((item) => item.member_id));
+  const queuedMemberIds = new Set<string>();
+  const duplicateNames: string[] = [];
+  const unmatchedNames: string[] = [];
+  const inserts: Array<{ game_id: string; member_id: string; handicap: number }> = [];
+
+  for (const playerName of parsedBulkImport.playerNames) {
+    const matchedMember = findMatchingMemberByName(members, playerName);
+
+    if (!matchedMember) {
+      unmatchedNames.push(playerName);
+      continue;
+    }
+
+    if (existingMemberIds.has(matchedMember.id) || queuedMemberIds.has(matchedMember.id)) {
+      duplicateNames.push(playerName);
+      continue;
+    }
+
+    queuedMemberIds.add(matchedMember.id);
+    inserts.push({
+      game_id: gameResult.game.id,
+      member_id: matchedMember.id,
+      handicap: matchedMember.handicap || 0,
+    });
+  }
+
+  if (inserts.length > 0) {
+    const { error: insertError } = await supabaseAdmin.from("game_players").insert(inserts);
+
+    if (insertError) {
+      throw insertError;
+    }
+  }
+
+  const replyLines = [
+    `Import senarai BLOK untuk *${parsedBulkImport.rawDate}* selesai.`,
+    "",
+    `Game: *${gameResult.game.game_name}*${gameResult.created ? " (dicipta baharu)" : ""}`,
+    `Berjaya import: *${inserts.length}*`,
+    `Duplicate diabaikan: *${duplicateNames.length}*`,
+    `Tidak dipadankan: *${unmatchedNames.length}*`,
+    "Waiting List: *diabaikan*",
+  ];
+
+  if (duplicateNames.length > 0) {
+    replyLines.push("", `Duplicate: ${summarizeNames(duplicateNames)}`);
+  }
+
+  if (unmatchedNames.length > 0) {
+    replyLines.push("", `Tidak dipadankan: ${summarizeNames(unmatchedNames)}`);
+  }
+
+  await sendWhatsAppReply(sender, buildReplyMessage(replyLines.join("\n")));
+
+  return {
+    success: true,
+    message: `Import selesai. ${inserts.length} berjaya, ${duplicateNames.length} duplicate, ${unmatchedNames.length} tidak dipadankan.`,
+  };
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WebhookResponse>
@@ -246,50 +516,61 @@ export default async function handler(
     const webhookData = req.body as FonteWebhookData;
     sender = extractSender(webhookData);
     const messageText = extractMessageText(webhookData);
-    const status = webhookData.status;
-    const parsedCommand = parseBlokCommand(messageText);
-    shouldReply = parsedCommand !== null;
+    const parsedBulkImport = parseAmbcBlokImport(messageText);
+    const parsedSingleCommand = parseBlokCommand(messageText);
+    shouldReply = parsedBulkImport !== null || parsedSingleCommand !== null;
 
-    console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
-    console.log("Timestamp:", new Date().toISOString());
-
-    if (sender) {
-      console.log("📱 Sender:", sender);
-    }
-
-    if (status) {
-      console.log("📊 Status:", status);
-    }
-
-    if (!parsedCommand) {
+    if (!parsedBulkImport && !parsedSingleCommand) {
       return res.status(200).json({
         success: true,
         message: "Webhook received - no matching blok command",
       });
     }
 
-    if (parsedCommand.status === "invalid_date") {
-      const replyMessage = buildReplyMessage(
-        `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blokambc dd.mm.yyyy* dengan tarikh yang betul.`
+    if (parsedBulkImport?.status === "missing_date") {
+      await sendWhatsAppReply(
+        sender,
+        buildReplyMessage("Tarikh tidak ditemui dalam mesej #ambcblok. Sila sertakan format dd.mm.yyyy.")
       );
-
-      await sendWhatsAppReply(sender, replyMessage);
 
       return res.status(200).json({
         success: false,
-        message: `Tarikh ${parsedCommand.rawDate} tidak sah`,
+        message: "Tarikh tidak ditemui dalam mesej #ambcblok",
       });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("❌ Supabase admin configuration missing for WhatsApp webhook");
+    if (parsedBulkImport?.status === "invalid_date" || parsedSingleCommand?.status === "invalid_date") {
+      const rawDate = parsedBulkImport?.status === "invalid_date" ? parsedBulkImport.rawDate : parsedSingleCommand?.rawDate;
 
       await sendWhatsAppReply(
         sender,
-        buildReplyMessage("Pendaftaran BLOK tidak dapat diproses sekarang. Sila cuba sebentar lagi.")
+        buildReplyMessage(`Tarikh *${rawDate}* tidak sah. Sila guna format tarikh yang betul.`)
+      );
+
+      return res.status(200).json({
+        success: false,
+        message: `Tarikh ${rawDate} tidak sah`,
+      });
+    }
+
+    if (parsedBulkImport?.status === "no_players") {
+      await sendWhatsAppReply(
+        sender,
+        buildReplyMessage("Senarai pemain utama tidak ditemui sebelum bahagian Waiting List.")
+      );
+
+      return res.status(200).json({
+        success: false,
+        message: "Tiada senarai pemain utama ditemui",
+      });
+    }
+
+    const supabaseAdmin = getSupabaseAdminClient();
+
+    if (!supabaseAdmin) {
+      await sendWhatsAppReply(
+        sender,
+        buildReplyMessage("Pendaftaran BLOK tidak dapat diproses sekarang. Konfigurasi server belum lengkap.")
       );
 
       return res.status(200).json({
@@ -298,114 +579,18 @@ export default async function handler(
       });
     }
 
-    const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const result =
+      parsedBulkImport?.status === "valid"
+        ? await handleBulkAmbcBlokImport(supabaseAdmin, sender, parsedBulkImport)
+        : await handleSingleBlokRegistration(
+            supabaseAdmin,
+            sender,
+            parsedSingleCommand as Extract<ParsedBlokCommand, { status: "valid" }>
+          );
 
-    const member = await findMatchingMember(supabaseAdmin, sender);
-
-    if (!member) {
-      const replyMessage = buildReplyMessage(
-        "Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar. Sila hubungi admin AMBC."
-      );
-
-      await sendWhatsAppReply(sender, replyMessage);
-      console.warn("⚠️ No verified member matched sender:", sender);
-
-      return res.status(200).json({
-        success: false,
-        message: "Nombor WhatsApp tidak sepadan dengan mana-mana ahli berdaftar",
-      });
-    }
-
-    const targetGameResult = await findTargetBlokGame(supabaseAdmin, parsedCommand.isoDate);
-
-    if (!targetGameResult.game) {
-      const replyMessage = buildReplyMessage(
-        targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
-      );
-
-      await sendWhatsAppReply(sender, replyMessage);
-      console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
-
-      return res.status(200).json({
-        success: false,
-        message: targetGameResult.reason || "Game BLOK tidak ditemui",
-      });
-    }
-
-    const targetGame = targetGameResult.game;
-
-    const { data: existingPlayer, error: existingPlayerError } = await supabaseAdmin
-      .from("game_players")
-      .select("id")
-      .eq("game_id", targetGame.id)
-      .eq("member_id", member.id)
-      .maybeSingle();
-
-    if (existingPlayerError) {
-      throw existingPlayerError;
-    }
-
-    if (existingPlayer) {
-      const replyMessage = buildReplyMessage(
-        `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
-      );
-
-      await sendWhatsAppReply(sender, replyMessage);
-      console.log(
-        `ℹ️ Member ${member.full_name} already registered for BLOK ${parsedCommand.rawDate}`
-      );
-
-      return res.status(200).json({
-        success: true,
-        message: `${member.full_name} sudah berada dalam senarai pemain BLOK ${parsedCommand.rawDate}`,
-      });
-    }
-
-    const { error: insertError } = await supabaseAdmin.from("game_players").insert({
-      game_id: targetGame.id,
-      member_id: member.id,
-      handicap: member.handicap || 0,
-    });
-
-    if (insertError) {
-      if (insertError.code === "23505") {
-        const replyMessage = buildReplyMessage(
-          `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
-        );
-
-        await sendWhatsAppReply(sender, replyMessage);
-
-        return res.status(200).json({
-          success: true,
-          message: `${member.full_name} sudah berada dalam senarai pemain BLOK ${parsedCommand.rawDate}`,
-        });
-      }
-
-      throw insertError;
-    }
-
-    const successReply = buildReplyMessage(
-      `${member.full_name}, anda berjaya dimasukkan ke senarai pemain *${targetGame.game_name}* pada *${parsedCommand.rawDate}*.`
-    );
-
-    await sendWhatsAppReply(sender, successReply);
-
-    console.log(
-      `✅ Registered ${member.full_name} to BLOK game ${targetGame.game_name} on ${parsedCommand.isoDate}`
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: `${member.full_name} berjaya dimasukkan ke senarai pemain BLOK ${parsedCommand.rawDate}`,
-    });
+    return res.status(200).json(result);
   } catch (error) {
-    console.error("\n=== WEBHOOK PROCESSING ERROR ===");
-    console.error("Error:", error);
+    console.error("=== WEBHOOK PROCESSING ERROR ===", error);
 
     if (shouldReply && sender) {
       await sendWhatsAppReply(
