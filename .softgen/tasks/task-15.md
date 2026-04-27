@@ -43,9 +43,9 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, da
 - [x] Semak duplicate nama dalam queue aktif
 - [x] Susun slot utama 1 hingga 42 dan selepas itu ke waiting list ikut turutan
 - [x] Hantar auto-reply kedudukan join atau mesej duplicate / tarikh lepas
-- [ ] Parse command `#status`
-- [ ] Semak kedudukan ahli dalam queue BLOK aktif berdasarkan nombor telefon pengirim
-- [ ] Hantar auto-reply sama ada ahli berada dalam slot utama, waiting list, atau belum join
+- [x] Parse command `#status`
+- [x] Semak kedudukan ahli dalam queue BLOK aktif berdasarkan nombor telefon pengirim
+- [x] Hantar auto-reply sama ada ahli berada dalam slot utama, waiting list, atau belum join
 - [ ] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance

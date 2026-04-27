@@ -30,6 +30,12 @@ export type ParsedJoinBlokCommand =
     }
   | null;
 
+export type ParsedStatusCommand =
+  | {
+      status: "valid";
+    }
+  | null;
+
 export type ParsedAmbcBlokImport =
   | {
       status: "valid";
@@ -59,6 +65,7 @@ export type ParsedAmbcBlokImport =
 
 const BLOK_COMMAND_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const JOIN_BLOK_COMMAND_REGEX = /^\s*#join\s*blok\s*$/i;
+const STATUS_COMMAND_REGEX = /^\s*#status\s*$/i;
 const AMBC_BLOK_HASHTAG_REGEX = /#(?:ambcblok|blokambc)\b/i;
 const DATE_REGEX = /(\d{2})\.(\d{2})\.(\d{4})/;
 
@@ -171,6 +178,14 @@ export function parseBlokCommand(messageText: string): ParsedBlokCommand {
 
 export function parseJoinBlokCommand(messageText: string): ParsedJoinBlokCommand {
   return JOIN_BLOK_COMMAND_REGEX.test(messageText)
+    ? {
+        status: "valid",
+      }
+    : null;
+}
+
+export function parseStatusCommand(messageText: string): ParsedStatusCommand {
+  return STATUS_COMMAND_REGEX.test(messageText)
     ? {
         status: "valid",
       }

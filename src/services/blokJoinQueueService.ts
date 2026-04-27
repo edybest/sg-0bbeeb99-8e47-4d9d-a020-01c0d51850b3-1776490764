@@ -135,22 +135,31 @@ export async function getBlokJoinQueueEntries(
   return data || [];
 }
 
+export function findBlokJoinQueueEntry(
+  entries: QueueRow[],
+  member: BlokJoinQueueMember
+): QueueRow | null {
+  const username = normalizeQueueName(member.username);
+  const fullName = normalizeQueueName(member.fullName);
+
+  return (
+    entries.find((entry) => {
+      if (entry.member_id && entry.member_id === member.id) {
+        return true;
+      }
+
+      const displayName = normalizeQueueName(entry.display_name);
+
+      return Boolean(displayName) && (displayName === username || displayName === fullName);
+    }) || null
+  );
+}
+
 export function hasMemberInBlokJoinQueue(
   entries: QueueRow[],
   member: BlokJoinQueueMember
 ): boolean {
-  const username = normalizeQueueName(member.username);
-  const fullName = normalizeQueueName(member.fullName);
-
-  return entries.some((entry) => {
-    if (entry.member_id && entry.member_id === member.id) {
-      return true;
-    }
-
-    const displayName = normalizeQueueName(entry.display_name);
-
-    return Boolean(displayName) && (displayName === username || displayName === fullName);
-  });
+  return findBlokJoinQueueEntry(entries, member) !== null;
 }
 
 export async function appendMemberToBlokJoinQueue(
