@@ -20,6 +20,8 @@ import {
   setActiveBlokJoinGame,
   type BlokJoinQueueEntryInput,
 } from "@/services/blokJoinQueueService";
+import { appendFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 
 type FonteWebhookData = {
   sender?: string;
@@ -60,6 +62,7 @@ type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
+const PRODUCTION_WEBHOOK_LOG_PATH = join(process.cwd(), "logs", "webhook-production.log");
 
 export function extractSenderContext(webhookData: FonteWebhookData): SenderContext {
   const rawSender = webhookData.sender || "";
@@ -83,6 +86,28 @@ export function extractSenderContext(webhookData: FonteWebhookData): SenderConte
 
 export function extractMessageText(webhookData: FonteWebhookData): string {
   return webhookData.message || webhookData.data?.body || "";
+}
+
+async function logProductionWebhookTrigger(details: Record<string, unknown>): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const payload = {
+    triggeredAt: new Date().toISOString(),
+    route: "/api/whatsapp-webhook",
+    ...details,
+  };
+  const line = `${JSON.stringify(payload)}\n`;
+
+  console.warn("=== PRODUCTION WEBHOOK TRIGGERED ===", payload);
+
+  try {
+    await mkdir(join(process.cwd(), "logs"), { recursive: true });
+    await appendFile(PRODUCTION_WEBHOOK_LOG_PATH, line, "utf8");
+  } catch (error) {
+    console.error("=== PRODUCTION WEBHOOK LOG WRITE FAILED ===", error);
+  }
 }
 
 function digitsOnly(value: string): string {
@@ -860,6 +885,16 @@ export default async function handler(
       messageText,
       replyTarget,
       memberSender: sender,
+      parsedBulkImportStatus: parsedBulkImport?.status || null,
+      parsedSingleCommandStatus: parsedSingleCommand?.status || null,
+      parsedJoinCommandStatus: parsedJoinCommand?.status || null,
+      parsedStatusCommandStatus: parsedStatusCommand?.status || null,
+    });
+    await logProductionWebhookTrigger({
+      replyTarget,
+      memberSender: sender,
+      groupId: senderContext.groupId,
+      messageText,
       parsedBulkImportStatus: parsedBulkImport?.status || null,
       parsedSingleCommandStatus: parsedSingleCommand?.status || null,
       parsedJoinCommandStatus: parsedJoinCommand?.status || null,

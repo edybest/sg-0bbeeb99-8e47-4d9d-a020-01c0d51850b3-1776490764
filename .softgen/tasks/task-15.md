@@ -53,6 +53,7 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, `#
 - [x] Kekalkan ID group sebagai target balasan tanpa normalisasi nombor telefon
 - [ ] Siasat semula kenapa hashtag group masih gagal selepas extractor baharu
 - [x] Tambah log runtime command match dan hasil penghantaran balasan WhatsApp
+- [x] Tambah log sementara production apabila `/api/whatsapp-webhook` dipanggil
 - [ ] Semak log runtime webhook untuk request group sebenar dan hasil balasan
 - [ ] Semak bagaimana slot kosong dicipta dalam queue BLOK semasa
 - [ ] Tambah logik kenaikan waiting list ke slot utama

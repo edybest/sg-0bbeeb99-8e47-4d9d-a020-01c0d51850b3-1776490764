@@ -1,0 +1,2 @@
+Temporary production webhook trigger log.
+Runtime entries are appended by src/pages/api/whatsapp-webhook.ts when NODE_ENV is "production".
