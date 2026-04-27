@@ -50,6 +50,8 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, `#
 - [ ] Semak payload webhook mesej WhatsApp group untuk nombor penghantar sebenar
 - [x] Tambah sokongan extractor penghantar untuk mesej group
 - [x] Pastikan `#joinblok`, `#status`, dan command lain guna nombor peserta group sebenar
+- [ ] Siasat semula kenapa hashtag group masih gagal selepas extractor baharu
+- [ ] Semak log runtime webhook untuk request group sebenar dan hasil balasan
 - [ ] Semak bagaimana slot kosong dicipta dalam queue BLOK semasa
 - [ ] Tambah logik kenaikan waiting list ke slot utama
 - [ ] Hantar notifikasi WhatsApp automatik kepada ahli yang naik ke slot utama
