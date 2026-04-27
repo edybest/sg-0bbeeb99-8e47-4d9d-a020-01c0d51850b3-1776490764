@@ -1,6 +1,6 @@
 ---
 title: WhatsApp Blok auto-registration
-status: done
+status: in_progress
 priority: high
 type: feature
 tags:
@@ -16,7 +16,7 @@ position: 15
 ## Notes
 Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blokambc dd.mm.yyyy` dan auto-reply status kepada pengirim. Flow tambahan untuk mesej panjang `#ambcblok` kini turut disokong: sistem mengesan tarikh seperti `29.04.2026`, cipta rekod game BLOK dalam jadual `games` jika belum wujud pada tarikh itu, baca senarai pemain bernombor dari `1.` hingga sebelum bahagian `Waiting List`, kemudian masukkan hanya pemain utama yang berjaya dipadankan ke `game_players`. Semua item selepas tajuk `Waiting List` diabaikan sepenuhnya.
 
-Padanan nama pemain dibuat terhadap `username` dan `full_name` ahli verified dalam jadual `members`, dengan normalisasi teks untuk kurangkan perbezaan format. Duplicate kekal dilindungi melalui semakan awal terhadap pasangan `game_id` dan `member_id` serta constraint unik database. Balasan WhatsApp automatik kini merumuskan jumlah pemain berjaya diimport, duplicate yang diabaikan, nama yang tidak dapat dipadankan, dan sama ada game BLOK dicipta baharu atau menggunakan rekod sedia ada. Pembaikan tambahan turut menyokong kedua-dua hashtag pembuka `#ambcblok` dan `#blokambc` untuk mesej import pukal supaya broadcast sebenar terus diproses.
+Maklum balas terbaru meminta flow berasingan untuk `#joinblok` dan `#join blok`. Sistem perlu ikut post admin `#ambcblok` yang terbaru sebagai queue aktif, simpan queue sementara dalam Supabase, susun ahli mengikut urutan join daripada nombor telefon pengirim kepada `username` ahli, isi slot utama dari 1 hingga 42, kemudian sambung ke `Waiting List` ikut turutan. Jika nama sudah ada dalam queue, sistem balas bahawa nama telah ada dalam list. Jika tarikh BLOK yang aktif sudah lepas, sistem balas bahawa tarikh blok sudah lepas dan tiada rekod queue baharu dimasukkan. Flow ini hanya untuk susunan list join sementara, bukan untuk memasukkan rekod join terus ke `game_players`.
 
 ## Checklist
 - [x] Semak webhook WhatsApp sedia ada dan format payload mesej masuk
@@ -35,8 +35,16 @@ Padanan nama pemain dibuat terhadap `username` dan `full_name` ahli verified dal
 - [x] Abaikan semua entri selepas tajuk `Waiting List`
 - [x] Hantar ringkasan auto-reply bagi jumlah berjaya, duplicate, dan nama yang tidak dipadankan
 - [x] Sokong alias hashtag `#blokambc` untuk mesej import pukal
-- [x] Jalankan semakan akhir selepas pembaikan
+- [ ] Semak schema untuk jadual queue sementara join BLOK
+- [ ] Tambah storan Supabase untuk queue `#joinblok` berasaskan game BLOK aktif terbaru
+- [ ] Parse hashtag `#joinblok` dan `#join blok`
+- [ ] Padankan nombor telefon pengirim kepada ahli dan gunakan `username` untuk queue
+- [ ] Tolak join jika tarikh BLOK aktif sudah lepas
+- [ ] Semak duplicate nama dalam queue aktif
+- [ ] Susun slot utama 1 hingga 42 dan selepas itu ke waiting list ikut turutan
+- [ ] Hantar auto-reply kedudukan join atau mesej duplicate / tarikh lepas
+- [ ] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance
-Apabila mesej WhatsApp yang mengandungi `#ambcblok` diterima, sistem mengesan tarikh mesej, mencipta game BLOK jika belum ada, dan menambah hanya pemain utama sebelum bahagian `Waiting List` ke database.
-Entri dalam `Waiting List` tidak dimasukkan ke database, dan pengirim menerima balasan ringkas tentang hasil import pemain.
+Apabila ahli menghantar `#joinblok` atau `#join blok`, sistem mengambil queue BLOK aktif daripada post admin terbaru, menambah ahli ke slot utama 1 hingga 42 atau `Waiting List` mengikut turutan, dan menghantar balasan automatik dengan kedudukan join.
+Jika ahli yang sama sudah ada dalam queue atau tarikh BLOK aktif telah lepas, sistem tidak menambah rekod baru dan menghantar balasan status yang sesuai.
