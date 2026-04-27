@@ -178,6 +178,10 @@ export function parseJoinBlokCommand(messageText: string): ParsedJoinBlokCommand
 }
 
 export function parseAmbcBlokImport(messageText: string): ParsedAmbcBlokImport {
+  if (BLOK_COMMAND_REGEX.test(messageText)) {
+    return null;
+  }
+
   if (!AMBC_BLOK_HASHTAG_REGEX.test(messageText)) {
     return null;
   }

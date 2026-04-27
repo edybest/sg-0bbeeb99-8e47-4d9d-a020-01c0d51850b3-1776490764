@@ -38,11 +38,11 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok` dan `#join blok`.
 - [x] Semak schema untuk jadual queue sementara join BLOK
 - [x] Tambah storan Supabase untuk queue `#joinblok` berasaskan game BLOK aktif terbaru
 - [x] Parse hashtag `#joinblok` dan `#join blok`
-- [ ] Padankan nombor telefon pengirim kepada ahli dan gunakan `username` untuk queue
-- [ ] Tolak join jika tarikh BLOK aktif sudah lepas
-- [ ] Semak duplicate nama dalam queue aktif
-- [ ] Susun slot utama 1 hingga 42 dan selepas itu ke waiting list ikut turutan
-- [ ] Hantar auto-reply kedudukan join atau mesej duplicate / tarikh lepas
+- [x] Padankan nombor telefon pengirim kepada ahli dan gunakan `username` untuk queue
+- [x] Tolak join jika tarikh BLOK aktif sudah lepas
+- [x] Semak duplicate nama dalam queue aktif
+- [x] Susun slot utama 1 hingga 42 dan selepas itu ke waiting list ikut turutan
+- [x] Hantar auto-reply kedudukan join atau mesej duplicate / tarikh lepas
 - [ ] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance

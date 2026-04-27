@@ -4,9 +4,19 @@ import type { Database } from "@/integrations/supabase/types";
 import {
   parseAmbcBlokImport,
   parseBlokCommand,
+  parseJoinBlokCommand,
   type ParsedAmbcBlokImport,
   type ParsedBlokCommand,
 } from "@/lib/whatsappBlok";
+import {
+  appendMemberToBlokJoinQueue,
+  getActiveBlokJoinGameId,
+  getBlokJoinQueueEntries,
+  hasMemberInBlokJoinQueue,
+  seedBlokJoinQueue,
+  setActiveBlokJoinGame,
+  type BlokJoinQueueEntryInput,
+} from "@/services/blokJoinQueueService";
 
 type FonteWebhookData = {
   sender?: string;
@@ -327,6 +337,91 @@ async function findOrCreateBlokGame(
   };
 }
 
+function formatIsoDateToDisplay(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-");
+  return day && month && year ? `${day}.${month}.${year}` : isoDate;
+}
+
+function getMalaysiaTodayIsoDate(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "0000";
+  const month = parts.find((part) => part.type === "month")?.value || "00";
+  const day = parts.find((part) => part.type === "day")?.value || "00";
+
+  return `${year}-${month}-${day}`;
+}
+
+function isPastBlokDate(isoDate: string): boolean {
+  return isoDate < getMalaysiaTodayIsoDate();
+}
+
+function buildQueueSeedEntries(
+  parsedBulkImport: Extract<ParsedAmbcBlokImport, { status: "valid" }>,
+  members: MemberLookup[]
+): BlokJoinQueueEntryInput[] {
+  const takenMemberIds = new Set<string>();
+
+  return [...parsedBulkImport.playerNames, ...parsedBulkImport.waitingListNames]
+    .map((displayName) => {
+      const matchedMember = findMatchingMemberByName(members, displayName);
+
+      if (!matchedMember || takenMemberIds.has(matchedMember.id)) {
+        return {
+          displayName,
+          memberId: null,
+        };
+      }
+
+      takenMemberIds.add(matchedMember.id);
+
+      return {
+        displayName,
+        memberId: matchedMember.id,
+      };
+    })
+    .filter((entry) => entry.displayName);
+}
+
+async function findActiveBlokJoinGame(
+  supabaseAdmin: SupabaseAdminClient
+): Promise<{ game: GameLookup | null; reason?: string }> {
+  const activeGameId = await getActiveBlokJoinGameId(supabaseAdmin);
+
+  if (!activeGameId) {
+    return {
+      game: null,
+      reason: "Tiada senarai BLOK aktif untuk join sekarang. Sila tunggu post admin terkini.",
+    };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("games")
+    .select("id, game_name, game_date, game_type, is_official, created_at, location")
+    .eq("id", activeGameId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return {
+      game: null,
+      reason: "Senarai BLOK aktif tidak ditemui. Sila tunggu post admin terkini.",
+    };
+  }
+
+  return {
+    game: data,
+  };
+}
+
 async function handleSingleBlokRegistration(
   supabaseAdmin: SupabaseAdminClient,
   sender: string,
@@ -472,6 +567,10 @@ async function handleBulkAmbcBlokImport(
     }
   }
 
+  const queueEntries = buildQueueSeedEntries(parsedBulkImport, members);
+  await seedBlokJoinQueue(supabaseAdmin, gameResult.game.id, queueEntries);
+  await setActiveBlokJoinGame(supabaseAdmin, gameResult.game.id);
+
   const replyLines = [
     `Import senarai BLOK untuk *${parsedBulkImport.rawDate}* selesai.`,
     "",
@@ -479,7 +578,8 @@ async function handleBulkAmbcBlokImport(
     `Berjaya import: *${inserts.length}*`,
     `Duplicate diabaikan: *${duplicateNames.length}*`,
     `Tidak dipadankan: *${unmatchedNames.length}*`,
-    "Waiting List: *diabaikan*",
+    `Queue join aktif: *${queueEntries.length}* nama`,
+    `Waiting List dalam queue: *${parsedBulkImport.waitingListNames.length}*`,
   ];
 
   if (duplicateNames.length > 0) {
@@ -494,7 +594,96 @@ async function handleBulkAmbcBlokImport(
 
   return {
     success: true,
-    message: `Import selesai. ${inserts.length} berjaya, ${duplicateNames.length} duplicate, ${unmatchedNames.length} tidak dipadankan.`,
+    message: `Import selesai. ${inserts.length} berjaya, ${duplicateNames.length} duplicate, ${unmatchedNames.length} tidak dipadankan, queue ${queueEntries.length} nama.`,
+  };
+}
+
+async function handleJoinBlokRequest(
+  supabaseAdmin: SupabaseAdminClient,
+  sender: string
+): Promise<WebhookResponse> {
+  const member = await findMatchingMemberByPhone(supabaseAdmin, sender);
+
+  if (!member) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage("Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar.")
+    );
+
+    return {
+      success: false,
+      message: "Nombor WhatsApp tidak sepadan dengan mana-mana ahli berdaftar",
+    };
+  }
+
+  const activeGameResult = await findActiveBlokJoinGame(supabaseAdmin);
+
+  if (!activeGameResult.game) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage(activeGameResult.reason || "Tiada senarai BLOK aktif untuk join sekarang.")
+    );
+
+    return {
+      success: false,
+      message: activeGameResult.reason || "Tiada senarai BLOK aktif",
+    };
+  }
+
+  if (isPastBlokDate(activeGameResult.game.game_date)) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage("Maaf, tarikh blok dah lepas. Harap maklum.")
+    );
+
+    return {
+      success: false,
+      message: "Tarikh BLOK aktif sudah lepas",
+    };
+  }
+
+  const queueEntries = await getBlokJoinQueueEntries(supabaseAdmin, activeGameResult.game.id);
+  const queueMember = {
+    id: member.id,
+    username: member.username || member.full_name,
+    fullName: member.full_name,
+  };
+
+  if (hasMemberInBlokJoinQueue(queueEntries, queueMember)) {
+    await sendWhatsAppReply(
+      sender,
+      buildReplyMessage(
+        `${queueMember.username}, nama anda telah ada dalam list BLOK ${formatIsoDateToDisplay(activeGameResult.game.game_date)}.`
+      )
+    );
+
+    return {
+      success: true,
+      message: `${queueMember.username} sudah ada dalam queue BLOK aktif`,
+    };
+  }
+
+  const placement = await appendMemberToBlokJoinQueue(
+    supabaseAdmin,
+    activeGameResult.game.id,
+    queueMember
+  );
+
+  const placementText =
+    placement.queueGroup === "main"
+      ? `slot utama nombor *${placement.displayPosition}*`
+      : `Waiting List nombor *${placement.displayPosition}*`;
+
+  await sendWhatsAppReply(
+    sender,
+    buildReplyMessage(
+      `${queueMember.username}, anda berjaya masuk ${placementText} untuk BLOK *${formatIsoDateToDisplay(activeGameResult.game.game_date)}*.`
+    )
+  );
+
+  return {
+    success: true,
+    message: `${queueMember.username} berjaya join ${placementText}`,
   };
 }
 
@@ -518,9 +707,11 @@ export default async function handler(
     const messageText = extractMessageText(webhookData);
     const parsedBulkImport = parseAmbcBlokImport(messageText);
     const parsedSingleCommand = parseBlokCommand(messageText);
-    shouldReply = parsedBulkImport !== null || parsedSingleCommand !== null;
+    const parsedJoinCommand = parseJoinBlokCommand(messageText);
+    shouldReply =
+      parsedBulkImport !== null || parsedSingleCommand !== null || parsedJoinCommand !== null;
 
-    if (!parsedBulkImport && !parsedSingleCommand) {
+    if (!parsedBulkImport && !parsedSingleCommand && !parsedJoinCommand) {
       return res.status(200).json({
         success: true,
         message: "Webhook received - no matching blok command",
@@ -582,11 +773,13 @@ export default async function handler(
     const result =
       parsedBulkImport?.status === "valid"
         ? await handleBulkAmbcBlokImport(supabaseAdmin, sender, parsedBulkImport)
-        : await handleSingleBlokRegistration(
-            supabaseAdmin,
-            sender,
-            parsedSingleCommand as Extract<ParsedBlokCommand, { status: "valid" }>
-          );
+        : parsedJoinCommand?.status === "valid"
+          ? await handleJoinBlokRequest(supabaseAdmin, sender)
+          : await handleSingleBlokRegistration(
+              supabaseAdmin,
+              sender,
+              parsedSingleCommand as Extract<ParsedBlokCommand, { status: "valid" }>
+            );
 
     return res.status(200).json(result);
   } catch (error) {
