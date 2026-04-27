@@ -162,8 +162,22 @@ function summarizeNames(names: string[]): string {
   return `${names.slice(0, 8).join(", ")} dan ${names.length - 8} lagi`;
 }
 
+function normalizeReplyTarget(value: string): string {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "";
+  }
+
+  if (trimmedValue.includes("@g.us")) {
+    return trimmedValue;
+  }
+
+  return normalizeComparablePhone(trimmedValue);
+}
+
 async function sendWhatsAppReply(sender: string, message: string): Promise<void> {
-  const target = normalizeComparablePhone(sender);
+  const target = normalizeReplyTarget(sender);
 
   if (!target || !FONNTE_TOKEN) {
     return;
