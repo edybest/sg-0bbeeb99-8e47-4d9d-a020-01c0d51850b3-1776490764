@@ -50,7 +50,7 @@ export type ParsedAmbcBlokImport =
   | null;
 
 const BLOK_COMMAND_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
-const AMBC_BLOK_HASHTAG_REGEX = /#ambcblok\b/i;
+const AMBC_BLOK_HASHTAG_REGEX = /#(?:ambcblok|blokambc)\b/i;
 const DATE_REGEX = /(\d{2})\.(\d{2})\.(\d{4})/;
 
 function parseDate(dayText: string, monthText: string, yearText: string): ParsedDateResult {
