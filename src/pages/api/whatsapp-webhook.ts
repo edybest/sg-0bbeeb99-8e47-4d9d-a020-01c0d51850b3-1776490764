@@ -61,7 +61,7 @@ type SupabaseAdminClient = ReturnType<typeof createClient<Database>>;
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
-function extractSenderContext(webhookData: FonteWebhookData): SenderContext {
+export function extractSenderContext(webhookData: FonteWebhookData): SenderContext {
   const rawSender = webhookData.sender || "";
   const rawMemberJid = webhookData.member?.jid || "";
   const rawFrom = webhookData.data?.from || "";
@@ -81,7 +81,7 @@ function extractSenderContext(webhookData: FonteWebhookData): SenderContext {
   };
 }
 
-function extractMessageText(webhookData: FonteWebhookData): string {
+export function extractMessageText(webhookData: FonteWebhookData): string {
   return webhookData.message || webhookData.data?.body || "";
 }
 

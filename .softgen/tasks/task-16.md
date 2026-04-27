@@ -17,10 +17,10 @@ position: 16
 Create a focused automated test script that simulates a WhatsApp group webhook payload and verifies the parsing logic in the webhook layer. The test should confirm that group chat target and actual member sender are separated correctly, and that command text can still be read from the payload. Reuse the current project test setup instead of introducing a new runner.
 
 ## Checklist
-- [ ] Review current test runner and an existing test file pattern
-- [ ] Expose only the minimal webhook parsing helper needed for testing
-- [ ] Add a focused test that simulates a group webhook payload
-- [ ] Verify member sender, reply target, and group id parsing for group messages
+- [x] Review current test runner and an existing test file pattern
+- [x] Expose only the minimal webhook parsing helper needed for testing
+- [x] Add a focused test that simulates a group webhook payload
+- [x] Verify member sender, reply target, and group id parsing for group messages
 - [ ] Run project error checks after adding the test
 
 ## Acceptance
