@@ -1,6 +1,6 @@
 ---
 title: WhatsApp Blok auto-registration
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -46,7 +46,7 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, da
 - [x] Parse command `#status`
 - [x] Semak kedudukan ahli dalam queue BLOK aktif berdasarkan nombor telefon pengirim
 - [x] Hantar auto-reply sama ada ahli berada dalam slot utama, waiting list, atau belum join
-- [ ] Jalankan semakan akhir selepas pembaikan
+- [x] Jalankan semakan akhir selepas pembaikan
 
 ## Acceptance
 Apabila ahli menghantar `#joinblok` atau `#join blok`, sistem mengambil queue BLOK aktif daripada post admin terbaru, menambah ahli ke slot utama 1 hingga 42 atau `Waiting List` mengikut turutan, dan menghantar balasan automatik dengan kedudukan join.
