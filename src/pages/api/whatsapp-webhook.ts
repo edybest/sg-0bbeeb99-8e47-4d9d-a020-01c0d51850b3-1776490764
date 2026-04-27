@@ -33,7 +33,21 @@ type GameLookup = Pick<
   "id" | "game_name" | "game_date" | "game_type" | "is_official"
 >;
 
+type ParsedBlokCommand =
+  | {
+      status: "valid";
+      isoDate: string;
+      rawDate: string;
+    }
+  | {
+      status: "invalid_date";
+      rawDate: string;
+    }
+  | null;
+
 const BLOK_COMMAND_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
+const FONNTE_API_URL = "https://api.fonnte.com/send";
+const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 function extractSender(webhookData: FonteWebhookData): string {
   return webhookData.sender || webhookData.member?.jid || webhookData.data?.from || "";
@@ -69,7 +83,7 @@ function normalizeComparablePhone(value: string): string {
   return digits;
 }
 
-function parseBlokCommand(messageText: string): { isoDate: string; rawDate: string } | null {
+function parseBlokCommand(messageText: string): ParsedBlokCommand {
   const match = messageText.match(BLOK_COMMAND_REGEX);
 
   if (!match) {
@@ -87,16 +101,64 @@ function parseBlokCommand(messageText: string): { isoDate: string; rawDate: stri
     parsedDate.getUTCMonth() === month - 1 &&
     parsedDate.getUTCDate() === day;
 
+  const rawDate = `${dayText}.${monthText}.${yearText}`;
+
   if (!isValidDate) {
-    return null;
+    return {
+      status: "invalid_date",
+      rawDate,
+    };
   }
 
-  const isoDate = `${yearText}-${monthText}-${dayText}`;
-
   return {
-    isoDate,
-    rawDate: `${dayText}.${monthText}.${yearText}`,
+    status: "valid",
+    isoDate: `${yearText}-${monthText}-${dayText}`,
+    rawDate,
   };
+}
+
+function buildReplyMessage(message: string): string {
+  return `🎳 *AMBC CLUB - Pendaftaran BLOK*\n\n${message}`;
+}
+
+async function sendWhatsAppReply(sender: string, message: string): Promise<void> {
+  const target = normalizeComparablePhone(sender);
+
+  if (!target) {
+    console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
+    return;
+  }
+
+  if (!FONNTE_TOKEN) {
+    console.warn("⚠️ WhatsApp auto-reply skipped because FONNTE_API_TOKEN is missing");
+    return;
+  }
+
+  try {
+    const response = await fetch(FONNTE_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": FONNTE_TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        target,
+        message,
+        countryCode: "60",
+      }),
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
+      return;
+    }
+
+    console.log("✅ WhatsApp auto-reply sent:", target);
+  } catch (error) {
+    console.error("❌ WhatsApp auto-reply error:", error);
+  }
 }
 
 async function findMatchingMember(
@@ -177,12 +239,16 @@ export default async function handler(
     });
   }
 
+  let sender = "";
+  let shouldReply = false;
+
   try {
     const webhookData = req.body as FonteWebhookData;
-    const sender = extractSender(webhookData);
+    sender = extractSender(webhookData);
     const messageText = extractMessageText(webhookData);
     const status = webhookData.status;
     const parsedCommand = parseBlokCommand(messageText);
+    shouldReply = parsedCommand !== null;
 
     console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
     console.log("Timestamp:", new Date().toISOString());
@@ -202,11 +268,29 @@ export default async function handler(
       });
     }
 
+    if (parsedCommand.status === "invalid_date") {
+      const replyMessage = buildReplyMessage(
+        `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blokambc dd.mm.yyyy* dengan tarikh yang betul.`
+      );
+
+      await sendWhatsAppReply(sender, replyMessage);
+
+      return res.status(200).json({
+        success: false,
+        message: `Tarikh ${parsedCommand.rawDate} tidak sah`,
+      });
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("❌ Supabase admin configuration missing for WhatsApp webhook");
+
+      await sendWhatsAppReply(
+        sender,
+        buildReplyMessage("Pendaftaran BLOK tidak dapat diproses sekarang. Sila cuba sebentar lagi.")
+      );
 
       return res.status(200).json({
         success: false,
@@ -224,6 +308,11 @@ export default async function handler(
     const member = await findMatchingMember(supabaseAdmin, sender);
 
     if (!member) {
+      const replyMessage = buildReplyMessage(
+        "Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar. Sila hubungi admin AMBC."
+      );
+
+      await sendWhatsAppReply(sender, replyMessage);
       console.warn("⚠️ No verified member matched sender:", sender);
 
       return res.status(200).json({
@@ -235,6 +324,11 @@ export default async function handler(
     const targetGameResult = await findTargetBlokGame(supabaseAdmin, parsedCommand.isoDate);
 
     if (!targetGameResult.game) {
+      const replyMessage = buildReplyMessage(
+        targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
+      );
+
+      await sendWhatsAppReply(sender, replyMessage);
       console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
 
       return res.status(200).json({
@@ -257,6 +351,11 @@ export default async function handler(
     }
 
     if (existingPlayer) {
+      const replyMessage = buildReplyMessage(
+        `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
+      );
+
+      await sendWhatsAppReply(sender, replyMessage);
       console.log(
         `ℹ️ Member ${member.full_name} already registered for BLOK ${parsedCommand.rawDate}`
       );
@@ -275,6 +374,12 @@ export default async function handler(
 
     if (insertError) {
       if (insertError.code === "23505") {
+        const replyMessage = buildReplyMessage(
+          `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
+        );
+
+        await sendWhatsAppReply(sender, replyMessage);
+
         return res.status(200).json({
           success: true,
           message: `${member.full_name} sudah berada dalam senarai pemain BLOK ${parsedCommand.rawDate}`,
@@ -283,6 +388,12 @@ export default async function handler(
 
       throw insertError;
     }
+
+    const successReply = buildReplyMessage(
+      `${member.full_name}, anda berjaya dimasukkan ke senarai pemain *${targetGame.game_name}* pada *${parsedCommand.rawDate}*.`
+    );
+
+    await sendWhatsAppReply(sender, successReply);
 
     console.log(
       `✅ Registered ${member.full_name} to BLOK game ${targetGame.game_name} on ${parsedCommand.isoDate}`
@@ -295,6 +406,13 @@ export default async function handler(
   } catch (error) {
     console.error("\n=== WEBHOOK PROCESSING ERROR ===");
     console.error("Error:", error);
+
+    if (shouldReply && sender) {
+      await sendWhatsAppReply(
+        sender,
+        buildReplyMessage("Pendaftaran BLOK tidak dapat diproses sekarang. Sila cuba semula sebentar lagi.")
+      );
+    }
 
     return res.status(200).json({
       success: false,
