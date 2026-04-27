@@ -1,6 +1,6 @@
 ---
 title: Admin monitoring dashboard
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -23,7 +23,7 @@ Create a dashboard view inside the admin area to monitor WhatsApp group activity
 - [x] Show group activity metrics relevant to WhatsApp/webhook usage
 - [x] Show member status insights relevant to registered members and phone matching
 - [x] Integrate the new dashboard into the admin area navigation or landing view
-- [ ] Run final validation after implementation
+- [x] Run final validation after implementation
 
 ## Acceptance
 Admins can open the admin area and see a dashboard summarizing WhatsApp group activity and member status in one place.
