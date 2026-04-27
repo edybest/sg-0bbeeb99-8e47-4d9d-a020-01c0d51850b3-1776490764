@@ -180,10 +180,15 @@ async function sendWhatsAppReply(sender: string, message: string): Promise<void>
   const target = normalizeReplyTarget(sender);
 
   if (!target || !FONNTE_TOKEN) {
+    console.log("=== WHATSAPP REPLY SKIPPED ===", {
+      sender,
+      target,
+      hasToken: Boolean(FONNTE_TOKEN),
+    });
     return;
   }
 
-  await fetch(FONNTE_API_URL, {
+  const response = await fetch(FONNTE_API_URL, {
     method: "POST",
     headers: {
       "Authorization": FONNTE_TOKEN,
@@ -194,6 +199,16 @@ async function sendWhatsAppReply(sender: string, message: string): Promise<void>
       message,
       countryCode: "60",
     }),
+  });
+
+  const responseText = await response.text();
+
+  console.log("=== WHATSAPP REPLY RESULT ===", {
+    sender,
+    target,
+    ok: response.ok,
+    status: response.status,
+    responseText,
   });
 }
 
@@ -841,6 +856,15 @@ export default async function handler(
     const parsedSingleCommand = parseBlokCommand(messageText);
     const parsedJoinCommand = parseJoinBlokCommand(messageText);
     const parsedStatusCommand = parseStatusCommand(messageText);
+    console.log("=== WHATSAPP WEBHOOK COMMAND MATCH ===", {
+      messageText,
+      replyTarget,
+      memberSender: sender,
+      parsedBulkImportStatus: parsedBulkImport?.status || null,
+      parsedSingleCommandStatus: parsedSingleCommand?.status || null,
+      parsedJoinCommandStatus: parsedJoinCommand?.status || null,
+      parsedStatusCommandStatus: parsedStatusCommand?.status || null,
+    });
     shouldReply =
       parsedBulkImport !== null ||
       parsedSingleCommand !== null ||
