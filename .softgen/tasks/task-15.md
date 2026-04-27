@@ -48,8 +48,8 @@ Maklum balas terbaru meminta flow berasingan untuk `#joinblok`, `#join blok`, `#
 - [x] Hantar auto-reply sama ada ahli berada dalam slot utama, waiting list, atau belum join
 - [x] Tambah log sementara payload webhook group ke console untuk semakan format
 - [ ] Semak payload webhook mesej WhatsApp group untuk nombor penghantar sebenar
-- [ ] Tambah sokongan extractor penghantar untuk mesej group
-- [ ] Pastikan `#joinblok`, `#status`, dan command lain guna nombor peserta group sebenar
+- [x] Tambah sokongan extractor penghantar untuk mesej group
+- [x] Pastikan `#joinblok`, `#status`, dan command lain guna nombor peserta group sebenar
 - [ ] Semak bagaimana slot kosong dicipta dalam queue BLOK semasa
 - [ ] Tambah logik kenaikan waiting list ke slot utama
 - [ ] Hantar notifikasi WhatsApp automatik kepada ahli yang naik ke slot utama
