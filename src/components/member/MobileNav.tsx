@@ -82,6 +82,13 @@ function isRouteActive(pathname: string, href: string) {
   return pathname === href;
 }
 
+const triggerHaptic = () => {
+  if (typeof window !== "undefined" && navigator.vibrate) {
+    // Getaran ringan 30ms untuk rasa tactile
+    navigator.vibrate(30);
+  }
+};
+
 export function MobileNav() {
   const router = useRouter();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -107,6 +114,7 @@ export function MobileNav() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={triggerHaptic}
                     className="group flex min-w-0 flex-col items-center justify-end text-center"
                   >
                     <span
@@ -135,6 +143,7 @@ export function MobileNav() {
                 <SheetTrigger asChild>
                   <button
                     type="button"
+                    onClick={triggerHaptic}
                     className="group flex min-w-0 flex-col items-center justify-end text-center"
                     aria-label="Buka menu lain"
                   >
@@ -186,6 +195,7 @@ export function MobileNav() {
                                 <SheetClose asChild key={item.href}>
                                   <Link
                                     href={item.href}
+                                    onClick={triggerHaptic}
                                     className={[
                                       "group/menu flex items-center gap-4 px-4 py-3.5 transition-colors active:bg-slate-50",
                                       isActive ? "bg-sky-50/30" : "bg-white hover:bg-slate-50/50",
