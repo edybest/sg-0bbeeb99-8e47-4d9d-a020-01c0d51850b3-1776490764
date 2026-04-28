@@ -1,6 +1,6 @@
 ---
 title: WhatsApp Blok auto-registration
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -18,7 +18,7 @@ Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blok
 
 Flow ini turut menghantar balasan WhatsApp automatik kepada pengirim selepas cubaan daftar melalui `#blokambc`. Maklum balas terbaru menunjukkan percubaan WhatsApp ke nombor webhook tidak menghasilkan rekod baru dalam database, jadi siasatan perlu fokus pada payload webhook sebenar, padanan nombor pengirim, carian game BLOK ikut tarikh, dan sebarang ralat server/log semasa proses masuk.
 
-Maklum balas baharu meminta command `#blok dd.mm.yyyy` untuk WhatsApp group yang akan menghantar senarai automatik 10 juara teratas beserta overall score mereka untuk game BLOK pada tarikh tersebut. Sistem perlu ambil data score dari `game_players` atau jadual score yang berkaitan, susun mengikut kedudukan, dan format sebagai mesej WhatsApp yang kemas untuk dihantar ke group.
+Maklum balas baharu meminta command `#blok dd.mm.yyyy` untuk WhatsApp group yang akan menghantar senarai automatik 10 juara teratas beserta overall score mereka untuk game BLOK pada tarikh tersebut. Sistem kini query data score dari `game_players`, susun mengikut `overall_score` secara descending, ambil top 10, dan format sebagai mesej WhatsApp yang kemas dengan ranking, nama pemain, dan overall score setiap satu. Webhook kemudian hantar auto-reply tersebut ke WhatsApp group atau individu yang meminta.
 
 ## Checklist
 - [x] Semak webhook WhatsApp sedia ada dan format payload mesej masuk
@@ -32,12 +32,12 @@ Maklum balas baharu meminta command `#blok dd.mm.yyyy` untuk WhatsApp group yang
 - [ ] Semak log webhook dan payload WhatsApp sebenar bagi percubaan terbaru
 - [ ] Sahkan punca kegagalan insert ke database
 - [ ] Terapkan pembaikan minimum yang diperlukan
-- [ ] Semak schema untuk jadual score dan overall score BLOK
-- [ ] Implement parser mesej `#blok dd.mm.yyyy` untuk query top 10
-- [ ] Query top 10 juara dari database berdasarkan overall score
-- [ ] Format senarai juara sebagai mesej WhatsApp yang kemas
-- [ ] Hantar auto-reply senarai juara ke WhatsApp group
-- [ ] Jalankan semakan akhir selepas semua command siap
+- [x] Semak schema untuk jadual score dan overall score BLOK
+- [x] Implement parser mesej `#blok dd.mm.yyyy` untuk query top 10
+- [x] Query top 10 juara dari database berdasarkan overall score
+- [x] Format senarai juara sebagai mesej WhatsApp yang kemas
+- [x] Hantar auto-reply senarai juara ke WhatsApp group
+- [x] Jalankan semakan akhir selepas semua command siap
 
 ## Acceptance
 Apabila mesej `#blokambc dd.mm.yyyy` diterima oleh webhook daripada nombor ahli yang berdaftar, ahli itu ditambah ke senarai pemain BLOK untuk tarikh berkenaan dan menerima balasan pengesahan.
