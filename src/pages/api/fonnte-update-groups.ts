@@ -25,7 +25,7 @@ export default async function handler(
   try {
     console.log("Updating Fonnte group list...");
 
-    const response = await fetch("https://api.fonnte.com/update-group", {
+    const response = await fetch("https://api.fonnte.com/fetch-group", {
       method: "POST",
       headers: {
         Authorization: FONNTE_API_TOKEN,
