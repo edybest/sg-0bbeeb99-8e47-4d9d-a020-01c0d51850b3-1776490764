@@ -514,22 +514,39 @@ export default async function handler(
     const parsedLeaderboard = parseBlokLeaderboard(messageText);
     shouldReply = parsedRegistration !== null || parsedLeaderboard !== null;
 
+    // DETAILED LOGGING - Log semua webhook incoming untuk debugging
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      sender: sender || "unknown",
+      message: messageText || "empty",
+      status: status || "no-status",
+      device: webhookData.device || "unknown",
+      fullPayload: JSON.stringify(webhookData, null, 2),
+      isBlokCommand: parsedRegistration !== null || parsedLeaderboard !== null,
+    };
+
     console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
-    console.log("Timestamp:", new Date().toISOString());
+    console.log("Timestamp:", logEntry.timestamp);
+    console.log("📱 Sender:", logEntry.sender);
+    console.log("💬 Message:", logEntry.message);
+    console.log("📊 Status:", logEntry.status);
+    console.log("📱 Device:", logEntry.device);
+    console.log("🎯 Is Blok Command:", logEntry.isBlokCommand);
+    console.log("\n📦 Full Payload:");
+    console.log(logEntry.fullPayload);
+    console.log("=== END WEBHOOK LOG ===\n");
 
-    if (sender) {
-      console.log("📱 Sender:", sender);
-    }
-
-    if (status) {
-      console.log("📊 Status:", status);
-    }
-
-    if (!parsedRegistration && !parsedLeaderboard) {
-      return res.status(200).json({
-        success: true,
-        message: "Webhook received - no matching blok command",
-      });
+    // Log ke file untuk production debugging (jika dalam production)
+    if (process.env.NODE_ENV === "production") {
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const logFilePath = path.join(process.cwd(), "logs", "webhook-production.log");
+        const logLine = `${logEntry.timestamp} | ${logEntry.sender} | ${logEntry.message} | Blok:${logEntry.isBlokCommand}\n`;
+        fs.appendFileSync(logFilePath, logLine);
+      } catch (logError) {
+        console.warn("Failed to write to log file:", logError);
+      }
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
