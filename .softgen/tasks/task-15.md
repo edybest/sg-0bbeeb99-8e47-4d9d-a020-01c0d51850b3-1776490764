@@ -1,6 +1,6 @@
 ---
 title: WhatsApp Blok auto-registration
-status: done
+status: in_progress
 priority: high
 type: feature
 tags:
@@ -16,7 +16,9 @@ position: 15
 ## Notes
 Webhook WhatsApp AMBC kini menyokong auto-registration mesej dalam format `#blokambc dd.mm.yyyy`. Implementasi menggunakan route sedia ada `src/pages/api/whatsapp-webhook.ts` untuk baca mesej masuk, parse tarikh, normalkan nombor pengirim, padankan kepada ahli verified dalam jadual `members`, cari rekod game BLOK dalam jadual `games` berdasarkan `game_date`, dan simpan penyertaan pemain ke `game_players`. Duplicate dielakkan dengan semakan awal pada gabungan `game_id` dan `member_id`, selari dengan constraint unik database.
 
-Flow ini kini turut menghantar balasan WhatsApp automatik kepada pengirim selepas cubaan daftar melalui `#blokambc`. Webhook menggunakan terus mekanisme penghantaran Fonnte yang sama seperti integrasi WhatsApp projek ini untuk menghantar mesej pengesahan atau ralat. Balasan disediakan untuk kes berjaya, duplicate, tarikh tidak sah, nombor tidak dikenali, game BLOK tidak ditemui, konfigurasi server tidak lengkap, dan ralat umum proses webhook.
+Flow ini turut menghantar balasan WhatsApp automatik kepada pengirim selepas cubaan daftar melalui `#blokambc`. Maklum balas terbaru menunjukkan percubaan WhatsApp ke nombor webhook tidak menghasilkan rekod baru dalam database, jadi siasatan perlu fokus pada payload webhook sebenar, padanan nombor pengirim, carian game BLOK ikut tarikh, dan sebarang ralat server/log semasa proses masuk.
+
+Maklum balas baharu meminta command `#blok dd.mm.yyyy` untuk WhatsApp group yang akan menghantar senarai automatik 10 juara teratas beserta overall score mereka untuk game BLOK pada tarikh tersebut. Sistem perlu ambil data score dari `game_players` atau jadual score yang berkaitan, susun mengikut kedudukan, dan format sebagai mesej WhatsApp yang kemas untuk dihantar ke group.
 
 ## Checklist
 - [x] Semak webhook WhatsApp sedia ada dan format payload mesej masuk
@@ -27,8 +29,17 @@ Flow ini kini turut menghantar balasan WhatsApp automatik kepada pengirim selepa
 - [x] Tambah respons/error handling untuk nombor yang tidak dikenali atau data tidak lengkap
 - [x] Semak utiliti penghantaran WhatsApp sedia ada untuk auto-reply
 - [x] Hantar balasan automatik WhatsApp untuk status berjaya atau gagal
-- [x] Jalankan semakan akhir selepas penambahan auto-reply
+- [ ] Semak log webhook dan payload WhatsApp sebenar bagi percubaan terbaru
+- [ ] Sahkan punca kegagalan insert ke database
+- [ ] Terapkan pembaikan minimum yang diperlukan
+- [ ] Semak schema untuk jadual score dan overall score BLOK
+- [ ] Implement parser mesej `#blok dd.mm.yyyy` untuk query top 10
+- [ ] Query top 10 juara dari database berdasarkan overall score
+- [ ] Format senarai juara sebagai mesej WhatsApp yang kemas
+- [ ] Hantar auto-reply senarai juara ke WhatsApp group
+- [ ] Jalankan semakan akhir selepas semua command siap
 
 ## Acceptance
 Apabila mesej `#blokambc dd.mm.yyyy` diterima oleh webhook daripada nombor ahli yang berdaftar, ahli itu ditambah ke senarai pemain BLOK untuk tarikh berkenaan dan menerima balasan pengesahan.
 Jika ahli sudah berdaftar, nombor tidak dikenali, atau game BLOK pada tarikh itu tiada, webhook tamat dengan selamat dan menghantar balasan status yang sesuai.
+Apabila mesej `#blok dd.mm.yyyy` diterima dalam WhatsApp group, sistem menghantar senarai 10 juara teratas dengan overall score mereka untuk game BLOK pada tarikh tersebut.
