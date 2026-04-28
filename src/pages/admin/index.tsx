@@ -15,6 +15,9 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
 import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
+import { ThemeSettingsPanel } from "@/components/admin/ThemeSettingsPanel";
+import { PushMessagePanel } from "@/components/admin/PushMessagePanel";
+import { FonnteGroupSync } from "@/components/admin/FonnteGroupSync";
 import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
@@ -217,8 +220,11 @@ export default function AdminPage() {
                 <CoupleManagement />
               </TabsContent>
 
-              <TabsContent value="settings">
+              <TabsContent value="settings" className="space-y-6">
                 <ClubSettings />
+                <ThemeSettingsPanel />
+                <GalleryPermissionsPanel />
+                <FonnteGroupSync />
               </TabsContent>
 
               <TabsContent value="feedback">

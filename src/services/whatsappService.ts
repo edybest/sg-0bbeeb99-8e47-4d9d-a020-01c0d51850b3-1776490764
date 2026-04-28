@@ -156,10 +156,54 @@ Terima kasih! 🎳`;
   }
 }
 
+/**
+ * Update WhatsApp group list di Fonnte
+ * Perlu dipanggil untuk enable webhook untuk group messages
+ */
+async function updateFonnteGroupList(): Promise<{
+  success: boolean;
+  error?: string;
+  data?: any;
+}> {
+  try {
+    console.log("Calling Fonnte update group API...");
+
+    const response = await fetch("/api/fonnte-update-groups", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await response.json();
+    console.log("Update group list response:", data);
+
+    if (!response.ok || !data.success) {
+      return {
+        success: false,
+        error: data.error || "Failed to update group list",
+        data: data.details,
+      };
+    }
+
+    return {
+      success: true,
+      data: data.data,
+    };
+  } catch (error) {
+    console.error("Error updating group list:", error);
+    return {
+      success: false,
+      error: "Failed to update group list",
+    };
+  }
+}
+
 export const whatsappService = {
   storeTACCode,
   verifyTACCode,
   sendWhatsAppTAC,
   generateTACCode,
   formatPhoneNumber,
+  updateFonnteGroupList,
 };
