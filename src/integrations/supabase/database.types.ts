@@ -65,57 +65,6 @@ export type Database = {
           },
         ]
       }
-      blok_join_queue: {
-        Row: {
-          created_at: string
-          display_name: string
-          game_id: string
-          id: string
-          member_id: string | null
-          queue_group: string
-          queue_position: number
-          source_type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          display_name: string
-          game_id: string
-          id?: string
-          member_id?: string | null
-          queue_group: string
-          queue_position: number
-          source_type?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          display_name?: string
-          game_id?: string
-          id?: string
-          member_id?: string | null
-          queue_group?: string
-          queue_position?: number
-          source_type?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blok_join_queue_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blok_join_queue_member_id_fkey"
-            columns: ["member_id"]
-            isOneToOne: false
-            referencedRelation: "members"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       chat_messages: {
         Row: {
           created_at: string | null

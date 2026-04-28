@@ -15,7 +15,6 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { GalleryPermissionsPanel } from "@/components/admin/GalleryPermissionsPanel";
 import { LaneManagement } from "@/components/admin/LaneManagement";
 import { StatisticsPanel } from "@/components/admin/StatisticsPanel";
-import { AdminMonitoringDashboard } from "@/components/admin/AdminMonitoringDashboard";
 import { Loader2, Bell, ListChecks, ArrowRightLeft, BarChart3 } from "lucide-react";
 import { ClubLogo } from "@/components/ClubLogo";
 import { AdminPwaInstallCard } from "@/components/pwa/AdminPwaInstallCard";
@@ -131,15 +130,8 @@ export default function AdminPage() {
             <div className="mb-6">
               <AdminPwaInstallCard className="max-w-xl" />
             </div>
-            <Tabs defaultValue="monitoring" className="w-full">
+            <Tabs defaultValue="statistics" className="w-full">
               <TabsList className="flex w-full overflow-x-auto bg-white border border-gray-200 mb-8 shadow-sm p-1 rounded-lg">
-                <TabsTrigger 
-                  value="monitoring" 
-                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  Monitoring
-                </TabsTrigger>
                 <TabsTrigger 
                   value="statistics" 
                   className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
@@ -204,10 +196,6 @@ export default function AdminPage() {
                   <span className="hidden sm:inline">Galeri</span>
                 </TabsTrigger>
               </TabsList>
-
-              <TabsContent value="monitoring">
-                <AdminMonitoringDashboard />
-              </TabsContent>
 
               <TabsContent value="statistics">
                 <StatisticsPanel />
