@@ -44,17 +44,38 @@ const primaryItems: MenuItem[] = [
   { href: "/member/average-score", icon: Target, label: "Average" },
 ];
 
-const secondaryItems: MenuItem[] = [
-  { href: "/member/chat", icon: MessageCircle, label: "Chat" },
-  { href: "/member/profile", icon: User, label: "Profile" },
-  { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame", shortLabel: "Hall of Fame" },
-  { href: "/member/undi-lane", icon: Dices, label: "Lane Draw" },
-  { href: "/member/lane", icon: MapPin, label: "Lane" },
-  { href: "/member/mini-blok", icon: Gamepad2, label: "Mini Blok", shortLabel: "Mini" },
-  { href: "/member/training", icon: TrendingUp, label: "Training", shortLabel: "Train" },
-  { href: "/member/gallery", icon: Image, label: "Gallery" },
-  { href: "/member/feedback", icon: MessageSquare, label: "Feedback" },
-  { href: "/member/undi-trio", icon: Shuffle, label: "Undi Trio", shortLabel: "Trio Draw" },
+type MenuGroup = {
+  title: string;
+  items: (MenuItem & { color: string; bg: string })[];
+};
+
+const menuGroups: MenuGroup[] = [
+  {
+    title: "Peribadi & Prestasi",
+    items: [
+      { href: "/member/profile", icon: User, label: "Profile", color: "text-blue-600", bg: "bg-blue-100/50" },
+      { href: "/member/chat", icon: MessageCircle, label: "Chat", color: "text-green-600", bg: "bg-green-100/50" },
+      { href: "/member/average-score", icon: Target, label: "Average Score", color: "text-amber-600", bg: "bg-amber-100/50" },
+      { href: "/member/hall-of-fame", icon: Award, label: "Hall of Fame", color: "text-yellow-600", bg: "bg-yellow-100/50" },
+    ]
+  },
+  {
+    title: "Permainan & Undian",
+    items: [
+      { href: "/member/undi-lane", icon: Dices, label: "Lane Draw", color: "text-purple-600", bg: "bg-purple-100/50" },
+      { href: "/member/undi-trio", icon: Shuffle, label: "Undi Trio", color: "text-fuchsia-600", bg: "bg-fuchsia-100/50" },
+      { href: "/member/lane", icon: MapPin, label: "Lane", color: "text-rose-600", bg: "bg-rose-100/50" },
+      { href: "/member/mini-blok", icon: Gamepad2, label: "Mini Blok", color: "text-indigo-600", bg: "bg-indigo-100/50" },
+      { href: "/member/training", icon: TrendingUp, label: "Training", color: "text-teal-600", bg: "bg-teal-100/50" },
+    ]
+  },
+  {
+    title: "Komuniti & Bantuan",
+    items: [
+      { href: "/member/gallery", icon: Image, label: "Gallery", color: "text-pink-600", bg: "bg-pink-100/50" },
+      { href: "/member/feedback", icon: MessageSquare, label: "Feedback", color: "text-slate-600", bg: "bg-slate-100/50" },
+    ]
+  }
 ];
 
 function isRouteActive(pathname: string, href: string) {
@@ -66,7 +87,7 @@ export function MobileNav() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const activeSecondaryItem = useMemo(
-    () => secondaryItems.find((item) => isRouteActive(router.pathname, item.href)) ?? null,
+    () => menuGroups.flatMap(g => g.items).find((item) => isRouteActive(router.pathname, item.href)) ?? null,
     [router.pathname]
   );
 
@@ -140,59 +161,75 @@ export function MobileNav() {
 
                 <SheetContent
                   side="bottom"
-                  className="rounded-t-[32px] border-x border-t border-slate-200/80 bg-white/95 px-0 pb-10 pt-4 backdrop-blur-xl"
+                  className="flex max-h-[85vh] flex-col rounded-t-[32px] border-x border-t border-slate-200/80 bg-slate-50/95 px-0 pb-6 pt-4 backdrop-blur-xl"
                 >
-                  <SheetHeader className="px-5 pb-3 text-left">
+                  <SheetHeader className="shrink-0 px-5 pb-2 text-left">
                     <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-slate-200" />
-                    <SheetTitle className="text-base font-semibold text-slate-900">
-                      Menu lain
+                    <SheetTitle className="text-xl font-bold tracking-tight text-slate-900">
+                      Menu Pilihan
                     </SheetTitle>
                   </SheetHeader>
 
-                  <div className="px-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {secondaryItems.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = isRouteActive(router.pathname, item.href);
+                  <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+                    <div className="flex flex-col gap-6">
+                      {menuGroups.map((group) => (
+                        <div key={group.title}>
+                          <h4 className="mb-2 px-3 text-[12px] font-semibold uppercase tracking-wider text-slate-500">
+                            {group.title}
+                          </h4>
+                          <div className="flex flex-col overflow-hidden rounded-[24px] border border-slate-200/60 bg-white shadow-sm ring-1 ring-black/5">
+                            {group.items.map((item, idx) => {
+                              const Icon = item.icon;
+                              const isActive = isRouteActive(router.pathname, item.href);
 
-                        return (
-                          <SheetClose asChild key={item.href}>
-                            <Link
-                              href={item.href}
-                              className={[
-                                "flex items-center gap-3 rounded-3xl border px-4 py-3.5 transition-all duration-200",
-                                isActive
-                                  ? "border-sky-200 bg-sky-50 text-sky-800 shadow-sm"
-                                  : "border-slate-200/80 bg-white/90 text-slate-700 hover:border-sky-100 hover:bg-slate-50",
-                              ].join(" ")}
-                            >
-                              <div
-                                className={[
-                                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-                                  isActive ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-700",
-                                ].join(" ")}
-                              >
-                                <Icon className="h-5 w-5" />
-                              </div>
+                              return (
+                                <SheetClose asChild key={item.href}>
+                                  <Link
+                                    href={item.href}
+                                    className={[
+                                      "group/menu flex items-center gap-4 px-4 py-3.5 transition-colors active:bg-slate-50",
+                                      isActive ? "bg-sky-50/30" : "bg-white hover:bg-slate-50/50",
+                                      idx !== group.items.length - 1 ? "border-b border-slate-100/80" : ""
+                                    ].join(" ")}
+                                  >
+                                    <div
+                                      className={[
+                                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-active/menu:scale-95",
+                                        isActive ? "bg-sky-500 text-white shadow-md shadow-sky-500/20" : `${item.bg} ${item.color}`,
+                                      ].join(" ")}
+                                    >
+                                      <Icon className="h-5 w-5" />
+                                    </div>
 
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
-                                  {item.shortLabel ?? item.label}
-                                </p>
-                                <p className="text-xs text-slate-500">Buka halaman</p>
-                              </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className={[
+                                        "truncate text-[15px] font-medium transition-colors",
+                                        isActive ? "text-sky-700 font-semibold" : "text-slate-700 group-hover/menu:text-slate-900"
+                                      ].join(" ")}
+                                      >
+                                        {item.label}
+                                      </p>
+                                    </div>
 
-                              <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-                            </Link>
-                          </SheetClose>
-                        );
-                      })}
+                                    {isActive ? (
+                                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-100">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-sky-500" />
+                                      </div>
+                                    ) : (
+                                      <ChevronRight className="h-5 w-5 shrink-0 text-slate-300 transition-transform group-hover/menu:translate-x-0.5" />
+                                    )}
+                                  </Link>
+                                </SheetClose>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     {activeSecondaryItem && (
-                      <div className="mt-4 rounded-3xl bg-sky-50 px-4 py-3 text-xs text-sky-800">
-                        Anda sedang berada di{" "}
-                        <span className="font-semibold">{activeSecondaryItem.label}</span>.
+                      <div className="mt-6 rounded-2xl bg-sky-50/80 px-4 py-3.5 text-center text-sm text-sky-800 shadow-sm ring-1 ring-sky-200/50">
+                        Anda sedang berada di <span className="font-semibold">{activeSecondaryItem.label}</span>
                       </div>
                     )}
                   </div>
