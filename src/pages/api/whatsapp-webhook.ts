@@ -278,11 +278,7 @@ async function sendWhatsAppReply(
     return;
   }
 
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  if (isProduction) {
-    console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
-  }
+  console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
 
   try {
     const requestBody = isGroupTarget
@@ -299,10 +295,8 @@ async function sendWhatsAppReply(
           countryCode: "60",
         });
 
-    if (isProduction) {
-      console.log("📝 Request endpoint:", isGroupTarget ? FONNTE_GROUP_API_URL : FONNTE_API_URL);
-      console.log("📝 Request body:", requestBody);
-    }
+    console.log("📝 Request endpoint:", isGroupTarget ? FONNTE_GROUP_API_URL : FONNTE_API_URL);
+    console.log("📝 Request body:", requestBody);
 
     const response = isGroupTarget
       ? await fetch(FONNTE_GROUP_API_URL, {
@@ -323,10 +317,8 @@ async function sendWhatsAppReply(
 
     const responseText = await response.text();
 
-    if (isProduction) {
-      console.log("📬 Response status:", response.status);
-      console.log("📬 Response body:", responseText);
-    }
+    console.log("📬 Response status:", response.status);
+    console.log("📬 Response body:", responseText);
 
     if (!response.ok) {
       console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
@@ -635,11 +627,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WebhookResponse>
 ) {
-  const isProduction = process.env.NODE_ENV === "production";
-  
-  if (isProduction) {
-    console.log("\n🔔 Webhook received at:", new Date().toISOString());
-  }
+  console.log("\n🔔 Webhook received at:", new Date().toISOString());
 
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Method not allowed" });
@@ -652,17 +640,13 @@ export default async function handler(
   try {
     const webhookData = req.body as FonteWebhookData;
     
-    if (isProduction) {
-      console.log("📥 Webhook payload:", JSON.stringify(webhookData, null, 2));
-    }
+    console.log("📥 Webhook payload:", JSON.stringify(webhookData, null, 2));
     
     sender = extractSender(webhookData);
     replyTarget = extractReplyTarget(webhookData);
     
-    if (isProduction) {
-      console.log("👤 Extracted sender:", sender);
-      console.log("📍 Extracted reply target:", replyTarget);
-    }
+    console.log("👤 Extracted sender:", sender);
+    console.log("📍 Extracted reply target:", replyTarget);
     const messageText = extractMessageText(webhookData);
     const status = webhookData.status;
     
