@@ -259,8 +259,7 @@ async function sendWhatsAppReply(
     const configuredGroupId = await getConfiguredFonnteGroupId(supabaseAdmin!);
     target = configuredGroupId || replyTarget;
   } else {
-    // Align dengan format TAC yang berjaya - buang special chars sahaja
-    target = replyTarget.replace(/[+\s-]/g, "");
+    target = normalizeComparablePhone(replyTarget);
   }
 
   if (!target) {
