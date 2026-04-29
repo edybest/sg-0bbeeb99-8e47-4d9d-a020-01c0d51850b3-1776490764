@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+type AdminSupabaseClient = SupabaseClient<Database>;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const FONNTE_API_URL = "https://api.fonnte.com/send";
@@ -82,7 +85,7 @@ function getHelpMessage(): string {
 
 // ─── Supabase Helper ─────────────────────────────────────────────────────────
 
-async function getConfiguredFonnteGroupId(supabaseAdmin: ReturnType<typeof createClient>): Promise<string> {
+async function getConfiguredFonnteGroupId(supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const result = await supabaseAdmin
     .from("club_settings")
     .select("setting_value")
@@ -102,7 +105,7 @@ async function getConfiguredFonnteGroupId(supabaseAdmin: ReturnType<typeof creat
 
 async function handleBlokCommand(
   dateStr: string | undefined,
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabaseAdmin: AdminSupabaseClient,
   compact = false
 ): Promise<string> {
   let targetDate: string | null = null;
@@ -124,10 +127,17 @@ async function handleBlokCommand(
     query = query.eq("game_date", targetDate);
   }
 
-  const { data: games, error: gameError } = await query.limit(1).maybeSingle();
+  const gameResult = await query.limit(1).maybeSingle();
 
-  if (gameError || !games) {
-    console.error("Error fetching game:", gameError);
+  if (gameResult.error) {
+    console.error("Error fetching game:", gameResult.error);
+    return targetDate
+      ? `❌ Tiada game BLOK pada ${targetDate}.`
+      : "❌ Tiada game BLOK ditemui.";
+  }
+
+  const games = gameResult.data as { id: string; game_name: string; game_date: string; game_type: string | null } | null;
+  if (!games) {
     return targetDate
       ? `❌ Tiada game BLOK pada ${targetDate}.`
       : "❌ Tiada game BLOK ditemui.";
@@ -216,7 +226,7 @@ async function handleBlokCommand(
 
 async function handleTop5Command(
   dateStr: string | undefined,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
   let targetDate: string | null = null;
 
@@ -237,10 +247,17 @@ async function handleTop5Command(
     query = query.eq("game_date", targetDate);
   }
 
-  const { data: games, error: gameError } = await query.limit(1).maybeSingle();
+  const gameResult = await query.limit(1).maybeSingle();
 
-  if (gameError || !games) {
-    console.error("Error fetching game:", gameError);
+  if (gameResult.error) {
+    console.error("Error fetching game:", gameResult.error);
+    return targetDate
+      ? `❌ Tiada game BLOK pada ${targetDate}.`
+      : "❌ Tiada game BLOK ditemui.";
+  }
+
+  const games = gameResult.data as { id: string; game_name: string; game_date: string; game_type: string | null } | null;
+  if (!games) {
     return targetDate
       ? `❌ Tiada game BLOK pada ${targetDate}.`
       : "❌ Tiada game BLOK ditemui.";
@@ -303,21 +320,26 @@ async function handleTop5Command(
 
 async function handleLaneCommand(
   sender: string,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(sender);
 
-  const { data: member, error: memberError } = await supabaseAdmin
+  const memberResult = await supabaseAdmin
     .from("members")
     .select("id, username")
     .eq("phone_number", normalizedPhone)
     .maybeSingle();
 
-  if (memberError || !member) {
+  if (memberResult.error) {
     return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
-  const { data: latestGame, error: gameError } = await supabaseAdmin
+  const member = memberResult.data as { id: string; username: string } | null;
+  if (!member) {
+    return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
+  }
+
+  const latestGameResult = await supabaseAdmin
     .from("games")
     .select("id, game_name, game_date")
     .eq("game_type", "blok")
@@ -325,29 +347,44 @@ async function handleLaneCommand(
     .limit(1)
     .maybeSingle();
 
-  if (gameError || !latestGame) {
+  if (latestGameResult.error) {
     return "❌ Tiada game BLOK ditemui.";
   }
 
-  const { data: score, error: scoreError } = await supabaseAdmin
+  const latestGame = latestGameResult.data as { id: string; game_name: string; game_date: string } | null;
+  if (!latestGame) {
+    return "❌ Tiada game BLOK ditemui.";
+  }
+
+  const scoreResult = await supabaseAdmin
     .from("game_players")
     .select("id")
     .eq("game_id", latestGame.id)
     .eq("member_id", member.id)
     .maybeSingle();
 
-  if (scoreError || !score) {
+  if (scoreResult.error || !scoreResult.data) {
     return `❌ Anda tidak join blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}`;
   }
 
-  const { data: laneAssignment, error: laneError } = await supabaseAdmin
+  const laneAssignmentResult = await supabaseAdmin
     .from("lane_assignments")
     .select("lane_position, game_id")
     .eq("member_id", member.id)
     .eq("game_id", latestGame.id)
     .maybeSingle();
 
-  if (laneError || !laneAssignment) {
+  if (laneAssignmentResult.error) {
+    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n` +
+      `*${latestGame.game_name}*\n` +
+      `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
+      `Sila layari:\n` +
+      `🔗 http://ambc.club/member/undi-lane\n\n` +
+      `untuk undi lane anda.`;
+  }
+
+  const laneAssignment = laneAssignmentResult.data as { lane_position: string | null; game_id: string } | null;
+  if (!laneAssignment) {
     return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n` +
       `*${latestGame.game_name}*\n` +
       `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
@@ -368,7 +405,7 @@ async function handleLaneCommand(
 async function processCommand(
   message: string,
   sender: string,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
   const trimmed = message.trim();
   const lowerMessage = trimmed.toLowerCase();
@@ -405,7 +442,7 @@ async function processCommand(
 async function sendWhatsAppReply(
   replyTarget: string,
   message: string,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: AdminSupabaseClient
 ): Promise<void> {
   const isGroupTarget = replyTarget.includes("@g.us");
   
