@@ -238,11 +238,11 @@ function generatePDFReport(
     const doc = new jsPDF();
     
     // AMBC branding colors (red-blue)
-    const primaryRed = [220, 38, 38];
-    const primaryBlue = [37, 99, 235];
+    const primaryRed: [number, number, number] = [220, 38, 38];
+    const primaryBlue: [number, number, number] = [37, 99, 235];
     
     // Header
-    doc.setFillColor(...primaryRed);
+    doc.setFillColor(primaryRed[0], primaryRed[1], primaryRed[2]);
     doc.rect(0, 0, 210, 35, "F");
     
     doc.setTextColor(255, 255, 255);
@@ -298,7 +298,7 @@ function generatePDFReport(
         body: tableData,
         theme: "grid",
         headStyles: {
-            fillColor: primaryBlue,
+            fillColor: [primaryBlue[0], primaryBlue[1], primaryBlue[2]],
             textColor: [255, 255, 255],
             fontStyle: "bold",
             fontSize: 9,
