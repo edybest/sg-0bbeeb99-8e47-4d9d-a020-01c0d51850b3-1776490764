@@ -94,11 +94,7 @@ async function getConfiguredFonnteGroupId(supabaseAdmin: ReturnType<typeof creat
     return "";
   }
 
-  if (!data) {
-    return "";
-  }
-
-  return data.setting_value || "";
+  return (data?.setting_value as string) || "";
 }
 
 // ─── Command Handlers ────────────────────────────────────────────────────────
