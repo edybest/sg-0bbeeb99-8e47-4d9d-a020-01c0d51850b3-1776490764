@@ -23,6 +23,7 @@ Add an admin settings panel that lets admins view and update the Fonnte group ID
 - [x] Add an admin UI section to display and edit the Fonnte group ID
 - [x] Save updates through the existing settings mechanism with success and error feedback
 - [x] Wire webhook/group messaging code to read the saved Fonnte group ID when applicable
+- [x] Add WhatsApp commands: #top5, #help, #lane, modify #blok for compact mode
 - [x] Validate the implementation and mark the task done
 
 ## Acceptance

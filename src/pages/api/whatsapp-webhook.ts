@@ -682,9 +682,9 @@ async function handleTop5Command(
       game_name,
       game_date,
       game_type,
-      scores (
+      game_players (
         id,
-        member:members!scores_member_id_fkey (id, username),
+        member:members!game_players_member_id_fkey (id, username),
         overall_score,
         game1_score,
         game2_score,
@@ -709,7 +709,7 @@ async function handleTop5Command(
       : "❌ Tiada game BLOK ditemui.";
   }
 
-  const scores = Array.isArray(games.scores) ? games.scores : [];
+  const scores = Array.isArray(games.game_players) ? games.game_players : [];
   if (scores.length === 0) {
     return `❌ Game "${games.game_name}" belum ada skor.`;
   }
@@ -774,7 +774,7 @@ async function handleLaneCommand(
 
   // Check if member joined this game
   const { data: score, error: scoreError } = await supabaseAdmin
-    .from("scores")
+    .from("game_players")
     .select("id")
     .eq("game_id", latestGame.id)
     .eq("member_id", member.id)
@@ -787,13 +787,9 @@ async function handleLaneCommand(
   // Check lane assignment
   const { data: laneAssignment, error: laneError } = await supabaseAdmin
     .from("lane_assignments")
-    .select(`
-      lane,
-      position_number,
-      lanes!inner(game_id)
-    `)
+    .select("lane_position, game_id")
     .eq("member_id", member.id)
-    .eq("lanes.game_id", latestGame.id)
+    .eq("game_id", latestGame.id)
     .maybeSingle();
 
   if (laneError || !laneAssignment) {
@@ -808,8 +804,7 @@ async function handleLaneCommand(
   return `🎯 *Lane Anda*\n\n` +
     `*${latestGame.game_name}*\n` +
     `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
-    `Lane: *${laneAssignment.lane}*\n` +
-    `Position: *${laneAssignment.position_number}*\n\n` +
+    `Lane Position: *${laneAssignment.lane_position}*\n\n` +
     `_Selamat bermain! 🎳_`;
 }
 
@@ -837,15 +832,13 @@ async function handleBlokCommand(
       game_type,
       scores (
         id,
-        member:members!scores_member_id_fkey (id, username, full_name),
+        member:members!scores_member_id_fkey (id, username),
+        overall_score,
         game1_score,
         game2_score,
         game3_score,
         game4_score,
-        game5_score,
-        handicap,
-        total_score,
-        overall_score
+        game5_score
       )
     `
     )
