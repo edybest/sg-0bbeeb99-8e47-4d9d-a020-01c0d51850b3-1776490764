@@ -28,7 +28,6 @@ type MemberRow = {
   id: string;
   username: string | null;
   full_name: string | null;
-  phone_number: string | null;
 };
 
 type LeaderboardEntry = {
@@ -195,7 +194,7 @@ async function getLeaderboardEntries(
   if (memberIds.length > 0) {
     const membersResult = await supabaseAdmin
       .from("members")
-      .select("id, username, full_name, phone_number")
+      .select("id, username, full_name")
       .in("id", memberIds);
 
     if (membersResult.error) {
@@ -290,25 +289,7 @@ async function handleTop5Command(dateStr: string | undefined, supabaseAdmin: Adm
   return reply;
 }
 
-async function handleLaneCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
-  const normalizedPhone = normalizeComparablePhone(sender);
-
-  const memberResult = await supabaseAdmin
-    .from("members")
-    .select("id, username")
-    .eq("phone_number", normalizedPhone)
-    .maybeSingle();
-
-  if (memberResult.error) {
-    console.error("Error fetching member by phone:", memberResult.error);
-    return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
-  }
-
-  const member = memberResult.data as { id: string; username: string } | null;
-  if (!member) {
-    return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
-  }
-
+async function handleLaneCommand(_sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const latestGameInfo = await getLatestBlokGame(supabaseAdmin);
   if (!latestGameInfo.game) {
     return "❌ Tiada game BLOK ditemui.";
@@ -316,34 +297,7 @@ async function handleLaneCommand(sender: string, supabaseAdmin: AdminSupabaseCli
 
   const latestGame = latestGameInfo.game;
 
-  const scoreResult = await supabaseAdmin
-    .from("game_players")
-    .select("id")
-    .eq("game_id", latestGame.id)
-    .eq("member_id", member.id)
-    .maybeSingle();
-
-  if (scoreResult.error || !scoreResult.data) {
-    return `❌ Anda tidak join blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}`;
-  }
-
-  const laneResult = await supabaseAdmin
-    .from("lane_assignments")
-    .select("lane_position, game_id")
-    .eq("member_id", member.id)
-    .eq("game_id", latestGame.id)
-    .maybeSingle();
-
-  if (laneResult.error) {
-    console.error("Error fetching lane assignment:", laneResult.error);
-  }
-
-  const laneAssignment = laneResult.data as { lane_position: string | null; game_id: string } | null;
-  if (!laneAssignment || !laneAssignment.lane_position) {
-    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nSila layari:\n🔗 http://ambc.club/member/undi-lane\n\nuntuk undi lane anda.`;
-  }
-
-  return `🎯 *Lane Anda*\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nLane Position: *${laneAssignment.lane_position}*\n\n_Selamat bermain! 🎳_`;
+  return `🎯 *Semakan Lane*\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nSila layari:\n🔗 http://ambc.club/member/undi-lane\n\nuntuk semak atau undi lane anda.`;
 }
 
 async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
