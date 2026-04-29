@@ -737,12 +737,10 @@ export function LaneManagement() {
             </div>
             
             <div className="flex items-center gap-1 shrink-0 ml-2">
-              {/* Status Indicator */}
-              {revealed ? (
-                <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold shrink-0">Telah Undi</span>
-              ) : (
-                <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold shrink-0">Belum Undi</span>
-              )}
+              <span
+                className={revealed ? "h-2.5 w-2.5 rounded-full bg-green-500 shrink-0" : "h-2.5 w-2.5 rounded-full bg-orange-500 shrink-0"}
+                title={revealed ? "Telah Undi" : "Belum Undi"}
+              />
               
               <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
                 {/* Change Voting Status */}
@@ -1049,10 +1047,9 @@ export function LaneManagement() {
                   </p>
                 </div>
                 <div className="hidden sm:block text-right">
-                  <div className="text-xs bg-gray-100 px-3 py-1.5 rounded-md inline-block font-medium text-gray-600">
-                    Status Undian Roda (Spin):<br/>
-                    <span className="text-green-600 mr-2">• Telah Undi</span>
-                    <span className="text-orange-600">• Belum Undi</span>
+                  <div className="bg-gray-100 px-3 py-2 rounded-md inline-flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-green-500" title="Telah Undi" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-orange-500" title="Belum Undi" />
                   </div>
                 </div>
               </div>
