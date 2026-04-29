@@ -694,7 +694,7 @@ async function handleTop5Command(
       : "❌ Tiada game BLOK ditemui.";
   }
 
-  const { data: gamePlayers, error: playersError } = await supabaseAdmin
+  const playersQuery = await supabaseAdmin
     .from("game_players")
     .select(`
       id,
@@ -708,12 +708,12 @@ async function handleTop5Command(
     `)
     .eq("game_id", games.id);
 
-  if (playersError || !gamePlayers) {
-    console.error("Error fetching players:", playersError);
+  if (playersQuery.error || !playersQuery.data) {
+    console.error("Error fetching players:", playersQuery.error);
     return `❌ Game "${games.game_name}" belum ada skor.`;
   }
 
-  const scores = gamePlayers.map((p: any) => ({
+  const scores = playersQuery.data.map((p: any) => ({
     ...p,
     member: p.members
   }));
@@ -845,7 +845,7 @@ async function handleBlokCommand(
       : "❌ Tiada game BLOK ditemui.";
   }
 
-  const { data: gamePlayers, error: playersError } = await supabaseAdmin
+  const playersQuery = await supabaseAdmin
     .from("game_players")
     .select(`
       id,
@@ -861,12 +861,12 @@ async function handleBlokCommand(
     `)
     .eq("game_id", games.id);
 
-  if (playersError || !gamePlayers) {
-    console.error("Error fetching players:", playersError);
+  if (playersQuery.error || !playersQuery.data) {
+    console.error("Error fetching players:", playersQuery.error);
     return `❌ Game "${games.game_name}" belum ada skor.`;
   }
 
-  const scores = gamePlayers.map((p: any) => ({
+  const scores = playersQuery.data.map((p: any) => ({
     ...p,
     member: p.members
   }));
@@ -924,49 +924,44 @@ async function handleBlokCommand(
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<WebhookResponse>
+  res: NextApiResponse
 ) {
-  console.log("\n🔔 Webhook received at:", new Date().toISOString());
-
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  const sender = "";
-  const replyTarget = "";
-  const shouldReply = false;
+  console.log("🔔 Webhook received at:", new Date().toISOString());
+
+  const { device, sender, message } = req.body;
+
+  if (!sender || !message) {
+    console.warn("⚠️ Missing required fields: sender or message");
+    return res.status(400).json({ success: false, message: "Missing required fields" });
+  }
+
+  console.log("📥 Webhook payload:", JSON.stringify({ device, sender, message }, null, 2));
 
   try {
-    const webhookData = req.body as FonteWebhookData;
-    
-    console.log("📥 Webhook payload:", JSON.stringify({ device, sender, message }, null, 2));
-
-    try {
-      // Create Supabase admin client
-      const supabaseAdmin = createClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        }
-      );
-
-      const replyMessage = await processCommand(message, sender, supabaseAdmin);
-      
-      if (replyMessage) {
-        await sendWhatsAppReply(sender, replyMessage, supabaseAdmin);
+    const supabaseAdmin = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
       }
+    );
 
-      return res.status(200).json({ success: true, message: "Webhook processed successfully" });
-    } catch (error) {
-      console.error("❌ Webhook processing error:", error);
-      return res.status(200).json({ success: false, message: "Webhook processing error" });
+    const replyMessage = await processCommand(message, sender, supabaseAdmin);
+    
+    if (replyMessage) {
+      await sendWhatsAppReply(sender, replyMessage, supabaseAdmin);
     }
+
+    return res.status(200).json({ success: true, message: "Webhook processed successfully" });
   } catch (error) {
-    console.error("❌ Webhook handler error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("❌ Webhook processing error:", error);
+    return res.status(200).json({ success: false, message: "Webhook processing error" });
   }
 }

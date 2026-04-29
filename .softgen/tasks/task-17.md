@@ -31,3 +31,4 @@ Add an admin settings panel that lets admins view and update the Fonnte group ID
 ✅ Webhook-related group messaging can use the configured group ID without editing code.
 ✅ All WhatsApp features working: TAC login, personal auto-reply, group auto-reply.
 ✅ WhatsApp commands: #blok (compact), #top5, #help, #lane all working with proper error handling.
+✅ Share PDF to WhatsApp feature added to Blok page with AMBC branding.
