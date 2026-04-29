@@ -16,6 +16,15 @@ type FonteWebhookData = {
   };
   status?: string;
   id?: string;
+  // Group message specific fields
+  pushname?: string;
+  group?: {
+    id?: string;
+    subject?: string;
+  };
+  // Alternative field names that Fonnte might use
+  phone?: string;
+  text?: string;
 };
 
 type WebhookResponse = {
@@ -57,11 +66,40 @@ const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 function extractSender(webhookData: FonteWebhookData): string {
-  return webhookData.sender || webhookData.member?.jid || webhookData.data?.from || "";
+  // For group messages, Fonnte might send member JID in different fields
+  // Priority: member.jid (group participant) > sender > phone > data.from
+  
+  // Group message: member.jid contains actual participant phone
+  if (webhookData.member?.jid) {
+    return webhookData.member.jid;
+  }
+  
+  // Personal message: sender field
+  if (webhookData.sender) {
+    return webhookData.sender;
+  }
+  
+  // Alternative field
+  if (webhookData.phone) {
+    return webhookData.phone;
+  }
+  
+  // Fallback
+  if (webhookData.data?.from) {
+    return webhookData.data.from;
+  }
+  
+  return "";
 }
 
 function extractMessageText(webhookData: FonteWebhookData): string {
-  return webhookData.message || webhookData.data?.body || "";
+  // Try multiple possible locations for message text
+  return (
+    webhookData.message ||
+    webhookData.text ||
+    webhookData.data?.body ||
+    ""
+  );
 }
 
 function digitsOnly(value: string): string {
@@ -515,12 +553,18 @@ export default async function handler(
     shouldReply = parsedRegistration !== null || parsedLeaderboard !== null;
 
     // DETAILED LOGGING - Log semua webhook incoming untuk debugging
+    const isGroupMessage = !!(webhookData.group?.id || webhookData.sender?.includes("@g.us"));
+    
     const logEntry = {
       timestamp: new Date().toISOString(),
       sender: sender || "unknown",
       message: messageText || "empty",
       status: status || "no-status",
       device: webhookData.device || "unknown",
+      isGroup: isGroupMessage,
+      groupId: webhookData.group?.id || "N/A",
+      groupName: webhookData.group?.subject || "N/A",
+      pushname: webhookData.pushname || webhookData.member?.name || "N/A",
       fullPayload: JSON.stringify(webhookData, null, 2),
       isBlokCommand: parsedRegistration !== null || parsedLeaderboard !== null,
     };
@@ -528,9 +572,15 @@ export default async function handler(
     console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
     console.log("Timestamp:", logEntry.timestamp);
     console.log("📱 Sender:", logEntry.sender);
+    console.log("👤 Pushname:", logEntry.pushname);
     console.log("💬 Message:", logEntry.message);
     console.log("📊 Status:", logEntry.status);
     console.log("📱 Device:", logEntry.device);
+    console.log("👥 Is Group:", logEntry.isGroup);
+    if (isGroupMessage) {
+      console.log("🏷️  Group ID:", logEntry.groupId);
+      console.log("📝 Group Name:", logEntry.groupName);
+    }
     console.log("🎯 Is Blok Command:", logEntry.isBlokCommand);
     console.log("\n📦 Full Payload:");
     console.log(logEntry.fullPayload);
@@ -542,7 +592,8 @@ export default async function handler(
         const fs = await import("fs");
         const path = await import("path");
         const logFilePath = path.join(process.cwd(), "logs", "webhook-production.log");
-        const logLine = `${logEntry.timestamp} | ${logEntry.sender} | ${logEntry.message} | Blok:${logEntry.isBlokCommand}\n`;
+        const groupInfo = isGroupMessage ? `[GROUP:${logEntry.groupId}]` : "[PERSONAL]";
+        const logLine = `${logEntry.timestamp} ${groupInfo} | ${logEntry.sender} | ${logEntry.message} | Blok:${logEntry.isBlokCommand}\n`;
         fs.appendFileSync(logFilePath, logLine);
       } catch (logError) {
         console.warn("Failed to write to log file:", logError);
