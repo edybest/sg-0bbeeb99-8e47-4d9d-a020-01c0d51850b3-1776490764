@@ -68,7 +68,6 @@ type LeaderboardEntry = {
 const BLOK_REGISTER_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const BLOK_LEADERBOARD_REGEX = /^\s*#blok\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const FONNTE_API_URL = "https://api.fonnte.com/send";
-const FONNTE_GROUP_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 const FONNTE_DEVICE_ID = process.env.FONNTE_DEVICE_ID || "";
 
@@ -280,39 +279,23 @@ async function sendWhatsAppReply(
   console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
 
   try {
-    const requestBody = isGroupTarget
-      ? new URLSearchParams({
-          token: FONNTE_TOKEN,
-          device_id: FONNTE_DEVICE_ID,
-          to: target,
-          message,
-          type: "group",
-        }).toString()
-      : JSON.stringify({
-          target,
-          message,
-          countryCode: "60",
-        });
+    const requestBody = JSON.stringify({
+      target,
+      message,
+      countryCode: "60",
+    });
 
-    console.log("📝 Request endpoint:", isGroupTarget ? FONNTE_GROUP_API_URL : FONNTE_API_URL);
+    console.log("📝 Request endpoint:", FONNTE_API_URL);
     console.log("📝 Request body:", requestBody);
 
-    const response = isGroupTarget
-      ? await fetch(FONNTE_GROUP_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: requestBody,
-        })
-      : await fetch(FONNTE_API_URL, {
-          method: "POST",
-          headers: {
-            "Authorization": FONNTE_TOKEN,
-            "Content-Type": "application/json",
-          },
-          body: requestBody,
-        });
+    const response = await fetch(FONNTE_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": FONNTE_TOKEN,
+        "Content-Type": "application/json",
+      },
+      body: requestBody,
+    });
 
     const responseText = await response.text();
 
