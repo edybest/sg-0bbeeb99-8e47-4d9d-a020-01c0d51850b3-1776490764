@@ -5,6 +5,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import {
     Card,
@@ -226,6 +228,115 @@ function buildLeaderboard(scores: RawPlayerScore[]): LeaderboardEntry[] {
         rank: index + 1,
         clean_game: entry.clean_game ?? false,
     }));
+}
+
+function generatePDFReport(
+    leaderboard: LeaderboardEntry[],
+    gameName: string,
+    gameDate: string
+): Blob {
+    const doc = new jsPDF();
+    
+    // AMBC branding colors (red-blue)
+    const primaryRed = [220, 38, 38];
+    const primaryBlue = [37, 99, 235];
+    
+    // Header
+    doc.setFillColor(...primaryRed);
+    doc.rect(0, 0, 210, 35, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("AMBC CLUB", 105, 15, { align: "center" });
+    
+    doc.setFontSize(16);
+    doc.text("RANKING BLOK - SINGLE", 105, 25, { align: "center" });
+    
+    // Game info
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`GAME: ${gameName}`, 14, 45);
+    doc.text(`TARIKH: ${new Date(gameDate).toLocaleDateString("ms-MY", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        weekday: "long"
+    }).toUpperCase()}`, 14, 52);
+    
+    // Table
+    const tableData = leaderboard.map((player) => [
+        player.member.username.toUpperCase(),
+        player.game1_score || 0,
+        player.game2_score || 0,
+        player.game3_score || 0,
+        player.game4_score || 0,
+        player.game5_score || 0,
+        player.total_score || 0,
+        player.handicap || 0,
+        player.overall_score || 0,
+        player.rank,
+        player.difference || 0,
+    ]);
+    
+    autoTable(doc, {
+        startY: 60,
+        head: [[
+            "NAMA",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "TOTAL",
+            "H/C",
+            "O/TOTAL",
+            "RANK",
+            "DIFF"
+        ]],
+        body: tableData,
+        theme: "grid",
+        headStyles: {
+            fillColor: primaryBlue,
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+            fontSize: 9,
+            halign: "center",
+        },
+        bodyStyles: {
+            fontSize: 8,
+            halign: "center",
+        },
+        columnStyles: {
+            0: { halign: "left", cellWidth: 30 },
+            1: { cellWidth: 12 },
+            2: { cellWidth: 12 },
+            3: { cellWidth: 12 },
+            4: { cellWidth: 12 },
+            5: { cellWidth: 12 },
+            6: { cellWidth: 18, fontStyle: "bold" },
+            7: { cellWidth: 12 },
+            8: { cellWidth: 20, fontStyle: "bold", textColor: [34, 197, 94] },
+            9: { cellWidth: 12, fontStyle: "bold" },
+            10: { cellWidth: 12, textColor: [239, 68, 68] },
+        },
+        didDrawPage: (data) => {
+            // Footer
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            doc.text(
+                `Halaman ${data.pageNumber} / ${pageCount}`,
+                105,
+                pageHeight - 10,
+                { align: "center" }
+            );
+        },
+    });
+    
+    return doc.output("blob");
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -797,6 +908,79 @@ export default function BlokPage() {
         setLeaderboard(applyCurrentSort(leaderboardBase, field, newDirection));
     };
 
+    const handleShareToWhatsApp = useCallback(async () => {
+        if (!selectedGame) {
+            toast({
+                title: "Pilih game terlebih dahulu",
+                description: "Sila pilih game untuk generate laporan",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const currentGame = games.find((g) => g.id === selectedGame);
+        if (!currentGame) return;
+
+        try {
+            toast({
+                title: "Menjana PDF...",
+                description: "Sila tunggu sebentar",
+            });
+
+            const pdfBlob = generatePDFReport(
+                leaderboard,
+                currentGame.game_name,
+                currentGame.game_date
+            );
+
+            const file = new File(
+                [pdfBlob],
+                `AMBC_Blok_${currentGame.game_date.replace(/-/g, "")}.pdf`,
+                { type: "application/pdf" }
+            );
+
+            const shareText = `📊 *AMBC CLUB - Ranking Blok*\n\nGame: ${currentGame.game_name}\nTarikh: ${new Date(currentGame.game_date).toLocaleDateString("ms-MY", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            })}\n\nJumlah pemain: ${leaderboard.length}`;
+
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: `AMBC Blok - ${currentGame.game_name}`,
+                    text: shareText,
+                    files: [file],
+                });
+                
+                toast({
+                    title: "Berjaya dikongsi!",
+                    description: "PDF telah dikongsi ke WhatsApp",
+                });
+            } else {
+                const url = URL.createObjectURL(pdfBlob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `AMBC_Blok_${currentGame.game_date.replace(/-/g, "")}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                toast({
+                    title: "PDF dimuat turun",
+                    description: "Sila kongsi fail PDF secara manual ke WhatsApp",
+                });
+            }
+        } catch (error) {
+            console.error("Error sharing PDF:", error);
+            toast({
+                title: "Gagal berkongsi",
+                description: "Sila cuba lagi atau muat turun PDF secara manual",
+                variant: "destructive",
+            });
+        }
+    }, [selectedGame, games, leaderboard, toast]);
+
     const buildDoubleShareMessage = useCallback(
         (record: DoubleRecord, rank: number) => {
             const gameName = games.find((game) => game.id === selectedGame)?.game_name ?? "Blok";
@@ -1240,6 +1424,18 @@ export default function BlokPage() {
                                                 >
                                                     <Sparkles className="w-4 h-4 mr-2" />
                                                     Clean Game Winners
+                                                </Button>
+                                            )}
+
+                                            {/* Share to WhatsApp Button */}
+                                            {selectedGame && leaderboard.length > 0 && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full mt-2 border-2 border-green-500 text-green-700 hover:bg-green-50"
+                                                    onClick={handleShareToWhatsApp}
+                                                >
+                                                    <Share2 className="w-4 h-4 mr-2" />
+                                                    Share PDF to WhatsApp
                                                 </Button>
                                             )}
                                         </div>
