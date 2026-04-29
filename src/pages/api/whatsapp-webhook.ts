@@ -148,7 +148,7 @@ async function getLatestBlokGame(
   let query = supabaseAdmin
     .from("games")
     .select("id, game_name, game_date, game_type")
-    .eq("game_type", "blok")
+    .ilike("game_type", "blok")
     .order("game_date", { ascending: false });
 
   if (targetDate) {
