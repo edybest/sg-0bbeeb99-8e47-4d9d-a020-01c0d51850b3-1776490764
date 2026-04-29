@@ -68,7 +68,9 @@ type LeaderboardEntry = {
 const BLOK_REGISTER_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const BLOK_LEADERBOARD_REGEX = /^\s*#blok\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const FONNTE_API_URL = "https://api.fonnte.com/message";
+const FONNTE_GROUP_API_URL = "https://api.fonnte.com/message/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
+const FONNTE_DEVICE_ID = process.env.FONNTE_DEVICE_ID || "";
 
 function extractReplyTarget(webhookData: FonteWebhookData): string {
   if (webhookData.sender) {
@@ -229,9 +231,8 @@ function buildReplyMessage(message: string): string {
 }
 
 async function sendWhatsAppReply(replyTarget: string, message: string): Promise<void> {
-  const target = replyTarget.includes("@g.us")
-    ? replyTarget
-    : normalizeComparablePhone(replyTarget);
+  const isGroupTarget = replyTarget.includes("@g.us");
+  const target = isGroupTarget ? replyTarget : normalizeComparablePhone(replyTarget);
 
   if (!target) {
     console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
@@ -243,19 +244,38 @@ async function sendWhatsAppReply(replyTarget: string, message: string): Promise<
     return;
   }
 
+  if (isGroupTarget && !FONNTE_DEVICE_ID) {
+    console.warn("⚠️ WhatsApp group auto-reply skipped because FONNTE_DEVICE_ID is missing");
+    return;
+  }
+
   try {
-    const response = await fetch(FONNTE_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": FONNTE_TOKEN,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        target,
-        message,
-        countryCode: "60",
-      }),
-    });
+    const response = isGroupTarget
+      ? await fetch(FONNTE_GROUP_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            token: FONNTE_TOKEN,
+            device_id: FONNTE_DEVICE_ID,
+            to: target,
+            message,
+            type: "group",
+          }).toString(),
+        })
+      : await fetch(FONNTE_API_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": FONNTE_TOKEN,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            target,
+            message,
+            countryCode: "60",
+          }),
+        });
 
     const responseText = await response.text();
 
