@@ -70,35 +70,53 @@ const BLOK_LEADERBOARD_REGEX = /^\s*#blok\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const FONNTE_API_URL = "https://api.fonnte.com/message";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
-function extractSender(webhookData: FonteWebhookData): string {
-  // Fonnte format: sender can be string OR object { id, isGroup }
-  
+function extractReplyTarget(webhookData: FonteWebhookData): string {
   if (webhookData.sender) {
-    // Check if sender is object (new Fonnte format)
     if (typeof webhookData.sender === "object" && webhookData.sender.id) {
       return webhookData.sender.id;
     }
-    // Sender is string (old format)
+
     if (typeof webhookData.sender === "string") {
       return webhookData.sender;
     }
   }
-  
-  // Fallback: member.jid for group participant
-  if (webhookData.member?.jid) {
-    return webhookData.member.jid;
-  }
-  
-  // Alternative field
+
   if (webhookData.phone) {
     return webhookData.phone;
   }
-  
-  // Last resort
+
   if (webhookData.data?.from) {
     return webhookData.data.from;
   }
-  
+
+  return "";
+}
+
+function extractSender(webhookData: FonteWebhookData): string {
+  if (webhookData.member?.jid) {
+    return webhookData.member.jid;
+  }
+
+  if (typeof webhookData.sender === "string") {
+    return webhookData.sender;
+  }
+
+  if (
+    typeof webhookData.sender === "object" &&
+    webhookData.sender.id &&
+    webhookData.sender.isGroup !== true
+  ) {
+    return webhookData.sender.id;
+  }
+
+  if (webhookData.phone) {
+    return webhookData.phone;
+  }
+
+  if (webhookData.data?.from) {
+    return webhookData.data.from;
+  }
+
   return "";
 }
 
@@ -210,8 +228,10 @@ function buildReplyMessage(message: string): string {
   return `🎳 *AMBC CLUB - BLOK*\n\n${message}`;
 }
 
-async function sendWhatsAppReply(sender: string, message: string): Promise<void> {
-  const target = normalizeComparablePhone(sender);
+async function sendWhatsAppReply(replyTarget: string, message: string): Promise<void> {
+  const target = replyTarget.includes("@g.us")
+    ? replyTarget
+    : normalizeComparablePhone(replyTarget);
 
   if (!target) {
     console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
@@ -369,6 +389,7 @@ function formatLeaderboardMessage(
 async function handleBlokRegistration(
   supabaseAdmin: ReturnType<typeof createClient<Database>>,
   sender: string,
+  replyTarget: string,
   parsedCommand: ParsedBlokCommand
 ): Promise<{ success: boolean; message: string }> {
   if (parsedCommand.status === "invalid_date") {
@@ -376,7 +397,7 @@ async function handleBlokRegistration(
       `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blokambc dd.mm.yyyy* dengan tarikh yang betul.`
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
 
     return {
       success: false,
@@ -391,7 +412,7 @@ async function handleBlokRegistration(
       "Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar. Sila hubungi admin AMBC."
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
     console.warn("⚠️ No verified member matched sender:", sender);
 
     return {
@@ -407,7 +428,7 @@ async function handleBlokRegistration(
       targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
     console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
 
     return {
@@ -434,7 +455,7 @@ async function handleBlokRegistration(
       `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
     console.log(
       `ℹ️ Member ${member.full_name} already registered for BLOK ${parsedCommand.rawDate}`
     );
@@ -457,7 +478,7 @@ async function handleBlokRegistration(
         `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
       );
 
-      await sendWhatsAppReply(sender, replyMessage);
+      await sendWhatsAppReply(replyTarget, replyMessage);
 
       return {
         success: true,
@@ -472,7 +493,7 @@ async function handleBlokRegistration(
     `${member.full_name}, anda berjaya dimasukkan ke senarai pemain *${targetGame.game_name}* pada *${parsedCommand.rawDate}*.`
   );
 
-  await sendWhatsAppReply(sender, successReply);
+  await sendWhatsAppReply(replyTarget, successReply);
 
   console.log(
     `✅ Registered ${member.full_name} to BLOK game ${targetGame.game_name} on ${parsedCommand.isoDate}`
@@ -487,6 +508,7 @@ async function handleBlokRegistration(
 async function handleBlokLeaderboardQuery(
   supabaseAdmin: ReturnType<typeof createClient<Database>>,
   sender: string,
+  replyTarget: string,
   parsedCommand: ParsedBlokCommand
 ): Promise<{ success: boolean; message: string }> {
   if (parsedCommand.status === "invalid_date") {
@@ -494,7 +516,7 @@ async function handleBlokLeaderboardQuery(
       `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blok dd.mm.yyyy* dengan tarikh yang betul.`
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
 
     return {
       success: false,
@@ -509,7 +531,7 @@ async function handleBlokLeaderboardQuery(
       targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
     );
 
-    await sendWhatsAppReply(sender, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage);
     console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
 
     return {
@@ -526,7 +548,7 @@ async function handleBlokLeaderboardQuery(
     leaderboard
   );
 
-  await sendWhatsAppReply(sender, leaderboardMessage);
+  await sendWhatsAppReply(replyTarget, leaderboardMessage);
 
   console.log(
     `✅ Sent BLOK leaderboard for ${targetGame.game_name} on ${parsedCommand.isoDate} to ${sender}`
@@ -550,11 +572,13 @@ export default async function handler(
   }
 
   let sender = "";
+  let replyTarget = "";
   let shouldReply = false;
 
   try {
     const webhookData = req.body as FonteWebhookData;
     sender = extractSender(webhookData);
+    replyTarget = extractReplyTarget(webhookData);
     const messageText = extractMessageText(webhookData);
     const status = webhookData.status;
     
@@ -626,7 +650,7 @@ export default async function handler(
       console.error("❌ Supabase admin configuration missing for WhatsApp webhook");
 
       await sendWhatsAppReply(
-        sender,
+        replyTarget,
         buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba sebentar lagi.")
       );
 
@@ -646,9 +670,9 @@ export default async function handler(
     let result: { success: boolean; message: string };
 
     if (parsedRegistration) {
-      result = await handleBlokRegistration(supabaseAdmin, sender, parsedRegistration);
+      result = await handleBlokRegistration(supabaseAdmin, sender, replyTarget, parsedRegistration);
     } else {
-      result = await handleBlokLeaderboardQuery(supabaseAdmin, sender, parsedLeaderboard!);
+      result = await handleBlokLeaderboardQuery(supabaseAdmin, sender, replyTarget, parsedLeaderboard!);
     }
 
     return res.status(200).json(result);
@@ -656,9 +680,9 @@ export default async function handler(
     console.error("\n=== WEBHOOK PROCESSING ERROR ===");
     console.error("Error:", error);
 
-    if (shouldReply && sender) {
+    if (shouldReply && replyTarget) {
       await sendWhatsAppReply(
-        sender,
+        replyTarget,
         buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba semula sebentar lagi.")
       );
     }
