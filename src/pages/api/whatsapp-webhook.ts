@@ -83,18 +83,18 @@ function getHelpMessage(): string {
 // ─── Supabase Helper ─────────────────────────────────────────────────────────
 
 async function getConfiguredFonnteGroupId(supabaseAdmin: ReturnType<typeof createClient>): Promise<string> {
-  const { data, error } = await supabaseAdmin
+  const result = await supabaseAdmin
     .from("club_settings")
     .select("setting_value")
     .eq("setting_key", "fonnte_group_id")
     .maybeSingle();
 
-  if (error) {
-    console.error("❌ Error fetching fonnte_group_id from club_settings:", error);
+  if (result.error) {
+    console.error("❌ Error fetching fonnte_group_id from club_settings:", result.error);
     return "";
   }
 
-  return data ? (data.setting_value ?? "") : "";
+  return result.data?.setting_value ?? "";
 }
 
 // ─── Command Handlers ────────────────────────────────────────────────────────
