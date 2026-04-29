@@ -344,7 +344,7 @@ async function sendWhatsAppReply(
     console.log("📝 Request endpoint:", FONNTE_API_URL);
     console.log("📝 Request body:", requestBody);
 
-    const response: Response = await fetch(FONNTE_API_URL, {
+    const response = await fetch(FONNTE_API_URL, {
       method: "POST",
       headers: {
         "Authorization": FONNTE_TOKEN,
@@ -352,6 +352,10 @@ async function sendWhatsAppReply(
       },
       body: requestBody,
     });
+
+    if (!response) {
+      throw new Error("Failed to get response from Fonnte API");
+    }
 
     const responseText = await response.text();
     console.log("📬 Response status:", response.status);
@@ -928,133 +932,41 @@ export default async function handler(
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  let sender = "";
-  let replyTarget = "";
-  let shouldReply = false;
+  const sender = "";
+  const replyTarget = "";
+  const shouldReply = false;
 
   try {
     const webhookData = req.body as FonteWebhookData;
     
-    console.log("📥 Webhook payload:", JSON.stringify(webhookData, null, 2));
-    
-    sender = extractSender(webhookData);
-    replyTarget = extractReplyTarget(webhookData);
-    
-    console.log("👤 Extracted sender:", sender);
-    console.log("📍 Extracted reply target:", replyTarget);
-    const messageText = extractMessageText(webhookData);
-    const status = webhookData.status;
-    
-    const parsedRegistration = parseBlokRegistration(messageText);
-    const parsedLeaderboard = parseBlokLeaderboard(messageText);
-    shouldReply = parsedRegistration !== null || parsedLeaderboard !== null;
+    console.log("📥 Webhook payload:", JSON.stringify({ device, sender, message }, null, 2));
 
-    // DETAILED LOGGING - Log semua webhook incoming untuk debugging
-    // Fonnte format: sender.isGroup indicates if message is from group
-    const isGroupMessage = 
-      (typeof webhookData.sender === "object" && webhookData.sender.isGroup === true) ||
-      !!(webhookData.group?.id) ||
-      (typeof webhookData.sender === "string" && webhookData.sender.includes("@g.us"));
-    
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      sender: sender || "unknown",
-      senderRaw: typeof webhookData.sender === "object" 
-        ? JSON.stringify(webhookData.sender) 
-        : webhookData.sender || "unknown",
-      message: messageText || "empty",
-      status: status || "no-status",
-      device: webhookData.device || "unknown",
-      isGroup: isGroupMessage,
-      groupId: webhookData.group?.id || 
-        (typeof webhookData.sender === "object" && webhookData.sender.isGroup ? webhookData.sender.id : "N/A"),
-      groupName: webhookData.group?.subject || "N/A",
-      pushname: webhookData.pushname || webhookData.member?.name || "N/A",
-      fullPayload: JSON.stringify(webhookData, null, 2),
-      isBlokCommand: parsedRegistration !== null || parsedLeaderboard !== null,
-    };
+    try {
+      // Create Supabase admin client
+      const supabaseAdmin = createClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      );
 
-    console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
-    console.log("Timestamp:", logEntry.timestamp);
-    console.log("📱 Sender (extracted):", logEntry.sender);
-    console.log("📱 Sender (raw):", logEntry.senderRaw);
-    console.log("👤 Pushname:", logEntry.pushname);
-    console.log("💬 Message:", logEntry.message);
-    console.log("📊 Status:", logEntry.status);
-    console.log("📱 Device:", logEntry.device);
-    console.log("👥 Is Group:", logEntry.isGroup);
-    if (isGroupMessage) {
-      console.log("🏷️  Group ID:", logEntry.groupId);
-      console.log("📝 Group Name:", logEntry.groupName);
-    }
-    console.log("🎯 Is Blok Command:", logEntry.isBlokCommand);
-    console.log("\n📦 Full Payload:");
-    console.log(logEntry.fullPayload);
-    console.log("=== END WEBHOOK LOG ===\n");
-
-    // Log ke file untuk production debugging (jika dalam production)
-    if (process.env.NODE_ENV === "production") {
-      try {
-        const fs = await import("fs");
-        const path = await import("path");
-        const logFilePath = path.join(process.cwd(), "logs", "webhook-production.log");
-        const groupInfo = isGroupMessage ? `[GROUP:${logEntry.groupId}]` : "[PERSONAL]";
-        const logLine = `${logEntry.timestamp} ${groupInfo} | ${logEntry.sender} | ${logEntry.message} | Blok:${logEntry.isBlokCommand}\n`;
-        fs.appendFileSync(logFilePath, logLine);
-      } catch (logError) {
-        console.warn("Failed to write to log file:", logError);
+      const replyMessage = await processCommand(message, sender, supabaseAdmin);
+      
+      if (replyMessage) {
+        await sendWhatsAppReply(sender, replyMessage, supabaseAdmin);
       }
+
+      return res.status(200).json({ success: true, message: "Webhook processed successfully" });
+    } catch (error) {
+      console.error("❌ Webhook processing error:", error);
+      return res.status(200).json({ success: false, message: "Webhook processing error" });
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("❌ Supabase admin configuration missing for WhatsApp webhook");
-
-      await sendWhatsAppReply(
-        replyTarget,
-        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba sebentar lagi."),
-        undefined
-      );
-
-      return res.status(200).json({
-        success: false,
-        message: "Webhook received but Supabase admin configuration is incomplete",
-      });
-    }
-
-    const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-
-    let result: { success: boolean; message: string };
-
-    if (parsedRegistration) {
-      result = await handleBlokRegistration(supabaseAdmin, sender, replyTarget, parsedRegistration);
-    } else {
-      result = await handleBlokLeaderboardQuery(supabaseAdmin, sender, replyTarget, parsedLeaderboard!);
-    }
-
-    return res.status(200).json(result);
   } catch (error) {
-    console.error("\n=== WEBHOOK PROCESSING ERROR ===");
-    console.error("Error:", error);
-
-    if (shouldReply && replyTarget) {
-      await sendWhatsAppReply(
-        replyTarget,
-        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba semula sebentar lagi."),
-        undefined
-      );
-    }
-
-    return res.status(200).json({
-      success: false,
-      message: "Webhook processing error",
-    });
+    console.error("❌ Webhook handler error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 }

@@ -1,5 +1,5 @@
 ---
-title: Fonnte group ID settings panel
+title: Fonnte WhatsApp commands and group settings
 status: done
 priority: high
 type: feature
