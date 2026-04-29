@@ -353,8 +353,7 @@ async function sendWhatsAppReply(
       body: requestBody,
     });
 
-    const responseText = await response.text();
-
+    const responseText: string = await response.text();
     console.log("📬 Response status:", response.status);
     console.log("📬 Response body:", responseText);
 

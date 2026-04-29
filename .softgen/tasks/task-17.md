@@ -7,7 +7,7 @@ tags:
   - admin
   - settings
   - fonnte
-  - supabase
+  - whatsapp
   - completed
 created_by: agent
 created_at: 2026-04-29T01:11:09Z
