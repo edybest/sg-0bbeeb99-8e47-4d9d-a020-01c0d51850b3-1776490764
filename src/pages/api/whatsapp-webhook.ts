@@ -671,45 +671,48 @@ async function handleTop5Command(
     }
   }
 
-  const query = supabaseAdmin
+  let query = supabaseAdmin
     .from("games")
-    .select(
-      `
-      id,
-      game_name,
-      game_date,
-      game_type,
-      game_players (
-        id,
-        member:members!game_players_member_id_fkey (id, username),
-        overall_score,
-        game1_score,
-        game2_score,
-        game3_score,
-        game4_score,
-        game5_score
-      )
-    `
-    )
+    .select("id, game_name, game_date, game_type")
     .eq("game_type", "blok")
     .order("game_date", { ascending: false });
 
   if (targetDate) {
-    query.eq("game_date", targetDate);
+    query = query.eq("game_date", targetDate);
   }
 
-  const { data: games, error } = await query.limit(1).single();
+  const { data: games, error: gameError } = await query.limit(1).maybeSingle();
 
-  if (error || !games) {
+  if (gameError || !games) {
+    console.error("Error fetching game:", gameError);
     return targetDate
       ? `❌ Tiada game BLOK pada ${targetDate}.`
       : "❌ Tiada game BLOK ditemui.";
   }
 
-  const scores = Array.isArray(games.game_players) ? games.game_players : [];
-  if (scores.length === 0) {
+  const { data: gamePlayers, error: playersError } = await supabaseAdmin
+    .from("game_players")
+    .select(`
+      id,
+      overall_score,
+      game1_score,
+      game2_score,
+      game3_score,
+      game4_score,
+      game5_score,
+      members!game_players_member_id_fkey (id, username)
+    `)
+    .eq("game_id", games.id);
+
+  if (playersError || !gamePlayers) {
+    console.error("Error fetching players:", playersError);
     return `❌ Game "${games.game_name}" belum ada skor.`;
   }
+
+  const scores = gamePlayers.map((p: any) => ({
+    ...p,
+    member: p.members
+  }));
 
   const sorted = [...scores].sort((a, b) => {
     if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
@@ -819,45 +822,50 @@ async function handleBlokCommand(
     }
   }
 
-  const query = supabaseAdmin
+  let query = supabaseAdmin
     .from("games")
-    .select(
-      `
-      id,
-      game_name,
-      game_date,
-      game_type,
-      scores (
-        id,
-        member:members!scores_member_id_fkey (id, username),
-        overall_score,
-        game1_score,
-        game2_score,
-        game3_score,
-        game4_score,
-        game5_score
-      )
-    `
-    )
+    .select("id, game_name, game_date, game_type")
     .eq("game_type", "blok")
     .order("game_date", { ascending: false });
 
   if (targetDate) {
-    query.eq("game_date", targetDate);
+    query = query.eq("game_date", targetDate);
   }
 
-  const { data: games, error } = await query.limit(1).single();
+  const { data: games, error: gameError } = await query.limit(1).maybeSingle();
 
-  if (error || !games) {
+  if (gameError || !games) {
+    console.error("Error fetching game:", gameError);
     return targetDate
       ? `❌ Tiada game BLOK pada ${targetDate}.`
       : "❌ Tiada game BLOK ditemui.";
   }
 
-  const scores = Array.isArray(games.scores) ? games.scores : [];
-  if (scores.length === 0) {
+  const { data: gamePlayers, error: playersError } = await supabaseAdmin
+    .from("game_players")
+    .select(`
+      id,
+      game1_score,
+      game2_score,
+      game3_score,
+      game4_score,
+      game5_score,
+      handicap,
+      total_score,
+      overall_score,
+      members!game_players_member_id_fkey (id, username, full_name)
+    `)
+    .eq("game_id", games.id);
+
+  if (playersError || !gamePlayers) {
+    console.error("Error fetching players:", playersError);
     return `❌ Game "${games.game_name}" belum ada skor.`;
   }
+
+  const scores = gamePlayers.map((p: any) => ({
+    ...p,
+    member: p.members
+  }));
 
   const sorted = [...scores].sort((a, b) => {
     if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
