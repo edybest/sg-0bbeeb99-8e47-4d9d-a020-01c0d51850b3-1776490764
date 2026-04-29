@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, Save, Loader2, Camera, History, Calendar, Phone, Mail } from "lucide-react";
+import { User, Save, Loader2, Camera, History, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PageAccessGuard } from "@/components/PageAccessGuard";
 import { MemberLayout } from "@/components/member/MemberLayout";
@@ -56,7 +56,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Use new auth hook - will auto redirect if not logged in
-  const { member: currentMember, loading: authLoading, isAuthenticated } = useAuth(true);
+  const { member: currentMember, loading: authLoading, logout } = useAuth(true);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -305,17 +305,29 @@ export default function ProfilePage() {
               {/* Hero Header */}
               <div className="relative overflow-hidden bg-gradient-to-br from-rose-400 via-pink-500 to-purple-500 rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 lg:p-12 mb-6 md:mb-8">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium mb-3 md:mb-4">
-                    <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    <span>Maklumat Ahli</span>
+                <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs md:text-sm font-medium mb-3 md:mb-4">
+                      <User className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      <span>Maklumat Ahli</span>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-2 md:mb-3 tracking-tight drop-shadow-lg">
+                      My Profile 👤
+                    </h1>
+                    <p className="text-pink-50 text-sm md:text-base lg:text-lg max-w-2xl">
+                      Kemaskini maklumat peribadi anda
+                    </p>
                   </div>
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-2 md:mb-3 tracking-tight drop-shadow-lg">
-                    My Profile 👤
-                  </h1>
-                  <p className="text-pink-50 text-sm md:text-base lg:text-lg max-w-2xl">
-                    Kemaskini maklumat peribadi anda
-                  </p>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full md:w-auto bg-white/15 text-white border border-white/30 hover:bg-white/25 backdrop-blur-md"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
                 </div>
               </div>
 
