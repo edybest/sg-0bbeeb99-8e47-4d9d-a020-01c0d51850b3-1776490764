@@ -278,22 +278,39 @@ async function sendWhatsAppReply(
     return;
   }
 
-  console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  if (isProduction) {
+    console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
+  }
 
   try {
+    const requestBody = isGroupTarget
+      ? new URLSearchParams({
+          token: FONNTE_TOKEN,
+          device_id: FONNTE_DEVICE_ID,
+          to: target,
+          message,
+          type: "group",
+        }).toString()
+      : JSON.stringify({
+          target,
+          message,
+          countryCode: "60",
+        });
+
+    if (isProduction) {
+      console.log("📝 Request endpoint:", isGroupTarget ? FONNTE_GROUP_API_URL : FONNTE_API_URL);
+      console.log("📝 Request body:", requestBody);
+    }
+
     const response = isGroupTarget
       ? await fetch(FONNTE_GROUP_API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: new URLSearchParams({
-            token: FONNTE_TOKEN,
-            device_id: FONNTE_DEVICE_ID,
-            to: target,
-            message,
-            type: "group",
-          }).toString(),
+          body: requestBody,
         })
       : await fetch(FONNTE_API_URL, {
           method: "POST",
@@ -301,14 +318,15 @@ async function sendWhatsAppReply(
             "Authorization": FONNTE_TOKEN,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            target,
-            message,
-            countryCode: "60",
-          }),
+          body: requestBody,
         });
 
     const responseText = await response.text();
+
+    if (isProduction) {
+      console.log("📬 Response status:", response.status);
+      console.log("📬 Response body:", responseText);
+    }
 
     if (!response.ok) {
       console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
@@ -617,11 +635,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<WebhookResponse>
 ) {
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  if (isProduction) {
+    console.log("\n🔔 Webhook received at:", new Date().toISOString());
+  }
+
   if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      message: "Method not allowed - Only POST requests accepted",
-    });
+    return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
   let sender = "";
@@ -630,8 +651,18 @@ export default async function handler(
 
   try {
     const webhookData = req.body as FonteWebhookData;
+    
+    if (isProduction) {
+      console.log("📥 Webhook payload:", JSON.stringify(webhookData, null, 2));
+    }
+    
     sender = extractSender(webhookData);
     replyTarget = extractReplyTarget(webhookData);
+    
+    if (isProduction) {
+      console.log("👤 Extracted sender:", sender);
+      console.log("📍 Extracted reply target:", replyTarget);
+    }
     const messageText = extractMessageText(webhookData);
     const status = webhookData.status;
     
