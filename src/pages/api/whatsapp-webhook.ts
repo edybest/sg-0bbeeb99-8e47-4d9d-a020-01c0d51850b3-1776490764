@@ -230,9 +230,34 @@ function buildReplyMessage(message: string): string {
   return `🎳 *AMBC CLUB - BLOK*\n\n${message}`;
 }
 
-async function sendWhatsAppReply(replyTarget: string, message: string): Promise<void> {
+async function getConfiguredFonnteGroupId(
+  supabaseAdmin: ReturnType<typeof createClient<Database>>
+): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("club_settings")
+    .select("setting_value")
+    .eq("setting_key", "fonnte_group_id")
+    .maybeSingle();
+
+  if (error) {
+    console.warn("⚠️ Failed to load configured Fonnte group ID:", error.message);
+    return "";
+  }
+
+  return data?.setting_value?.trim() || "";
+}
+
+async function sendWhatsAppReply(
+  replyTarget: string,
+  message: string,
+  supabaseAdmin?: ReturnType<typeof createClient<Database>>
+): Promise<void> {
   const isGroupTarget = replyTarget.includes("@g.us");
-  const target = isGroupTarget ? replyTarget : normalizeComparablePhone(replyTarget);
+  const configuredGroupId =
+    isGroupTarget && supabaseAdmin ? await getConfiguredFonnteGroupId(supabaseAdmin) : "";
+  const target = isGroupTarget
+    ? configuredGroupId || replyTarget
+    : normalizeComparablePhone(replyTarget);
 
   if (!target) {
     console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
@@ -417,7 +442,7 @@ async function handleBlokRegistration(
       `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blokambc dd.mm.yyyy* dengan tarikh yang betul.`
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
 
     return {
       success: false,
@@ -432,7 +457,7 @@ async function handleBlokRegistration(
       "Nombor WhatsApp anda tidak sepadan dengan mana-mana ahli berdaftar. Sila hubungi admin AMBC."
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
     console.warn("⚠️ No verified member matched sender:", sender);
 
     return {
@@ -448,7 +473,7 @@ async function handleBlokRegistration(
       targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
     console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
 
     return {
@@ -475,7 +500,7 @@ async function handleBlokRegistration(
       `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
     console.log(
       `ℹ️ Member ${member.full_name} already registered for BLOK ${parsedCommand.rawDate}`
     );
@@ -498,7 +523,7 @@ async function handleBlokRegistration(
         `${member.full_name}, anda sudah berada dalam senarai pemain BLOK untuk *${parsedCommand.rawDate}*.`
       );
 
-      await sendWhatsAppReply(replyTarget, replyMessage);
+      await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
 
       return {
         success: true,
@@ -513,7 +538,7 @@ async function handleBlokRegistration(
     `${member.full_name}, anda berjaya dimasukkan ke senarai pemain *${targetGame.game_name}* pada *${parsedCommand.rawDate}*.`
   );
 
-  await sendWhatsAppReply(replyTarget, successReply);
+  await sendWhatsAppReply(replyTarget, successReply, supabaseAdmin);
 
   console.log(
     `✅ Registered ${member.full_name} to BLOK game ${targetGame.game_name} on ${parsedCommand.isoDate}`
@@ -536,7 +561,7 @@ async function handleBlokLeaderboardQuery(
       `Tarikh *${parsedCommand.rawDate}* tidak sah. Sila guna format *#blok dd.mm.yyyy* dengan tarikh yang betul.`
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
 
     return {
       success: false,
@@ -551,7 +576,7 @@ async function handleBlokLeaderboardQuery(
       targetGameResult.reason || `Game BLOK untuk ${parsedCommand.rawDate} tidak ditemui.`
     );
 
-    await sendWhatsAppReply(replyTarget, replyMessage);
+    await sendWhatsAppReply(replyTarget, replyMessage, supabaseAdmin);
     console.warn("⚠️ BLOK game lookup failed:", targetGameResult.reason);
 
     return {
@@ -568,7 +593,7 @@ async function handleBlokLeaderboardQuery(
     leaderboard
   );
 
-  await sendWhatsAppReply(replyTarget, leaderboardMessage);
+  await sendWhatsAppReply(replyTarget, leaderboardMessage, supabaseAdmin);
 
   console.log(
     `✅ Sent BLOK leaderboard for ${targetGame.game_name} on ${parsedCommand.isoDate} to ${sender}`
@@ -671,7 +696,8 @@ export default async function handler(
 
       await sendWhatsAppReply(
         replyTarget,
-        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba sebentar lagi.")
+        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba sebentar lagi."),
+        undefined
       );
 
       return res.status(200).json({
@@ -703,7 +729,8 @@ export default async function handler(
     if (shouldReply && replyTarget) {
       await sendWhatsAppReply(
         replyTarget,
-        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba semula sebentar lagi.")
+        buildReplyMessage("Sistem tidak dapat diproses sekarang. Sila cuba semula sebentar lagi."),
+        undefined
       );
     }
 

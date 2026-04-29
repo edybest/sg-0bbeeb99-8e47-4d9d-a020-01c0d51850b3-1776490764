@@ -89,6 +89,7 @@ export function ClubSettings() {
 
   const [clubName, setClubName] = useState("");
   const [logoBase64, setLogoBase64] = useState("");
+  const [fonnteGroupId, setFonnteGroupId] = useState("");
 
   const [fivefiveConfigs, setFivefiveConfigs] = useState<FiveFivePrizeConfig[]>([]);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -118,6 +119,7 @@ export function ClubSettings() {
 
   const [memberDebugEnabled, setMemberDebugEnabled] = useState<boolean>(false);
   const [loadingMemberDebug, setLoadingMemberDebug] = useState<boolean>(false);
+  const [savingFonnteGroupId, setSavingFonnteGroupId] = useState(false);
 
   const moreTabLabel = useMemo(() => {
     const def = MORE_TABS.find((t) => t.value === activeTab);
@@ -354,9 +356,11 @@ export function ClubSettings() {
       if (data) {
         const nameRow = data.find((row) => row.setting_key === "club_name");
         const logoRow = data.find((row) => row.setting_key === "club_logo_base64");
+        const fonnteGroupIdRow = data.find((row) => row.setting_key === "fonnte_group_id");
 
         if (nameRow) setClubName(nameRow.setting_value || "");
         if (logoRow) setLogoBase64(logoRow.setting_value || "");
+        if (fonnteGroupIdRow) setFonnteGroupId(fonnteGroupIdRow.setting_value || "");
       }
     } catch (error: any) {
       toast({
@@ -719,6 +723,41 @@ export function ClubSettings() {
     }
   };
 
+  const handleSaveFonnteGroupId = async () => {
+    setSavingFonnteGroupId(true);
+
+    try {
+      const trimmedGroupId = fonnteGroupId.trim();
+
+      const { error } = await supabase.from("club_settings").upsert(
+        {
+          setting_key: "fonnte_group_id",
+          setting_value: trimmedGroupId,
+        },
+        { onConflict: "setting_key" }
+      );
+
+      if (error) throw error;
+
+      setFonnteGroupId(trimmedGroupId);
+
+      toast({
+        title: "✅ Berjaya!",
+        description: trimmedGroupId
+          ? "Fonnte group ID telah disimpan."
+          : "Fonnte group ID telah dikosongkan.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "❌ Ralat",
+        description: error.message || "Gagal menyimpan Fonnte group ID.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingFonnteGroupId(false);
+    }
+  };
+
   const totalPrizePool = dialogPrizes.reduce((sum, prize) => sum + prize, 0);
   const avgPrizePerPlayer = dialogPlayerCount > 0 ? totalPrizePool / dialogPlayerCount : 0;
 
@@ -821,6 +860,35 @@ export function ClubSettings() {
 
               <Button onClick={saveClubSettings} disabled={loading}>
                 {loading ? "Saving..." : "Save Club Settings"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Fonnte WhatsApp Group</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Simpan group ID lalai untuk penghantaran mesej WhatsApp group tanpa ubah environment variable.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fonnte-group-id">Fonnte Group ID</Label>
+                <Input
+                  id="fonnte-group-id"
+                  value={fonnteGroupId}
+                  onChange={(e) => setFonnteGroupId(e.target.value)}
+                  placeholder="120363xxxxxxxxxx@g.us"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Gunakan format penuh seperti <span className="font-medium">120363xxxxxxxxxx@g.us</span>.
+                  Jika kosong, webhook akan guna group ID yang datang daripada payload Fonnte.
+                </p>
+              </div>
+
+              <Button onClick={handleSaveFonnteGroupId} disabled={savingFonnteGroupId}>
+                {savingFonnteGroupId ? "Menyimpan..." : "Save Fonnte Group ID"}
               </Button>
             </CardContent>
           </Card>

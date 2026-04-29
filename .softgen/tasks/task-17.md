@@ -14,14 +14,14 @@ position: 17
 ---
 
 ## Notes
-Add an admin settings panel that lets admins view and update the Fonnte group ID configuration used for WhatsApp group messaging. Reuse the existing admin settings patterns and store the configuration in the current project configuration flow if available. Keep the UI clear enough that an admin can copy, edit, and save the group ID without touching environment variables manually.
+Add an admin settings panel that lets admins view and update the Fonnte group ID configuration used for WhatsApp group messaging. Reuse the existing admin settings patterns and store the configuration in the current project configuration flow via `club_settings.setting_key = "fonnte_group_id"`. Keep the UI clear enough that an admin can copy, edit, and save the group ID without touching environment variables manually.
 
 ## Checklist
-- [ ] Inspect the current admin settings surface and existing configuration storage flow
-- [ ] Identify where Fonnte configuration should be persisted in Supabase or existing settings state
-- [ ] Add an admin UI section to display and edit the Fonnte group ID
-- [ ] Save updates through the existing settings mechanism with success and error feedback
-- [ ] Wire webhook/group messaging code to read the saved Fonnte group ID when applicable
+- [x] Inspect the current admin settings surface and existing configuration storage flow
+- [x] Identify where Fonnte configuration should be persisted in Supabase or existing settings state
+- [x] Add an admin UI section to display and edit the Fonnte group ID
+- [x] Save updates through the existing settings mechanism with success and error feedback
+- [x] Wire webhook/group messaging code to read the saved Fonnte group ID when applicable
 - [ ] Validate the implementation and mark the task done
 
 ## Acceptance
