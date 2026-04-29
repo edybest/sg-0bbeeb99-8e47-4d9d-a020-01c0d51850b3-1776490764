@@ -1,68 +1,99 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 type AdminSupabaseClient = SupabaseClient<Database>;
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+type BlokGame = {
+  id: string;
+  game_name: string;
+  game_date: string;
+  game_type: string | null;
+};
+
+type PlayerScoreRow = {
+  id: string;
+  member_id: string | null;
+  game1_score: number | null;
+  game2_score: number | null;
+  game3_score: number | null;
+  game4_score: number | null;
+  game5_score: number | null;
+  handicap: number | null;
+  total_score: number | null;
+  overall_score: number | null;
+};
+
+type MemberRow = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  phone_number: string | null;
+};
+
+type LeaderboardEntry = {
+  username: string;
+  game1_score: number;
+  game2_score: number;
+  game3_score: number;
+  game4_score: number;
+  game5_score: number;
+  handicap: number;
+  total_score: number;
+  overall_score: number;
+};
+
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
-const FONNTE_DEVICE_ID = process.env.FONNTE_DEVICE_ID || "";
-
-// ─── Helper Functions ────────────────────────────────────────────────────────
 
 function normalizeComparablePhone(rawPhone: string): string {
-  let cleaned = rawPhone.replace(/[@.]/g, "");
-  cleaned = cleaned.replace(/\s+/g, "");
+  let cleaned = rawPhone.replace(/[@.]/g, "").replace(/\s+/g, "");
   if (cleaned.startsWith("+")) {
-    cleaned = cleaned.substring(1);
+    cleaned = cleaned.slice(1);
   }
   if (cleaned.startsWith("60")) {
     return cleaned;
   }
   if (cleaned.startsWith("0")) {
-    return "60" + cleaned.substring(1);
+    return `60${cleaned.slice(1)}`;
   }
   return cleaned;
 }
 
 function parseDateVariants(input: string): string | null {
   const trimmed = input.trim();
-  
-  // Try DD.MM.YYYY
+
   let match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (match) {
     const [, day, month, year] = match;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
-  
-  // Try DD/MM/YYYY
+
   match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (match) {
     const [, day, month, year] = match;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
-  
-  // Try YYYY-MM-DD
+
   match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (match) {
     const [, year, month, day] = match;
     return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
-  
+
   return null;
 }
 
 function formatDateMY(dateStr: string): string {
   try {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("ms-MY", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      weekday: "long"
-    }).toUpperCase();
+    return new Date(dateStr)
+      .toLocaleDateString("ms-MY", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        weekday: "long",
+      })
+      .toUpperCase();
   } catch {
     return dateStr;
   }
@@ -75,15 +106,13 @@ function getHelpMessage(): string {
     `   Contoh: #blok atau #blok 22.04.2026\n\n` +
     `🏆 *#top5* [tarikh]\n` +
     `   Papar top 5 ranking sahaja\n` +
-    `   Contoh: #top5 atau #top5 20.03.2026\n\n` +
+    `   Contoh: #top5 atau #top 5 20.03.2026\n\n` +
     `🎯 *#lane*\n` +
     `   Semak lane anda untuk blok terkini\n\n` +
     `❓ *#help*\n` +
     `   Papar senarai command ini\n\n` +
     `_Powered by AMBC Club_`;
 }
-
-// ─── Supabase Helper ─────────────────────────────────────────────────────────
 
 async function getConfiguredFonnteGroupId(supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const result = await supabaseAdmin
@@ -101,19 +130,19 @@ async function getConfiguredFonnteGroupId(supabaseAdmin: AdminSupabaseClient): P
   return data ? (data.setting_value ?? "") : "";
 }
 
-// ─── Command Handlers ────────────────────────────────────────────────────────
-
-async function handleBlokCommand(
-  dateStr: string | undefined,
+async function getLatestBlokGame(
   supabaseAdmin: AdminSupabaseClient,
-  compact = false
-): Promise<string> {
+  dateStr?: string
+): Promise<{ game: BlokGame | null; errorMessage: string | null }> {
   let targetDate: string | null = null;
 
   if (dateStr) {
     targetDate = parseDateVariants(dateStr);
     if (!targetDate) {
-      return "❌ Format tarikh tidak sah.\n\nContoh: #blok 22.04.2026";
+      return {
+        game: null,
+        errorMessage: "❌ Format tarikh tidak sah.\n\nContoh: #blok 22.04.2026",
+      };
     }
   }
 
@@ -127,201 +156,141 @@ async function handleBlokCommand(
     query = query.eq("game_date", targetDate);
   }
 
-  const gameResult = await query.limit(1).maybeSingle();
-
-  if (gameResult.error) {
-    console.error("Error fetching game:", gameResult.error);
-    return targetDate
-      ? `❌ Tiada game BLOK pada ${targetDate}.`
-      : "❌ Tiada game BLOK ditemui.";
+  const result = await query.limit(1).maybeSingle();
+  if (result.error) {
+    console.error("Error fetching blok game:", result.error);
+    return {
+      game: null,
+      errorMessage: targetDate ? `❌ Tiada game BLOK pada ${targetDate}.` : "❌ Tiada game BLOK ditemui.",
+    };
   }
 
-  const games = gameResult.data as { id: string; game_name: string; game_date: string; game_type: string | null } | null;
-  if (!games) {
-    return targetDate
-      ? `❌ Tiada game BLOK pada ${targetDate}.`
-      : "❌ Tiada game BLOK ditemui.";
-  }
+  return {
+    game: (result.data as BlokGame | null) ?? null,
+    errorMessage: result.data ? null : targetDate ? `❌ Tiada game BLOK pada ${targetDate}.` : "❌ Tiada game BLOK ditemui.",
+  };
+}
 
-  const playersQuery = await supabaseAdmin
+async function getLeaderboardEntries(
+  supabaseAdmin: AdminSupabaseClient,
+  gameId: string
+): Promise<LeaderboardEntry[]> {
+  const playersResult = await supabaseAdmin
     .from("game_players")
-    .select(`
-      id,
-      game1_score,
-      game2_score,
-      game3_score,
-      game4_score,
-      game5_score,
-      handicap,
-      total_score,
-      overall_score,
-      members!game_players_member_id_fkey (id, username, full_name)
-    `)
-    .eq("game_id", games.id);
+    .select("id, member_id, game1_score, game2_score, game3_score, game4_score, game5_score, handicap, total_score, overall_score")
+    .eq("game_id", gameId);
 
-  if (playersQuery.error || !playersQuery.data) {
-    console.error("Error fetching players:", playersQuery.error);
-    return `❌ Game "${games.game_name}" belum ada skor.`;
+  if (playersResult.error || !playersResult.data) {
+    console.error("Error fetching game players:", playersResult.error);
+    return [];
   }
 
-  const scores = playersQuery.data.map((p: any) => ({
-    ...p,
-    member: p.members
-  }));
+  const playerRows = playersResult.data as PlayerScoreRow[];
+  const memberIds = playerRows
+    .map((row) => row.member_id)
+    .filter((memberId): memberId is string => Boolean(memberId));
 
-  if (scores.length === 0) {
-    return `❌ Game "${games.game_name}" belum ada skor.`;
+  const membersMap = new Map<string, MemberRow>();
+
+  if (memberIds.length > 0) {
+    const membersResult = await supabaseAdmin
+      .from("members")
+      .select("id, username, full_name, phone_number")
+      .in("id", memberIds);
+
+    if (membersResult.error) {
+      console.error("Error fetching members:", membersResult.error);
+    } else {
+      const members = (membersResult.data ?? []) as MemberRow[];
+      members.forEach((member) => {
+        membersMap.set(member.id, member);
+      });
+    }
   }
 
-  const sorted = [...scores].sort((a, b) => {
-    if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
-    if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
-    if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
-    if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
-    if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
-    return b.game1_score - a.game1_score;
+  return playerRows
+    .map((row) => {
+      const member = row.member_id ? membersMap.get(row.member_id) : null;
+      return {
+        username: (member?.username || member?.full_name || "UNKNOWN").toUpperCase(),
+        game1_score: row.game1_score ?? 0,
+        game2_score: row.game2_score ?? 0,
+        game3_score: row.game3_score ?? 0,
+        game4_score: row.game4_score ?? 0,
+        game5_score: row.game5_score ?? 0,
+        handicap: row.handicap ?? 0,
+        total_score: row.total_score ?? 0,
+        overall_score: row.overall_score ?? 0,
+      };
+    })
+    .sort((a, b) => {
+      if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
+      if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
+      if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
+      if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
+      if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
+      return b.game1_score - a.game1_score;
+    });
+}
+
+async function handleBlokCommand(dateStr: string | undefined, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  const { game, errorMessage } = await getLatestBlokGame(supabaseAdmin, dateStr);
+  if (!game) {
+    return errorMessage ?? "❌ Tiada game BLOK ditemui.";
+  }
+
+  const leaderboard = await getLeaderboardEntries(supabaseAdmin, game.id);
+  if (leaderboard.length === 0) {
+    return `❌ Game "${game.game_name}" belum ada skor.`;
+  }
+
+  const topScore = leaderboard[0]?.overall_score ?? 0;
+  let reply = `🎳 *${game.game_name}*\n`;
+  reply += `📅 ${formatDateMY(game.game_date)}\n\n`;
+  reply += `📊 *Ranking Blok:*\n`;
+  reply += `${"─".repeat(30)}\n`;
+
+  leaderboard.forEach((entry, index) => {
+    const diff = topScore - entry.overall_score;
+    reply += `${index + 1}. ${entry.username} - ${entry.overall_score}`;
+    if (diff > 0) {
+      reply += ` (-${diff})`;
+    }
+    reply += `\n`;
   });
 
-  const topScore = sorted[0]?.overall_score ?? 0;
-
-  let reply = `🎳 *${games.game_name}*\n`;
-  reply += `📅 ${formatDateMY(games.game_date)}\n\n`;
-
-  if (compact) {
-    // Compact mode: username + overall score sahaja
-    reply += `📊 *Ranking Blok:*\n`;
-    reply += `${"─".repeat(30)}\n`;
-    sorted.forEach((entry, idx) => {
-      const rank = idx + 1;
-      const diff = topScore - entry.overall_score;
-      const username = entry.member.username.toUpperCase();
-      reply += `${rank}. ${username} - ${entry.overall_score}`;
-      if (diff > 0) {
-        reply += ` (-${diff})`;
-      }
-      reply += `\n`;
-    });
-  } else {
-    // Full mode: semua details
-    reply += `📊 *Ranking Blok:*\n`;
-    reply += `${"─".repeat(30)}\n`;
-    sorted.forEach((entry, idx) => {
-      const rank = idx + 1;
-      const diff = topScore - entry.overall_score;
-      const username = entry.member.username.toUpperCase();
-      reply += `${rank}. ${username}\n`;
-      reply += `   G1:${entry.game1_score} G2:${entry.game2_score} G3:${entry.game3_score} G4:${entry.game4_score} G5:${entry.game5_score}\n`;
-      reply += `   Total: ${entry.total_score} | H/C: ${entry.handicap}\n`;
-      reply += `   *Overall: ${entry.overall_score}*`;
-      if (diff > 0) {
-        reply += ` (-${diff})`;
-      }
-      reply += `\n\n`;
-    });
-  }
-
-  reply += `\n_Total pemain: ${sorted.length}_`;
+  reply += `\n_Total pemain: ${leaderboard.length}_`;
   return reply;
 }
 
-async function handleTop5Command(
-  dateStr: string | undefined,
-  supabaseAdmin: AdminSupabaseClient
-): Promise<string> {
-  let targetDate: string | null = null;
-
-  if (dateStr) {
-    targetDate = parseDateVariants(dateStr);
-    if (!targetDate) {
-      return "❌ Format tarikh tidak sah.\n\nContoh: #top5 20.03.2026";
-    }
+async function handleTop5Command(dateStr: string | undefined, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  const { game, errorMessage } = await getLatestBlokGame(supabaseAdmin, dateStr);
+  if (!game) {
+    return errorMessage?.replace("#blok", "#top5") ?? "❌ Tiada game BLOK ditemui.";
   }
 
-  let query = supabaseAdmin
-    .from("games")
-    .select("id, game_name, game_date, game_type")
-    .eq("game_type", "blok")
-    .order("game_date", { ascending: false });
-
-  if (targetDate) {
-    query = query.eq("game_date", targetDate);
+  const leaderboard = await getLeaderboardEntries(supabaseAdmin, game.id);
+  if (leaderboard.length === 0) {
+    return `❌ Game "${game.game_name}" belum ada skor.`;
   }
 
-  const gameResult = await query.limit(1).maybeSingle();
-
-  if (gameResult.error) {
-    console.error("Error fetching game:", gameResult.error);
-    return targetDate
-      ? `❌ Tiada game BLOK pada ${targetDate}.`
-      : "❌ Tiada game BLOK ditemui.";
-  }
-
-  const games = gameResult.data as { id: string; game_name: string; game_date: string; game_type: string | null } | null;
-  if (!games) {
-    return targetDate
-      ? `❌ Tiada game BLOK pada ${targetDate}.`
-      : "❌ Tiada game BLOK ditemui.";
-  }
-
-  const playersQuery = await supabaseAdmin
-    .from("game_players")
-    .select(`
-      id,
-      overall_score,
-      game1_score,
-      game2_score,
-      game3_score,
-      game4_score,
-      game5_score,
-      members!game_players_member_id_fkey (id, username)
-    `)
-    .eq("game_id", games.id);
-
-  if (playersQuery.error || !playersQuery.data) {
-    console.error("Error fetching players:", playersQuery.error);
-    return `❌ Game "${games.game_name}" belum ada skor.`;
-  }
-
-  const scores = playersQuery.data.map((p: any) => ({
-    ...p,
-    member: p.members
-  }));
-
-  if (scores.length === 0) {
-    return `❌ Game "${games.game_name}" belum ada skor.`;
-  }
-
-  const sorted = [...scores].sort((a, b) => {
-    if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
-    if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
-    if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
-    if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
-    if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
-    return b.game1_score - a.game1_score;
-  });
-
-  const top5 = sorted.slice(0, 5);
-
-  let reply = `🏆 *TOP 5 - ${games.game_name}*\n`;
-  reply += `📅 ${formatDateMY(games.game_date)}\n\n`;
+  const top5 = leaderboard.slice(0, 5);
+  let reply = `🏆 *TOP 5 - ${game.game_name}*\n`;
+  reply += `📅 ${formatDateMY(game.game_date)}\n\n`;
   reply += `${"─".repeat(30)}\n`;
 
-  top5.forEach((entry, idx) => {
-    const rank = idx + 1;
-    const username = entry.member.username.toUpperCase();
+  top5.forEach((entry, index) => {
+    const rank = index + 1;
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🏅";
-    reply += `${medal} ${rank}. ${username} - ${entry.overall_score}\n`;
+    reply += `${medal} ${rank}. ${entry.username} - ${entry.overall_score}\n`;
   });
 
   reply += `${"─".repeat(30)}\n`;
-  reply += `_Total pemain: ${sorted.length}_`;
+  reply += `_Total pemain: ${leaderboard.length}_`;
   return reply;
 }
 
-async function handleLaneCommand(
-  sender: string,
-  supabaseAdmin: AdminSupabaseClient
-): Promise<string> {
+async function handleLaneCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(sender);
 
   const memberResult = await supabaseAdmin
@@ -331,6 +300,7 @@ async function handleLaneCommand(
     .maybeSingle();
 
   if (memberResult.error) {
+    console.error("Error fetching member by phone:", memberResult.error);
     return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
@@ -339,22 +309,12 @@ async function handleLaneCommand(
     return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
-  const latestGameResult = await supabaseAdmin
-    .from("games")
-    .select("id, game_name, game_date")
-    .eq("game_type", "blok")
-    .order("game_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (latestGameResult.error) {
+  const latestGameInfo = await getLatestBlokGame(supabaseAdmin);
+  if (!latestGameInfo.game) {
     return "❌ Tiada game BLOK ditemui.";
   }
 
-  const latestGame = latestGameResult.data as { id: string; game_name: string; game_date: string } | null;
-  if (!latestGame) {
-    return "❌ Tiada game BLOK ditemui.";
-  }
+  const latestGame = latestGameInfo.game;
 
   const scoreResult = await supabaseAdmin
     .from("game_players")
@@ -367,77 +327,49 @@ async function handleLaneCommand(
     return `❌ Anda tidak join blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}`;
   }
 
-  const laneAssignmentResult = await supabaseAdmin
+  const laneResult = await supabaseAdmin
     .from("lane_assignments")
     .select("lane_position, game_id")
     .eq("member_id", member.id)
     .eq("game_id", latestGame.id)
     .maybeSingle();
 
-  if (laneAssignmentResult.error) {
-    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n` +
-      `*${latestGame.game_name}*\n` +
-      `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
-      `Sila layari:\n` +
-      `🔗 http://ambc.club/member/undi-lane\n\n` +
-      `untuk undi lane anda.`;
+  if (laneResult.error) {
+    console.error("Error fetching lane assignment:", laneResult.error);
   }
 
-  const laneAssignment = laneAssignmentResult.data as { lane_position: string | null; game_id: string } | null;
-  if (!laneAssignment) {
-    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n` +
-      `*${latestGame.game_name}*\n` +
-      `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
-      `Sila layari:\n` +
-      `🔗 http://ambc.club/member/undi-lane\n\n` +
-      `untuk undi lane anda.`;
+  const laneAssignment = laneResult.data as { lane_position: string | null; game_id: string } | null;
+  if (!laneAssignment || !laneAssignment.lane_position) {
+    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nSila layari:\n🔗 http://ambc.club/member/undi-lane\n\nuntuk undi lane anda.`;
   }
 
-  return `🎯 *Lane Anda*\n\n` +
-    `*${latestGame.game_name}*\n` +
-    `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
-    `Lane Position: *${laneAssignment.lane_position}*\n\n` +
-    `_Selamat bermain! 🎳_`;
+  return `🎯 *Lane Anda*\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nLane Position: *${laneAssignment.lane_position}*\n\n_Selamat bermain! 🎳_`;
 }
 
-// ─── Command Processor ───────────────────────────────────────────────────────
-
-async function processCommand(
-  message: string,
-  sender: string,
-  supabaseAdmin: AdminSupabaseClient
-): Promise<string> {
+async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const trimmed = message.trim();
   const lowerMessage = trimmed.toLowerCase();
 
-  // #help command
   if (lowerMessage === "#help") {
     return getHelpMessage();
   }
 
-  // #top5 or #top 5 command
-  const top5Match = lowerMessage.match(/^#top\s*5\s*([\d./-]+)?/);
+  const top5Match = lowerMessage.match(/^#top\s*5\s*([\d./-]+)?$/);
   if (top5Match) {
-    const dateStr = top5Match[1];
-    return await handleTop5Command(dateStr, supabaseAdmin);
+    return handleTop5Command(top5Match[1], supabaseAdmin);
   }
 
-  // #lane command
   if (lowerMessage === "#lane") {
-    return await handleLaneCommand(sender, supabaseAdmin);
+    return handleLaneCommand(sender, supabaseAdmin);
   }
 
-  // #blok or #blokambc command
-  const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?/);
+  const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?$/);
   if (blokMatch) {
-    const dateStr = blokMatch[1];
-    return await handleBlokCommand(dateStr, supabaseAdmin, true);
+    return handleBlokCommand(blokMatch[1], supabaseAdmin);
   }
 
   return "❌ Command tidak dikenali.\n\nTaip *#help* untuk senarai command.";
 }
-
-// ─── WhatsApp Reply Function ─────────────────────────────────────────────────
 
 async function sendWhatsAppReply(
   replyTarget: string,
@@ -445,94 +377,65 @@ async function sendWhatsAppReply(
   supabaseAdmin: AdminSupabaseClient
 ): Promise<void> {
   const isGroupTarget = replyTarget.includes("@g.us");
-  
-  let target: string;
-  if (isGroupTarget) {
-    const configuredGroupId = await getConfiguredFonnteGroupId(supabaseAdmin);
-    target = configuredGroupId || replyTarget;
-  } else {
-    target = normalizeComparablePhone(replyTarget);
-  }
+  const configuredGroupId = isGroupTarget ? await getConfiguredFonnteGroupId(supabaseAdmin) : "";
+  const target = isGroupTarget ? (configuredGroupId || replyTarget) : normalizeComparablePhone(replyTarget);
 
   if (!target) {
     console.warn("⚠️ WhatsApp auto-reply skipped because target is empty");
     return;
   }
 
-  console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
-
-  try {
-    const requestBody = JSON.stringify({
+  const response = await fetch(FONNTE_API_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": FONNTE_TOKEN,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       target,
       message,
       countryCode: "60",
-    });
+    }),
+  });
 
-    console.log("📝 Request endpoint:", FONNTE_API_URL);
-    console.log("📝 Request body:", requestBody);
+  const responseText = await response.text();
+  console.log("📬 Response status:", response.status);
+  console.log("📬 Response body:", responseText);
 
-    const response = await fetch(FONNTE_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": FONNTE_TOKEN,
-        "Content-Type": "application/json",
-      },
-      body: requestBody,
-    });
-
-    if (!response) {
-      throw new Error("Failed to get response from Fonnte API");
-    }
-
-    const responseText = await response.text();
-    console.log("📬 Response status:", response.status);
-    console.log("📬 Response body:", responseText);
-
-    if (!response.ok) {
-      throw new Error(`Fonnte API error: ${response.status} ${responseText}`);
-    }
-
-    console.log("✅ WhatsApp auto-reply sent successfully:", target);
-  } catch (error) {
-    console.error("❌ Failed to send WhatsApp auto-reply:", error);
-    throw error;
+  if (!response.ok) {
+    throw new Error(`Fonnte API error: ${response.status} ${responseText}`);
   }
 }
-
-// ─── Main Handler ────────────────────────────────────────────────────────────
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
-  console.log("🔔 Webhook received at:", new Date().toISOString());
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-  const { device, sender, message } = req.body;
+  if (!supabaseUrl || !serviceRoleKey || !FONNTE_TOKEN) {
+    return res.status(500).json({ success: false, message: "Missing server configuration" });
+  }
 
+  const { sender, message } = req.body ?? {};
   if (!sender || !message) {
-    console.warn("⚠️ Missing required fields: sender or message");
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
 
-  console.log("📥 Webhook payload:", JSON.stringify({ device, sender, message }, null, 2));
-
   try {
-    const supabaseAdmin = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const supabaseAdmin = createClient<Database>(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
-    const replyMessage = await processCommand(message, sender, supabaseAdmin);
-    
+    const replyMessage = await processCommand(String(message), String(sender), supabaseAdmin);
+
     if (replyMessage) {
-      await sendWhatsAppReply(sender, replyMessage, supabaseAdmin);
+      await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
     }
 
     return res.status(200).json({ success: true, message: "Webhook processed successfully" });
