@@ -67,7 +67,7 @@ type LeaderboardEntry = {
 
 const BLOK_REGISTER_REGEX = /^\s*#blokambc\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
 const BLOK_LEADERBOARD_REGEX = /^\s*#blok\s+(\d{2})\.(\d{2})\.(\d{4})\s*$/i;
-const FONNTE_API_URL = "https://api.fonnte.com/send";
+const FONNTE_API_URL = "https://api.fonnte.com/message";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 function extractSender(webhookData: FonteWebhookData): string {
