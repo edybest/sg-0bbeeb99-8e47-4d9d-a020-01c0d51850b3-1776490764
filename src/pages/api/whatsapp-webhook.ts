@@ -239,11 +239,26 @@ async function getConfiguredFonnteGroupId(
     .maybeSingle();
 
   if (error) {
-    console.warn("⚠️ Failed to load configured Fonnte group ID:", error.message);
+    console.error("❌ Error fetching fonnte_group_id from club_settings:", error);
     return "";
   }
 
-  return data?.setting_value?.trim() || "";
+  return data?.setting_value || "";
+}
+
+function getHelpMessage(): string {
+  return `📋 *AMBC CLUB - WhatsApp Commands*\n\n` +
+    `🎳 *#blok* [tarikh]\n` +
+    `   Papar ranking blok lengkap\n` +
+    `   Contoh: #blok atau #blok 22.04.2026\n\n` +
+    `🏆 *#top5* [tarikh]\n` +
+    `   Papar top 5 ranking sahaja\n` +
+    `   Contoh: #top5 atau #top5 20.03.2026\n\n` +
+    `🎯 *#lane*\n` +
+    `   Semak lane anda untuk blok terkini\n\n` +
+    `❓ *#help*\n` +
+    `   Papar senarai command ini\n\n` +
+    `_Powered by AMBC Club_`;
 }
 
 async function sendWhatsAppReply(
@@ -603,6 +618,265 @@ async function handleBlokLeaderboardQuery(
     success: true,
     message: `Leaderboard for BLOK ${parsedCommand.rawDate} sent successfully`,
   };
+}
+
+async function handleTop5Command(
+  dateStr: string | undefined,
+  supabaseAdmin: ReturnType<typeof createClient<Database>>
+): Promise<string> {
+  let targetDate: string | null = null;
+
+  if (dateStr) {
+    targetDate = parseDateVariants(dateStr);
+    if (!targetDate) {
+      return "❌ Format tarikh tidak sah.\n\nContoh: #top5 20.03.2026";
+    }
+  }
+
+  const query = supabaseAdmin
+    .from("games")
+    .select(
+      `
+      id,
+      game_name,
+      game_date,
+      game_type,
+      scores (
+        id,
+        member:members!scores_member_id_fkey (id, username),
+        overall_score,
+        game1_score,
+        game2_score,
+        game3_score,
+        game4_score,
+        game5_score
+      )
+    `
+    )
+    .eq("game_type", "blok")
+    .order("game_date", { ascending: false });
+
+  if (targetDate) {
+    query.eq("game_date", targetDate);
+  }
+
+  const { data: games, error } = await query.limit(1).single();
+
+  if (error || !games) {
+    return targetDate
+      ? `❌ Tiada game BLOK pada ${targetDate}.`
+      : "❌ Tiada game BLOK ditemui.";
+  }
+
+  const scores = Array.isArray(games.scores) ? games.scores : [];
+  if (scores.length === 0) {
+    return `❌ Game "${games.game_name}" belum ada skor.`;
+  }
+
+  const sorted = [...scores].sort((a, b) => {
+    if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
+    if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
+    if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
+    if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
+    if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
+    return b.game1_score - a.game1_score;
+  });
+
+  const top5 = sorted.slice(0, 5);
+
+  let reply = `🏆 *TOP 5 - ${games.game_name}*\n`;
+  reply += `📅 ${formatDateMY(games.game_date)}\n\n`;
+  reply += `${"─".repeat(30)}\n`;
+
+  top5.forEach((entry, idx) => {
+    const rank = idx + 1;
+    const username = entry.member.username.toUpperCase();
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🏅";
+    reply += `${medal} ${rank}. ${username} - ${entry.overall_score}\n`;
+  });
+
+  reply += `${"─".repeat(30)}\n`;
+  reply += `_Total pemain: ${sorted.length}_`;
+  return reply;
+}
+
+async function handleLaneCommand(
+  sender: string,
+  supabaseAdmin: ReturnType<typeof createClient<Database>>
+): Promise<string> {
+  // Normalize phone number
+  const normalizedPhone = normalizeComparablePhone(sender);
+
+  // Find member by phone
+  const { data: member, error: memberError } = await supabaseAdmin
+    .from("members")
+    .select("id, username")
+    .eq("phone_number", normalizedPhone)
+    .maybeSingle();
+
+  if (memberError || !member) {
+    return "❌ Nombor telefon anda tidak dijumpai dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
+  }
+
+  // Get latest blok game
+  const { data: latestGame, error: gameError } = await supabaseAdmin
+    .from("games")
+    .select("id, game_name, game_date")
+    .eq("game_type", "blok")
+    .order("game_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (gameError || !latestGame) {
+    return "❌ Tiada game BLOK ditemui.";
+  }
+
+  // Check if member joined this game
+  const { data: score, error: scoreError } = await supabaseAdmin
+    .from("scores")
+    .select("id")
+    .eq("game_id", latestGame.id)
+    .eq("member_id", member.id)
+    .maybeSingle();
+
+  if (scoreError || !score) {
+    return `❌ Anda tidak join blok terkini.\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}`;
+  }
+
+  // Check lane assignment
+  const { data: laneAssignment, error: laneError } = await supabaseAdmin
+    .from("lane_assignments")
+    .select(`
+      lane_number,
+      position,
+      lanes!inner(game_id)
+    `)
+    .eq("member_id", member.id)
+    .eq("lanes.game_id", latestGame.id)
+    .maybeSingle();
+
+  if (laneError || !laneAssignment) {
+    return `⚠️ Anda belum mendapat lane untuk blok terkini.\n\n` +
+      `*${latestGame.game_name}*\n` +
+      `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
+      `Sila layari:\n` +
+      `🔗 http://ambc.club/member/undi-lane\n\n` +
+      `untuk undi lane anda.`;
+  }
+
+  return `🎯 *Lane Anda*\n\n` +
+    `*${latestGame.game_name}*\n` +
+    `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
+    `Lane: *${laneAssignment.lane_number}*\n` +
+    `Position: *${laneAssignment.position}*\n\n` +
+    `_Selamat bermain! 🎳_`;
+}
+
+async function handleBlokCommand(
+  dateStr: string | undefined,
+  supabaseAdmin: ReturnType<typeof createClient<Database>>,
+  compact = false
+): Promise<string> {
+  let targetDate: string | null = null;
+
+  if (dateStr) {
+    targetDate = parseDateVariants(dateStr);
+    if (!targetDate) {
+      return "❌ Format tarikh tidak sah.\n\nContoh: #blok 22.04.2026";
+    }
+  }
+
+  const query = supabaseAdmin
+    .from("games")
+    .select(
+      `
+      id,
+      game_name,
+      game_date,
+      game_type,
+      scores (
+        id,
+        member:members!scores_member_id_fkey (id, username, full_name),
+        game1_score,
+        game2_score,
+        game3_score,
+        game4_score,
+        game5_score,
+        handicap,
+        total_score,
+        overall_score
+      )
+    `
+    )
+    .eq("game_type", "blok")
+    .order("game_date", { ascending: false });
+
+  if (targetDate) {
+    query.eq("game_date", targetDate);
+  }
+
+  const { data: games, error } = await query.limit(1).single();
+
+  if (error || !games) {
+    return targetDate
+      ? `❌ Tiada game BLOK pada ${targetDate}.`
+      : "❌ Tiada game BLOK ditemui.";
+  }
+
+  const scores = Array.isArray(games.scores) ? games.scores : [];
+  if (scores.length === 0) {
+    return `❌ Game "${games.game_name}" belum ada skor.`;
+  }
+
+  const sorted = [...scores].sort((a, b) => {
+    if (b.overall_score !== a.overall_score) return b.overall_score - a.overall_score;
+    if (b.game5_score !== a.game5_score) return b.game5_score - a.game5_score;
+    if (b.game4_score !== a.game4_score) return b.game4_score - a.game4_score;
+    if (b.game3_score !== a.game3_score) return b.game3_score - a.game3_score;
+    if (b.game2_score !== a.game2_score) return b.game2_score - a.game2_score;
+    return b.game1_score - a.game1_score;
+  });
+
+  const topScore = sorted[0]?.overall_score ?? 0;
+
+  let reply = `🎳 *${games.game_name}*\n`;
+  reply += `📅 ${formatDateMY(games.game_date)}\n\n`;
+
+  if (compact) {
+    // Compact mode: username + overall score sahaja
+    reply += `📊 *Ranking Blok:*\n`;
+    reply += `${"─".repeat(30)}\n`;
+    sorted.forEach((entry, idx) => {
+      const rank = idx + 1;
+      const diff = topScore - entry.overall_score;
+      const username = entry.member.username.toUpperCase();
+      reply += `${rank}. ${username} - ${entry.overall_score}`;
+      if (diff > 0) {
+        reply += ` (-${diff})`;
+      }
+      reply += `\n`;
+    });
+  } else {
+    // Full mode: semua details
+    reply += `📊 *Ranking Blok:*\n`;
+    reply += `${"─".repeat(30)}\n`;
+    sorted.forEach((entry, idx) => {
+      const rank = idx + 1;
+      const diff = topScore - entry.overall_score;
+      const username = entry.member.username.toUpperCase();
+      reply += `${rank}. ${username}\n`;
+      reply += `   G1:${entry.game1_score} G2:${entry.game2_score} G3:${entry.game3_score} G4:${entry.game4_score} G5:${entry.game5_score}\n`;
+      reply += `   Total: ${entry.total_score} | H/C: ${entry.handicap}\n`;
+      reply += `   *Overall: ${entry.overall_score}*`;
+      if (diff > 0) {
+        reply += ` (-${diff})`;
+      }
+      reply += `\n\n`;
+    });
+  }
+
+  reply += `\n_Total pemain: ${sorted.length}_`;
+  return reply;
 }
 
 export default async function handler(
