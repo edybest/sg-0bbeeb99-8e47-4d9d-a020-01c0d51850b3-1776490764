@@ -4,7 +4,12 @@ import type { Database } from "@/integrations/supabase/database.types";
 
 type FonteWebhookData = {
   device?: string;
-  sender?: string;
+  sender?: 
+    | string  // Old format: string phone number
+    | {       // New format: object with id and isGroup
+        id?: string;
+        isGroup?: boolean;
+      };
   message?: string;
   member?: {
     jid?: string;
@@ -66,17 +71,22 @@ const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 function extractSender(webhookData: FonteWebhookData): string {
-  // For group messages, Fonnte might send member JID in different fields
-  // Priority: member.jid (group participant) > sender > phone > data.from
+  // Fonnte format: sender can be string OR object { id, isGroup }
   
-  // Group message: member.jid contains actual participant phone
-  if (webhookData.member?.jid) {
-    return webhookData.member.jid;
+  if (webhookData.sender) {
+    // Check if sender is object (new Fonnte format)
+    if (typeof webhookData.sender === "object" && webhookData.sender.id) {
+      return webhookData.sender.id;
+    }
+    // Sender is string (old format)
+    if (typeof webhookData.sender === "string") {
+      return webhookData.sender;
+    }
   }
   
-  // Personal message: sender field
-  if (webhookData.sender) {
-    return webhookData.sender;
+  // Fallback: member.jid for group participant
+  if (webhookData.member?.jid) {
+    return webhookData.member.jid;
   }
   
   // Alternative field
@@ -84,7 +94,7 @@ function extractSender(webhookData: FonteWebhookData): string {
     return webhookData.phone;
   }
   
-  // Fallback
+  // Last resort
   if (webhookData.data?.from) {
     return webhookData.data.from;
   }
@@ -553,16 +563,24 @@ export default async function handler(
     shouldReply = parsedRegistration !== null || parsedLeaderboard !== null;
 
     // DETAILED LOGGING - Log semua webhook incoming untuk debugging
-    const isGroupMessage = !!(webhookData.group?.id || webhookData.sender?.includes("@g.us"));
+    // Fonnte format: sender.isGroup indicates if message is from group
+    const isGroupMessage = 
+      (typeof webhookData.sender === "object" && webhookData.sender.isGroup === true) ||
+      !!(webhookData.group?.id) ||
+      (typeof webhookData.sender === "string" && webhookData.sender.includes("@g.us"));
     
     const logEntry = {
       timestamp: new Date().toISOString(),
       sender: sender || "unknown",
+      senderRaw: typeof webhookData.sender === "object" 
+        ? JSON.stringify(webhookData.sender) 
+        : webhookData.sender || "unknown",
       message: messageText || "empty",
       status: status || "no-status",
       device: webhookData.device || "unknown",
       isGroup: isGroupMessage,
-      groupId: webhookData.group?.id || "N/A",
+      groupId: webhookData.group?.id || 
+        (typeof webhookData.sender === "object" && webhookData.sender.isGroup ? webhookData.sender.id : "N/A"),
       groupName: webhookData.group?.subject || "N/A",
       pushname: webhookData.pushname || webhookData.member?.name || "N/A",
       fullPayload: JSON.stringify(webhookData, null, 2),
@@ -571,7 +589,8 @@ export default async function handler(
 
     console.log("\n=== FONNTE WEBHOOK RECEIVED ===");
     console.log("Timestamp:", logEntry.timestamp);
-    console.log("📱 Sender:", logEntry.sender);
+    console.log("📱 Sender (extracted):", logEntry.sender);
+    console.log("📱 Sender (raw):", logEntry.senderRaw);
     console.log("👤 Pushname:", logEntry.pushname);
     console.log("💬 Message:", logEntry.message);
     console.log("📊 Status:", logEntry.status);
