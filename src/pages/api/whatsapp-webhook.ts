@@ -253,14 +253,18 @@ async function sendWhatsAppReply(
   supabaseAdmin?: ReturnType<typeof createClient<Database>>
 ): Promise<void> {
   const isGroupTarget = replyTarget.includes("@g.us");
-  const configuredGroupId =
-    isGroupTarget && supabaseAdmin ? await getConfiguredFonnteGroupId(supabaseAdmin) : "";
-  const target = isGroupTarget
-    ? configuredGroupId || replyTarget
-    : normalizeComparablePhone(replyTarget);
+  
+  let target: string;
+  if (isGroupTarget) {
+    const configuredGroupId = await getConfiguredFonnteGroupId(supabaseAdmin!);
+    target = configuredGroupId || replyTarget;
+  } else {
+    // Align dengan format TAC yang berjaya - buang special chars sahaja
+    target = replyTarget.replace(/[+\s-]/g, "");
+  }
 
   if (!target) {
-    console.warn("⚠️ WhatsApp auto-reply skipped because sender could not be normalized");
+    console.warn("⚠️ WhatsApp auto-reply skipped because target is empty");
     return;
   }
 
@@ -273,6 +277,8 @@ async function sendWhatsAppReply(
     console.warn("⚠️ WhatsApp group auto-reply skipped because FONNTE_DEVICE_ID is missing");
     return;
   }
+
+  console.log(`📤 Sending WhatsApp reply to ${isGroupTarget ? "group" : "personal"}:`, target);
 
   try {
     const response = isGroupTarget
@@ -306,10 +312,12 @@ async function sendWhatsAppReply(
 
     if (!response.ok) {
       console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
+      console.error("Request target:", target);
+      console.error("Is group:", isGroupTarget);
       return;
     }
 
-    console.log("✅ WhatsApp auto-reply sent:", target);
+    console.log("✅ WhatsApp auto-reply sent successfully:", target);
   } catch (error) {
     console.error("❌ WhatsApp auto-reply error:", error);
   }
