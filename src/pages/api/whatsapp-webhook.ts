@@ -344,7 +344,7 @@ async function sendWhatsAppReply(
     console.log("📝 Request endpoint:", FONNTE_API_URL);
     console.log("📝 Request body:", requestBody);
 
-    const response = await fetch(FONNTE_API_URL, {
+    const response: Response = await fetch(FONNTE_API_URL, {
       method: "POST",
       headers: {
         "Authorization": FONNTE_TOKEN,
@@ -353,20 +353,18 @@ async function sendWhatsAppReply(
       body: requestBody,
     });
 
-    const responseText: string = await response.text();
+    const responseText = await response.text();
     console.log("📬 Response status:", response.status);
     console.log("📬 Response body:", responseText);
 
     if (!response.ok) {
-      console.error("❌ Failed to send WhatsApp auto-reply:", response.status, responseText);
-      console.error("Request target:", target);
-      console.error("Is group:", isGroupTarget);
-      return;
+      throw new Error(`Fonnte API error: ${response.status} ${responseText}`);
     }
 
     console.log("✅ WhatsApp auto-reply sent successfully:", target);
   } catch (error) {
-    console.error("❌ WhatsApp auto-reply error:", error);
+    console.error("❌ Failed to send WhatsApp auto-reply:", error);
+    throw error;
   }
 }
 
