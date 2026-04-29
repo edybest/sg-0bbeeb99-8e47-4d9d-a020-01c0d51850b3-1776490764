@@ -1,6 +1,6 @@
 ---
 title: Fonnte group ID settings panel
-status: in_progress
+status: done
 priority: high
 type: feature
 tags:
@@ -22,7 +22,7 @@ Add an admin settings panel that lets admins view and update the Fonnte group ID
 - [x] Add an admin UI section to display and edit the Fonnte group ID
 - [x] Save updates through the existing settings mechanism with success and error feedback
 - [x] Wire webhook/group messaging code to read the saved Fonnte group ID when applicable
-- [ ] Validate the implementation and mark the task done
+- [x] Validate the implementation and mark the task done
 
 ## Acceptance
 Admins can open the settings area, see the current Fonnte group ID value, update it, and save it successfully.
