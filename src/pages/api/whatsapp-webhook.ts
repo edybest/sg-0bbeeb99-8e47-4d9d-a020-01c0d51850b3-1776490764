@@ -378,6 +378,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
 
+  const normalizedMessage = String(message).trim();
+  if (!normalizedMessage.startsWith("#")) {
+    return res.status(200).json({ success: true, message: "Ignored non-command message" });
+  }
+
   try {
     const supabaseAdmin = createClient<Database>(supabaseUrl, serviceRoleKey, {
       auth: {
@@ -386,7 +391,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    const replyMessage = await processCommand(String(message), String(sender), supabaseAdmin);
+    const replyMessage = await processCommand(normalizedMessage, String(sender), supabaseAdmin);
 
     if (replyMessage) {
       await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
