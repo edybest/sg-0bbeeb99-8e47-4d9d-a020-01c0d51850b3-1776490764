@@ -246,6 +246,47 @@ async function getConfiguredFonnteGroupId(
   return data?.setting_value || "";
 }
 
+function parseDateVariants(input: string): string | null {
+  const trimmed = input.trim();
+  
+  // Try DD.MM.YYYY
+  let match = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  
+  // Try DD/MM/YYYY
+  match = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  
+  // Try YYYY-MM-DD
+  match = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  
+  return null;
+}
+
+function formatDateMY(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("ms-MY", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      weekday: "long"
+    }).toUpperCase();
+  } catch {
+    return dateStr;
+  }
+}
+
 function getHelpMessage(): string {
   return `📋 *AMBC CLUB - WhatsApp Commands*\n\n` +
     `🎳 *#blok* [tarikh]\n` +
@@ -747,8 +788,8 @@ async function handleLaneCommand(
   const { data: laneAssignment, error: laneError } = await supabaseAdmin
     .from("lane_assignments")
     .select(`
-      lane_number,
-      position,
+      lane,
+      position_number,
       lanes!inner(game_id)
     `)
     .eq("member_id", member.id)
@@ -767,8 +808,8 @@ async function handleLaneCommand(
   return `🎯 *Lane Anda*\n\n` +
     `*${latestGame.game_name}*\n` +
     `📅 ${formatDateMY(latestGame.game_date)}\n\n` +
-    `Lane: *${laneAssignment.lane_number}*\n` +
-    `Position: *${laneAssignment.position}*\n\n` +
+    `Lane: *${laneAssignment.lane}*\n` +
+    `Position: *${laneAssignment.position_number}*\n\n` +
     `_Selamat bermain! 🎳_`;
 }
 
