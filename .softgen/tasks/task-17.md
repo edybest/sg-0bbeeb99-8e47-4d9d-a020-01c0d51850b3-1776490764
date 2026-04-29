@@ -8,6 +8,7 @@ tags:
   - settings
   - fonnte
   - supabase
+  - completed
 created_by: agent
 created_at: 2026-04-29T01:11:09Z
 position: 17
