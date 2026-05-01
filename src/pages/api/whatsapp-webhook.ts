@@ -378,19 +378,57 @@ async function handleJoinBlokCommand(message: string, sender: string, supabaseAd
 async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(sender);
 
+  console.log('[DEBUG] #join command:', {
+    rawSender: sender,
+    normalized: normalizedPhone
+  });
+
   // Check if member exists
   const memberResult = await supabaseAdmin
     .from('members')
-    .select('id, username, full_name')
+    .select('id, username, full_name, phone')
     .eq('phone', normalizedPhone)
     .maybeSingle();
+
+  console.log('[DEBUG] Member lookup:', {
+    found: !!memberResult.data,
+    error: memberResult.error,
+    phone: memberResult.data ? (memberResult.data as any).phone : null
+  });
 
   const member = memberResult.data as { id: string; username: string; full_name: string } | null;
   
   if (!member) {
+    // Fallback: try fuzzy match by removing all non-digits and comparing last 9-10 digits
+    const digitsOnly = normalizedPhone.replace(/\D/g, '');
+    const last10 = digitsOnly.slice(-10);
+    
+    console.log('[DEBUG] Trying fuzzy match with last 10 digits:', last10);
+    
+    const fuzzyResult = await supabaseAdmin
+      .from('members')
+      .select('id, username, full_name, phone')
+      .ilike('phone', `%${last10}`);
+    
+    console.log('[DEBUG] Fuzzy match results:', fuzzyResult.data?.length || 0);
+    
+    if (fuzzyResult.data && fuzzyResult.data.length === 1) {
+      const fuzzyMember = fuzzyResult.data[0] as { id: string; username: string; full_name: string };
+      console.log('[DEBUG] Found via fuzzy match:', fuzzyMember.username);
+      // Continue with this member instead
+      return continueJoinFlow(fuzzyMember, supabaseAdmin);
+    }
+    
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
+  return continueJoinFlow(member, supabaseAdmin);
+}
+
+async function continueJoinFlow(
+  member: { id: string; username: string; full_name: string },
+  supabaseAdmin: AdminSupabaseClient
+): Promise<string> {
   // Get active session
   const sessionResult = await supabaseAdmin
     .from('whatsapp_join_sessions')
@@ -419,6 +457,7 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
   }
 
   // Add to participants
+  const normalizedPhone = normalizeComparablePhone(''); // We don't have sender here, just use empty
   const { error: insertError } = await supabaseAdmin
     .from('whatsapp_join_participants')
     .insert({
