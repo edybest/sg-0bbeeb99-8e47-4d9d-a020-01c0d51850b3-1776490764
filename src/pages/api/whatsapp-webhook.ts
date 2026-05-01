@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { writeFileSync, appendFileSync } from "fs";
+import { join } from "path";
 
 type AdminSupabaseClient = SupabaseClient<Database>;
 
@@ -44,6 +46,17 @@ type LeaderboardEntry = {
 
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
+
+// Production logging helper
+function logToFile(message: string) {
+  try {
+    const logPath = join(process.cwd(), "logs", "webhook-production.log");
+    const timestamp = new Date().toISOString();
+    appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+  } catch (error) {
+    console.error("Failed to write to log file:", error);
+  }
+}
 
 function normalizeComparablePhone(rawPhone: string): string {
   let cleaned = rawPhone.replace(/[@.]/g, "").replace(/\s+/g, "");
@@ -378,10 +391,7 @@ async function handleJoinBlokCommand(message: string, sender: string, supabaseAd
 async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(sender);
 
-  console.log('[DEBUG] #join command:', {
-    rawSender: sender,
-    normalized: normalizedPhone
-  });
+  logToFile(`#join command received - rawSender: ${sender}, normalized: ${normalizedPhone}`);
 
   // Check if member exists
   const memberResult = await supabaseAdmin
@@ -390,11 +400,11 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
     .eq('phone', normalizedPhone)
     .maybeSingle();
 
-  console.log('[DEBUG] Member lookup:', {
-    found: !!memberResult.data,
-    error: memberResult.error,
-    phone: memberResult.data ? (memberResult.data as any).phone : null
-  });
+  logToFile(`Member lookup result - found: ${!!memberResult.data}, error: ${memberResult.error?.message || 'none'}`);
+  
+  if (memberResult.data) {
+    logToFile(`Member found - username: ${(memberResult.data as any).username}, stored_phone: ${(memberResult.data as any).phone}`);
+  }
 
   const member = memberResult.data as { id: string; username: string; full_name: string } | null;
   
@@ -403,22 +413,22 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
     const digitsOnly = normalizedPhone.replace(/\D/g, '');
     const last10 = digitsOnly.slice(-10);
     
-    console.log('[DEBUG] Trying fuzzy match with last 10 digits:', last10);
+    logToFile(`Trying fuzzy match with last 10 digits: ${last10}`);
     
     const fuzzyResult = await supabaseAdmin
       .from('members')
       .select('id, username, full_name, phone')
       .ilike('phone', `%${last10}`);
     
-    console.log('[DEBUG] Fuzzy match results:', fuzzyResult.data?.length || 0);
+    logToFile(`Fuzzy match results: ${fuzzyResult.data?.length || 0} members found`);
     
     if (fuzzyResult.data && fuzzyResult.data.length === 1) {
       const fuzzyMember = fuzzyResult.data[0] as { id: string; username: string; full_name: string };
-      console.log('[DEBUG] Found via fuzzy match:', fuzzyMember.username);
-      // Continue with this member instead
+      logToFile(`Found via fuzzy match - username: ${fuzzyMember.username}`);
       return continueJoinFlow(fuzzyMember, supabaseAdmin);
     }
     
+    logToFile(`Member not found - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
@@ -429,6 +439,8 @@ async function continueJoinFlow(
   member: { id: string; username: string; full_name: string },
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
+  logToFile(`continueJoinFlow - member: ${member.username} (${member.id})`);
+  
   // Get active session
   const sessionResult = await supabaseAdmin
     .from('whatsapp_join_sessions')
@@ -440,9 +452,14 @@ async function continueJoinFlow(
 
   const session = sessionResult.data as { id: string; game_name: string; game_date: string } | null;
 
+  logToFile(`Active session check - found: ${!!session}, error: ${sessionResult.error?.message || 'none'}`);
+
   if (!session) {
+    logToFile(`No active session - returning error`);
     return "❌ Tiada join session aktif pada masa ini.\n\nTunggu admin buka #JOINBLOK.";
   }
+
+  logToFile(`Active session found - game: ${session.game_name}, date: ${session.game_date}`);
 
   // Check if already joined
   const existingResult = await supabaseAdmin
@@ -453,8 +470,11 @@ async function continueJoinFlow(
     .maybeSingle();
 
   if (existingResult.data) {
+    logToFile(`Member already joined - returning duplicate message`);
     return `⚠️ Nama anda telah ada dalam list.\n\n🎳 ${session.game_name}\n📅 ${formatDateMY(session.game_date)}`;
   }
+
+  logToFile(`Adding member to participants...`);
 
   // Add to participants
   const normalizedPhone = normalizeComparablePhone(''); // We don't have sender here, just use empty
@@ -468,15 +488,20 @@ async function continueJoinFlow(
     });
 
   if (insertError) {
+    logToFile(`Failed to add participant - error: ${insertError.message}`);
     console.error('Error adding participant:', insertError);
     return "❌ Gagal menyertai. Sila cuba lagi.";
   }
+
+  logToFile(`Successfully added participant`);
 
   // Get current count
   const { count } = await supabaseAdmin
     .from('whatsapp_join_participants')
     .select('*', { count: 'exact', head: true })
     .eq('session_id', session.id);
+
+  logToFile(`Current participant count: ${count || 1}`);
 
   return `✅ *BERJAYA JOIN!*\n\n` +
     `👤 ${member.username}\n` +
@@ -608,7 +633,11 @@ async function sendWhatsAppReply(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  logToFile(`========== NEW WEBHOOK REQUEST ==========`);
+  logToFile(`Method: ${req.method}`);
+  
   if (req.method !== "POST") {
+    logToFile(`Invalid method - returning 405`);
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
@@ -616,16 +645,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   if (!supabaseUrl || !serviceRoleKey || !FONNTE_TOKEN) {
+    logToFile(`Missing server configuration`);
     return res.status(500).json({ success: false, message: "Missing server configuration" });
   }
 
   const { sender, message } = req.body ?? {};
+  logToFile(`Request body - sender: ${sender}, message: ${message}`);
+  
   if (!sender || !message) {
+    logToFile(`Missing required fields`);
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
 
   const normalizedMessage = String(message).trim();
+  logToFile(`Normalized message: ${normalizedMessage}`);
+  
   if (!normalizedMessage.startsWith("#")) {
+    logToFile(`Non-command message - ignoring`);
     return res.status(200).json({ success: true, message: "Ignored non-command message" });
   }
 
@@ -637,14 +673,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
+    logToFile(`Processing command: ${normalizedMessage}`);
     const replyMessage = await processCommand(normalizedMessage, String(sender), supabaseAdmin);
+    logToFile(`Reply message generated: ${replyMessage.substring(0, 100)}...`);
 
     if (replyMessage) {
+      logToFile(`Sending WhatsApp reply...`);
       await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
+      logToFile(`Reply sent successfully`);
     }
 
+    logToFile(`Webhook processed successfully`);
     return res.status(200).json({ success: true, message: "Webhook processed successfully" });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logToFile(`ERROR: ${errorMessage}`);
     console.error("❌ Webhook processing error:", error);
     return res.status(200).json({ success: false, message: "Webhook processing error" });
   }
