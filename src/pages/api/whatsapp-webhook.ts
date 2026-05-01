@@ -59,16 +59,21 @@ function logToFile(message: string) {
 }
 
 function normalizeComparablePhone(rawPhone: string): string {
+  // Clean up WhatsApp-specific characters and whitespace
   let cleaned = rawPhone.replace(/[@.]/g, "").replace(/\s+/g, "");
-  if (cleaned.startsWith("+")) {
-    cleaned = cleaned.slice(1);
+  
+  // Keep the + sign if present - database stores phone with + prefix
+  // Just ensure we have proper format: +60xxxxxxxxx
+  if (!cleaned.startsWith("+")) {
+    if (cleaned.startsWith("60")) {
+      cleaned = `+${cleaned}`;
+    } else if (cleaned.startsWith("0")) {
+      cleaned = `+60${cleaned.slice(1)}`;
+    } else {
+      cleaned = `+60${cleaned}`;
+    }
   }
-  if (cleaned.startsWith("60")) {
-    return cleaned;
-  }
-  if (cleaned.startsWith("0")) {
-    return `60${cleaned.slice(1)}`;
-  }
+  
   return cleaned;
 }
 
