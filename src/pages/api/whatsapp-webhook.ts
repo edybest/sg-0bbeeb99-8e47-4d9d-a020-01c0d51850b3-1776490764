@@ -108,6 +108,10 @@ function getHelpMessage(): string {
     `   Contoh: #top5 atau #top 5 20.03.2026\n\n` +
     `🎯 *#lane*\n` +
     `   Semak lane anda untuk blok terkini\n\n` +
+    `✍️ *#join*\n` +
+    `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
+    `📋 *#listjoin*\n` +
+    `   Papar senarai peserta yang telah join\n\n` +
     `❓ *#help*\n` +
     `   Papar senarai command ini\n\n` +
     `_Powered by AMBC Club_`;
@@ -300,12 +304,215 @@ async function handleLaneCommand(_sender: string, supabaseAdmin: AdminSupabaseCl
   return `🎯 *Semakan Lane*\n\n*${latestGame.game_name}*\n📅 ${formatDateMY(latestGame.game_date)}\n\nSila layari:\n🔗 http://ambc.club/member/undi-lane\n\nuntuk semak atau undi lane anda.`;
 }
 
+async function handleJoinBlokCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  // Parse game details from message
+  const lines = message.split('\n');
+  let gameName = '';
+  let gameDate = '';
+  let gameTime = '';
+  let location = '';
+  let price = '';
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.includes('*AMBC BLOCK')) {
+      const match = trimmed.match(/AMBC BLOCK.*?#(\d+)/i);
+      if (match) gameName = `AMBC BLOCK #${match[1]}`;
+    }
+    if (trimmed.includes('📅')) {
+      const dateMatch = trimmed.match(/(\d{2}\.\d{2}\.\d{4})/);
+      if (dateMatch) {
+        const parsed = parseDateVariants(dateMatch[1]);
+        if (parsed) gameDate = parsed;
+      }
+    }
+    if (trimmed.includes('⏰')) {
+      gameTime = trimmed.replace('⏰', '').replace('*', '').trim();
+    }
+    if (trimmed.includes('📍')) {
+      location = trimmed.replace('📍', '').replace('*', '').trim();
+    }
+    if (trimmed.includes('💰')) {
+      price = trimmed.replace('💰', '').replace('*', '').trim();
+    }
+  }
+
+  if (!gameName || !gameDate) {
+    return "❌ Format mesej tidak lengkap. Pastikan ada nama game dan tarikh.";
+  }
+
+  try {
+    const configuredGroupId = await getConfiguredFonnteGroupId(supabaseAdmin);
+    
+    const { data: session, error } = await supabaseAdmin
+      .from('whatsapp_join_sessions')
+      .insert({
+        game_name: gameName,
+        game_date: gameDate,
+        game_time: gameTime,
+        location: location,
+        price: price,
+        original_message: message,
+        fonnte_group_id: configuredGroupId,
+        created_by_phone: sender,
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return `✅ *JOIN SESSION DIBUKA*\n\n` +
+      `🎳 ${gameName}\n` +
+      `📅 ${formatDateMY(gameDate)}\n` +
+      `⏰ ${gameTime}\n` +
+      `📍 ${location}\n` +
+      `💰 ${price}\n\n` +
+      `Ahli boleh taip *#join* untuk sertai!`;
+  } catch (error) {
+    console.error('Error creating join session:', error);
+    return "❌ Gagal membuka join session. Sila cuba lagi.";
+  }
+}
+
+async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  const normalizedPhone = normalizeComparablePhone(sender);
+
+  // Check if member exists
+  const memberResult = await supabaseAdmin
+    .from('members')
+    .select('id, username, full_name')
+    .eq('phone', normalizedPhone)
+    .maybeSingle();
+
+  const member = memberResult.data as { id: string; username: string; full_name: string } | null;
+  
+  if (!member) {
+    return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
+  }
+
+  // Get active session
+  const sessionResult = await supabaseAdmin
+    .from('whatsapp_join_sessions')
+    .select('id, game_name, game_date')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const session = sessionResult.data as { id: string; game_name: string; game_date: string } | null;
+
+  if (!session) {
+    return "❌ Tiada join session aktif pada masa ini.\n\nTunggu admin buka #JOINBLOK.";
+  }
+
+  // Check if already joined
+  const existingResult = await supabaseAdmin
+    .from('whatsapp_join_participants')
+    .select('id')
+    .eq('session_id', session.id)
+    .eq('member_id', member.id)
+    .maybeSingle();
+
+  if (existingResult.data) {
+    return `⚠️ Nama anda telah ada dalam list.\n\n🎳 ${session.game_name}\n📅 ${formatDateMY(session.game_date)}`;
+  }
+
+  // Add to participants
+  const { error: insertError } = await supabaseAdmin
+    .from('whatsapp_join_participants')
+    .insert({
+      session_id: session.id,
+      member_id: member.id,
+      phone_number: normalizedPhone,
+      username: member.username
+    });
+
+  if (insertError) {
+    console.error('Error adding participant:', insertError);
+    return "❌ Gagal menyertai. Sila cuba lagi.";
+  }
+
+  // Get current count
+  const { count } = await supabaseAdmin
+    .from('whatsapp_join_participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('session_id', session.id);
+
+  return `✅ *BERJAYA JOIN!*\n\n` +
+    `👤 ${member.username}\n` +
+    `🎳 ${session.game_name}\n` +
+    `📅 ${formatDateMY(session.game_date)}\n\n` +
+    `📊 Jumlah peserta: *${count || 1}*`;
+}
+
+async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  // Get active session
+  const sessionResult = await supabaseAdmin
+    .from('whatsapp_join_sessions')
+    .select('id, game_name, game_date, game_time, location')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const session = sessionResult.data as { id: string; game_name: string; game_date: string; game_time: string; location: string } | null;
+
+  if (!session) {
+    return "❌ Tiada join session aktif pada masa ini.";
+  }
+
+  // Get participants
+  const { data: participants } = await supabaseAdmin
+    .from('whatsapp_join_participants')
+    .select('username, joined_at')
+    .eq('session_id', session.id)
+    .order('joined_at', { ascending: true });
+
+  if (!participants || participants.length === 0) {
+    return `📋 *SENARAI PESERTA*\n\n` +
+      `🎳 ${session.game_name}\n` +
+      `📅 ${formatDateMY(session.game_date)}\n` +
+      `⏰ ${session.game_time}\n` +
+      `📍 ${session.location}\n\n` +
+      `_Belum ada peserta. Taip #join untuk sertai!_`;
+  }
+
+  let reply = `📋 *SENARAI PESERTA*\n\n`;
+  reply += `🎳 ${session.game_name}\n`;
+  reply += `📅 ${formatDateMY(session.game_date)}\n`;
+  reply += `⏰ ${session.game_time}\n`;
+  reply += `📍 ${session.location}\n\n`;
+  reply += `${"─".repeat(30)}\n`;
+
+  participants.forEach((p, index) => {
+    reply += `${index + 1}. ${p.username}\n`;
+  });
+
+  reply += `${"─".repeat(30)}\n`;
+  reply += `📊 *Jumlah: ${participants.length} peserta*`;
+
+  return reply;
+}
+
 async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const trimmed = message.trim();
   const lowerMessage = trimmed.toLowerCase();
 
   if (lowerMessage === "#help") {
     return getHelpMessage();
+  }
+
+  if (trimmed.includes('#JOINBLOK')) {
+    return handleJoinBlokCommand(trimmed, sender, supabaseAdmin);
+  }
+
+  if (lowerMessage === "#join") {
+    return handleJoinCommand(sender, supabaseAdmin);
+  }
+
+  if (lowerMessage === "#listjoin") {
+    return handleListJoinCommand(supabaseAdmin);
   }
 
   const top5Match = lowerMessage.match(/^#top\s*5\s*([\d./-]+)?$/);

@@ -17,14 +17,14 @@ position: 19
 Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBLOK`, bot buat join session baru. Member boleh post `#join` untuk join, dan bot akan validate phone number + tambah nama dalam list. Bot akan balas dengan confirmation dan track semua dalam database `blok_join_queue` dan `blok_join_participants`.
 
 ## Checklist
-- [x] Buat table `blok_join_queue` untuk simpan join session details
-- [x] Buat table `blok_join_participants` untuk track siapa yang join
+- [x] Buat table `whatsapp_join_sessions` untuk simpan join session details
+- [x] Buat table `whatsapp_join_participants` untuk track siapa yang join
 - [x] Setup RLS policies untuk kedua-dua table
-- [ ] Parse #JOINBLOK message format dan extract game details
-- [ ] Implement #join command handler dengan validation
-- [ ] Implement #listjoin command untuk show current join list
-- [ ] Handle duplicate join attempts dengan friendly message
-- [ ] Handle unregistered phone numbers dengan friendly error
+- [x] Parse #JOINBLOK message format dan extract game details
+- [x] Implement #join command handler dengan validation
+- [x] Implement #listjoin command untuk show current join list
+- [x] Handle duplicate join attempts dengan friendly message
+- [x] Handle unregistered phone numbers dengan friendly error
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

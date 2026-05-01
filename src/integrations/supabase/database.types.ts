@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
+ 
 export type Json =
   | string
   | number
@@ -1982,6 +1982,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_join_participants: {
+        Row: {
+          id: string
+          joined_at: string | null
+          member_id: string
+          phone_number: string
+          session_id: string
+          username: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          member_id: string
+          phone_number: string
+          session_id: string
+          username: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          member_id?: string
+          phone_number?: string
+          session_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_join_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_join_participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_join_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_join_sessions: {
+        Row: {
+          created_at: string | null
+          created_by_phone: string | null
+          fonnte_group_id: string | null
+          format_details: string | null
+          game_date: string
+          game_name: string
+          game_time: string | null
+          id: string
+          location: string | null
+          original_message: string | null
+          payment_info: string | null
+          price: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by_phone?: string | null
+          fonnte_group_id?: string | null
+          format_details?: string | null
+          game_date: string
+          game_name: string
+          game_time?: string | null
+          id?: string
+          location?: string | null
+          original_message?: string | null
+          payment_info?: string | null
+          price?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by_phone?: string | null
+          fonnte_group_id?: string | null
+          format_details?: string | null
+          game_date?: string
+          game_name?: string
+          game_time?: string | null
+          id?: string
+          location?: string | null
+          original_message?: string | null
+          payment_info?: string | null
+          price?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
