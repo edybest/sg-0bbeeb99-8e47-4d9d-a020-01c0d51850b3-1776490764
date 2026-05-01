@@ -8,9 +8,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log("🧪 Testing webhook with:", { sender: testPhone, message: testMessage });
 
   try {
-    // Call webhook endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const webhookUrl = `${baseUrl}/api/whatsapp-webhook`;
+    // Call webhook endpoint directly using local URL
+    const webhookUrl = "http://localhost:3000/api/whatsapp-webhook";
+
+    console.log("📞 Calling webhook at:", webhookUrl);
 
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -25,12 +26,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const data = await response.json();
 
-    console.log("✅ Webhook response:", data);
+    console.log("✅ Webhook response status:", response.status);
+    console.log("✅ Webhook response data:", data);
+
+    // Also check what the webhook would normalize the phone to
+    const normalizedPhone = testPhone.replace(/[@.]/g, "").replace(/\s+/g, "");
+    const cleanedPhone = normalizedPhone.startsWith("+") ? normalizedPhone.slice(1) : normalizedPhone;
+    
+    console.log("📱 Phone normalization test:");
+    console.log("  - Original:", testPhone);
+    console.log("  - After cleanup:", normalizedPhone);
+    console.log("  - Final (no +):", cleanedPhone);
 
     return res.status(200).json({
       success: true,
-      message: "Test completed - check logs/webhook-production.log for details",
+      message: "Test completed - check console and logs/webhook-production.log",
       webhookResponse: data,
+      phoneNormalization: {
+        original: testPhone,
+        normalized: normalizedPhone,
+        final: cleanedPhone,
+      },
     });
   } catch (error) {
     console.error("❌ Test error:", error);
