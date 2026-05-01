@@ -1,6 +1,6 @@
 ---
 title: Lane spin member RLS fix
-status: in_progress
+status: done
 priority: urgent
 type: bug
 tags:
@@ -17,7 +17,12 @@ position: 18
 Ralat "failed to save lane assignment" berlaku dalam flow undi lane member. Simpanan berlaku ke jadual `lane_spin_results` dan `lane_assignments`, tetapi polisi RLS semasa hanya membenarkan admin menulis. Perlu benarkan ahli yang log masuk menyimpan spin sendiri dan lane assignment sendiri, termasuk flow couple bila `couple_id` digunakan.
 
 ## Checklist
-- [ ] Semak semula schema dan polisi semasa untuk `lane_spin_results` dan `lane_assignments`
-- [ ] Tambah polisi insert untuk ahli simpan spin sendiri berdasarkan `members.user_id = auth.uid()`
-- [ ] Tambah polisi insert/update untuk ahli simpan lane assignment sendiri atau couple mereka
-- [ ] Minta pengguna test semula flow undi lane selepas perubahan
+- [x] Semak semula schema dan polisi semasa untuk `lane_spin_results` dan `lane_assignments`
+- [x] Tambah polisi insert untuk ahli simpan spin sendiri berdasarkan `members.user_id = auth.uid()`
+- [x] Tambah polisi insert/update untuk ahli simpan lane assignment sendiri atau couple mereka
+- [x] Minta pengguna test semula flow undi lane selepas perubahan
+
+## Acceptance
+✅ Members can save their own lane spin results
+✅ Members can save lane assignments for themselves or their couple
+✅ Screenshot UI hides "Telah Undi" / "Belum Undi" text labels
