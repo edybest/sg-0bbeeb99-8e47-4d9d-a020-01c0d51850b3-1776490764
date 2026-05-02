@@ -92,6 +92,63 @@ function normalizeComparablePhone(rawPhone: string): string {
   return `+60${digitsOnly}`;
 }
 
+function isPossibleMemberPhoneValue(value: string): boolean {
+  const trimmed = value.trim();
+
+  if (!trimmed || trimmed.includes("@g.us")) {
+    return false;
+  }
+
+  const digitsOnly = trimmed.replace(/\D/g, "");
+  if (digitsOnly.length < 9 || digitsOnly.length > 15) {
+    return false;
+  }
+
+  return (
+    trimmed.includes("@s.whatsapp.net") ||
+    trimmed.startsWith("+") ||
+    trimmed.startsWith("60") ||
+    trimmed.startsWith("0")
+  );
+}
+
+function extractFallbackPhoneCandidates(payload: unknown): string[] {
+  const seenNodes = new WeakSet<object>();
+  const candidates = new Set<string>();
+
+  const visit = (value: unknown) => {
+    if (typeof value === "string") {
+      if (isPossibleMemberPhoneValue(value)) {
+        const normalized = normalizeComparablePhone(value);
+        if (normalized) {
+          candidates.add(normalized);
+        }
+      }
+      return;
+    }
+
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    if (seenNodes.has(value as object)) {
+      return;
+    }
+
+    seenNodes.add(value as object);
+
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+
+    Object.values(value).forEach(visit);
+  };
+
+  visit(payload);
+  return Array.from(candidates);
+}
+
 function parseDateVariants(input: string): string | null {
   const trimmed = input.trim();
 
@@ -669,7 +726,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   logToFile(`Full payload: ${JSON.stringify(req.body ?? {})}`);
 
-  const { sender, message, participant } = req.body ?? {};
+  const payload = req.body ?? {};
+  const { sender, message, participant } = payload as {
+    sender?: string;
+    message?: string;
+    participant?: string;
+  };
+
   logToFile(`Request body - sender: ${sender}, participant: ${participant}, message: ${message}`);
   
   if (!sender || !message) {
@@ -679,10 +742,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const normalizedMessage = String(message).trim();
   const isGroupMessage = String(sender).includes("@g.us");
-  const commandSender = isGroupMessage && participant ? String(participant) : String(sender);
+  const directParticipant = normalizeComparablePhone(String(participant ?? ""));
+  const fallbackCandidates = extractFallbackPhoneCandidates(payload);
+  const commandSender = isGroupMessage
+    ? directParticipant || fallbackCandidates[0] || ""
+    : normalizeComparablePhone(String(sender));
 
   logToFile(`Normalized message: ${normalizedMessage}`);
-  logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender}`);
+  logToFile(
+    `Message context - isGroup: ${isGroupMessage}, directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, commandSender: ${commandSender || "none"}`
+  );
   
   if (!normalizedMessage.startsWith("#")) {
     logToFile(`Non-command message - ignoring`);

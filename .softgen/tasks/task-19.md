@@ -29,6 +29,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Normalize nombor telefon group/personal dengan buang semua suffix WhatsApp supaya lookup member konsisten.
 - [x] Kurangkan latency reply webhook dengan logging async production-only dan terus reply ke group sender tanpa lookup tambahan.
 - [x] Aktifkan logging webhook dalam development supaya payload group sebenar dapat disahkan semasa ujian.
+- [x] Tambah fallback extraction untuk cari nombor ahli daripada payload group bila field utama kosong atau format berbeza.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance
