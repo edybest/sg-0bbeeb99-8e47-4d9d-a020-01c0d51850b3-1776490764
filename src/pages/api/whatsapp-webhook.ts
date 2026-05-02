@@ -92,6 +92,7 @@ const DEFAULT_JOIN_PRICE = "RM66.00";
 const PAYMENT_BANK_NAME = "MAYBANK";
 const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
 const PAYMENT_BANK_HOLDER = "Zaaz Beez";
+const MAX_CONFIRMED_PARTICIPANTS = 42;
 
 // Production logging helper
 function logToFile(message: string) {
@@ -526,7 +527,10 @@ function buildJoinSessionReply(
   const location = session.location || "-";
   const formatDetails = session.format_details || DEFAULT_JOIN_FORMAT;
   const price = session.price || DEFAULT_JOIN_PRICE;
-  const participantList = formatJoinParticipantSection(participants);
+  const confirmedParticipants = participants.slice(0, MAX_CONFIRMED_PARTICIPANTS);
+  const waitingParticipants = participants.slice(MAX_CONFIRMED_PARTICIPANTS);
+  const participantList = formatJoinParticipantSection(confirmedParticipants);
+  const waitingList = formatJoinParticipantSection(waitingParticipants);
 
   return `🎳🔥*${session.game_name}*🔥🎳\n\n` +
     `📅 *${formattedDate}*\n` +
@@ -541,6 +545,8 @@ function buildJoinSessionReply(
     `👤 ${PAYMENT_BANK_HOLDER}\n\n` +
     `Senarai peserta:\n\n` +
     `${participantList}\n\n` +
+    `Waiting List\n` +
+    `${waitingList}\n\n` +
     `⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️\n\n` +
     `✅ “dah bayar”\n\n` +
     `Terima kasih✌🏻\n\n` +

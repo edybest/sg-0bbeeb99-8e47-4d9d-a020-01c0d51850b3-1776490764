@@ -38,6 +38,7 @@ Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admi
 - [x] Tambah command `#cancel` supaya ahli boleh batalkan penyertaan mereka sendiri daripada sesi join aktif.
 - [x] Tambah command `#ambc` untuk sync butiran sesi, senarai peserta, dan status bayaran tanpa menghantar reply.
 - [x] Kurangkan latency `#join` dan `#cancel` dengan reuse ahli yang sudah dijumpai daripada payload group dan elak scan fallback bila `participant` sudah padan.
+- [x] Tambah waiting list automatik: peserta ke-43 dan seterusnya dipaparkan di bawah `Waiting List`, dan turutan naik sendiri bila ada `#cancel`.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance
@@ -45,3 +46,4 @@ Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admi
 ✅ Member post #join → validated and added to list with confirmation
 ✅ Member post #cancel → nama sendiri dikeluarkan daripada sesi join aktif dengan balasan yang jelas
 ✅ #listjoin shows formatted participant list with numbers
+✅ Peserta ke-43 dan seterusnya muncul dalam `Waiting List`, dan peserta waiting list teratas naik automatik bila slot kosong
