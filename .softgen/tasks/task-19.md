@@ -39,6 +39,7 @@ Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admi
 - [x] Tambah command `#ambc` untuk sync butiran sesi, senarai peserta, dan status bayaran tanpa menghantar reply.
 - [x] Kurangkan latency `#join` dan `#cancel` dengan reuse ahli yang sudah dijumpai daripada payload group dan elak scan fallback bila `participant` sudah padan.
 - [x] Tambah waiting list automatik: peserta ke-43 dan seterusnya dipaparkan di bawah `Waiting List`, dan turutan naik sendiri bila ada `#cancel`.
+- [x] Tambah command tersembunyi `#theboy` yang balas `ambc the boy always wins!!!` tanpa dipaparkan dalam `#help`.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

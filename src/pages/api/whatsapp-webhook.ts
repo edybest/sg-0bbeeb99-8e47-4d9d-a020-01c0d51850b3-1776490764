@@ -1181,6 +1181,10 @@ async function processCommand(
     return getHelpMessage();
   }
 
+  if (lowerMessage === "#theboy") {
+    return "ambc the boy always wins!!!";
+  }
+
   if (lowerMessage.includes("#joinblok")) {
     return handleJoinBlokCommand(trimmed, senderContext.phone, supabaseAdmin);
   }
