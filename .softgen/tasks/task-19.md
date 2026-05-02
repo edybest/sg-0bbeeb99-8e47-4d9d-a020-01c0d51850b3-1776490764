@@ -16,6 +16,8 @@ position: 19
 ## Notes
 Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBLOK`, bot buat join session baru. Member boleh post `#join` untuk join, dan bot akan validate phone number + tambah nama dalam list. Bot akan balas dengan confirmation dan track semua dalam database `blok_join_queue` dan `blok_join_participants`.
 
+Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admin. Nama yang sudah bayar akan ditanda terus dalam senarai peserta dengan format seperti `1. AA ✅`. Command ini hanya sync rekod aktif, tanpa menghantar WhatsApp reply.
+
 ## Checklist
 - [x] Buat table `whatsapp_join_sessions` untuk simpan join session details
 - [x] Buat table `whatsapp_join_participants` untuk track siapa yang join
