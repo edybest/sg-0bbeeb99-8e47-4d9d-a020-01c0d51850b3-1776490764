@@ -37,6 +37,7 @@ Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admi
 - [x] Tukar copy reply `#listjoin` dan `#join` berjaya kepada template promosi tetap dengan butiran sesi yang dinamik.
 - [x] Tambah command `#cancel` supaya ahli boleh batalkan penyertaan mereka sendiri daripada sesi join aktif.
 - [x] Tambah command `#ambc` untuk sync butiran sesi, senarai peserta, dan status bayaran tanpa menghantar reply.
+- [x] Kurangkan latency `#join` dan `#cancel` dengan reuse ahli yang sudah dijumpai daripada payload group dan elak scan fallback bila `participant` sudah padan.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

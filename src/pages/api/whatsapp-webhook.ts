@@ -39,6 +39,11 @@ type JoinLookupMember = {
   phone: string;
 };
 
+type ResolvedCommandSender = {
+  phone: string;
+  member: JoinLookupMember | null;
+};
+
 type LeaderboardEntry = {
   username: string;
   game1_score: number;
@@ -253,18 +258,35 @@ async function resolveCommandSenderForGroup(
   supabaseAdmin: AdminSupabaseClient,
   payload: unknown,
   participant?: string
-): Promise<string> {
+): Promise<ResolvedCommandSender> {
   const directParticipant = normalizeComparablePhone(String(participant ?? ""));
-  const fallbackCandidates = extractFallbackPhoneCandidates(payload);
-  const candidatePhones = [directParticipant, ...fallbackCandidates].filter(Boolean);
 
-  const { member, matchedPhone } = await findMemberByPossiblePhones(supabaseAdmin, candidatePhones);
+  if (directParticipant) {
+    const directMatch = await findMemberByPossiblePhones(supabaseAdmin, [directParticipant]);
+
+    if (directMatch.member) {
+      logToFile(
+        `Group sender resolution - source: participant, matchedPhone: ${directMatch.matchedPhone || directParticipant}, matchedMember: ${directMatch.member.username || "none"}`
+      );
+
+      return {
+        phone: directMatch.matchedPhone || directParticipant,
+        member: directMatch.member,
+      };
+    }
+  }
+
+  const fallbackCandidates = extractFallbackPhoneCandidates(payload);
+  const fallbackMatch = await findMemberByPossiblePhones(supabaseAdmin, fallbackCandidates);
 
   logToFile(
-    `Group sender resolution - directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, matchedPhone: ${matchedPhone || "none"}, matchedMember: ${member?.username || "none"}`
+    `Group sender resolution - source: fallback, directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, matchedPhone: ${fallbackMatch.matchedPhone || "none"}, matchedMember: ${fallbackMatch.member?.username || "none"}`
   );
 
-  return matchedPhone;
+  return {
+    phone: fallbackMatch.matchedPhone || directParticipant || fallbackCandidates[0] || "",
+    member: fallbackMatch.member,
+  };
 }
 
 function parseDateVariants(input: string): string | null {
@@ -928,41 +950,65 @@ async function handleAmbcSyncCommand(
   return null;
 }
 
-async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
-  const normalizedPhone = normalizeComparablePhone(sender);
+async function handleJoinCommand(
+  senderContext: ResolvedCommandSender,
+  supabaseAdmin: AdminSupabaseClient
+): Promise<string> {
+  const normalizedPhone = normalizeComparablePhone(senderContext.phone);
 
-  logToFile(`#join command received - rawSender: ${sender}, normalized: ${normalizedPhone}`);
+  logToFile(`#join command received - resolvedPhone: ${normalizedPhone}`);
 
   if (!normalizedPhone) {
     logToFile(`Unable to normalize sender phone`);
     return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
   }
 
-  const { member, matchedPhone } = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
+  let member = senderContext.member;
+  let matchedPhone = normalizedPhone;
 
-  logToFile(
-    `Member lookup result - found: ${!!member}, matchedPhone: ${matchedPhone || "none"}`
-  );
+  if (!member) {
+    const lookupResult = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
+    member = lookupResult.member;
+    matchedPhone = lookupResult.matchedPhone || normalizedPhone;
+
+    logToFile(
+      `Member lookup result - found: ${!!member}, matchedPhone: ${matchedPhone || "none"}`
+    );
+  } else {
+    logToFile(
+      `Member lookup skipped - reused resolved member: ${member.username}, matchedPhone: ${matchedPhone}`
+    );
+  }
 
   if (!member) {
     logToFile(`Member not found - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
-  return continueJoinFlow(member, matchedPhone || normalizedPhone, supabaseAdmin);
+  return continueJoinFlow(member, matchedPhone, supabaseAdmin);
 }
 
-async function handleCancelCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
-  const normalizedPhone = normalizeComparablePhone(sender);
+async function handleCancelCommand(
+  senderContext: ResolvedCommandSender,
+  supabaseAdmin: AdminSupabaseClient
+): Promise<string> {
+  const normalizedPhone = normalizeComparablePhone(senderContext.phone);
 
-  logToFile(`#cancel command received - rawSender: ${sender}, normalized: ${normalizedPhone}`);
+  logToFile(`#cancel command received - resolvedPhone: ${normalizedPhone}`);
 
   if (!normalizedPhone) {
     logToFile(`Unable to normalize sender phone for cancel`);
     return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
   }
 
-  const { member } = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
+  let member = senderContext.member;
+
+  if (!member) {
+    const lookupResult = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
+    member = lookupResult.member;
+  } else {
+    logToFile(`Cancel lookup skipped - reused resolved member: ${member.username}`);
+  }
 
   if (!member) {
     logToFile(`Member not found for cancel - returning error message`);
@@ -1113,7 +1159,11 @@ async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promis
   return buildJoinSessionReply(session, participants);
 }
 
-async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string | null> {
+async function processCommand(
+  message: string,
+  senderContext: ResolvedCommandSender,
+  supabaseAdmin: AdminSupabaseClient
+): Promise<string | null> {
   const trimmed = message.trim();
   const lowerMessage = trimmed.toLowerCase();
 
@@ -1126,15 +1176,15 @@ async function processCommand(message: string, sender: string, supabaseAdmin: Ad
   }
 
   if (lowerMessage.includes("#joinblok")) {
-    return handleJoinBlokCommand(trimmed, sender, supabaseAdmin);
+    return handleJoinBlokCommand(trimmed, senderContext.phone, supabaseAdmin);
   }
 
   if (lowerMessage === "#join") {
-    return handleJoinCommand(sender, supabaseAdmin);
+    return handleJoinCommand(senderContext, supabaseAdmin);
   }
 
   if (lowerMessage === "#cancel") {
-    return handleCancelCommand(sender, supabaseAdmin);
+    return handleCancelCommand(senderContext, supabaseAdmin);
   }
 
   if (lowerMessage === "#listjoin") {
@@ -1147,7 +1197,7 @@ async function processCommand(message: string, sender: string, supabaseAdmin: Ad
   }
 
   if (lowerMessage === "#lane") {
-    return handleLaneCommand(sender, supabaseAdmin);
+    return handleLaneCommand(senderContext.phone, supabaseAdmin);
   }
 
   const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?$/);
@@ -1247,10 +1297,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const commandSender = isGroupMessage
       ? await resolveCommandSenderForGroup(supabaseAdmin, payload, participant)
-      : normalizeComparablePhone(String(sender));
+      : { phone: normalizeComparablePhone(String(sender)), member: null };
 
     logToFile(`Normalized message: ${normalizedMessage}`);
-    logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender || "none"}`);
+    logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender.phone || "none"}, preResolvedMember: ${commandSender.member?.username || "none"}`);
 
     logToFile(`Processing command: ${normalizedMessage}`);
     const replyMessage = await processCommand(normalizedMessage, commandSender, supabaseAdmin);
