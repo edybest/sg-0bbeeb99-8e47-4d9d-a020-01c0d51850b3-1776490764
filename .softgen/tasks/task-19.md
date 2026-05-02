@@ -28,6 +28,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Fix Fonnte webhook payload parsing untuk WhatsApp Groups: guna field `participant` untuk member lookup bila `sender` adalah group ID (`@g.us`). Log the full payload.
 - [x] Normalize nombor telefon group/personal dengan buang semua suffix WhatsApp supaya lookup member konsisten.
 - [x] Kurangkan latency reply webhook dengan logging async production-only dan terus reply ke group sender tanpa lookup tambahan.
+- [x] Aktifkan logging webhook dalam development supaya payload group sebenar dapat disahkan semasa ujian.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

@@ -49,14 +49,16 @@ const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 // Production logging helper
 function logToFile(message: string) {
-  if (process.env.NODE_ENV !== "production") {
-    return;
-  }
-
   try {
     const logPath = join(process.cwd(), "logs", "webhook-production.log");
     const timestamp = new Date().toISOString();
-    appendFile(logPath, `[${timestamp}] ${message}\n`, (error) => {
+    const logLine = `[${timestamp}] ${message}\n`;
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log(logLine.trim());
+    }
+
+    appendFile(logPath, logLine, (error) => {
       if (error) {
         console.error("Failed to write to log file:", error);
       }
