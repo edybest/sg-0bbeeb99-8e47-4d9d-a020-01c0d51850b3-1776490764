@@ -32,6 +32,13 @@ type MemberRow = {
   full_name: string | null;
 };
 
+type JoinLookupMember = {
+  id: string;
+  username: string;
+  full_name: string;
+  phone: string;
+};
+
 type LeaderboardEntry = {
   username: string;
   game1_score: number;
@@ -149,6 +156,81 @@ function extractFallbackPhoneCandidates(payload: unknown): string[] {
 
   visit(payload);
   return Array.from(candidates);
+}
+
+async function findMemberByPossiblePhones(
+  supabaseAdmin: AdminSupabaseClient,
+  possiblePhones: string[]
+): Promise<{ member: JoinLookupMember | null; matchedPhone: string }> {
+  const normalizedCandidates = Array.from(
+    new Set(
+      possiblePhones
+        .map((value) => normalizeComparablePhone(value))
+        .filter(Boolean)
+    )
+  );
+
+  for (const phone of normalizedCandidates) {
+    const exactResult = await supabaseAdmin
+      .from("members")
+      .select("id, username, full_name, phone")
+      .eq("phone", phone)
+      .maybeSingle();
+
+    if (exactResult.data) {
+      return {
+        member: exactResult.data as JoinLookupMember,
+        matchedPhone: phone,
+      };
+    }
+  }
+
+  for (const phone of normalizedCandidates) {
+    const digitsOnly = phone.replace(/\D/g, "");
+    const suffixes = Array.from(
+      new Set([
+        digitsOnly.slice(-12),
+        digitsOnly.slice(-11),
+        digitsOnly.slice(-10),
+        digitsOnly.slice(-9),
+      ].filter((value) => value.length >= 9))
+    );
+
+    for (const suffix of suffixes) {
+      const fuzzyResult = await supabaseAdmin
+        .from("members")
+        .select("id, username, full_name, phone")
+        .ilike("phone", `%${suffix}`)
+        .limit(2);
+
+      if (fuzzyResult.data && fuzzyResult.data.length === 1) {
+        return {
+          member: fuzzyResult.data[0] as JoinLookupMember,
+          matchedPhone: phone,
+        };
+      }
+    }
+  }
+
+  return { member: null, matchedPhone: normalizedCandidates[0] ?? "" };
+}
+
+async function resolveCommandSenderForGroup(
+  supabaseAdmin: AdminSupabaseClient,
+  payload: unknown,
+  participant?: string
+): Promise<string> {
+  const directParticipant = normalizeComparablePhone(String(participant ?? ""));
+  const fallbackCandidates = extractFallbackPhoneCandidates(payload);
+  const candidatePhones = [directParticipant, ...fallbackCandidates].filter(Boolean);
+
+  const { member, matchedPhone } = await findMemberByPossiblePhones(supabaseAdmin, candidatePhones);
+
+  logToFile(
+    `Group sender resolution - directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, matchedPhone: ${matchedPhone || "none"}, matchedMember: ${member?.username || "none"}`
+  );
+
+  return matchedPhone;
 }
 
 function parseDateVariants(input: string): string | null {
@@ -477,44 +559,18 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
     return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
   }
 
-  const memberResult = await supabaseAdmin
-    .from("members")
-    .select("id, username, full_name, phone")
-    .eq("phone", normalizedPhone)
-    .maybeSingle();
+  const { member, matchedPhone } = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
 
-  logToFile(`Member lookup result - found: ${!!memberResult.data}, error: ${memberResult.error?.message || "none"}`);
-  
-  if (memberResult.data) {
-    logToFile(`Member found - username: ${(memberResult.data as { username?: string; phone?: string }).username}, stored_phone: ${(memberResult.data as { username?: string; phone?: string }).phone}`);
-  }
+  logToFile(
+    `Member lookup result - found: ${!!member}, matchedPhone: ${matchedPhone || "none"}`
+  );
 
-  const member = memberResult.data as { id: string; username: string; full_name: string } | null;
-  
   if (!member) {
-    const digitsOnly = normalizedPhone.replace(/\D/g, "");
-    const last10 = digitsOnly.slice(-10);
-    
-    logToFile(`Trying fuzzy match with last 10 digits: ${last10}`);
-    
-    const fuzzyResult = await supabaseAdmin
-      .from("members")
-      .select("id, username, full_name, phone")
-      .ilike("phone", `%${last10}`);
-    
-    logToFile(`Fuzzy match results: ${fuzzyResult.data?.length || 0} members found`);
-    
-    if (fuzzyResult.data && fuzzyResult.data.length === 1) {
-      const fuzzyMember = fuzzyResult.data[0] as { id: string; username: string; full_name: string };
-      logToFile(`Found via fuzzy match - username: ${fuzzyMember.username}`);
-      return continueJoinFlow(fuzzyMember, normalizedPhone, supabaseAdmin);
-    }
-    
     logToFile(`Member not found - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
-  return continueJoinFlow(member, normalizedPhone, supabaseAdmin);
+  return continueJoinFlow(member, matchedPhone || normalizedPhone, supabaseAdmin);
 }
 
 async function continueJoinFlow(
@@ -744,16 +800,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const normalizedMessage = String(message).trim();
   const isGroupMessage = String(sender).includes("@g.us");
-  const directParticipant = normalizeComparablePhone(String(participant ?? ""));
-  const fallbackCandidates = extractFallbackPhoneCandidates(payload);
-  const commandSender = isGroupMessage
-    ? directParticipant || fallbackCandidates[0] || ""
-    : normalizeComparablePhone(String(sender));
-
-  logToFile(`Normalized message: ${normalizedMessage}`);
-  logToFile(
-    `Message context - isGroup: ${isGroupMessage}, directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, commandSender: ${commandSender || "none"}`
-  );
   
   if (!normalizedMessage.startsWith("#")) {
     logToFile(`Non-command message - ignoring`);
@@ -767,6 +813,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         persistSession: false,
       },
     });
+
+    const commandSender = isGroupMessage
+      ? await resolveCommandSenderForGroup(supabaseAdmin, payload, participant)
+      : normalizeComparablePhone(String(sender));
+
+    logToFile(`Normalized message: ${normalizedMessage}`);
+    logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender || "none"}`);
 
     logToFile(`Processing command: ${normalizedMessage}`);
     const replyMessage = await processCommand(normalizedMessage, commandSender, supabaseAdmin);

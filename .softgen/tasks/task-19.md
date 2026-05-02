@@ -31,6 +31,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Aktifkan logging webhook dalam development supaya payload group sebenar dapat disahkan semasa ujian.
 - [x] Tambah fallback extraction untuk cari nombor ahli daripada payload group bila field utama kosong atau format berbeza.
 - [x] Buang suffix JID peranti seperti `:12@s.whatsapp.net` sebelum lookup nombor ahli group dibuat.
+- [x] Padankan semua calon nombor daripada payload group dengan `members.phone` dan guna hanya nombor yang benar-benar jumpa ahli.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance
