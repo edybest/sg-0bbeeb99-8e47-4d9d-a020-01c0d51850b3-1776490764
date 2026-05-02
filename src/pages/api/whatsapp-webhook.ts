@@ -51,8 +51,25 @@ type LeaderboardEntry = {
   overall_score: number;
 };
 
+type JoinSessionSummary = {
+  game_name: string;
+  game_date: string;
+  game_time: string | null;
+  location: string | null;
+  price: string | null;
+};
+
+type JoinParticipantSummary = {
+  username: string | null;
+};
+
 const FONNTE_API_URL = "https://api.fonnte.com/send";
 const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
+const DEFAULT_JOIN_FORMAT = "10Pin | 5 Game";
+const DEFAULT_JOIN_PRICE = "RM66.00";
+const PAYMENT_BANK_NAME = "MAYBANK";
+const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
+const PAYMENT_BANK_HOLDER = "Zaaz Beez";
 
 // Production logging helper
 function logToFile(message: string) {
@@ -289,6 +306,65 @@ function getHelpMessage(): string {
     `❓ *#help*\n` +
     `   Papar senarai command ini\n\n` +
     `_Powered by AMBC Club_`;
+}
+
+function formatJoinSessionDate(dateStr: string): string {
+  try {
+    const date = new Date(`${dateStr}T00:00:00`);
+    const weekday = date
+      .toLocaleDateString("ms-MY", { weekday: "long" })
+      .toUpperCase();
+
+    const [year, month, day] = dateStr.split("-");
+    if (!year || !month || !day) {
+      return dateStr;
+    }
+
+    return `${weekday} / ${day}.${month}.${year}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatJoinParticipantSection(participants: JoinParticipantSummary[]): string {
+  if (participants.length === 0) {
+    return "1.";
+  }
+
+  return participants
+    .map((participant, index) => `${index + 1}. ${participant.username || "-"}`)
+    .join("\n");
+}
+
+function buildJoinSessionReply(
+  session: JoinSessionSummary,
+  participants: JoinParticipantSummary[]
+): string {
+  const formattedDate = formatJoinSessionDate(session.game_date);
+  const gameTime = session.game_time || "-";
+  const location = session.location || "-";
+  const price = session.price || DEFAULT_JOIN_PRICE;
+  const participantList = formatJoinParticipantSection(participants);
+
+  return `🎳🔥*${session.game_name}*🔥🎳\n\n` +
+    `📅 *${formattedDate}*\n` +
+    `⏰ *${gameTime}*\n` +
+    `📍 *${location}*\n` +
+    `🎳 *${DEFAULT_JOIN_FORMAT}*\n` +
+    `💰 *${price}*\n` +
+    `💳 Bayaran Online (Diutamakan)\n` +
+    `Senang urus lane, mohon settle bayaran sebelum 5.00 petang (*${formattedDate.split(" / ")[0] || "GAME DAY"}*) yaa 🙏\n` +
+    `🏦 ${PAYMENT_BANK_NAME}\n` +
+    `➡️ ${PAYMENT_BANK_ACCOUNT}\n` +
+    `👤 ${PAYMENT_BANK_HOLDER}\n\n` +
+    `Senarai peserta:\n\n` +
+    `${participantList}\n\n` +
+    `⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️⛔️\n\n` +
+    `✅ “dah bayar”\n\n` +
+    `Terima kasih✌🏻\n\n` +
+    `🎳 Strike ke spare ke, janji turun 😆🔥\n` +
+    `🚀 JOMMMM RAMAI² TURUN!!! 💪😎\n` +
+    `🎳_*Bowling Brings Us Together*_🎳`;
 }
 
 async function getConfiguredFonnteGroupId(supabaseAdmin: AdminSupabaseClient): Promise<string> {
@@ -582,13 +658,13 @@ async function continueJoinFlow(
   
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
-    .select("id, game_name, game_date")
+    .select("id, game_name, game_date, game_time, location, price")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const session = sessionResult.data as { id: string; game_name: string; game_date: string } | null;
+  const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
 
   logToFile(`Active session check - found: ${!!session}, error: ${sessionResult.error?.message || "none"}`);
 
@@ -630,67 +706,41 @@ async function continueJoinFlow(
 
   logToFile(`Successfully added participant`);
 
-  const { count } = await supabaseAdmin
+  const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("*", { count: "exact", head: true })
-    .eq("session_id", session.id);
+    .select("username")
+    .eq("session_id", session.id)
+    .order("joined_at", { ascending: true });
 
-  logToFile(`Current participant count: ${count || 1}`);
+  const participants = (participantsResult.data ?? []) as JoinParticipantSummary[];
 
-  return `✅ *BERJAYA JOIN!*\n\n` +
-    `👤 ${member.username}\n` +
-    `🎳 ${session.game_name}\n` +
-    `📅 ${formatDateMY(session.game_date)}\n\n` +
-    `📊 Jumlah peserta: *${count || 1}*`;
+  return buildJoinSessionReply(session, participants);
 }
 
 async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promise<string> {
-  // Get active session
   const sessionResult = await supabaseAdmin
-    .from('whatsapp_join_sessions')
-    .select('id, game_name, game_date, game_time, location')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .from("whatsapp_join_sessions")
+    .select("id, game_name, game_date, game_time, location, price")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const session = sessionResult.data as { id: string; game_name: string; game_date: string; game_time: string; location: string } | null;
+  const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
 
   if (!session) {
     return "❌ Tiada join session aktif pada masa ini.";
   }
 
-  // Get participants
-  const { data: participants } = await supabaseAdmin
-    .from('whatsapp_join_participants')
-    .select('username, joined_at')
-    .eq('session_id', session.id)
-    .order('joined_at', { ascending: true });
+  const participantsResult = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .select("username")
+    .eq("session_id", session.id)
+    .order("joined_at", { ascending: true });
 
-  if (!participants || participants.length === 0) {
-    return `📋 *SENARAI PESERTA*\n\n` +
-      `🎳 ${session.game_name}\n` +
-      `📅 ${formatDateMY(session.game_date)}\n` +
-      `⏰ ${session.game_time}\n` +
-      `📍 ${session.location}\n\n` +
-      `_Belum ada peserta. Taip #join untuk sertai!_`;
-  }
+  const participants = (participantsResult.data ?? []) as JoinParticipantSummary[];
 
-  let reply = `📋 *SENARAI PESERTA*\n\n`;
-  reply += `🎳 ${session.game_name}\n`;
-  reply += `📅 ${formatDateMY(session.game_date)}\n`;
-  reply += `⏰ ${session.game_time}\n`;
-  reply += `📍 ${session.location}\n\n`;
-  reply += `${"─".repeat(30)}\n`;
-
-  participants.forEach((p, index) => {
-    reply += `${index + 1}. ${p.username}\n`;
-  });
-
-  reply += `${"─".repeat(30)}\n`;
-  reply += `📊 *Jumlah: ${participants.length} peserta*`;
-
-  return reply;
+  return buildJoinSessionReply(session, participants);
 }
 
 async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
