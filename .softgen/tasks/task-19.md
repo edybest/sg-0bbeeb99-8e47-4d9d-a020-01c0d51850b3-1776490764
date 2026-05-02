@@ -25,6 +25,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Implement #listjoin command untuk show current join list
 - [x] Handle duplicate join attempts dengan friendly message
 - [x] Handle unregistered phone numbers dengan friendly error
+- [x] Fix Fonnte webhook payload parsing untuk WhatsApp Groups: guna field `participant` untuk member lookup bila `sender` adalah group ID (`@g.us`). Log the full payload.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

@@ -654,8 +654,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ success: false, message: "Missing server configuration" });
   }
 
-  const { sender, message } = req.body ?? {};
-  logToFile(`Request body - sender: ${sender}, message: ${message}`);
+  logToFile(`Full payload: ${JSON.stringify(req.body ?? {})}`);
+
+  const { sender, message, participant } = req.body ?? {};
+  logToFile(`Request body - sender: ${sender}, participant: ${participant}, message: ${message}`);
   
   if (!sender || !message) {
     logToFile(`Missing required fields`);
@@ -663,7 +665,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const normalizedMessage = String(message).trim();
+  const isGroupMessage = String(sender).includes("@g.us");
+  const commandSender = isGroupMessage && participant ? String(participant) : String(sender);
+
   logToFile(`Normalized message: ${normalizedMessage}`);
+  logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender}`);
   
   if (!normalizedMessage.startsWith("#")) {
     logToFile(`Non-command message - ignoring`);
@@ -679,11 +685,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     logToFile(`Processing command: ${normalizedMessage}`);
-    const replyMessage = await processCommand(normalizedMessage, String(sender), supabaseAdmin);
+    const replyMessage = await processCommand(normalizedMessage, commandSender, supabaseAdmin);
     logToFile(`Reply message generated: ${replyMessage.substring(0, 100)}...`);
 
     if (replyMessage) {
-      logToFile(`Sending WhatsApp reply...`);
+      logToFile(`Sending WhatsApp reply to: ${sender}`);
       await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
       logToFile(`Reply sent successfully`);
     }
