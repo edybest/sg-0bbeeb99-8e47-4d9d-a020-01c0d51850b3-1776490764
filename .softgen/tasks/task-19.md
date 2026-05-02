@@ -34,6 +34,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Padankan semua calon nombor daripada payload group dengan `members.phone` dan guna hanya nombor yang benar-benar jumpa ahli.
 - [x] Tukar copy reply `#listjoin` dan `#join` berjaya kepada template promosi tetap dengan butiran sesi yang dinamik.
 - [x] Tambah command `#cancel` supaya ahli boleh batalkan penyertaan mereka sendiri daripada sesi join aktif.
+- [ ] Tambah command `#ambc` untuk sync butiran sesi, senarai peserta, dan status bayaran tanpa menghantar reply.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance
