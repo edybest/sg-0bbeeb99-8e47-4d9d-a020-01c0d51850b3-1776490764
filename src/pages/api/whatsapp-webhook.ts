@@ -301,6 +301,8 @@ function getHelpMessage(): string {
     `   Semak lane anda untuk blok terkini\n\n` +
     `✍️ *#join*\n` +
     `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
+    `❌ *#cancel*\n` +
+    `   Batalkan penyertaan anda daripada list join aktif\n\n` +
     `📋 *#listjoin*\n` +
     `   Papar senarai peserta yang telah join\n\n` +
     `❓ *#help*\n` +
@@ -649,6 +651,72 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
   return continueJoinFlow(member, matchedPhone || normalizedPhone, supabaseAdmin);
 }
 
+async function handleCancelCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  const normalizedPhone = normalizeComparablePhone(sender);
+
+  logToFile(`#cancel command received - rawSender: ${sender}, normalized: ${normalizedPhone}`);
+
+  if (!normalizedPhone) {
+    logToFile(`Unable to normalize sender phone for cancel`);
+    return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
+  }
+
+  const { member } = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
+
+  if (!member) {
+    logToFile(`Member not found for cancel - returning error message`);
+    return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
+  }
+
+  const sessionResult = await supabaseAdmin
+    .from("whatsapp_join_sessions")
+    .select("id, game_name, game_date, game_time, location, price")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
+
+  if (!session) {
+    logToFile(`No active session during cancel`);
+    return "❌ Tiada join session aktif pada masa ini.";
+  }
+
+  const participantResult = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .select("id")
+    .eq("session_id", session.id)
+    .eq("member_id", member.id)
+    .maybeSingle();
+
+  if (!participantResult.data) {
+    logToFile(`Member ${member.username} is not in active join list`);
+    return `⚠️ Nama anda tiada dalam list semasa.\n\n🎳 ${session.game_name}\n📅 ${formatDateMY(session.game_date)}`;
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .delete()
+    .eq("id", participantResult.data.id);
+
+  if (deleteError) {
+    logToFile(`Failed to remove participant - error: ${deleteError.message}`);
+    console.error("Error removing participant:", deleteError);
+    return "❌ Gagal batalkan penyertaan. Sila cuba lagi.";
+  }
+
+  const participantsResult = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .select("username")
+    .eq("session_id", session.id)
+    .order("joined_at", { ascending: true });
+
+  const participants = (participantsResult.data ?? []) as JoinParticipantSummary[];
+
+  return `✅ Penyertaan anda telah dibatalkan.\n\n${buildJoinSessionReply(session, participants)}`;
+}
+
 async function continueJoinFlow(
   member: { id: string; username: string; full_name: string },
   senderPhone: string,
@@ -757,6 +825,10 @@ async function processCommand(message: string, sender: string, supabaseAdmin: Ad
 
   if (lowerMessage === "#join") {
     return handleJoinCommand(sender, supabaseAdmin);
+  }
+
+  if (lowerMessage === "#cancel") {
+    return handleCancelCommand(sender, supabaseAdmin);
   }
 
   if (lowerMessage === "#listjoin") {
