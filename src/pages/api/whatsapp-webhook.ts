@@ -56,11 +56,28 @@ type JoinSessionSummary = {
   game_date: string;
   game_time: string | null;
   location: string | null;
+  format_details: string | null;
   price: string | null;
 };
 
 type JoinParticipantSummary = {
   username: string | null;
+  is_paid?: boolean | null;
+};
+
+type ParsedAmbcParticipant = {
+  name: string;
+  is_paid: boolean;
+};
+
+type ParsedAmbcSession = {
+  game_name: string;
+  game_date: string;
+  game_time: string;
+  location: string;
+  format_details: string;
+  price: string;
+  participants: ParsedAmbcParticipant[];
 };
 
 const FONNTE_API_URL = "https://api.fonnte.com/send";
@@ -328,13 +345,153 @@ function formatJoinSessionDate(dateStr: string): string {
   }
 }
 
+function stripWhatsAppFormatting(value: string): string {
+  return value.replace(/\*/g, "").replace(/_/g, "").trim();
+}
+
+function normalizeMemberNameKey(value: string): string {
+  return stripWhatsAppFormatting(value).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function extractSessionGameName(value: string): string {
+  const cleaned = stripWhatsAppFormatting(value);
+  const match = cleaned.match(/#?AMBC\s+BLOCK(?:\s*#\d+)?/i);
+  return match ? match[0].replace(/^#/, "").replace(/\s+/g, " ").trim() : "";
+}
+
+function parseAmbcSyncMessage(message: string): ParsedAmbcSession | null {
+  const lines = message
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  let gameName = "";
+  let gameDate = "";
+  let gameTime = "";
+  let location = "";
+  let formatDetails = "";
+  let price = "";
+  let insideParticipantList = false;
+  const participants: ParsedAmbcParticipant[] = [];
+
+  for (const line of lines) {
+    const cleaned = stripWhatsAppFormatting(line);
+
+    if (!gameName && line.toLowerCase().includes("#ambc")) {
+      gameName = extractSessionGameName(line);
+      continue;
+    }
+
+    if (line.startsWith("📅")) {
+      const dateMatch = cleaned.match(/(\d{2}[./]\d{2}[./]\d{4})/);
+      if (dateMatch) {
+        const parsedDate = parseDateVariants(dateMatch[1]);
+        if (parsedDate) {
+          gameDate = parsedDate;
+        }
+      }
+      continue;
+    }
+
+    if (line.startsWith("⏰")) {
+      gameTime = cleaned.replace("⏰", "").trim();
+      continue;
+    }
+
+    if (line.startsWith("📍")) {
+      location = cleaned.replace("📍", "").trim();
+      continue;
+    }
+
+    if (line.startsWith("🎳") && !cleaned.toLowerCase().includes("ambc block")) {
+      formatDetails = cleaned.replace("🎳", "").trim();
+      continue;
+    }
+
+    if (line.startsWith("💰")) {
+      price = cleaned.replace("💰", "").trim();
+      continue;
+    }
+
+    if (/^senarai peserta[:]?$/i.test(cleaned)) {
+      insideParticipantList = true;
+      continue;
+    }
+
+    if (insideParticipantList && line.startsWith("⛔️")) {
+      break;
+    }
+
+    if (insideParticipantList) {
+      const participantMatch = cleaned.match(/^\d+\.\s*(.+)$/);
+      if (!participantMatch) {
+        continue;
+      }
+
+      const hasPaidMarker = participantMatch[1].includes("✅");
+      const participantName = participantMatch[1].replace(/\s*✅\s*$/u, "").trim();
+
+      if (participantName) {
+        participants.push({
+          name: participantName,
+          is_paid: hasPaidMarker,
+        });
+      }
+    }
+  }
+
+  if (!gameName || !gameDate) {
+    return null;
+  }
+
+  return {
+    game_name: gameName,
+    game_date: gameDate,
+    game_time: gameTime,
+    location,
+    format_details: formatDetails || DEFAULT_JOIN_FORMAT,
+    price: price || DEFAULT_JOIN_PRICE,
+    participants,
+  };
+}
+
+async function resolveParticipantMemberByName(
+  supabaseAdmin: AdminSupabaseClient,
+  participantName: string
+): Promise<JoinLookupMember | null> {
+  const usernameResult = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name, phone")
+    .ilike("username", participantName)
+    .maybeSingle();
+
+  if (usernameResult.data) {
+    return usernameResult.data as JoinLookupMember;
+  }
+
+  const fullNameResult = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name, phone")
+    .ilike("full_name", participantName)
+    .limit(2);
+
+  if (fullNameResult.data && fullNameResult.data.length === 1) {
+    return fullNameResult.data[0] as JoinLookupMember;
+  }
+
+  return null;
+}
+
 function formatJoinParticipantSection(participants: JoinParticipantSummary[]): string {
   if (participants.length === 0) {
     return "1.";
   }
 
   return participants
-    .map((participant, index) => `${index + 1}. ${participant.username || "-"}`)
+    .map((participant, index) => {
+      const paidMarker = participant.is_paid ? " ✅" : "";
+      return `${index + 1}. ${participant.username || "-"}${paidMarker}`;
+    })
     .join("\n");
 }
 
@@ -345,6 +502,7 @@ function buildJoinSessionReply(
   const formattedDate = formatJoinSessionDate(session.game_date);
   const gameTime = session.game_time || "-";
   const location = session.location || "-";
+  const formatDetails = session.format_details || DEFAULT_JOIN_FORMAT;
   const price = session.price || DEFAULT_JOIN_PRICE;
   const participantList = formatJoinParticipantSection(participants);
 
@@ -352,7 +510,7 @@ function buildJoinSessionReply(
     `📅 *${formattedDate}*\n` +
     `⏰ *${gameTime}*\n` +
     `📍 *${location}*\n` +
-    `🎳 *${DEFAULT_JOIN_FORMAT}*\n` +
+    `🎳 *${formatDetails}*\n` +
     `💰 *${price}*\n` +
     `💳 Bayaran Online (Diutamakan)\n` +
     `Senang urus lane, mohon settle bayaran sebelum 5.00 petang (*${formattedDate.split(" / ")[0] || "GAME DAY"}*) yaa 🙏\n` +
@@ -557,35 +715,38 @@ async function handleLaneCommand(_sender: string, supabaseAdmin: AdminSupabaseCl
 }
 
 async function handleJoinBlokCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
-  // Parse game details from message
-  const lines = message.split('\n');
-  let gameName = '';
-  let gameDate = '';
-  let gameTime = '';
-  let location = '';
-  let price = '';
+  const lines = message.split("\n");
+  let gameName = "";
+  let gameDate = "";
+  let gameTime = "";
+  let location = "";
+  let price = "";
+  let formatDetails = DEFAULT_JOIN_FORMAT;
   
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.includes('*AMBC BLOCK')) {
+    if (trimmed.includes("*AMBC BLOCK")) {
       const match = trimmed.match(/AMBC BLOCK.*?#(\d+)/i);
       if (match) gameName = `AMBC BLOCK #${match[1]}`;
     }
-    if (trimmed.includes('📅')) {
+    if (trimmed.includes("📅")) {
       const dateMatch = trimmed.match(/(\d{2}\.\d{2}\.\d{4})/);
       if (dateMatch) {
         const parsed = parseDateVariants(dateMatch[1]);
         if (parsed) gameDate = parsed;
       }
     }
-    if (trimmed.includes('⏰')) {
-      gameTime = trimmed.replace('⏰', '').replace('*', '').trim();
+    if (trimmed.includes("⏰")) {
+      gameTime = trimmed.replace("⏰", "").replace("*", "").trim();
     }
-    if (trimmed.includes('📍')) {
-      location = trimmed.replace('📍', '').replace('*', '').trim();
+    if (trimmed.includes("📍")) {
+      location = trimmed.replace("📍", "").replace("*", "").trim();
     }
-    if (trimmed.includes('💰')) {
-      price = trimmed.replace('💰', '').replace('*', '').trim();
+    if (trimmed.startsWith("🎳") && !trimmed.includes("AMBC BLOCK")) {
+      formatDetails = stripWhatsAppFormatting(trimmed.replace("🎳", "")) || DEFAULT_JOIN_FORMAT;
+    }
+    if (trimmed.includes("💰")) {
+      price = trimmed.replace("💰", "").replace("*", "").trim();
     }
   }
 
@@ -597,17 +758,18 @@ async function handleJoinBlokCommand(message: string, sender: string, supabaseAd
     const configuredGroupId = await getConfiguredFonnteGroupId(supabaseAdmin);
     
     const { data: session, error } = await supabaseAdmin
-      .from('whatsapp_join_sessions')
+      .from("whatsapp_join_sessions")
       .insert({
         game_name: gameName,
         game_date: gameDate,
         game_time: gameTime,
         location: location,
+        format_details: formatDetails,
         price: price,
         original_message: message,
         fonnte_group_id: configuredGroupId,
         created_by_phone: sender,
-        status: 'active'
+        status: "active"
       })
       .select()
       .single();
@@ -622,9 +784,148 @@ async function handleJoinBlokCommand(message: string, sender: string, supabaseAd
       `💰 ${price}\n\n` +
       `Ahli boleh taip *#join* untuk sertai!`;
   } catch (error) {
-    console.error('Error creating join session:', error);
+    console.error("Error creating join session:", error);
     return "❌ Gagal membuka join session. Sila cuba lagi.";
   }
+}
+
+async function handleAmbcSyncCommand(
+  message: string,
+  supabaseAdmin: AdminSupabaseClient
+): Promise<null> {
+  const parsedSession = parseAmbcSyncMessage(message);
+
+  if (!parsedSession) {
+    logToFile("Unable to parse #ambc sync message");
+    return null;
+  }
+
+  const sessionResult = await supabaseAdmin
+    .from("whatsapp_join_sessions")
+    .select("id")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const activeSession = sessionResult.data as { id: string } | null;
+
+  if (!activeSession) {
+    logToFile("No active join session found for #ambc sync");
+    return null;
+  }
+
+  const { error: sessionUpdateError } = await supabaseAdmin
+    .from("whatsapp_join_sessions")
+    .update({
+      game_name: parsedSession.game_name,
+      game_date: parsedSession.game_date,
+      game_time: parsedSession.game_time,
+      location: parsedSession.location,
+      format_details: parsedSession.format_details,
+      price: parsedSession.price,
+      original_message: message,
+    })
+    .eq("id", activeSession.id);
+
+  if (sessionUpdateError) {
+    logToFile(`Failed to update active session via #ambc - ${sessionUpdateError.message}`);
+    return null;
+  }
+
+  const existingParticipantsResult = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .select("member_id, phone_number, username")
+    .eq("session_id", activeSession.id);
+
+  const existingParticipants = (existingParticipantsResult.data ?? []) as Array<{
+    member_id: string;
+    phone_number: string;
+    username: string;
+  }>;
+
+  const existingByName = new Map(
+    existingParticipants.map((participant) => [
+      normalizeMemberNameKey(participant.username),
+      participant,
+    ])
+  );
+
+  const resolvedParticipants: Array<{
+    session_id: string;
+    member_id: string;
+    phone_number: string;
+    username: string;
+    is_paid: boolean;
+    joined_at: string;
+  }> = [];
+
+  const unresolvedNames: string[] = [];
+  const baseTime = Date.now();
+
+  for (const [index, participant] of parsedSession.participants.entries()) {
+    const normalizedName = normalizeMemberNameKey(participant.name);
+    const existingParticipant = existingByName.get(normalizedName);
+
+    if (existingParticipant) {
+      resolvedParticipants.push({
+        session_id: activeSession.id,
+        member_id: existingParticipant.member_id,
+        phone_number: existingParticipant.phone_number,
+        username: existingParticipant.username,
+        is_paid: participant.is_paid,
+        joined_at: new Date(baseTime + index * 1000).toISOString(),
+      });
+      continue;
+    }
+
+    const member = await resolveParticipantMemberByName(supabaseAdmin, participant.name);
+
+    if (!member) {
+      unresolvedNames.push(participant.name);
+      continue;
+    }
+
+    resolvedParticipants.push({
+      session_id: activeSession.id,
+      member_id: member.id,
+      phone_number: member.phone,
+      username: member.username || participant.name,
+      is_paid: participant.is_paid,
+      joined_at: new Date(baseTime + index * 1000).toISOString(),
+    });
+  }
+
+  if (unresolvedNames.length > 0) {
+    logToFile(`#ambc unresolved participants: ${unresolvedNames.join(", ")}`);
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("whatsapp_join_participants")
+    .delete()
+    .eq("session_id", activeSession.id);
+
+  if (deleteError) {
+    logToFile(`Failed to clear participants during #ambc sync - ${deleteError.message}`);
+    return null;
+  }
+
+  if (resolvedParticipants.length > 0) {
+    const { error: insertError } = await supabaseAdmin
+      .from("whatsapp_join_participants")
+      .insert(resolvedParticipants);
+
+    if (insertError) {
+      logToFile(`Failed to insert synced participants during #ambc sync - ${insertError.message}`);
+      return null;
+    }
+  }
+
+  logToFile(
+    `#ambc sync completed - session: ${activeSession.id}, participants: ${resolvedParticipants.length}, unresolved: ${unresolvedNames.length}`
+  );
+
+  return null;
 }
 
 async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
@@ -670,7 +971,7 @@ async function handleCancelCommand(sender: string, supabaseAdmin: AdminSupabaseC
 
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
-    .select("id, game_name, game_date, game_time, location, price")
+    .select("id, game_name, game_date, game_time, location, format_details, price")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -708,7 +1009,7 @@ async function handleCancelCommand(sender: string, supabaseAdmin: AdminSupabaseC
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username")
+    .select("username, is_paid")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
@@ -726,7 +1027,7 @@ async function continueJoinFlow(
   
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
-    .select("id, game_name, game_date, game_time, location, price")
+    .select("id, game_name, game_date, game_time, location, format_details, price")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -763,7 +1064,8 @@ async function continueJoinFlow(
       session_id: session.id,
       member_id: member.id,
       phone_number: senderPhone,
-      username: member.username
+      username: member.username,
+      is_paid: false
     });
 
   if (insertError) {
@@ -776,7 +1078,7 @@ async function continueJoinFlow(
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username")
+    .select("username, is_paid")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
@@ -788,7 +1090,7 @@ async function continueJoinFlow(
 async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
-    .select("id, game_name, game_date, game_time, location, price")
+    .select("id, game_name, game_date, game_time, location, format_details, price")
     .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(1)
@@ -802,7 +1104,7 @@ async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promis
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username")
+    .select("username, is_paid")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
@@ -811,15 +1113,19 @@ async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promis
   return buildJoinSessionReply(session, participants);
 }
 
-async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+async function processCommand(message: string, sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string | null> {
   const trimmed = message.trim();
   const lowerMessage = trimmed.toLowerCase();
+
+  if (lowerMessage.includes("#ambc")) {
+    return handleAmbcSyncCommand(trimmed, supabaseAdmin);
+  }
 
   if (lowerMessage === "#help") {
     return getHelpMessage();
   }
 
-  if (trimmed.includes('#JOINBLOK')) {
+  if (lowerMessage.includes("#joinblok")) {
     return handleJoinBlokCommand(trimmed, sender, supabaseAdmin);
   }
 
@@ -921,9 +1227,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const normalizedMessage = String(message).trim();
+  const normalizedLowerMessage = normalizedMessage.toLowerCase();
   const isGroupMessage = String(sender).includes("@g.us");
+  const isEmbeddedAdminCommand =
+    normalizedLowerMessage.includes("#joinblok") || normalizedLowerMessage.includes("#ambc");
   
-  if (!normalizedMessage.startsWith("#")) {
+  if (!normalizedMessage.startsWith("#") && !isEmbeddedAdminCommand) {
     logToFile(`Non-command message - ignoring`);
     return res.status(200).json({ success: true, message: "Ignored non-command message" });
   }
@@ -945,7 +1254,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     logToFile(`Processing command: ${normalizedMessage}`);
     const replyMessage = await processCommand(normalizedMessage, commandSender, supabaseAdmin);
-    logToFile(`Reply message generated: ${replyMessage.substring(0, 100)}...`);
+    logToFile(
+      replyMessage
+        ? `Reply message generated: ${replyMessage.substring(0, 100)}...`
+        : `Command completed without reply`
+    );
 
     if (replyMessage) {
       logToFile(`Sending WhatsApp reply to: ${sender}`);

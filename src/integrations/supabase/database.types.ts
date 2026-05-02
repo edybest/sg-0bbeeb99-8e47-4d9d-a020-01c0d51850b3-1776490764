@@ -1986,6 +1986,7 @@ export type Database = {
       whatsapp_join_participants: {
         Row: {
           id: string
+          is_paid: boolean
           joined_at: string | null
           member_id: string
           phone_number: string
@@ -1994,6 +1995,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          is_paid?: boolean
           joined_at?: string | null
           member_id: string
           phone_number: string
@@ -2002,6 +2004,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          is_paid?: boolean
           joined_at?: string | null
           member_id?: string
           phone_number?: string
