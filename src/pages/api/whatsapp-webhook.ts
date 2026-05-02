@@ -75,7 +75,9 @@ function normalizeComparablePhone(rawPhone: string): string {
     return "";
   }
 
-  const digitsOnly = trimmed.replace(/\D/g, "");
+  const withoutDomain = trimmed.split("@")[0] ?? "";
+  const withoutDeviceSuffix = withoutDomain.split(":")[0] ?? withoutDomain;
+  const digitsOnly = withoutDeviceSuffix.replace(/\D/g, "");
 
   if (!digitsOnly) {
     return "";

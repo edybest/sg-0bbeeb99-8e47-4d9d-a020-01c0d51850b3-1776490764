@@ -30,6 +30,7 @@ Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBL
 - [x] Kurangkan latency reply webhook dengan logging async production-only dan terus reply ke group sender tanpa lookup tambahan.
 - [x] Aktifkan logging webhook dalam development supaya payload group sebenar dapat disahkan semasa ujian.
 - [x] Tambah fallback extraction untuk cari nombor ahli daripada payload group bila field utama kosong atau format berbeza.
+- [x] Buang suffix JID peranti seperti `:12@s.whatsapp.net` sebelum lookup nombor ahli group dibuat.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance
