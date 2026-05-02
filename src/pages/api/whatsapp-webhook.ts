@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { writeFileSync, appendFileSync } from "fs";
+import { writeFileSync, appendFile } from "fs";
 import { join } from "path";
 
 type AdminSupabaseClient = SupabaseClient<Database>;
@@ -49,32 +49,45 @@ const FONNTE_TOKEN = process.env.FONNTE_API_TOKEN || "";
 
 // Production logging helper
 function logToFile(message: string) {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
   try {
     const logPath = join(process.cwd(), "logs", "webhook-production.log");
     const timestamp = new Date().toISOString();
-    appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+    appendFile(logPath, `[${timestamp}] ${message}\n`, (error) => {
+      if (error) {
+        console.error("Failed to write to log file:", error);
+      }
+    });
   } catch (error) {
-    console.error("Failed to write to log file:", error);
+    console.error("Failed to queue log file write:", error);
   }
 }
 
 function normalizeComparablePhone(rawPhone: string): string {
-  // Clean up WhatsApp-specific characters and whitespace
-  let cleaned = rawPhone.replace(/[@.]/g, "").replace(/\s+/g, "");
-  
-  // Keep the + sign if present - database stores phone with + prefix
-  // Just ensure we have proper format: +60xxxxxxxxx
-  if (!cleaned.startsWith("+")) {
-    if (cleaned.startsWith("60")) {
-      cleaned = `+${cleaned}`;
-    } else if (cleaned.startsWith("0")) {
-      cleaned = `+60${cleaned.slice(1)}`;
-    } else {
-      cleaned = `+60${cleaned}`;
-    }
+  const trimmed = String(rawPhone ?? "").trim();
+
+  if (!trimmed) {
+    return "";
   }
-  
-  return cleaned;
+
+  const digitsOnly = trimmed.replace(/\D/g, "");
+
+  if (!digitsOnly) {
+    return "";
+  }
+
+  if (digitsOnly.startsWith("60")) {
+    return `+${digitsOnly}`;
+  }
+
+  if (digitsOnly.startsWith("0")) {
+    return `+60${digitsOnly.slice(1)}`;
+  }
+
+  return `+60${digitsOnly}`;
 }
 
 function parseDateVariants(input: string): string | null {
@@ -398,66 +411,69 @@ async function handleJoinCommand(sender: string, supabaseAdmin: AdminSupabaseCli
 
   logToFile(`#join command received - rawSender: ${sender}, normalized: ${normalizedPhone}`);
 
-  // Check if member exists
+  if (!normalizedPhone) {
+    logToFile(`Unable to normalize sender phone`);
+    return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
+  }
+
   const memberResult = await supabaseAdmin
-    .from('members')
-    .select('id, username, full_name, phone')
-    .eq('phone', normalizedPhone)
+    .from("members")
+    .select("id, username, full_name, phone")
+    .eq("phone", normalizedPhone)
     .maybeSingle();
 
-  logToFile(`Member lookup result - found: ${!!memberResult.data}, error: ${memberResult.error?.message || 'none'}`);
+  logToFile(`Member lookup result - found: ${!!memberResult.data}, error: ${memberResult.error?.message || "none"}`);
   
   if (memberResult.data) {
-    logToFile(`Member found - username: ${(memberResult.data as any).username}, stored_phone: ${(memberResult.data as any).phone}`);
+    logToFile(`Member found - username: ${(memberResult.data as { username?: string; phone?: string }).username}, stored_phone: ${(memberResult.data as { username?: string; phone?: string }).phone}`);
   }
 
   const member = memberResult.data as { id: string; username: string; full_name: string } | null;
   
   if (!member) {
-    // Fallback: try fuzzy match by removing all non-digits and comparing last 9-10 digits
-    const digitsOnly = normalizedPhone.replace(/\D/g, '');
+    const digitsOnly = normalizedPhone.replace(/\D/g, "");
     const last10 = digitsOnly.slice(-10);
     
     logToFile(`Trying fuzzy match with last 10 digits: ${last10}`);
     
     const fuzzyResult = await supabaseAdmin
-      .from('members')
-      .select('id, username, full_name, phone')
-      .ilike('phone', `%${last10}`);
+      .from("members")
+      .select("id, username, full_name, phone")
+      .ilike("phone", `%${last10}`);
     
     logToFile(`Fuzzy match results: ${fuzzyResult.data?.length || 0} members found`);
     
     if (fuzzyResult.data && fuzzyResult.data.length === 1) {
       const fuzzyMember = fuzzyResult.data[0] as { id: string; username: string; full_name: string };
       logToFile(`Found via fuzzy match - username: ${fuzzyMember.username}`);
-      return continueJoinFlow(fuzzyMember, supabaseAdmin);
+      return continueJoinFlow(fuzzyMember, normalizedPhone, supabaseAdmin);
     }
     
     logToFile(`Member not found - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
-  return continueJoinFlow(member, supabaseAdmin);
+  return continueJoinFlow(member, normalizedPhone, supabaseAdmin);
 }
 
 async function continueJoinFlow(
   member: { id: string; username: string; full_name: string },
+  senderPhone: string,
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
   logToFile(`continueJoinFlow - member: ${member.username} (${member.id})`);
   
-  // Get active session
   const sessionResult = await supabaseAdmin
-    .from('whatsapp_join_sessions')
-    .select('id, game_name, game_date')
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .from("whatsapp_join_sessions")
+    .select("id, game_name, game_date")
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const session = sessionResult.data as { id: string; game_name: string; game_date: string } | null;
 
-  logToFile(`Active session check - found: ${!!session}, error: ${sessionResult.error?.message || 'none'}`);
+  logToFile(`Active session check - found: ${!!session}, error: ${sessionResult.error?.message || "none"}`);
 
   if (!session) {
     logToFile(`No active session - returning error`);
@@ -466,12 +482,11 @@ async function continueJoinFlow(
 
   logToFile(`Active session found - game: ${session.game_name}, date: ${session.game_date}`);
 
-  // Check if already joined
   const existingResult = await supabaseAdmin
-    .from('whatsapp_join_participants')
-    .select('id')
-    .eq('session_id', session.id)
-    .eq('member_id', member.id)
+    .from("whatsapp_join_participants")
+    .select("id")
+    .eq("session_id", session.id)
+    .eq("member_id", member.id)
     .maybeSingle();
 
   if (existingResult.data) {
@@ -481,30 +496,27 @@ async function continueJoinFlow(
 
   logToFile(`Adding member to participants...`);
 
-  // Add to participants
-  const normalizedPhone = normalizeComparablePhone(''); // We don't have sender here, just use empty
   const { error: insertError } = await supabaseAdmin
-    .from('whatsapp_join_participants')
+    .from("whatsapp_join_participants")
     .insert({
       session_id: session.id,
       member_id: member.id,
-      phone_number: normalizedPhone,
+      phone_number: senderPhone,
       username: member.username
     });
 
   if (insertError) {
     logToFile(`Failed to add participant - error: ${insertError.message}`);
-    console.error('Error adding participant:', insertError);
+    console.error("Error adding participant:", insertError);
     return "❌ Gagal menyertai. Sila cuba lagi.";
   }
 
   logToFile(`Successfully added participant`);
 
-  // Get current count
   const { count } = await supabaseAdmin
-    .from('whatsapp_join_participants')
-    .select('*', { count: 'exact', head: true })
-    .eq('session_id', session.id);
+    .from("whatsapp_join_participants")
+    .select("*", { count: "exact", head: true })
+    .eq("session_id", session.id);
 
   logToFile(`Current participant count: ${count || 1}`);
 
@@ -607,8 +619,7 @@ async function sendWhatsAppReply(
   supabaseAdmin: AdminSupabaseClient
 ): Promise<void> {
   const isGroupTarget = replyTarget.includes("@g.us");
-  const configuredGroupId = isGroupTarget ? await getConfiguredFonnteGroupId(supabaseAdmin) : "";
-  const target = isGroupTarget ? (configuredGroupId || replyTarget) : normalizeComparablePhone(replyTarget);
+  const target = isGroupTarget ? replyTarget : normalizeComparablePhone(replyTarget);
 
   if (!target) {
     console.warn("⚠️ WhatsApp auto-reply skipped because target is empty");
