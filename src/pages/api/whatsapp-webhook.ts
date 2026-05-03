@@ -969,7 +969,7 @@ async function handleAmbcSyncCommand(
 
   const resolvedParticipants: Array<{
     session_id: string;
-    member_id: string;
+    member_id: string | null;
     phone_number: string;
     username: string;
     is_paid: boolean;
@@ -1001,6 +1001,15 @@ async function handleAmbcSyncCommand(
 
     if (!member) {
       unresolvedNames.push(participant.name);
+      resolvedParticipants.push({
+        session_id: activeSession.id,
+        member_id: null,
+        phone_number: "",
+        username: participant.name,
+        is_paid: participant.is_paid,
+        payment_note: participant.payment_note,
+        joined_at: new Date(baseTime + index * 1000).toISOString(),
+      });
       continue;
     }
 
@@ -1016,7 +1025,7 @@ async function handleAmbcSyncCommand(
   }
 
   if (unresolvedNames.length > 0) {
-    logToFile(`#ambc unresolved participants: ${unresolvedNames.join(", ")}`);
+    logToFile(`#ambc unresolved participants (saved anyway): ${unresolvedNames.join(", ")}`);
   }
 
   const { error: deleteError } = await supabaseAdmin

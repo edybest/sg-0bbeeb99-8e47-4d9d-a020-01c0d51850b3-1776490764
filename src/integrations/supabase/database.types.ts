@@ -2024,7 +2024,7 @@ export type Database = {
           id: string
           is_paid: boolean
           joined_at: string | null
-          member_id: string
+          member_id: string | null
           payment_note: string | null
           phone_number: string
           session_id: string
@@ -2034,7 +2034,7 @@ export type Database = {
           id?: string
           is_paid?: boolean
           joined_at?: string | null
-          member_id: string
+          member_id?: string | null
           payment_note?: string | null
           phone_number: string
           session_id: string
@@ -2044,7 +2044,7 @@ export type Database = {
           id?: string
           is_paid?: boolean
           joined_at?: string | null
-          member_id?: string
+          member_id?: string | null
           payment_note?: string | null
           phone_number?: string
           session_id?: string
