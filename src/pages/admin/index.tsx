@@ -179,6 +179,13 @@ export default function AdminPage() {
                   <span className="hidden sm:inline">Pengurusan</span> Lane
                 </TabsTrigger>
                 <TabsTrigger 
+                  value="whatsapp"
+                  className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  WhatsApp
+                </TabsTrigger>
+                <TabsTrigger 
                   value="settings"
                   className="data-[state=active]:bg-sky-600 data-[state=active]:text-white whitespace-nowrap px-4"
                 >
@@ -221,6 +228,14 @@ export default function AdminPage() {
                 <CoupleManagement />
               </TabsContent>
 
+              <TabsContent value="lanes">
+                <LaneManagement />
+              </TabsContent>
+
+              <TabsContent value="whatsapp">
+                <WhatsAppCommandsPanel />
+              </TabsContent>
+
               <TabsContent value="settings" className="space-y-6">
                 <ClubSettings />
                 <ThemeSettingsPanel />
@@ -238,14 +253,6 @@ export default function AdminPage() {
 
               <TabsContent value="gallery">
                 <GalleryPermissionsPanel />
-              </TabsContent>
-
-              <TabsContent value="lanes">
-                <LaneManagement />
-              </TabsContent>
-
-              <TabsContent value="whatsapp">
-                <WhatsAppCommandsPanel />
               </TabsContent>
             </Tabs>
           </main>
