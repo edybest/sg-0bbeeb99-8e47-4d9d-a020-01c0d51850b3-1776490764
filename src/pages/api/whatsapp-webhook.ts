@@ -13,6 +13,18 @@ type BlokGame = {
   game_type: string | null;
 };
 
+type WhatsAppCommand = {
+  id: string;
+  command_key: string;
+  command_trigger: string;
+  response_message: string;
+  is_active: boolean;
+  is_hidden: boolean;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type PlayerScoreRow = {
   id: string;
   member_id: string | null;
@@ -348,6 +360,56 @@ function getHelpMessage(): string {
     `❓ *#help*\n` +
     `   Papar senarai command ini\n\n` +
     `_Powered by AMBC Club_`;
+}
+
+async function buildDynamicHelpMessage(supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  const { data: customCommands } = await supabaseAdmin
+    .from("whatsapp_commands")
+    .select("command_trigger, description")
+    .eq("is_active", true)
+    .eq("is_hidden", false)
+    .order("created_at", { ascending: true });
+
+  let helpText = `📋 *AMBC CLUB - WhatsApp Commands*\n\n` +
+    `🎳 *#blok* [tarikh]\n` +
+    `   Papar ranking blok ringkas\n` +
+    `   Contoh: #blok atau #blok 22.04.2026\n\n` +
+    `🏆 *#top5* [tarikh]\n` +
+    `   Papar top 5 ranking sahaja\n` +
+    `   Contoh: #top5 atau #top 5 20.03.2026\n\n` +
+    `🎯 *#lane*\n` +
+    `   Semak lane anda untuk blok terkini\n\n` +
+    `✍️ *#join*\n` +
+    `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
+    `❌ *#cancel*\n` +
+    `   Batalkan penyertaan anda daripada list join aktif\n\n` +
+    `📋 *#listjoin*\n` +
+    `   Papar senarai peserta yang telah join\n\n`;
+
+  if (customCommands && customCommands.length > 0) {
+    for (const cmd of customCommands) {
+      const description = cmd.description || "Custom command";
+      helpText += `⭐ *${cmd.command_trigger}*\n   ${description}\n\n`;
+    }
+  }
+
+  helpText += `❓ *#help*\n   Papar senarai command ini\n\n_Powered by AMBC Club_`;
+
+  return helpText;
+}
+
+async function getDynamicCommand(
+  trigger: string,
+  supabaseAdmin: AdminSupabaseClient
+): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from("whatsapp_commands")
+    .select("response_message")
+    .eq("command_trigger", trigger.toLowerCase())
+    .eq("is_active", true)
+    .maybeSingle();
+
+  return data ? data.response_message : null;
 }
 
 function formatJoinSessionDate(dateStr: string): string {
@@ -1178,11 +1240,7 @@ async function processCommand(
   }
 
   if (lowerMessage === "#help") {
-    return getHelpMessage();
-  }
-
-  if (lowerMessage === "#theboy") {
-    return "ambc the boy always wins!!!";
+    return buildDynamicHelpMessage(supabaseAdmin);
   }
 
   if (lowerMessage.includes("#joinblok")) {
@@ -1213,6 +1271,11 @@ async function processCommand(
   const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?$/);
   if (blokMatch) {
     return handleBlokCommand(blokMatch[1], supabaseAdmin);
+  }
+
+  const dynamicResponse = await getDynamicCommand(lowerMessage, supabaseAdmin);
+  if (dynamicResponse) {
+    return dynamicResponse;
   }
 
   return "❌ Command tidak dikenali.\n\nTaip *#help* untuk senarai command.";
