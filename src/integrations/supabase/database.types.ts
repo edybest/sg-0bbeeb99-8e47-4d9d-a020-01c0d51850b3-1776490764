@@ -2025,6 +2025,7 @@ export type Database = {
           is_paid: boolean
           joined_at: string | null
           member_id: string
+          payment_note: string | null
           phone_number: string
           session_id: string
           username: string
@@ -2034,6 +2035,7 @@ export type Database = {
           is_paid?: boolean
           joined_at?: string | null
           member_id: string
+          payment_note?: string | null
           phone_number: string
           session_id: string
           username: string
@@ -2043,6 +2045,7 @@ export type Database = {
           is_paid?: boolean
           joined_at?: string | null
           member_id?: string
+          payment_note?: string | null
           phone_number?: string
           session_id?: string
           username?: string

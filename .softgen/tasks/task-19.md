@@ -16,7 +16,7 @@ position: 19
 ## Notes
 Buat sistem auto-join untuk WhatsApp group AMBC. Bila admin post dengan `#JOINBLOK`, bot buat join session baru. Member boleh post `#join` untuk join, dan bot akan validate phone number + tambah nama dalam list. Bot akan balas dengan confirmation dan track semua dalam database `blok_join_queue` dan `blok_join_participants`.
 
-Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admin. Nama yang sudah bayar akan ditanda terus dalam senarai peserta dengan format seperti `1. AA ✅`. Command ini hanya sync rekod aktif, tanpa menghantar WhatsApp reply.
+Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admin. Nama yang sudah bayar akan ditanda terus dalam senarai peserta dengan format seperti `1. AA ✅ 76` atau `2. Farah ©️ 66`. Simbol + teks selepas username akan disimpan dan dipaparkan semula dalam reply `#join`, `#listjoin`, dan `#cancel`. Command ini hanya sync rekod aktif, tanpa menghantar WhatsApp reply.
 
 ## Checklist
 - [x] Buat table `whatsapp_join_sessions` untuk simpan join session details
@@ -40,6 +40,7 @@ Format sync `#ambc`: butiran sesi dan senarai peserta datang daripada mesej admi
 - [x] Kurangkan latency `#join` dan `#cancel` dengan reuse ahli yang sudah dijumpai daripada payload group dan elak scan fallback bila `participant` sudah padan.
 - [x] Tambah waiting list automatik: peserta ke-43 dan seterusnya dipaparkan di bawah `Waiting List`, dan turutan naik sendiri bila ada `#cancel`.
 - [x] Tambah command tersembunyi `#theboy` yang balas `ambc the boy always wins!!!` tanpa dipaparkan dalam `#help`.
+- [x] Simpan dan paparkan simbol + teks selepas username (contoh: `✅️ 76`, `©️ 66`) yang admin set melalui `#ambc` sync dalam semua reply `#join`, `#listjoin`, dan `#cancel`.
 - [ ] Test dalam WhatsApp group sebenar
 
 ## Acceptance

@@ -80,11 +80,13 @@ type JoinSessionSummary = {
 type JoinParticipantSummary = {
   username: string | null;
   is_paid?: boolean | null;
+  payment_note?: string | null;
 };
 
 type ParsedAmbcParticipant = {
   name: string;
   is_paid: boolean;
+  payment_note: string;
 };
 
 type ParsedAmbcSession = {
@@ -498,7 +500,7 @@ function parseAmbcSyncMessage(message: string): ParsedAmbcSession | null {
       continue;
     }
 
-    if (/^senarai peserta[:]?$/i.test(cleaned)) {
+    if (/^senarai peserta[:]?$/i.test(cleaned) || /^✍️/i.test(line)) {
       insideParticipantList = true;
       continue;
     }
@@ -513,13 +515,36 @@ function parseAmbcSyncMessage(message: string): ParsedAmbcSession | null {
         continue;
       }
 
-      const hasPaidMarker = participantMatch[1].includes("✅");
-      const participantName = participantMatch[1].replace(/\s*✅\s*$/u, "").trim();
+      const fullText = participantMatch[1].trim();
+      
+      // Extract payment note (badge + text after username)
+      // Pattern: "Username ✅ 76" or "Username ©️ 66" or just "Username"
+      const noteMatch = fullText.match(/^([^✅©️]+?)\s*([✅©️].*)$/u);
+      
+      let participantName = "";
+      let paymentNote = "";
+      let hasPaidMarker = false;
+
+      if (noteMatch) {
+        participantName = noteMatch[1].trim();
+        paymentNote = noteMatch[2].trim();
+        hasPaidMarker = paymentNote.includes("✅");
+      } else {
+        // No badge - check if there's a standalone ✅ at the end
+        const checkmarkMatch = fullText.match(/^(.+?)\s*✅\s*$/u);
+        if (checkmarkMatch) {
+          participantName = checkmarkMatch[1].trim();
+          hasPaidMarker = true;
+        } else {
+          participantName = fullText.trim();
+        }
+      }
 
       if (participantName) {
         participants.push({
           name: participantName,
           is_paid: hasPaidMarker,
+          payment_note: paymentNote,
         });
       }
     }
@@ -574,8 +599,9 @@ function formatJoinParticipantSection(participants: JoinParticipantSummary[]): s
 
   return participants
     .map((participant, index) => {
-      const paidMarker = participant.is_paid ? " ✅" : "";
-      return `${index + 1}. ${participant.username || "-"}${paidMarker}`;
+      const username = participant.username || "-";
+      const paymentNote = participant.payment_note ? ` ${participant.payment_note}` : "";
+      return `${index + 1}. ${username}${paymentNote}`;
     })
     .join("\n");
 }
@@ -947,6 +973,7 @@ async function handleAmbcSyncCommand(
     phone_number: string;
     username: string;
     is_paid: boolean;
+    payment_note: string;
     joined_at: string;
   }> = [];
 
@@ -964,6 +991,7 @@ async function handleAmbcSyncCommand(
         phone_number: existingParticipant.phone_number,
         username: existingParticipant.username,
         is_paid: participant.is_paid,
+        payment_note: participant.payment_note,
         joined_at: new Date(baseTime + index * 1000).toISOString(),
       });
       continue;
@@ -982,6 +1010,7 @@ async function handleAmbcSyncCommand(
       phone_number: member.phone,
       username: member.username || participant.name,
       is_paid: participant.is_paid,
+      payment_note: participant.payment_note,
       joined_at: new Date(baseTime + index * 1000).toISOString(),
     });
   }
@@ -1123,7 +1152,7 @@ async function handleCancelCommand(
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username, is_paid")
+    .select("username, is_paid, payment_note")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
@@ -1179,7 +1208,8 @@ async function continueJoinFlow(
       member_id: member.id,
       phone_number: senderPhone,
       username: member.username,
-      is_paid: false
+      is_paid: false,
+      payment_note: ""
     });
 
   if (insertError) {
@@ -1192,7 +1222,7 @@ async function continueJoinFlow(
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username, is_paid")
+    .select("username, is_paid, payment_note")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
@@ -1218,7 +1248,7 @@ async function handleListJoinCommand(supabaseAdmin: AdminSupabaseClient): Promis
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
-    .select("username, is_paid")
+    .select("username, is_paid, payment_note")
     .eq("session_id", session.id)
     .order("joined_at", { ascending: true });
 
