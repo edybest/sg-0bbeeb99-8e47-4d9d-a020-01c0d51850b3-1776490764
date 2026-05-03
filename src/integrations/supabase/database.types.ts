@@ -1983,6 +1983,42 @@ export type Database = {
           },
         ]
       }
+      whatsapp_commands: {
+        Row: {
+          command_key: string
+          command_trigger: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_hidden: boolean
+          response_message: string
+          updated_at: string
+        }
+        Insert: {
+          command_key: string
+          command_trigger: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_hidden?: boolean
+          response_message: string
+          updated_at?: string
+        }
+        Update: {
+          command_key?: string
+          command_trigger?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_hidden?: boolean
+          response_message?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_join_participants: {
         Row: {
           id: string

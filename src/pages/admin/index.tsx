@@ -34,6 +34,7 @@ import {
   Heart,
 } from "lucide-react";
 import { CoupleManagement } from "@/components/admin/CoupleManagement";
+import { WhatsAppCommandsPanel } from "@/components/admin/WhatsAppCommandsPanel";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -241,6 +242,10 @@ export default function AdminPage() {
 
               <TabsContent value="lanes">
                 <LaneManagement />
+              </TabsContent>
+
+              <TabsContent value="whatsapp">
+                <WhatsAppCommandsPanel />
               </TabsContent>
             </Tabs>
           </main>
