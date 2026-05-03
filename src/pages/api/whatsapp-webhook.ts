@@ -594,7 +594,7 @@ function buildJoinSessionReply(
   const participantList = formatJoinParticipantSection(confirmedParticipants);
   const waitingList = formatJoinParticipantSection(waitingParticipants);
 
-  return `🎳🔥*${session.game_name}*🔥🎳\n\n` +
+  return `🎳🔥*#${session.game_name}*🔥🎳\n\n` +
     `📅 *${formattedDate}*\n` +
     `⏰ *${gameTime}*\n` +
     `📍 *${location}*\n` +
