@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { writeFileSync, appendFile } from "fs";
+import { appendFile } from "fs";
 import { join } from "path";
 
 type AdminSupabaseClient = SupabaseClient<Database>;
@@ -108,25 +108,22 @@ const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
 const PAYMENT_BANK_HOLDER = "Zaaz Beez";
 const MAX_CONFIRMED_PARTICIPANTS = 42;
 
-// Production logging helper
+// Production logging helper - fully async, no blocking
 function logToFile(message: string) {
-  try {
-    const logPath = join(process.cwd(), "logs", "webhook-production.log");
-    const timestamp = new Date().toISOString();
-    const logLine = `[${timestamp}] ${message}\n`;
-
-    if (process.env.NODE_ENV !== "production") {
-      console.log(logLine.trim());
-    }
-
-    appendFile(logPath, logLine, (error) => {
-      if (error) {
-        console.error("Failed to write to log file:", error);
-      }
-    });
-  } catch (error) {
-    console.error("Failed to queue log file write:", error);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[${new Date().toISOString()}] ${message}`);
   }
+
+  const logPath = join(process.cwd(), "logs", "webhook-production.log");
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] ${message}\n`;
+
+  // Fire and forget - don't wait
+  appendFile(logPath, logLine, (error) => {
+    if (error && process.env.NODE_ENV !== "production") {
+      console.error("Failed to write to log file:", error);
+    }
+  });
 }
 
 function normalizeComparablePhone(rawPhone: string): string {
@@ -224,21 +221,27 @@ async function findMemberByPossiblePhones(
     )
   );
 
-  for (const phone of normalizedCandidates) {
-    const exactResult = await supabaseAdmin
-      .from("members")
-      .select("id, username, full_name, phone")
-      .eq("phone", phone)
-      .maybeSingle();
+  // Try exact matches in parallel first
+  const exactResults = await Promise.all(
+    normalizedCandidates.map((phone) =>
+      supabaseAdmin
+        .from("members")
+        .select("id, username, full_name, phone")
+        .eq("phone", phone)
+        .maybeSingle()
+    )
+  );
 
-    if (exactResult.data) {
+  for (let i = 0; i < exactResults.length; i++) {
+    if (exactResults[i].data) {
       return {
-        member: exactResult.data as JoinLookupMember,
-        matchedPhone: phone,
+        member: exactResults[i].data as JoinLookupMember,
+        matchedPhone: normalizedCandidates[i],
       };
     }
   }
 
+  // Fallback to fuzzy matching if no exact match
   for (const phone of normalizedCandidates) {
     const digitsOnly = phone.replace(/\D/g, "");
     const suffixes = Array.from(
@@ -967,6 +970,21 @@ async function handleAmbcSyncCommand(
     ])
   );
 
+  // Batch resolve all participant names in parallel
+  const memberLookups = await Promise.all(
+    parsedSession.participants.map(async (participant) => {
+      const normalizedName = normalizeMemberNameKey(participant.name);
+      const existingParticipant = existingByName.get(normalizedName);
+
+      if (existingParticipant) {
+        return { participant, existingParticipant, member: null };
+      }
+
+      const member = await resolveParticipantMemberByName(supabaseAdmin, participant.name);
+      return { participant, existingParticipant: null, member };
+    })
+  );
+
   const resolvedParticipants: Array<{
     session_id: string;
     member_id: string | null;
@@ -980,10 +998,7 @@ async function handleAmbcSyncCommand(
   const unresolvedNames: string[] = [];
   const baseTime = Date.now();
 
-  for (const [index, participant] of parsedSession.participants.entries()) {
-    const normalizedName = normalizeMemberNameKey(participant.name);
-    const existingParticipant = existingByName.get(normalizedName);
-
+  memberLookups.forEach(({ participant, existingParticipant, member }, index) => {
     if (existingParticipant) {
       resolvedParticipants.push({
         session_id: activeSession.id,
@@ -994,10 +1009,8 @@ async function handleAmbcSyncCommand(
         payment_note: participant.payment_note,
         joined_at: new Date(baseTime + index * 1000).toISOString(),
       });
-      continue;
+      return;
     }
-
-    const member = await resolveParticipantMemberByName(supabaseAdmin, participant.name);
 
     if (!member) {
       unresolvedNames.push(participant.name);
@@ -1010,7 +1023,7 @@ async function handleAmbcSyncCommand(
         payment_note: participant.payment_note,
         joined_at: new Date(baseTime + index * 1000).toISOString(),
       });
-      continue;
+      return;
     }
 
     resolvedParticipants.push({
@@ -1022,7 +1035,7 @@ async function handleAmbcSyncCommand(
       payment_note: participant.payment_note,
       joined_at: new Date(baseTime + index * 1000).toISOString(),
     });
-  }
+  });
 
   if (unresolvedNames.length > 0) {
     logToFile(`#ambc unresolved participants (saved anyway): ${unresolvedNames.join(", ")}`);
@@ -1422,12 +1435,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         : `Command completed without reply`
     );
 
+    // Send WhatsApp reply immediately if there's a message
     if (replyMessage) {
       logToFile(`Sending WhatsApp reply to: ${sender}`);
       await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
       logToFile(`Reply sent successfully`);
     }
 
+    // Return success immediately - don't wait for background processing
     logToFile(`Webhook processed successfully`);
     return res.status(200).json({ success: true, message: "Webhook processed successfully" });
   } catch (error) {
