@@ -970,9 +970,21 @@ async function handleAmbcSyncCommand(
     ])
   );
 
+  // Deduplicate participants - keep first occurrence only (case-insensitive)
+  const seenNames = new Set<string>();
+  const uniqueParticipants = parsedSession.participants.filter((participant) => {
+    const normalizedName = normalizeMemberNameKey(participant.name);
+    if (seenNames.has(normalizedName)) {
+      logToFile(`#ambc duplicate name skipped: ${participant.name} (normalized: ${normalizedName})`);
+      return false;
+    }
+    seenNames.add(normalizedName);
+    return true;
+  });
+
   // Batch resolve all participant names in parallel
   const memberLookups = await Promise.all(
-    parsedSession.participants.map(async (participant) => {
+    uniqueParticipants.map(async (participant) => {
       const normalizedName = normalizeMemberNameKey(participant.name);
       const existingParticipant = existingByName.get(normalizedName);
 
