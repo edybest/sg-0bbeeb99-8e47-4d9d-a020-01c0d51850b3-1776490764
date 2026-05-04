@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { appendFile } from "fs";
-import { join } from "path";
 
 type AdminSupabaseClient = SupabaseClient<Database>;
 
@@ -107,24 +105,6 @@ const PAYMENT_BANK_NAME = "MAYBANK";
 const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
 const PAYMENT_BANK_HOLDER = "Zaaz Beez";
 const MAX_CONFIRMED_PARTICIPANTS = 42;
-
-// Production logging helper - fully async, no blocking
-function logToFile(message: string) {
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[${new Date().toISOString()}] ${message}`);
-  }
-
-  const logPath = join(process.cwd(), "logs", "webhook-production.log");
-  const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] ${message}\n`;
-
-  // Fire and forget - don't wait
-  appendFile(logPath, logLine, (error) => {
-    if (error && process.env.NODE_ENV !== "production") {
-      console.error("Failed to write to log file:", error);
-    }
-  });
-}
 
 function normalizeComparablePhone(rawPhone: string): string {
   const trimmed = String(rawPhone ?? "").trim();
@@ -291,10 +271,6 @@ async function resolveCommandSenderForGroup(
     const directMatch = await findMemberByPossiblePhones(supabaseAdmin, [directParticipant]);
 
     if (directMatch.member) {
-      logToFile(
-        `Group sender resolution - source: participant, matchedPhone: ${directMatch.matchedPhone || directParticipant}, matchedMember: ${directMatch.member.username || "none"}`
-      );
-
       return {
         phone: directMatch.matchedPhone || directParticipant,
         member: directMatch.member,
@@ -304,10 +280,6 @@ async function resolveCommandSenderForGroup(
 
   const fallbackCandidates = extractFallbackPhoneCandidates(payload);
   const fallbackMatch = await findMemberByPossiblePhones(supabaseAdmin, fallbackCandidates);
-
-  logToFile(
-    `Group sender resolution - source: fallback, directParticipant: ${directParticipant || "none"}, fallbackCandidates: ${fallbackCandidates.join(", ") || "none"}, matchedPhone: ${fallbackMatch.matchedPhone || "none"}, matchedMember: ${fallbackMatch.member?.username || "none"}`
-  );
 
   return {
     phone: fallbackMatch.matchedPhone || directParticipant || fallbackCandidates[0] || "",
@@ -923,7 +895,6 @@ async function handleAmbcSyncCommand(
   const parsedSession = parseAmbcSyncMessage(message);
 
   if (!parsedSession) {
-    logToFile("Unable to parse #ambc sync message");
     return null;
   }
 
@@ -938,7 +909,6 @@ async function handleAmbcSyncCommand(
   const activeSession = sessionResult.data as { id: string } | null;
 
   if (!activeSession) {
-    logToFile("No active join session found for #ambc sync");
     return null;
   }
 
@@ -956,7 +926,6 @@ async function handleAmbcSyncCommand(
     .eq("id", activeSession.id);
 
   if (sessionUpdateError) {
-    logToFile(`Failed to update active session via #ambc - ${sessionUpdateError.message}`);
     return null;
   }
 
@@ -983,7 +952,6 @@ async function handleAmbcSyncCommand(
   const uniqueParticipants = parsedSession.participants.filter((participant) => {
     const normalizedName = normalizeMemberNameKey(participant.name);
     if (seenNames.has(normalizedName)) {
-      logToFile(`#ambc duplicate name skipped: ${participant.name} (normalized: ${normalizedName})`);
       return false;
     }
     seenNames.add(normalizedName);
@@ -1015,7 +983,6 @@ async function handleAmbcSyncCommand(
     joined_at: string;
   }> = [];
 
-  const unresolvedNames: string[] = [];
   const baseTime = Date.now();
 
   memberLookups.forEach(({ participant, existingParticipant, member }, index) => {
@@ -1033,7 +1000,6 @@ async function handleAmbcSyncCommand(
     }
 
     if (!member) {
-      unresolvedNames.push(participant.name);
       resolvedParticipants.push({
         session_id: activeSession.id,
         member_id: null,
@@ -1057,17 +1023,12 @@ async function handleAmbcSyncCommand(
     });
   });
 
-  if (unresolvedNames.length > 0) {
-    logToFile(`#ambc unresolved participants (saved anyway): ${unresolvedNames.join(", ")}`);
-  }
-
   const { error: deleteError } = await supabaseAdmin
     .from("whatsapp_join_participants")
     .delete()
     .eq("session_id", activeSession.id);
 
   if (deleteError) {
-    logToFile(`Failed to clear participants during #ambc sync - ${deleteError.message}`);
     return null;
   }
 
@@ -1077,14 +1038,9 @@ async function handleAmbcSyncCommand(
       .insert(resolvedParticipants);
 
     if (insertError) {
-      logToFile(`Failed to insert synced participants during #ambc sync - ${insertError.message}`);
       return null;
     }
   }
-
-  logToFile(
-    `#ambc sync completed - session: ${activeSession.id}, participants: ${resolvedParticipants.length}, unresolved: ${unresolvedNames.length}`
-  );
 
   return null;
 }
@@ -1095,10 +1051,7 @@ async function handleJoinCommand(
 ): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(senderContext.phone);
 
-  logToFile(`#join command received - resolvedPhone: ${normalizedPhone}`);
-
   if (!normalizedPhone) {
-    logToFile(`Unable to normalize sender phone`);
     return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
   }
 
@@ -1109,18 +1062,9 @@ async function handleJoinCommand(
     const lookupResult = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
     member = lookupResult.member;
     matchedPhone = lookupResult.matchedPhone || normalizedPhone;
-
-    logToFile(
-      `Member lookup result - found: ${!!member}, matchedPhone: ${matchedPhone || "none"}`
-    );
-  } else {
-    logToFile(
-      `Member lookup skipped - reused resolved member: ${member.username}, matchedPhone: ${matchedPhone}`
-    );
   }
 
   if (!member) {
-    logToFile(`Member not found - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
@@ -1133,10 +1077,7 @@ async function handleCancelCommand(
 ): Promise<string> {
   const normalizedPhone = normalizeComparablePhone(senderContext.phone);
 
-  logToFile(`#cancel command received - resolvedPhone: ${normalizedPhone}`);
-
   if (!normalizedPhone) {
-    logToFile(`Unable to normalize sender phone for cancel`);
     return "❌ Nombor telefon tidak dapat dikenal pasti daripada mesej WhatsApp.";
   }
 
@@ -1145,12 +1086,9 @@ async function handleCancelCommand(
   if (!member) {
     const lookupResult = await findMemberByPossiblePhones(supabaseAdmin, [normalizedPhone]);
     member = lookupResult.member;
-  } else {
-    logToFile(`Cancel lookup skipped - reused resolved member: ${member.username}`);
   }
 
   if (!member) {
-    logToFile(`Member not found for cancel - returning error message`);
     return "❌ Maaf, akaun anda tidak wujud dalam sistem AMBC.\n\nSila hubungi admin untuk pendaftaran.";
   }
 
@@ -1165,7 +1103,6 @@ async function handleCancelCommand(
   const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
 
   if (!session) {
-    logToFile(`No active session during cancel`);
     return "❌ Tiada join session aktif pada masa ini.";
   }
 
@@ -1177,7 +1114,6 @@ async function handleCancelCommand(
     .maybeSingle();
 
   if (!participantResult.data) {
-    logToFile(`Member ${member.username} is not in active join list`);
     return `⚠️ Nama anda tiada dalam list semasa.\n\n🎳 ${session.game_name}\n📅 ${formatDateMY(session.game_date)}`;
   }
 
@@ -1187,7 +1123,6 @@ async function handleCancelCommand(
     .eq("id", participantResult.data.id);
 
   if (deleteError) {
-    logToFile(`Failed to remove participant - error: ${deleteError.message}`);
     console.error("Error removing participant:", deleteError);
     return "❌ Gagal batalkan penyertaan. Sila cuba lagi.";
   }
@@ -1208,8 +1143,6 @@ async function continueJoinFlow(
   senderPhone: string,
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
-  logToFile(`continueJoinFlow - member: ${member.username} (${member.id})`);
-  
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
     .select("id, game_name, game_date, game_time, location, format_details, price")
@@ -1220,14 +1153,9 @@ async function continueJoinFlow(
 
   const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
 
-  logToFile(`Active session check - found: ${!!session}, error: ${sessionResult.error?.message || "none"}`);
-
   if (!session) {
-    logToFile(`No active session - returning error`);
     return "❌ Tiada join session aktif pada masa ini.\n\nTunggu admin buka #JOINBLOK.";
   }
-
-  logToFile(`Active session found - game: ${session.game_name}, date: ${session.game_date}`);
 
   const existingResult = await supabaseAdmin
     .from("whatsapp_join_participants")
@@ -1237,11 +1165,8 @@ async function continueJoinFlow(
     .maybeSingle();
 
   if (existingResult.data) {
-    logToFile(`Member already joined - returning duplicate message`);
     return `⚠️ Nama anda telah ada dalam list.\n\n🎳 ${session.game_name}\n📅 ${formatDateMY(session.game_date)}`;
   }
-
-  logToFile(`Adding member to participants...`);
 
   const { error: insertError } = await supabaseAdmin
     .from("whatsapp_join_participants")
@@ -1255,12 +1180,9 @@ async function continueJoinFlow(
     });
 
   if (insertError) {
-    logToFile(`Failed to add participant - error: ${insertError.message}`);
     console.error("Error adding participant:", insertError);
     return "❌ Gagal menyertai. Sila cuba lagi.";
   }
-
-  logToFile(`Successfully added participant`);
 
   const participantsResult = await supabaseAdmin
     .from("whatsapp_join_participants")
@@ -1389,11 +1311,7 @@ async function sendWhatsAppReply(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  logToFile(`========== NEW WEBHOOK REQUEST ==========`);
-  logToFile(`Method: ${req.method}`);
-  
   if (req.method !== "POST") {
-    logToFile(`Invalid method - returning 405`);
     return res.status(405).json({ success: false, message: "Method not allowed" });
   }
 
@@ -1401,11 +1319,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   if (!supabaseUrl || !serviceRoleKey || !FONNTE_TOKEN) {
-    logToFile(`Missing server configuration`);
     return res.status(500).json({ success: false, message: "Missing server configuration" });
   }
-
-  logToFile(`Full payload: ${JSON.stringify(req.body ?? {})}`);
 
   const payload = req.body ?? {};
   const { sender, message, participant } = payload as {
@@ -1414,10 +1329,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     participant?: string;
   };
 
-  logToFile(`Request body - sender: ${sender}, participant: ${participant}, message: ${message}`);
-  
   if (!sender || !message) {
-    logToFile(`Missing required fields`);
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
 
@@ -1428,7 +1340,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     normalizedLowerMessage.includes("#joinblok") || normalizedLowerMessage.includes("#ambc");
   
   if (!normalizedMessage.startsWith("#") && !isEmbeddedAdminCommand) {
-    logToFile(`Non-command message - ignoring`);
     return res.status(200).json({ success: true, message: "Ignored non-command message" });
   }
 
@@ -1444,30 +1355,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? await resolveCommandSenderForGroup(supabaseAdmin, payload, participant)
       : { phone: normalizeComparablePhone(String(sender)), member: null };
 
-    logToFile(`Normalized message: ${normalizedMessage}`);
-    logToFile(`Message context - isGroup: ${isGroupMessage}, commandSender: ${commandSender.phone || "none"}, preResolvedMember: ${commandSender.member?.username || "none"}`);
-
-    logToFile(`Processing command: ${normalizedMessage}`);
     const replyMessage = await processCommand(normalizedMessage, commandSender, supabaseAdmin);
-    logToFile(
-      replyMessage
-        ? `Reply message generated: ${replyMessage.substring(0, 100)}...`
-        : `Command completed without reply`
-    );
 
     // Send WhatsApp reply immediately if there's a message
     if (replyMessage) {
-      logToFile(`Sending WhatsApp reply to: ${sender}`);
       await sendWhatsAppReply(String(sender), replyMessage, supabaseAdmin);
-      logToFile(`Reply sent successfully`);
     }
 
     // Return success immediately - don't wait for background processing
-    logToFile(`Webhook processed successfully`);
     return res.status(200).json({ success: true, message: "Webhook processed successfully" });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logToFile(`ERROR: ${errorMessage}`);
     console.error("❌ Webhook processing error:", error);
     return res.status(200).json({ success: false, message: "Webhook processing error" });
   }
