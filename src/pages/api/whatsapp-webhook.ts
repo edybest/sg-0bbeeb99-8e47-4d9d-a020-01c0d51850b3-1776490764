@@ -141,14 +141,21 @@ function normalizeComparablePhone(rawPhone: string): string {
     return "";
   }
 
+  // Support both Malaysia (60) and Singapore (65) country codes
   if (digitsOnly.startsWith("60")) {
     return `+${digitsOnly}`;
   }
 
+  if (digitsOnly.startsWith("65")) {
+    return `+${digitsOnly}`;
+  }
+
+  // Malaysia local format (0xx) -> +60xx
   if (digitsOnly.startsWith("0")) {
     return `+60${digitsOnly.slice(1)}`;
   }
 
+  // Default to Malaysia for unrecognized formats (backward compatibility)
   return `+60${digitsOnly}`;
 }
 
@@ -168,6 +175,7 @@ function isPossibleMemberPhoneValue(value: string): boolean {
     trimmed.includes("@s.whatsapp.net") ||
     trimmed.startsWith("+") ||
     trimmed.startsWith("60") ||
+    trimmed.startsWith("65") ||
     trimmed.startsWith("0")
   );
 }
