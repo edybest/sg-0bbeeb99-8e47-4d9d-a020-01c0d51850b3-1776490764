@@ -6,6 +6,27 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SUPABASE_SERVER_CONFIG_ERROR =
   "Konfigurasi server Supabase belum lengkap. Jika projek ini disambungkan terus melalui Softgen, reconnect integrasi Supabase dan restart server.";
 
+function normalizePhoneNumber(phone: string): string {
+  const digitsOnly = phone.replace(/\D/g, "");
+
+  // Support both Malaysia (60) and Singapore (65) country codes
+  if (digitsOnly.startsWith("60")) {
+    return `+${digitsOnly}`;
+  }
+
+  if (digitsOnly.startsWith("65")) {
+    return `+${digitsOnly}`;
+  }
+
+  // Malaysia local format (0xx) -> +60xx
+  if (digitsOnly.startsWith("0")) {
+    return `+60${digitsOnly.slice(1)}`;
+  }
+
+  // Default to Malaysia for unrecognized formats (backward compatibility)
+  return `+60${digitsOnly}`;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -41,15 +62,7 @@ export default async function handler(
     console.log("TAC code:", tac);
 
     // Normalize phone format to match the database
-    let cleanPhone = phone_number.replace(/\D/g, "");
-    if (cleanPhone.startsWith("0")) {
-      cleanPhone = "6" + cleanPhone;
-    } else if (!cleanPhone.startsWith("6") && cleanPhone.length > 0) {
-      cleanPhone = "60" + cleanPhone;
-    }
-    if (cleanPhone) {
-      cleanPhone = "+" + cleanPhone;
-    }
+    const cleanPhone = normalizePhoneNumber(phone_number);
 
     console.log("Normalized phone for verification:", cleanPhone);
     console.log("\n=== SEARCHING DATABASE ===");
