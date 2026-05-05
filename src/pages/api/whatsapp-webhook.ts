@@ -104,7 +104,7 @@ const DEFAULT_JOIN_PRICE = "RM66.00";
 const PAYMENT_BANK_NAME = "MAYBANK";
 const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
 const PAYMENT_BANK_HOLDER = "Zaaz Beez";
-const MAX_CONFIRMED_PARTICIPANTS = 42;
+const MAX_CONFIRMED_PARTICIPANTS = 48;
 
 function normalizeComparablePhone(rawPhone: string): string {
   const trimmed = String(rawPhone ?? "").trim();
