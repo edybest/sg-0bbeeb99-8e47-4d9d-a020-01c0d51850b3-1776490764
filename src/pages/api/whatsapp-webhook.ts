@@ -1048,6 +1048,8 @@ async function handleAmbcSyncCommand(
 async function handleCreateBlokCommand(
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string> {
+  console.log("[#createblok] Command triggered");
+
   // Get active join session
   const sessionResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
@@ -1057,11 +1059,16 @@ async function handleCreateBlokCommand(
     .limit(1)
     .maybeSingle();
 
+  console.log("[#createblok] Session result:", { data: sessionResult.data, error: sessionResult.error });
+
   const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
 
   if (!session) {
+    console.log("[#createblok] No active session found");
     return "❌ Tiada join session aktif untuk dijadikan game.";
   }
+
+  console.log("[#createblok] Active session found:", session.id, session.game_date);
 
   // Check if game already exists for this date
   const existingGameResult = await supabaseAdmin
@@ -1070,7 +1077,10 @@ async function handleCreateBlokCommand(
     .eq("game_date", session.game_date)
     .maybeSingle();
 
+  console.log("[#createblok] Existing game check:", { data: existingGameResult.data, error: existingGameResult.error });
+
   if (existingGameResult.data) {
+    console.log("[#createblok] Game already exists for this date");
     return `⚠️ Game untuk tarikh ${formatDateMY(session.game_date)} sudah wujud:\n\n${existingGameResult.data.game_name}`;
   }
 
@@ -1084,13 +1094,16 @@ async function handleCreateBlokCommand(
     .limit(48);
 
   const participants = participantsResult.data ?? [];
+  console.log("[#createblok] Participants found:", participants.length, "Error:", participantsResult.error);
 
   if (participants.length === 0) {
+    console.log("[#createblok] No valid participants");
     return "❌ Tiada peserta dengan member ID yang sah untuk dijadikan game.";
   }
 
   // Extract year from game_date
   const gameYear = parseInt(session.game_date.split("-")[0] || new Date().getFullYear().toString());
+  console.log("[#createblok] Game year:", gameYear);
 
   // Create new game
   const gameInsertResult = await supabaseAdmin
@@ -1106,12 +1119,15 @@ async function handleCreateBlokCommand(
     .select("id")
     .single();
 
+  console.log("[#createblok] Game insert result:", { data: gameInsertResult.data, error: gameInsertResult.error });
+
   if (gameInsertResult.error || !gameInsertResult.data) {
-    console.error("Error creating game:", gameInsertResult.error);
+    console.error("[#createblok] Error creating game:", gameInsertResult.error);
     return "❌ Gagal mencipta game. Sila cuba lagi.";
   }
 
   const gameId = gameInsertResult.data.id;
+  console.log("[#createblok] Game created with ID:", gameId);
 
   // Add participants to game_players
   const gamePlayers = participants.map((p) => ({
@@ -1125,22 +1141,31 @@ async function handleCreateBlokCommand(
     handicap: 0
   }));
 
+  console.log("[#createblok] Inserting", gamePlayers.length, "players");
+
   const participantsInsertResult = await supabaseAdmin
     .from("game_players")
     .insert(gamePlayers);
 
+  console.log("[#createblok] Players insert result:", { error: participantsInsertResult.error });
+
   if (participantsInsertResult.error) {
-    console.error("Error adding participants:", participantsInsertResult.error);
+    console.error("[#createblok] Error adding participants:", participantsInsertResult.error);
     // Rollback game creation
     await supabaseAdmin.from("games").delete().eq("id", gameId);
+    console.log("[#createblok] Game rolled back");
     return "❌ Gagal menambah peserta ke game. Sila cuba lagi.";
   }
 
   // Mark session as closed
-  await supabaseAdmin
+  const closeResult = await supabaseAdmin
     .from("whatsapp_join_sessions")
     .update({ status: "closed" })
     .eq("id", session.id);
+
+  console.log("[#createblok] Session close result:", { error: closeResult.error });
+
+  console.log("[#createblok] Success! Game created with", participants.length, "players");
 
   return `✅ *GAME BERJAYA DICIPTA!*
 
