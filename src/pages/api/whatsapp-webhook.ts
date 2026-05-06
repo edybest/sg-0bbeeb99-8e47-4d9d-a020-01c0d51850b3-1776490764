@@ -1089,16 +1089,19 @@ async function handleCreateBlokCommand(
     return "❌ Tiada peserta dengan member ID yang sah untuk dijadikan game.";
   }
 
+  // Extract year from game_date
+  const gameYear = parseInt(session.game_date.split("-")[0] || new Date().getFullYear().toString());
+
   // Create new game
   const gameInsertResult = await supabaseAdmin
     .from("games")
     .insert({
       game_name: session.game_name || "BLOK",
       game_date: session.game_date,
-      game_time: session.game_time || "20:00:00",
       location: session.location || "AMBC",
-      status: "upcoming",
-      max_participants: 48,
+      game_type: "BLOK",
+      year: gameYear,
+      is_official: true
     })
     .select("id")
     .single();
@@ -1110,16 +1113,21 @@ async function handleCreateBlokCommand(
 
   const gameId = gameInsertResult.data.id;
 
-  // Add participants to game
-  const gameParticipants = participants.map((p) => ({
+  // Add participants to game_players
+  const gamePlayers = participants.map((p) => ({
     game_id: gameId,
     member_id: p.member_id as string,
-    status: "confirmed" as const,
+    game1_score: 0,
+    game2_score: 0,
+    game3_score: 0,
+    game4_score: 0,
+    game5_score: 0,
+    handicap: 0
   }));
 
   const participantsInsertResult = await supabaseAdmin
-    .from("game_participants")
-    .insert(gameParticipants);
+    .from("game_players")
+    .insert(gamePlayers);
 
   if (participantsInsertResult.error) {
     console.error("Error adding participants:", participantsInsertResult.error);
@@ -1364,7 +1372,7 @@ Terima kasih! 🎳`;
   }
 
   if (message.toLowerCase().includes("#joinblok")) {
-    return handleJoinBlokCommand(message, supabaseAdmin);
+    return handleJoinBlokCommand(message, senderContext.phone, supabaseAdmin);
   }
 
   if (message.toLowerCase().includes("#ambc")) {
