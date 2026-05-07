@@ -46,7 +46,6 @@ Bug semasa: webhook untuk mesej WhatsApp group salah normalize nombor telefon ya
 - [x] Buang duplicate nama dalam sync `#ambc` secara case-insensitive dengan kekalkan kemasukan pertama dan skip nama sama yang datang kemudian.
 - [x] Sokong normalisasi nombor telefon berkod negara `65` selain `60` supaya ahli Singapura boleh dikenal pasti dalam webhook group dan direct chat.
 - [x] Pastikan nombor `65...` tidak dipaksa menjadi `+60...` dalam lookup `participant`, fallback payload scan, dan reply target normalization.
-- [x] Tambah command tersembunyi `#createblok` untuk auto-create game dari active session dan add 48 pemain terawal ke game_players.
 - [ ] Uji `#join` dan `#cancel` untuk satu ahli Malaysia dan satu ahli Singapura menggunakan format nombor WhatsApp yang berbeza (`65...`, `+65...`, `65...@s.whatsapp.net`, `65...:12@s.whatsapp.net`).
 - [ ] Test dalam WhatsApp group sebenar
 

@@ -104,7 +104,7 @@ const DEFAULT_JOIN_PRICE = "RM66.00";
 const PAYMENT_BANK_NAME = "MAYBANK";
 const PAYMENT_BANK_ACCOUNT = "5516 2323 8254";
 const PAYMENT_BANK_HOLDER = "Zaaz Beez";
-const MAX_CONFIRMED_PARTICIPANTS = 48;
+const MAX_CONFIRMED_PARTICIPANTS = 42;
 
 function normalizeComparablePhone(rawPhone: string): string {
   const trimmed = String(rawPhone ?? "").trim();
@@ -1045,140 +1045,6 @@ async function handleAmbcSyncCommand(
   return null;
 }
 
-async function handleCreateBlokCommand(
-  supabaseAdmin: AdminSupabaseClient
-): Promise<string> {
-  console.log("[#createblok] Command triggered");
-
-  // Get active join session
-  const sessionResult = await supabaseAdmin
-    .from("whatsapp_join_sessions")
-    .select("id, game_name, game_date, game_time, location, format_details, price")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  console.log("[#createblok] Session result:", { data: sessionResult.data, error: sessionResult.error });
-
-  const session = sessionResult.data as (JoinSessionSummary & { id: string }) | null;
-
-  if (!session) {
-    console.log("[#createblok] No active session found");
-    return "❌ Tiada join session aktif untuk dijadikan game.";
-  }
-
-  console.log("[#createblok] Active session found:", session.id, session.game_date);
-
-  // Check if game already exists for this date
-  const existingGameResult = await supabaseAdmin
-    .from("games")
-    .select("id, game_name")
-    .eq("game_date", session.game_date)
-    .maybeSingle();
-
-  console.log("[#createblok] Existing game check:", { data: existingGameResult.data, error: existingGameResult.error });
-
-  if (existingGameResult.data) {
-    console.log("[#createblok] Game already exists for this date");
-    return `⚠️ Game untuk tarikh ${formatDateMY(session.game_date)} sudah wujud:\n\n${existingGameResult.data.game_name}`;
-  }
-
-  // Get first 48 participants ordered by joined_at
-  const participantsResult = await supabaseAdmin
-    .from("whatsapp_join_participants")
-    .select("member_id, username, phone_number")
-    .eq("session_id", session.id)
-    .not("member_id", "is", null)
-    .order("joined_at", { ascending: true })
-    .limit(48);
-
-  const participants = participantsResult.data ?? [];
-  console.log("[#createblok] Participants found:", participants.length, "Error:", participantsResult.error);
-
-  if (participants.length === 0) {
-    console.log("[#createblok] No valid participants");
-    return "❌ Tiada peserta dengan member ID yang sah untuk dijadikan game.";
-  }
-
-  // Extract year from game_date
-  const gameYear = parseInt(session.game_date.split("-")[0] || new Date().getFullYear().toString());
-  console.log("[#createblok] Game year:", gameYear);
-
-  // Create new game
-  const gameInsertResult = await supabaseAdmin
-    .from("games")
-    .insert({
-      game_name: session.game_name || "BLOK",
-      game_date: session.game_date,
-      location: session.location || "AMBC",
-      game_type: "BLOK",
-      year: gameYear,
-      is_official: true
-    })
-    .select("id")
-    .single();
-
-  console.log("[#createblok] Game insert result:", { data: gameInsertResult.data, error: gameInsertResult.error });
-
-  if (gameInsertResult.error || !gameInsertResult.data) {
-    console.error("[#createblok] Error creating game:", gameInsertResult.error);
-    return "❌ Gagal mencipta game. Sila cuba lagi.";
-  }
-
-  const gameId = gameInsertResult.data.id;
-  console.log("[#createblok] Game created with ID:", gameId);
-
-  // Add participants to game_players
-  const gamePlayers = participants.map((p) => ({
-    game_id: gameId,
-    member_id: p.member_id as string,
-    game1_score: 0,
-    game2_score: 0,
-    game3_score: 0,
-    game4_score: 0,
-    game5_score: 0,
-    handicap: 0
-  }));
-
-  console.log("[#createblok] Inserting", gamePlayers.length, "players");
-
-  const participantsInsertResult = await supabaseAdmin
-    .from("game_players")
-    .insert(gamePlayers);
-
-  console.log("[#createblok] Players insert result:", { error: participantsInsertResult.error });
-
-  if (participantsInsertResult.error) {
-    console.error("[#createblok] Error adding participants:", participantsInsertResult.error);
-    // Rollback game creation
-    await supabaseAdmin.from("games").delete().eq("id", gameId);
-    console.log("[#createblok] Game rolled back");
-    return "❌ Gagal menambah peserta ke game. Sila cuba lagi.";
-  }
-
-  // Mark session as closed
-  const closeResult = await supabaseAdmin
-    .from("whatsapp_join_sessions")
-    .update({ status: "closed" })
-    .eq("id", session.id);
-
-  console.log("[#createblok] Session close result:", { error: closeResult.error });
-
-  console.log("[#createblok] Success! Game created with", participants.length, "players");
-
-  return `✅ *GAME BERJAYA DICIPTA!*
-
-🎳 ${session.game_name}
-📅 ${formatDateMY(session.game_date)}
-⏰ ${session.game_time || "20:00"}
-📍 ${session.location || "AMBC"}
-
-👥 Total peserta: *${participants.length}*
-
-Game telah dicipta dan join session ditutup.`;
-}
-
 async function handleJoinCommand(
   senderContext: ResolvedCommandSender,
   supabaseAdmin: AdminSupabaseClient
@@ -1360,52 +1226,53 @@ async function processCommand(
   senderContext: ResolvedCommandSender,
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string | null> {
-  const normalizedLower = message.toLowerCase().trim();
+  const trimmed = message.trim();
+  const lowerMessage = trimmed.toLowerCase();
 
-  if (normalizedLower === "#help") {
-    return `🎳 *AMBC CLUB - WhatsApp Commands*
-
-*Join Commands:*
-• #join - Sertai game session
-• #cancel - Batalkan penyertaan
-• #listjoin - Papar senarai peserta
-
-*Info Commands:*
-• #help - Papar mesej ini
-
-Terima kasih! 🎳`;
+  if (lowerMessage.includes("#ambc")) {
+    return handleAmbcSyncCommand(trimmed, supabaseAdmin);
   }
 
-  if (normalizedLower === "#theboy") {
-    return "ambc the boy always wins!!!";
+  if (lowerMessage === "#help") {
+    return buildDynamicHelpMessage(supabaseAdmin);
   }
 
-  if (normalizedLower === "#join") {
+  if (lowerMessage.includes("#joinblok")) {
+    return handleJoinBlokCommand(trimmed, senderContext.phone, supabaseAdmin);
+  }
+
+  if (lowerMessage === "#join") {
     return handleJoinCommand(senderContext, supabaseAdmin);
   }
 
-  if (normalizedLower === "#cancel") {
+  if (lowerMessage === "#cancel") {
     return handleCancelCommand(senderContext, supabaseAdmin);
   }
 
-  if (normalizedLower === "#listjoin") {
+  if (lowerMessage === "#listjoin") {
     return handleListJoinCommand(supabaseAdmin);
   }
 
-  if (normalizedLower === "#createblok") {
-    return handleCreateBlokCommand(supabaseAdmin);
+  const top5Match = lowerMessage.match(/^#top\s*5\s*([\d./-]+)?$/);
+  if (top5Match) {
+    return handleTop5Command(top5Match[1], supabaseAdmin);
   }
 
-  if (message.toLowerCase().includes("#joinblok")) {
-    return handleJoinBlokCommand(message, senderContext.phone, supabaseAdmin);
+  if (lowerMessage === "#lane") {
+    return handleLaneCommand(senderContext.phone, supabaseAdmin);
   }
 
-  if (message.toLowerCase().includes("#ambc")) {
-    await handleAmbcSyncCommand(message, supabaseAdmin);
-    return null;
+  const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?$/);
+  if (blokMatch) {
+    return handleBlokCommand(blokMatch[1], supabaseAdmin);
   }
 
-  return null;
+  const dynamicResponse = await getDynamicCommand(lowerMessage, supabaseAdmin);
+  if (dynamicResponse) {
+    return dynamicResponse;
+  }
+
+  return "❌ Command tidak dikenali.\n\nTaip *#help* untuk senarai command.";
 }
 
 async function sendWhatsAppReply(
