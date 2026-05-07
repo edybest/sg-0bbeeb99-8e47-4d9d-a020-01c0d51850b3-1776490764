@@ -339,6 +339,9 @@ function getHelpMessage(): string {
     `📊 *#rekod* [username]\n` +
     `   Papar 10 rekod terkini ahli\n` +
     `   Contoh: #rekod edy\n\n` +
+    `⚔️ *#vs* [user1,user2]\n` +
+    `   Bandingkan score 2 pemain\n` +
+    `   Contoh: #vs edy,samdol\n\n` +
     `✍️ *#join*\n` +
     `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
     `❌ *#cancel*\n` +
@@ -370,6 +373,9 @@ async function buildDynamicHelpMessage(supabaseAdmin: AdminSupabaseClient): Prom
     `📊 *#rekod* [username]\n` +
     `   Papar 10 rekod terkini ahli\n` +
     `   Contoh: #rekod edy\n\n` +
+    `⚔️ *#vs* [user1,user2]\n` +
+    `   Bandingkan score 2 pemain\n` +
+    `   Contoh: #vs edy,samdol\n\n` +
     `✍️ *#join*\n` +
     `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
     `❌ *#cancel*\n` +
@@ -908,6 +914,133 @@ async function handleRekodCommand(username: string, supabaseAdmin: AdminSupabase
   return reply;
 }
 
+async function handleVsCommand(usernames: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  if (!usernames || usernames.trim() === "") {
+    return "❌ Sila nyatakan 2 username.\n\nContoh: #vs edy,samdol";
+  }
+
+  const parts = usernames.split(",").map(u => u.trim()).filter(Boolean);
+  
+  if (parts.length !== 2) {
+    return "❌ Sila nyatakan 2 username sahaja.\n\nContoh: #vs edy,samdol";
+  }
+
+  const [username1, username2] = parts;
+
+  // Find both members
+  const member1Result = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name")
+    .ilike("username", username1)
+    .maybeSingle();
+
+  const member2Result = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name")
+    .ilike("username", username2)
+    .maybeSingle();
+
+  if (!member1Result.data) {
+    return `❌ Username "${username1}" tidak dijumpai dalam sistem.`;
+  }
+
+  if (!member2Result.data) {
+    return `❌ Username "${username2}" tidak dijumpai dalam sistem.`;
+  }
+
+  const member1 = member1Result.data as { id: string; username: string; full_name: string };
+  const member2 = member2Result.data as { id: string; username: string; full_name: string };
+
+  // Get latest game record for member 1
+  const record1Result = await supabaseAdmin
+    .from("game_players")
+    .select("game1_score, game2_score, game3_score, game4_score, game5_score, handicap, overall_score, games!inner(game_date)")
+    .eq("member_id", member1.id)
+    .not("overall_score", "is", null)
+    .order("games(game_date)", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Get latest game record for member 2
+  const record2Result = await supabaseAdmin
+    .from("game_players")
+    .select("game1_score, game2_score, game3_score, game4_score, game5_score, handicap, overall_score, games!inner(game_date)")
+    .eq("member_id", member2.id)
+    .not("overall_score", "is", null)
+    .order("games(game_date)", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!record1Result.data) {
+    return `❌ Tiada rekod game untuk ${member1.username}.`;
+  }
+
+  if (!record2Result.data) {
+    return `❌ Tiada rekod game untuk ${member2.username}.`;
+  }
+
+  const record1 = record1Result.data as {
+    game1_score: number | null;
+    game2_score: number | null;
+    game3_score: number | null;
+    game4_score: number | null;
+    game5_score: number | null;
+    handicap: number | null;
+    overall_score: number | null;
+  };
+
+  const record2 = record2Result.data as {
+    game1_score: number | null;
+    game2_score: number | null;
+    game3_score: number | null;
+    game4_score: number | null;
+    game5_score: number | null;
+    handicap: number | null;
+    overall_score: number | null;
+  };
+
+  const g1_1 = record1.game1_score ?? 0;
+  const g2_1 = record1.game2_score ?? 0;
+  const g3_1 = record1.game3_score ?? 0;
+  const g4_1 = record1.game4_score ?? 0;
+  const g5_1 = record1.game5_score ?? 0;
+  const hcp1 = record1.handicap ?? 0;
+  const overall1 = record1.overall_score ?? 0;
+
+  const g1_2 = record2.game1_score ?? 0;
+  const g2_2 = record2.game2_score ?? 0;
+  const g3_2 = record2.game3_score ?? 0;
+  const g4_2 = record2.game4_score ?? 0;
+  const g5_2 = record2.game5_score ?? 0;
+  const hcp2 = record2.handicap ?? 0;
+  const overall2 = record2.overall_score ?? 0;
+
+  const difference = Math.abs(overall1 - overall2);
+  const winner = overall1 > overall2 ? member1.username.toUpperCase() : 
+                 overall2 > overall1 ? member2.username.toUpperCase() : 
+                 "SERI";
+
+  let reply = `⚔️ *HEAD TO HEAD*\n\n`;
+  reply += `*${member1.username.toUpperCase()}*\n`;
+  reply += `G1: ${g1_1} | G2: ${g2_1} | G3: ${g3_1} | G4: ${g4_1} | G5: ${g5_1}\n`;
+  reply += `HCP: ${hcp1} | Overall: *${overall1}*\n\n`;
+  
+  reply += `*${member2.username.toUpperCase()}*\n`;
+  reply += `G1: ${g1_2} | G2: ${g2_2} | G3: ${g3_2} | G4: ${g4_2} | G5: ${g5_2}\n`;
+  reply += `HCP: ${hcp2} | Overall: *${overall2}*\n\n`;
+  
+  reply += `${"─".repeat(30)}\n`;
+  
+  if (winner === "SERI") {
+    reply += `🤝 *SERI* - Kedua-dua pemain sama skor!\n`;
+  } else {
+    reply += `🏆 *${winner} MENANG*\n`;
+    reply += `Beza: ${difference} pin${difference > 1 ? "s" : ""}\n`;
+  }
+
+  return reply;
+}
+
 async function handleLaneCommand(_sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const latestGameInfo = await getLatestBlokGame(supabaseAdmin);
   if (!latestGameInfo.game) {
@@ -1362,6 +1495,12 @@ async function processCommand(
   if (normalizedLower.startsWith("#rekod")) {
     const username = message.substring(6).trim();
     return handleRekodCommand(username, supabaseAdmin);
+  }
+
+  // Handle #vs [user1,user2]
+  if (normalizedLower.startsWith("#vs")) {
+    const usernames = message.substring(3).trim();
+    return handleVsCommand(usernames, supabaseAdmin);
   }
 
   // Handle #blok with optional date
