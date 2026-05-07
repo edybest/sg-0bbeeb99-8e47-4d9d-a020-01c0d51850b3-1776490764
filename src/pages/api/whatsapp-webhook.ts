@@ -336,6 +336,9 @@ function getHelpMessage(): string {
     `   Contoh: #top5 atau #top 5 20.03.2026\n\n` +
     `🎯 *#lane*\n` +
     `   Semak lane anda untuk blok terkini\n\n` +
+    `📊 *#rekod* [username]\n` +
+    `   Papar 10 rekod terkini ahli\n` +
+    `   Contoh: #rekod edy\n\n` +
     `✍️ *#join*\n` +
     `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
     `❌ *#cancel*\n` +
@@ -364,6 +367,9 @@ async function buildDynamicHelpMessage(supabaseAdmin: AdminSupabaseClient): Prom
     `   Contoh: #top5 atau #top 5 20.03.2026\n\n` +
     `🎯 *#lane*\n` +
     `   Semak lane anda untuk blok terkini\n\n` +
+    `📊 *#rekod* [username]\n` +
+    `   Papar 10 rekod terkini ahli\n` +
+    `   Contoh: #rekod edy\n\n` +
     `✍️ *#join*\n` +
     `   Sertai blok (bila ada #JOINBLOK aktif)\n\n` +
     `❌ *#cancel*\n` +
@@ -802,6 +808,106 @@ async function handleTop5Command(dateStr: string | undefined, supabaseAdmin: Adm
   return reply;
 }
 
+async function handleRekodCommand(username: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
+  if (!username || username.trim() === "") {
+    return "❌ Sila nyatakan username.\n\nContoh: #rekod edy";
+  }
+
+  const trimmedUsername = username.trim();
+
+  // Find member by username (case-insensitive)
+  const memberResult = await supabaseAdmin
+    .from("members")
+    .select("id, username, full_name")
+    .ilike("username", trimmedUsername)
+    .maybeSingle();
+
+  if (!memberResult.data) {
+    return `❌ Username "${trimmedUsername}" tidak dijumpai dalam sistem.`;
+  }
+
+  const member = memberResult.data as { id: string; username: string; full_name: string };
+
+  // Get latest 10 game records for this member
+  const recordsResult = await supabaseAdmin
+    .from("game_players")
+    .select(`
+      overall_score,
+      game_id,
+      games!inner(
+        id,
+        game_name,
+        game_date,
+        game_type
+      )
+    `)
+    .eq("member_id", member.id)
+    .not("overall_score", "is", null)
+    .order("games(game_date)", { ascending: false })
+    .limit(10);
+
+  if (recordsResult.error) {
+    console.error("Error fetching records:", recordsResult.error);
+    return "❌ Gagal mendapatkan rekod. Sila cuba lagi.";
+  }
+
+  const records = recordsResult.data as Array<{
+    overall_score: number;
+    game_id: string;
+    games: {
+      id: string;
+      game_name: string;
+      game_date: string;
+      game_type: string | null;
+    };
+  }>;
+
+  if (records.length === 0) {
+    return `📊 *REKOD - ${member.username.toUpperCase()}*\n\nTiada rekod game dijumpai.`;
+  }
+
+  // For each game, calculate rank
+  const recordsWithRank = await Promise.all(
+    records.map(async (record) => {
+      const gameId = record.game_id;
+      
+      // Get all players in this game sorted by overall_score
+      const rankResult = await supabaseAdmin
+        .from("game_players")
+        .select("overall_score")
+        .eq("game_id", gameId)
+        .not("overall_score", "is", null)
+        .order("overall_score", { ascending: false });
+
+      let rank = 1;
+      if (rankResult.data) {
+        const sortedScores = rankResult.data.map(p => p.overall_score);
+        rank = sortedScores.findIndex(score => score === record.overall_score) + 1;
+      }
+
+      return {
+        score: record.overall_score,
+        date: record.games.game_date,
+        gameName: record.games.game_name,
+        rank,
+      };
+    })
+  );
+
+  // Build reply message
+  let reply = `📊 *REKOD TERKINI - ${member.username.toUpperCase()}*\n\n`;
+  
+  recordsWithRank.forEach((record, index) => {
+    const formattedDate = formatDateMY(record.date);
+    const shortDate = formattedDate.split(" / ")[1] || record.date;
+    reply += `${index + 1}. ${record.score} (${shortDate}) - #${record.rank}\n`;
+  });
+
+  reply += `\n_Total rekod: ${records.length}_`;
+  
+  return reply;
+}
+
 async function handleLaneCommand(_sender: string, supabaseAdmin: AdminSupabaseClient): Promise<string> {
   const latestGameInfo = await getLatestBlokGame(supabaseAdmin);
   if (!latestGameInfo.game) {
@@ -1226,53 +1332,72 @@ async function processCommand(
   senderContext: ResolvedCommandSender,
   supabaseAdmin: AdminSupabaseClient
 ): Promise<string | null> {
-  const trimmed = message.trim();
-  const lowerMessage = trimmed.toLowerCase();
+  const normalizedLower = message.toLowerCase().trim();
 
-  if (lowerMessage.includes("#ambc")) {
-    return handleAmbcSyncCommand(trimmed, supabaseAdmin);
+  if (normalizedLower === "#help") {
+    return await buildDynamicHelpMessage(supabaseAdmin);
   }
 
-  if (lowerMessage === "#help") {
-    return buildDynamicHelpMessage(supabaseAdmin);
+  if (normalizedLower === "#theboy") {
+    return "ambc the boy always wins!!!";
   }
 
-  if (lowerMessage.includes("#joinblok")) {
-    return handleJoinBlokCommand(trimmed, senderContext.phone, supabaseAdmin);
-  }
-
-  if (lowerMessage === "#join") {
+  if (normalizedLower === "#join") {
     return handleJoinCommand(senderContext, supabaseAdmin);
   }
 
-  if (lowerMessage === "#cancel") {
+  if (normalizedLower === "#cancel") {
     return handleCancelCommand(senderContext, supabaseAdmin);
   }
 
-  if (lowerMessage === "#listjoin") {
+  if (normalizedLower === "#listjoin") {
     return handleListJoinCommand(supabaseAdmin);
   }
 
-  const top5Match = lowerMessage.match(/^#top\s*5\s*([\d./-]+)?$/);
-  if (top5Match) {
-    return handleTop5Command(top5Match[1], supabaseAdmin);
+  if (normalizedLower === "#createblok") {
+    return handleCreateBlokCommand(supabaseAdmin);
   }
 
-  if (lowerMessage === "#lane") {
+  if (normalizedLower === "#lane") {
     return handleLaneCommand(senderContext.phone, supabaseAdmin);
   }
 
-  const blokMatch = lowerMessage.match(/^#blok(?:ambc)?\s*([\d./-]+)?$/);
-  if (blokMatch) {
-    return handleBlokCommand(blokMatch[1], supabaseAdmin);
+  // Handle #rekod [username]
+  if (normalizedLower.startsWith("#rekod")) {
+    const username = message.substring(6).trim();
+    return handleRekodCommand(username, supabaseAdmin);
   }
 
-  const dynamicResponse = await getDynamicCommand(lowerMessage, supabaseAdmin);
-  if (dynamicResponse) {
-    return dynamicResponse;
+  // Handle #blok with optional date
+  if (normalizedLower.startsWith("#blok")) {
+    const dateStr = message.substring(5).trim() || undefined;
+    return handleBlokCommand(dateStr, supabaseAdmin);
   }
 
-  return "❌ Command tidak dikenali.\n\nTaip *#help* untuk senarai command.";
+  // Handle #top5 or #top 5 with optional date
+  if (normalizedLower.startsWith("#top5") || normalizedLower.startsWith("#top 5")) {
+    const dateStr = normalizedLower.startsWith("#top5")
+      ? message.substring(5).trim() || undefined
+      : message.substring(6).trim() || undefined;
+    return handleTop5Command(dateStr, supabaseAdmin);
+  }
+
+  if (message.toLowerCase().includes("#joinblok")) {
+    return handleJoinBlokCommand(message, senderContext.phone, supabaseAdmin);
+  }
+
+  if (message.toLowerCase().includes("#ambc")) {
+    await handleAmbcSyncCommand(message, supabaseAdmin);
+    return null;
+  }
+
+  // Check for custom dynamic commands
+  const customResponse = await getDynamicCommand(normalizedLower, supabaseAdmin);
+  if (customResponse) {
+    return customResponse;
+  }
+
+  return null;
 }
 
 async function sendWhatsAppReply(
