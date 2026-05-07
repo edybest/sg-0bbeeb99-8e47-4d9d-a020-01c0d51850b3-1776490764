@@ -1354,10 +1354,6 @@ async function processCommand(
     return handleListJoinCommand(supabaseAdmin);
   }
 
-  if (normalizedLower === "#createblok") {
-    return handleCreateBlokCommand(supabaseAdmin);
-  }
-
   if (normalizedLower === "#lane") {
     return handleLaneCommand(senderContext.phone, supabaseAdmin);
   }
